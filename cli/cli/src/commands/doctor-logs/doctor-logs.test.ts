@@ -108,7 +108,7 @@ describe("doctor logs", () => {
 		});
 		expect(report.status).toBe("fail");
 		expect(row(report, "logs:dataset:cli")).toMatchObject({ status: "fail" });
-		expect(row(report, "logs:dataset:cli").problems[0]).toContain("holocron repo setup");
+		expect(row(report, "logs:dataset:cli").problems[0]).toContain("holocron setup");
 		expect(ensureDataset).not.toHaveBeenCalled();
 	});
 

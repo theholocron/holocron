@@ -3,7 +3,7 @@
  * declares in `holocron.config.ts` with what is actually on the server and in the
  * secrets store, step by step.
  *
- * It is the end-to-end check for `notifications setup`, and stays useful after
+ * It is the end-to-end check for `setup notifications`, and stays useful after
  * as a drift check. The step numbers match the table in holocron#1098.
  */
 
@@ -696,7 +696,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					(have.intents?.members ?? false) !== wantApp.intents.members
 				) {
 					appProblems.push(
-						`the Server Members Intent is ${have.intents?.members ? "on" : "off"} but the layout says ${wantApp.intents.members ? "on" : "off"} (\`holocron notifications setup\` changes it)`
+						`the Server Members Intent is ${have.intents?.members ? "on" : "off"} but the layout says ${wantApp.intents.members ? "on" : "off"} (\`holocron setup notifications\` changes it)`
 					);
 				}
 				// Sign-in needs a registered redirect: what the layout names, else where the link flow would come back to now.
@@ -976,7 +976,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				OWNER_TITLE,
 				owner.isBot
 					? [
-							"the bot owns the server; hand it to a person with `holocron notifications create-server --resume --owner <member id>`",
+							"the bot owns the server; hand it to a person with `holocron new server --resume --owner <member id>`",
 						]
 					: [],
 				`owned by member ${shown(owner.id)}`

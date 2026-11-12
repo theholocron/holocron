@@ -1,6 +1,6 @@
 /**
  * The file that says which server member is which GitHub account. Written by the sign-in flow (a member
- * proves both identities) and read by `notifications sync-roles` and the doctor. It holds two public ids
+ * proves both identities) and read by `sync roles` and the doctor. It holds two public ids
  * per person and nothing secret, but the pairing itself is something a member did not necessarily want
  * published, so it lives in a private repo.
  */

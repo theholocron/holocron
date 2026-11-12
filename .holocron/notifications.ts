@@ -2,7 +2,7 @@ import type { NotificationsLayout } from "@theholocron/cli";
 
 import org from "./org.js";
 
-// The Holocron Discord server layout: `holocron notifications setup` applies it and Sentinel's role sync reads it.
+// The Holocron Discord server layout: `holocron setup notifications` applies it and Sentinel's role sync reads it.
 // `holocron.config.ts` keeps the provider entry (`guildId`); the loader puts this default export on its `layout`.
 // The package import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no
 // runtime code from a package. The one sibling import is `./org.js`, plain data: Sentinel fetches the whole
@@ -11,7 +11,7 @@ const { domain } = org;
 
 export default {
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
-	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `notifications setup`.
+	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
 	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
@@ -31,7 +31,7 @@ export default {
 		// Lists who is in the server, which `sync-roles` needs to find who holds a role.
 		intents: { members: true },
 	},
-	// Where `notifications link` signs members in: Sentinel when it answers, otherwise this machine.
+	// Where `link account` signs members in: Sentinel when it answers, otherwise this machine.
 	links: { hostedUrl: `https://sentinel.${domain}` },
 	categories: [
 		{
@@ -102,7 +102,7 @@ export default {
 			name: "BUILD",
 			channels: [
 				{ name: "dev", topic: "Day-to-day building talk" },
-				// A forum: one post for each ADR and spec, made from the file by `holocron specs sync`
+				// A forum: one post for each ADR and spec, made from the file by `holocron sync specs`
 				// (tech-specs-discussion-threads, #1535), titled with the document's own title. A post's tag is the file's status; only the
 				// bot and members who can manage threads (gatekeepers) can change a tag, and the sync turns a change into a
 				// pull request. Half-formed ideas belong here too, as posts of their own.
@@ -111,7 +111,7 @@ export default {
 					kind: "forum",
 					topic: "One post for each ADR and spec, tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
 					// Discord takes one default reaction per forum; the rest are added by the bot to the first message of each
-					// post `specs sync` makes, so every ADR and spec opens with approve, disapprove and question to hand.
+					// post `sync specs` makes, so every ADR and spec opens with approve, disapprove and question to hand.
 					defaultReaction: "👍",
 					starterReactions: ["👍", "👎", "❓"],
 					tags: [
@@ -170,7 +170,7 @@ export default {
 		],
 	},
 	// Pinned at the top of #welcome and #rules. The layout is the whole set of messages the bot has pinned in a channel, so
-	// editing this text (or the file a message names) replaces the pinned message on the next `holocron notifications setup`.
+	// editing this text (or the file a message names) replaces the pinned message on the next `holocron setup notifications`.
 	pinned: [
 		{
 			channel: "welcome",
@@ -194,7 +194,7 @@ export default {
 				"The maintainers hold the gatekeepers role.",
 			].join("\n"),
 		},
-		// The rules live in .holocron/pinned/rules.md; `notifications setup` pins whatever it says.
+		// The rules live in .holocron/pinned/rules.md; `setup notifications` pins whatever it says.
 		{ channel: "rules", file: ".holocron/pinned/rules.md" },
 	],
 	// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
@@ -239,7 +239,7 @@ export default {
 			mentionable: true,
 			color: "#f0b232",
 			hoist: true,
-			// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
+			// Kept equal to the GitHub team of the same name by `holocron sync roles`.
 			team: "gatekeepers",
 			// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
 			// Manage Threads is what lets a gatekeeper change the status tag of a spec's post in #ideas.

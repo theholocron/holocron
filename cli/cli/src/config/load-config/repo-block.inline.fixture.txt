@@ -1,6 +1,6 @@
 teams: [{ slug: "gatekeepers", permission: "maintain" }],
 topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
-// Organization Actions variables the reusable workflows read as `vars.NAME`. `holocron repo setup` creates and
+// Organization Actions variables the reusable workflows read as `vars.NAME`. `holocron setup` creates and
 // updates these; anything else already set in the org is reported and left alone (no `prune`). Values are plain
 // text, so identifiers only, never a secret. Still to add once their values are settled:
 // CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
@@ -11,7 +11,7 @@ variables: {
 		TURBO_TEAM: "iamnewton",
 	},
 },
-// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
+// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron sync secrets
 // "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names
 // only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
 // `doctor secrets` expects every key listed here at its scope.

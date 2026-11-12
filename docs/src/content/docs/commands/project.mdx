@@ -4,10 +4,10 @@ description: List, create, close and set up the project boards that plan work, f
 ---
 
 ```bash
-holocron project list
-holocron project create roadmap --title "v5"
-holocron project close 7
-holocron project setup
+holocron list projects
+holocron new project roadmap --title "v5"
+holocron close project 7
+holocron setup project
 ```
 
 `project` manages boards through the `projects` provider (GitHub Projects v2 today). A board is found by its name among the owner's open boards; no project number is stored anywhere.
@@ -33,11 +33,11 @@ The owner is the `org` option, else `--org`, else the config's `org`. `--org` on
 
 A template says what a board looks like: its statuses (each with a category), its other fields and its views. `roadmap` and `sprint` ship with the CLI. A repo adds its own as `<name>.json` in the templates directory; a file with the name of a built-in replaces it, and `"extends": "roadmap"` starts from one and adds to it. A file with a problem is reported by name and left out; the rest still load.
 
-## `project list`
+## `list projects`
 
 A table of the owner's boards, newest first, with number, name and state (open or closed). Read-only.
 
-## `project create [template] [--title <title>] [--yes]`
+## `new project [template] [--title <title>] [--yes]`
 
 Makes a board from a template. Without a template a terminal picks from a list; without a terminal it stops (`NonInteractiveError`). The title defaults to the template's name.
 
@@ -47,11 +47,11 @@ It is idempotent on the title, among open boards only (a closed board never bloc
 - with `--yes` it prints the existing board's address;
 - otherwise it stops with `NonInteractiveError`.
 
-## `project close <number-or-name> [--yes]`
+## `close project <number-or-name> [--yes]`
 
 Closes an open board, found by number (`7`) or by name. Closing is reversible from the provider. It asks first in a terminal; without one it needs `--yes`.
 
-## `project setup`
+## `setup project`
 
 Makes each board in `providers.projects.boards` match its template. For each: find it by name among the open boards, create it from its template if it is missing, then bring it in line (`ensure`) and print what changed. Nothing is deleted and no item's value is cleared.
 

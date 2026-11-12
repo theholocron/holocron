@@ -16,7 +16,7 @@ export interface DnsRecordSources {
 }
 
 /**
- * The DNS records the config makes `holocron repo setup` and `notifications setup` write, as far as they can be
+ * The DNS records the config makes `holocron setup` and `setup notifications` write, as far as they can be
  * known without writing anything: the preview domain's apex and wildcard CNAMEs (on a Cloudflare deployment), the
  * docs host a wiki provider asks for, the relay Worker's proxied placeholder, the GitHub Pages docs domain
  * (`docs.domain`, a DNS-only CNAME to `<org>.github.io`) and the mail provider's apex records (`doctor.mail`). A record that

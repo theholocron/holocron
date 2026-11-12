@@ -7,7 +7,7 @@
 1Password plugin for [Holocron](../cli). Implements the `vault`
 capability via shell-out to the `op` CLI
 (<https://developer.1password.com/docs/cli>). Also exports
-`verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+`verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## One of several vault providers
 
@@ -17,7 +17,7 @@ so you can swap by editing one config line. Peer plugins:
 
 - **[`@theholocron/holocron-plugin-doppler`](../holocron-plugin-doppler)**
   — REST-transport, Doppler-CLI-managed auth via the OS keychain
-  (`doppler login` → `holocron auth set doppler …`). This repo's
+  (`doppler login` → `holocron new token doppler …`). This repo's
   own default since `2.0.0-alpha.4`.
 - **`@theholocron/holocron-plugin-infisical`** — planned (see [#97](https://github.com/theholocron/holocron/issues/97)),
   will use the same REST + keyring shape.
@@ -91,12 +91,12 @@ found.
 
 This plugin does NOT store a bearer token — the `op` CLI manages
 its own auth via the 1Password desktop app (biometric unlock on
-laptops) or `OP_SERVICE_ACCOUNT_TOKEN` on CI. `holocron auth set
+laptops) or `OP_SERVICE_ACCOUNT_TOKEN` on CI. `holocron new token
 1password` will accept a token, but since the plugin doesn't read
 the keyring, storing one has no runtime effect. The `AUTH_HINT`
-export makes this explicit in `holocron auth` output.
+export makes this explicit in `holocron check token` output.
 
-`holocron auth check 1password` runs `op whoami --format=json` to
+`holocron check token 1password` runs `op whoami --format=json` to
 confirm you're signed in — a useful validation independent of
 holocron.
 
@@ -130,7 +130,7 @@ holocron.
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `read(reference)`             | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                                                                                                                                                                                                   |
 | `write(reference, v)`         | Probe + `op item edit` if exists, else `op item create --category=API Credential`.                                                                                                                                                                                          |
-| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault; with only an `environment` set, the variable names of that Environment (`repo setup` calls it). Neither is an error.                                                                            |
+| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault; with only an `environment` set, the variable names of that Environment (`setup` calls it). Neither is an error.                                                                                 |
 | `readSecret(name)`            | Reads one variable of the Environment named by the `environment` option, through the same `op environment secret list`; refuses without that option. Lets a caller (the `comlink deliver` probe) ask for a secret by its bare name.                                         |
 | `readEnvironment(name or id)` | `op environment secret list <name or id> --reveal --format=dotenv` — parses the variables into a record (a multi-line PEM key, which `op` prints unquoted, is read whole). `op environment read` takes only an id, so this reads through `secret list`, which takes either. |
 
@@ -147,7 +147,7 @@ convention):
 `ensureProject` / `ensureEnvironment` — 1Password's data model
 doesn't have projects with sub-configs the way Doppler / Infisical
 do. The vault + item hierarchy is created via the 1P UI or `op item
-create`, not via `holocron repo setup`. The methods are omitted;
+create`, not via `holocron setup`. The methods are omitted;
 `runSetup` skips them cleanly (see the [`Vault`
 interface](../cli/src/capabilities/index.ts)).
 

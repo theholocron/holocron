@@ -44,7 +44,7 @@ describe("createPlugin", () => {
 		expect(tokens).toEqual([
 			{ envName: "HOLOCRON_LINEAR_TOKEN", vendorEnvName: "LINEAR_API_KEY", keyringKey: "linear" },
 		]);
-		expect(AUTH_HINT).toMatch(/holocron auth set linear/);
+		expect(AUTH_HINT).toMatch(/holocron new token linear/);
 
 		const rows: ProbeRow[] = [];
 		const { fetch } = fakeLinear([[/viewer/, VIEWER]]);

@@ -12,7 +12,7 @@ import { checkScripts, type ScriptsOfPackage } from "./check-scripts.js";
 import { generatePackageWorkflows } from "./generate-package-workflows.js";
 import { sharedWorkflows } from "./shared-workflows.js";
 
-/** The group of probes that check the files `repo setup` and `repo sync` generate. */
+/** The group of probes that check the files `setup` and `sync` generate. */
 export const GENERATED_PROVIDER = "generated";
 
 function readText(path: string): string | null {
@@ -58,11 +58,11 @@ async function generate(input: RepoFilesInput) {
 }
 
 /**
- * `generated check` generates every file `repo setup` writes from the config alone (no provider, no token), twice, and
+ * `generated check` generates every file `setup` writes from the config alone (no provider, no token), twice, and
  * fails for each one that differs from the committed copy, differs the second time, or is a workflow nothing
  * generates. It does the same for the workflows each workspace package's own config generates (`apps/sentinel`), which
- * are named by the package in the message. CI runs it, so a change to a generator or to the config that was not followed by a run of `repo setup`
- * or `repo sync` cannot merge.
+ * are named by the package in the message. CI runs it, so a change to a generator or to the config that was not followed by a run of `setup`
+ * or `sync` cannot merge.
  */
 export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginProbes {
 	return {

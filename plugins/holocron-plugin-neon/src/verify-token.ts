@@ -1,6 +1,6 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set` +
- * `holocron auth check`. Hits Neon's `/users/me` endpoint and
+ * `verifyToken` — plugin-level export used by `holocron new token` +
+ * `holocron check token`. Hits Neon's `/users/me` endpoint and
  * translates the response into the normalized `VerifyTokenResult`
  * shape.
  */

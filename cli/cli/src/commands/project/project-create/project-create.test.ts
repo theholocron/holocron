@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { board, fakeProjects, inputFor, memoryIo, promptOf } from "../project-test-kit/index.js";
 import { runProjectCreate } from "./project-create.js";
 
-describe("project create", () => {
+describe("new project", () => {
 	it("makes the board from the template and prints it", async () => {
 		const projects = fakeProjects();
 		const { input, lines } = inputFor(projects);

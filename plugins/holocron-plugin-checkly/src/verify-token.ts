@@ -1,11 +1,11 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set` +
- * `holocron auth check`. Hits `GET /v1/accounts`, not `/me` — Checkly
+ * `verifyToken` — plugin-level export used by `holocron new token` +
+ * `holocron check token`. Hits `GET /v1/accounts`, not `/me` — Checkly
  * has no account-independent "who am I" endpoint, but this one is
  * explicitly `x-checkly-account`-optional (confirmed against the live
  * OpenAPI spec): it lists every account the key can see, which is
  * exactly what verification needs before an account id is even known.
- * `holocron auth set checkly <KEY>` runs before the repo's
+ * `holocron new token checkly <KEY>` runs before the repo's
  * `holocron.config.ts` (and its configured `accountId`) is in scope at
  * all, so this deliberately doesn't require one.
  *

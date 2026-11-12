@@ -180,7 +180,7 @@
  * entry-point convention and reading its real secrets into `Env` — is
  * the still-open "Sentinel's own holocron.config.ts" PR-stack item.
  *
- * `Env` fields this handler expects, wired via `holocron secrets sync`
+ * `Env` fields this handler expects, wired via `holocron sync secrets`
  * (holocron#781) from the 1Password Environment `Sentinel`: `SENTINEL_GITHUB_APP_ID`,
  * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`),
  * `SENTINEL_WEBHOOK_SECRET`. The module-level

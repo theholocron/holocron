@@ -168,13 +168,13 @@ describe("runGithubAppCreate", () => {
 		expect(lines.join("\n")).toMatch(message);
 	});
 
-	it("tells a repo without the ignore rule to run repo sync, but keeps the old advice for --file", async () => {
+	it("tells a repo without the ignore rule to run sync, but keeps the old advice for --file", async () => {
 		const missing = setup({ isIgnored: () => "tracked" });
 		await runGithubAppCreate(missing.input);
-		expect(missing.lines.join("\n")).toContain("run `holocron repo sync`");
+		expect(missing.lines.join("\n")).toContain("run `holocron sync`");
 		const chosen = setup({ isIgnored: () => "tracked", file: "x.env" });
 		await runGithubAppCreate(chosen.input);
-		expect(chosen.lines.join("\n")).not.toContain("repo sync");
+		expect(chosen.lines.join("\n")).not.toContain("sync");
 		expect(chosen.lines.join("\n")).toContain("--file");
 	});
 

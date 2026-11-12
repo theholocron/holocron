@@ -1,0 +1,152 @@
+---
+title: "setup"
+description: Apply all infra setup actions across every configured capability.
+---
+
+```bash
+holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
+```
+
+`setup` is the primary provisioning command. It applies a deterministic set of infrastructure actions for every configured capability. Each step is wrapped in a try/catch — failures are reported but don't abort subsequent steps. A summary at the end shows counts for ok, fail, and skip.
+
+## What setup does
+
+### Always (no capability required)
+
+| Action                              | Output                                                                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Write `.editorconfig`               | Canonical editor settings (tab indent, LF line endings, etc.)                                                                                                |
+| Write `.alexrc.json`                | Shared inclusive-language allow-list                                                                                                                         |
+| Write `commitlint.config.ts`        | CommitLint config extending `@theholocron/commitlint-config`                                                                                                 |
+| Write `.husky/pre-push`             | When hooks are enabled — runs `holocron run ci` before every push (see below)                                                                                |
+| Update `codecov.yml`                | Syncs `individual_components` to match the workspace packages                                                                                                |
+| Write `turbo.json`                  | Generated from the fan-out-eligible tasks in `tasks[]` — skipped when none are eligible                                                                      |
+| Write `.holocron/.private/.gitkeep` | Keeps the private directory in the checkout; with the `.gitignore` block that ignores everything else in it (see [`sync`](/holocron/commands/sync/#private)) |
+| Install CI workflows                | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                                                                        |
+| Install agent skills                | Downloads and installs each skill from `skills[]` into `.agents/skills/` with agent-specific symlinks                                                        |
+
+### `source` capability (GitHub plugin)
+
+| Action                                 | Notes                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge             |
+| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below)  |
+| Enable vulnerability alerts            | Dependabot alerts                                                       |
+| Enable automated security fixes        | Dependabot auto-PRs                                                     |
+| Enable secret scanning                 | Secret scanning alerts                                                  |
+| Enable private vulnerability reporting | Private advisories                                                      |
+| Enable dependency graph                | Dependency graph + snapshot submission                                  |
+| Enable CodeQL                          | Default setup with extended query suite                                 |
+| Configure Dependabot                   | Writes `.github/dependabot.yml` (see below)                             |
+| Sync labels                            | Upserts canonical labels; removes stale ones                            |
+| Sync properties                        | Sets org-level custom properties from `repo.properties`                 |
+| Sync topics                            | Sets GitHub topics from `repo.topics`                                   |
+| Sync variables                         | Creates and updates Actions variables from `repo.variables` (see below) |
+| Sync teams                             | Grants team access from `repo.teams`                                    |
+| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                     |
+
+**Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only, with the organization token when there is one; it needs read access to the organization's custom properties, otherwise the step says it could not read them), quotes GitHub's message, and says how to fix it, which does not need the definitions to be readable:
+
+```text
+✗ sync properties  (GitHub refused the custom properties (422), so none was set: ... GitHub said: Value 'credentials' is not allowed for property 'holocron_capabilities'. To fix it: add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization's Settings, Custom properties), then run setup again)
+```
+
+Fix it in the organization's property definitions, not in the repo: a new capability (the ones a `holocron.config` wires are listed in `holocron_capabilities`) is a value to add there once, and every repo can then use it. [`holocron doctor repo`](/holocron/commands/doctor-repo/) checks the values against the definitions before you run setup.
+
+**Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that contains the `ci`
+aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
+`ci` waits on every `{ required: true }` task, the hand-written checks and the `codecov/*` statuses of the top-level
+`extraRequiredChecks`, so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
+caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
+order, then `extraRequiredChecks`. No hand-maintained list.
+
+**The `ci` aggregate.** `setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
+beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
+commit until every expected id has a check run named `<id> / ...` and all of them completed, and every `codecov/*`
+status reached `success`, or 30 minutes pass. An id that never posted fails as "never posted"; `success`, `skipped` and
+`neutral` pass and anything else fails. The job summary is a table of every expected check with a link, failing ones
+first, and each failure is also an `::error title=<id>::` annotation. Re-running one check that did not succeed does not update `ci`:
+re-run `ci` too. To adopt it, add `ci / Required checks`, watch it pass on a few pull requests, then remove the per-task contexts and
+`codecov/*` from the ruleset (`holocron doctor repo` names the stale and the missing contexts).
+
+**Pre-push hook.** When hooks are enabled — on by default for
+`protection: "strict"`, gated by the `hooks` config field, overridable with
+`--hooks` / `--no-hooks` — `setup` writes `.husky/pre-push` (runs `holocron run ci`)
+and sets `package.json#scripts.prepare` to `husky` (unless `syncScripts: false`).
+Run `pnpm install` once to activate it; bypass one push with `git push --no-verify`.
+
+**Dependabot.** `.github/dependabot.yml` is generated: weekly npm and GitHub Actions updates, grouped. Dependabot reads every entry of a pnpm catalog as a dependency, so for each package of the workspace that a catalog also lists (the plugins' minimum client and util versions, say) `setup` adds a name-only `ignore` entry to the npm ecosystem. Those entries are compatibility floors raised by hand, and the package itself is linked with `workspace:`. A package from outside the workspace in a catalog keeps getting updates, and so do security updates for every dependency (a name-only `ignore` only stops version updates).
+
+### `vault` capability
+
+| Action              | Notes                                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| `ensureProject`     | Creates the project container in the vault if absent                   |
+| `ensureEnvironment` | Creates standard environments (`dev`, `stg`, `prd`) inside the project |
+
+### `tooling` capability (an API collections tool, for example)
+
+| Action   | Notes                                              |
+| -------- | -------------------------------------------------- |
+| `sync()` | Pulls the tool's authoritative state from the repo |
+
+### `auth` capability (Clerk, etc.)
+
+| Action             | Notes                                          |
+| ------------------ | ---------------------------------------------- |
+| `ensureWebhookApp` | Idempotent provisioning of the webhook backend |
+
+## Options
+
+| Option                   | Description                                                            |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `--repo owner/name`      | Override the repo coordinate                                           |
+| `--hooks` / `--no-hooks` | Force git-hook installation on or off (default: on for strict repos)   |
+| `--dry-run`              | Print "would" lines for all mutating steps; read-only probes still run |
+
+## Example
+
+```bash
+# Full setup
+holocron setup
+
+# Dry-run — see every action without executing
+holocron setup --dry-run
+
+# Target a specific repo
+holocron setup --repo my-org/my-project
+```
+
+## Notes
+
+- Workflow files written by `setup` are **generated artifacts** — overwritten on each run. Do not edit them manually; edit the workflow templates in `theholocron/holocron` and run `holocron sync github` instead.
+- Skills are gitignored and re-installed on each `setup` run. Running `setup` on a fresh clone restores them.
+- `setup` is idempotent — running it again on the same repo produces the same result and does not create duplicate labels, environments, or teams.
+
+## Actions variables
+
+Workflows read `vars.NAME`, and a missing one fails quietly, so declare them where the rest of the repository's settings live:
+
+```ts
+repo: {
+  variables: {
+    // This repository's variables.
+    repo: { DEPLOY_REGION: "eu-west-1" },
+    // The organization's. A string is visible to every repository.
+    org: {
+      TURBO_TEAM: "iamnewton",
+      INTERNAL_ONLY: { value: "x", visibility: "private" },
+    },
+    // Delete variables that exist but are not declared above. Off unless you say so.
+    prune: false,
+  },
+},
+```
+
+`holocron setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: LEGACY_FLAG, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
+
+Values are stored in plain text and shown in the UI. Never declare a secret here; use the `secrets` capability for those. Names follow GitHub's rules: letters, digits and underscores, not starting with a digit or `GITHUB_`.
+
+Declare organization variables in one repository only (the one that owns the organization's configuration), or two repositories will keep overwriting each other. `visibility: "selected"` (a hand-picked list of repositories) is not managed: use `all` or `private`. An existing variable limited to selected repositories is never deleted, even with `prune`; it is listed as not managed. Names are compared without regard to case, as GitHub does, and a scope declared empty (`repo: {}`) with `prune` deletes everything in it.
+
+Tokens: repository variables use `HOLOCRON_ADMIN_TOKEN` (**Variables: read/write**), organization variables use `HOLOCRON_ORG_TOKEN` (organization **Variables: read/write**). See the [Token Reference](/holocron/tokens/).

@@ -1,5 +1,6 @@
 import { ConfigError } from "@theholocron/kyber/config";
 
+import { isUnsyncedLayer, unsyncedLayerMessage } from "../../credentials-environments/unsynced-layer/index.js";
 import type { RepoSecrets } from "../config/index.js";
 import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 
@@ -15,6 +16,7 @@ export function validateSecretsDeploy(secrets: RepoSecrets | undefined): void {
 	for (const entry of secrets?.deploy ?? []) {
 		const named = validateEnvironmentChoice(entry, "a `repo.secrets.deploy` entry");
 		const label = `\`repo.secrets.deploy\` entry for ${JSON.stringify(named)}`;
+		if (isUnsyncedLayer(entry.layer)) throw new ConfigError(unsyncedLayerMessage(label, entry.layer));
 		const { keys, prefix } = entry;
 		if (keys !== undefined && (!Array.isArray(keys) || keys.some((k) => typeof k !== "string" || k === ""))) {
 			throw new ConfigError(`${label} has \`keys\` that is not a list of key names`);

@@ -1,0 +1,12 @@
+---
+title: "publish"
+description: Version and publish workspace packages.
+---
+
+The `publish` subcommand group versions and publishes the workspace's packages.
+
+| Command                                                              | What it does                                                                             |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`publish bump-versions`](/holocron/commands/publish-bump-versions/) | Bump all non-private package versions in lockstep (semantic-release `prepareCmd`)        |
+| [`publish package`](/holocron/commands/publish-package/)             | Publish `@theholocron/*` packages to npm, including the first publish and the trust sync |
+| [`publish tag`](/holocron/commands/publish-tag/)                     | Move a version group's major tag (`ci-v1`) to its latest stable release (`publishCmd`)   |

@@ -31,7 +31,7 @@ pnpm build
 # If your npm account requires 2FA for writes, grab a one-time password
 # from your authenticator and pass it via --otp. The same code is reused
 # across all sequential publishes — they happen within seconds.
-pnpm --filter @theholocron/cli run start:source package publish --initial --otp 123456
+pnpm --filter @theholocron/cli run start:source publish package --initial --otp 123456
 ```
 
 Add `--dry-run` to print what would happen without publishing. If you forget `--otp` and your account needs it, the command detects the `EOTP` error and prints the corrected command.
@@ -58,13 +58,13 @@ Push to `main` triggers `ci.release.yml`, which calls the reusable `release.yml`
 When adding a new `holocron-plugin-*` package:
 
 1. Add it to the workspace packages.
-2. Run `holocron package publish --initial --tag alpha` (or `--dry-run` first) — it handles `npm login` itself.
+2. Run `holocron publish package --initial --tag alpha` (or `--dry-run` first) — it handles `npm login` itself.
 3. Visit the npm UI and configure Trusted Publisher for the new package (same settings as above).
 4. Future releases via `main` will include the new package automatically.
 
 ## Release versioning
 
-Holocron uses `semantic-release` with lockstep versioning — all packages in the workspace advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron package bump-versions` to patch every `package.json` in the workspace.
+Holocron uses `semantic-release` with lockstep versioning — all packages in the workspace advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron publish bump-versions` to patch every `package.json` in the workspace.
 
 ### Releasing a version group
 
@@ -80,8 +80,8 @@ export default groupReleaseConfig({
   group,
   branches: ["main", { name: "alpha", prerelease: true }],
   exec: {
-    prepareCmd: `holocron package bump-versions \${nextRelease.version} --group ${group}`,
-    publishCmd: `holocron package publish --group ${group} --skip-already-published`,
+    prepareCmd: `holocron publish bump-versions \${nextRelease.version} --group ${group}`,
+    publishCmd: `holocron publish package --group ${group} --skip-already-published`,
   },
 });
 ```
@@ -104,15 +104,15 @@ It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules,
 - **A release only when the folder changed.** The analyzer sees only commits under `ci/`, so a change elsewhere neither releases the group nor moves the tag.
 - **From `main` only.** The group's `branches` is `["main"]`, so a run on `alpha` releases nothing and cannot move a tag that outside repos follow.
 
-`release.config.ts` gives it a config of its own: `prepareCmd` runs `package bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`package move-tag`](/commands/package-move-tag/) instead of `package publish`. Nothing goes to npm. In `release` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
+`release.config.ts` gives it a config of its own: `prepareCmd` runs `publish bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`publish tag`](/commands/publish-tag/) instead of `publish package`. Nothing goes to npm. In `release` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
 
 Moving to a new major (`ci-v2`) is a breaking change to the workflows' inputs or secrets. The first release after a `feat!`/`BREAKING CHANGE` commit tags `ci-v2.0.0` and creates `ci-v2`. `ci-v1` stays where it was, so callers pinned to it keep working until they change it on purpose.
 
-To repair or move a major tag by hand: `git fetch --tags && holocron package move-tag ci` (`--dry-run` first).
+To repair or move a major tag by hand: `git fetch --tags && holocron publish tag ci` (`--dry-run` first).
 
 #### Releasing every group in CI
 
-List the groups on the `release` task and `holocron repo sync` generates a caller that releases each one:
+List the groups on the `release` task and `holocron sync` generates a caller that releases each one:
 
 ```ts
 // astromech.config.ts
@@ -147,7 +147,7 @@ with: {
 }
 ```
 
-`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs **after** the groups, from the branch tip they have moved: the packages in no group depend on the groups' packages through `workspace:` ranges, which are rewritten to concrete versions at publish time, so the groups must be on npm first (list `groups` in dependency order: a group before the groups that depend on it). It is skipped if a group errored. A manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
+`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs **after** the groups, from the branch tip they have moved: the packages in no group depend on the groups' packages through `workspace:` ranges, which are rewritten to concrete versions at publish time, so the groups must be on npm first (list `groups` in dependency order: a group before the groups that depend on it). It is skipped if a group errored. A manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`publish bump-versions` and `publish package` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
 
 ```ts
 import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";

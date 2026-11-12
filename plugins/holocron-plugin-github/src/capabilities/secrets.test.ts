@@ -1,3 +1,4 @@
+import type { SecretScope } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
@@ -98,7 +99,7 @@ describe("GitHubSecrets — organization scope", () => {
 		expect(calls[0]?.url).toBe("https://api.github.com/orgs/theholocron/actions/secrets");
 	});
 
-	it("setSecret sends visibility=all on org-scoped writes", async () => {
+	it("setSecret keeps visibility=all when the scope names no readers (secret set, setup notifications)", async () => {
 		const { publicKeyBase64 } = await makeKeypair();
 		const { secrets, calls } = makeSecrets([
 			{ status: 200, body: { key_id: "org-keyid", key: publicKeyBase64 } },
@@ -108,6 +109,113 @@ describe("GitHubSecrets — organization scope", () => {
 		const body = calls[1]?.body as Record<string, unknown>;
 		expect(body.visibility).toBe("all");
 		expect(body.key_id).toBe("org-keyid");
+	});
+});
+
+describe("GitHubSecrets — organization readers", () => {
+	const org = { kind: "organization", name: "theholocron" } as const;
+
+	it("setSecret with selected readers resolves each name to an id and sends visibility=selected with the ids", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { id: 11, default_branch: "main", full_name: "theholocron/holocron" } },
+			{ status: 200, body: { id: 22, default_branch: "main", full_name: "theholocron/.github" } },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ ...org, visibility: "selected", repos: ["holocron", ".github"] }, "TOKEN", "val");
+		expect(calls[0]?.url).toBe("https://api.github.com/repos/theholocron/holocron");
+		expect(calls[1]?.url).toBe("https://api.github.com/repos/theholocron/.github");
+		const body = calls[3]?.body as Record<string, unknown>;
+		expect(body.visibility).toBe("selected");
+		expect(body.selected_repository_ids).toEqual([11, 22]);
+	});
+
+	it("asks GitHub for a repository once, however many secrets name it", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { id: 11, default_branch: "main", full_name: "theholocron/holocron" } },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		const scope: SecretScope = { ...org, visibility: "selected", repos: ["holocron"] };
+		await secrets.setSecret(scope, "ONE", "a");
+		await secrets.setSecret(scope, "TWO", "b");
+		expect(calls.filter((c) => c.url.endsWith("/repos/theholocron/holocron"))).toHaveLength(1);
+		expect(calls).toHaveLength(5);
+	});
+
+	it("writes nothing and names the repository when a name does not resolve", async () => {
+		const { secrets, calls } = makeSecrets([{ status: 404, body: { message: "Not Found" } }]);
+		const err = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: ["nope"] }, "TOKEN", "val")
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/could not resolve repository theholocron\/nope/);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("reports a failure that is not an Error by its text", async () => {
+		const client = {
+			repos: { getRepo: () => Promise.reject("boom") },
+			secrets: {},
+		} as never;
+		const secrets = new GitHubSecrets(client, { repo: REPO });
+		const err = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: ["x"] }, "T", "v")
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toBe("could not resolve repository theholocron/x: boom");
+	});
+
+	it("refuses selected readers with no repositories", async () => {
+		const { secrets, calls } = makeSecrets([]);
+		const err = await secrets.setSecret({ ...org, visibility: "selected" }, "T", "v").catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/needs a non-empty repos list/);
+		const empty = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: [] }, "T", "v")
+			.catch((e: unknown) => e);
+		expect((empty as Error).message).toMatch(/needs a non-empty repos list/);
+		expect(calls).toHaveLength(0);
+	});
+
+	it("sends visibility=private as given, with no repository ids", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ ...org, visibility: "private" }, "T", "v");
+		const body = calls[1]?.body as Record<string, unknown>;
+		expect(body.visibility).toBe("private");
+		expect(body).not.toHaveProperty("selected_repository_ids");
+	});
+
+	it("listSecretAccess gives visibility by name and the repositories of a selected secret, never a value", async () => {
+		const { secrets, calls } = makeSecrets([
+			{
+				status: 200,
+				body: {
+					total_count: 2,
+					secrets: [
+						{ name: "OPEN", visibility: "all" },
+						{ name: "NARROW", visibility: "selected" },
+					],
+				},
+			},
+			{ status: 200, body: { total_count: 1, repositories: [{ name: "holocron" }] } },
+		]);
+		expect(await secrets.listSecretAccess(org)).toEqual({
+			OPEN: { visibility: "all" },
+			NARROW: { visibility: "selected", repos: ["holocron"] },
+		});
+		expect(calls[1]?.url).toContain("/orgs/theholocron/actions/secrets/NARROW/repositories");
+	});
+
+	it("listSecretAccess has nothing to say for a scope without visibility", async () => {
+		const { secrets, calls } = makeSecrets([]);
+		expect(await secrets.listSecretAccess({ kind: "repo" })).toEqual({});
+		expect(calls).toHaveLength(0);
 	});
 });
 

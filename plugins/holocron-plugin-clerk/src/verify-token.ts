@@ -1,6 +1,6 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set` +
- * `holocron auth check`. Hits Clerk's `/v1/instance` endpoint, which
+ * `verifyToken` — plugin-level export used by `holocron new token` +
+ * `holocron check token`. Hits Clerk's `/v1/instance` endpoint, which
  * requires a valid secret key and returns instance metadata (id,
  * environment_type, etc.). Invalid keys → 401.
  *

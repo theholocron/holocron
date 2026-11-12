@@ -3,7 +3,7 @@
  *
  * Implements the `deployment` capability against Netlify's REST API via
  * `@theholocron/netlify-client`. Also exports `verifyToken` + `AUTH_HINT`
- * for `holocron auth`. See README for auth + config docs.
+ * for `holocron check token`. See README for auth + config docs.
  */
 
 import type { Deployment } from "@theholocron/cli";
@@ -74,12 +74,12 @@ export function createPlugin(options: NetlifyPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set netlify` when no token is
+ * One-line hint printed by `holocron new token netlify` when no token is
  * supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Netlify Personal Access Token at https://app.netlify.com/user/applications#personal-access-tokens, " +
-	"then run: holocron auth set netlify <TOKEN>";
+	"then run: holocron new token netlify <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

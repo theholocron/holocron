@@ -8,7 +8,7 @@ import { tokenContext } from "../../token-context/index.js";
 import { runProjectList } from "./project-list.js";
 
 export const projectListCommand: CommandModule<GlobalArgs, GlobalArgs> = {
-	command: "list",
+	command: "projects",
 	describe: "List the boards of the organization, with their number, name and state",
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);

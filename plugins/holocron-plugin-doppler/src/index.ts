@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-doppler` — entrypoint.
  *
  * Implements the `vault` capability against Doppler's REST API. Also
- * exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See README
+ * exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See README
  * for auth + config docs.
  */
 
@@ -70,12 +70,12 @@ export function createPlugin(options: DopplerPluginOptions) {
 }
 
 /**
- * One-line hint shown by `holocron auth set doppler` when no token is
+ * One-line hint shown by `holocron new token doppler` when no token is
  * supplied or when the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"install the Doppler CLI (`brew install dopplerhq/cli/doppler`), run `doppler login`, then " +
-	"`holocron auth set doppler $(doppler configure get token --plain)`";
+	"`holocron new token doppler $(doppler configure get token --plain)`";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

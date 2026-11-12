@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-checkly` — entrypoint.
  *
  * Implements the `monitoring` capability against Checkly's REST API.
- * Also exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See
+ * Also exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See
  * README for auth + config docs.
  */
 
@@ -19,7 +19,7 @@ import { verifyToken } from "./verify-token.js";
 export interface ChecklyPluginOptions extends ResolveTokenInput {
 	/** Checkly account id — required on every request, not a secret (same status as Vercel's teamId). */
 	accountId: string;
-	/** Checks `holocron repo setup` should ensure exist. */
+	/** Checks `holocron setup` should ensure exist. */
 	checks?: MonitoringCheckInput[];
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -80,12 +80,12 @@ export function createPlugin(options: ChecklyPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set checkly` when no token
+ * One-line hint printed by `holocron new token checkly` when no token
  * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Checkly API key at https://app.checklyhq.com/settings/user/api-keys, " +
-	"then run: holocron auth set checkly <KEY>";
+	"then run: holocron new token checkly <KEY>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

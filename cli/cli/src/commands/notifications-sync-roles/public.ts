@@ -1,5 +1,5 @@
 /**
- * What `@theholocron/cli` exposes of `notifications sync-roles`: the sync itself and the checks in front of it,
+ * What `@theholocron/cli` exposes of `sync roles`: the sync itself and the checks in front of it,
  * so another adapter (Sentinel's hosted role sync) runs the same function the command does.
  */
 export { readLinks, sourceProblem } from "./notifications-sync-roles.js";

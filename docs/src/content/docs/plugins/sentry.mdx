@@ -18,7 +18,7 @@ The Sentry plugin activates automatically at runtime when `HOLOCRON_SENTRY_DSN`
 (fallback: `SENTRY_DSN`) is present in the environment — no provider entry in
 `holocron.config` is required for the CLI to route errors to Sentry.
 
-The `errors` provider entry is used by `holocron repo setup` — it calls
+The `errors` provider entry is used by `holocron setup` — it calls
 `ensureProject` and pushes the DSN at repo scope via the `secrets` capability
 — and by `holocron doctor` (connectivity). Once setup has run, the env var
 alone is sufficient.
@@ -30,7 +30,7 @@ or any workspace package's lists `next` in `dependencies` or `devDependencies`.
 A DSN is built to be embedded in client code, so it is not a true secret.
 Setup never removes `NEXT_PUBLIC_SENTRY_DSN`: a repo that drops Next.js deletes that secret by hand.
 In this repo it is synced as the organization Actions variable `HOLOCRON_SENTRY_DSN` (from the 1Password
-Environment `theholocron/holocron - ci`), which the CLI's telemetry reads before `SENTRY_DSN`; `repo setup`
+Environment `theholocron/holocron - ci`), which the CLI's telemetry reads before `SENTRY_DSN`; `setup`
 still pushes `SENTRY_DSN` as a repo secret, the name consumer repos' SDKs read.
 
 ```bash
@@ -40,7 +40,7 @@ export SENTRY_DSN=https://...@sentry.io/...
 
 ## Config
 
-The provider entry is optional at runtime but required if you want `holocron repo setup`
+The provider entry is optional at runtime but required if you want `holocron setup`
 to provision the project for you:
 
 ```ts
@@ -62,7 +62,7 @@ providers: {
 For CI, prefer an org-level token: **Settings → [Your Org] → Developer Settings → Auth Tokens**.
 
 ```bash
-holocron auth set sentry <TOKEN>
+holocron new token sentry <TOKEN>
 ```
 
 Or via env var:

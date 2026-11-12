@@ -33,4 +33,30 @@ describe("secretRoutes", () => {
 	it("throws on a scope it cannot read", () => {
 		expect(() => secretRoutes([{ environment: "CI", scope: "nowhere" }], "CI")).toThrow();
 	});
+
+	it("gives an organization scope its readers, as names in the organization", () => {
+		expect(
+			secretRoutes(
+				[
+					{
+						environment: "CI",
+						keys: ["A"],
+						scope: "org=theholocron",
+						repos: ["theholocron/holocron", ".github"],
+					},
+				],
+				"CI"
+			)
+		).toEqual([
+			{
+				scope: {
+					kind: "organization",
+					name: "theholocron",
+					visibility: "selected",
+					repos: ["holocron", ".github"],
+				},
+				keys: ["A"],
+			},
+		]);
+	});
 });

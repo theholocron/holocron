@@ -9,7 +9,7 @@ import { runSecretsList, secretsListScopes } from "./index.js";
 import { type SecretsListArgs, secretsListArgs } from "./secrets-list.args.js";
 
 export const secretsListCommand: CommandModule<GlobalArgs, SecretsListArgs> = {
-	command: "list",
+	command: "secrets",
 	describe: "List the names of the secrets at each scope (never the values)",
 	builder: secretsListArgs,
 	handler: async (argv) => {

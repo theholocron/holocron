@@ -181,7 +181,8 @@ test-only follow-ups):
    `cleanup branches | posts`, `apply properties`.
 7. `publish`: `bump-versions`, `package`, `tag`.
 8. `close`, `move`, `reconcile`, `link`, `resolve`, `show`, and the last empty groups.
-9. A final check that `holocron probe tasks names` and a grep for every old command name come back clean.
+9. `install skills` and `update skills` (the last of the `skills` group), then a final check that
+   `holocron probe tasks names` and a grep for every old command name come back clean.
 10. Manual: run `holocron sync github` to push the regenerated reusable templates (needs the sync token).
 
 ## Out of scope

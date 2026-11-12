@@ -25,12 +25,13 @@ export const secretsSyncArgs = (y: Argv<GlobalArgs>) =>
 		})
 		.option("github-secret", {
 			type: "array",
-			describe: "Vault key(s) to push to GH Actions secrets (repeatable). Omit to push every key.",
+			describe:
+				"Vault key(s) to push to GH Actions secrets (repeatable). Names the destination when `repo.secrets.sync` has no entry.",
 		})
 		.option("github-secret-scope", {
 			type: "string",
-			default: "repo",
-			describe: 'Scope applied to every --github-secret key: "repo" (default), "env=<name>", or "org=<name>".',
+			describe:
+				'Scope applied to every --github-secret key: "repo", "env=<name>", or "org=<name>". Naming it counts as naming the destination.',
 		});
 
 export type SecretsSyncArgs = InferArgs<typeof secretsSyncArgs>;

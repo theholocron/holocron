@@ -4041,7 +4041,7 @@ describe("role members", () => {
 
 	it("a role that is missing, or named twice, is an error that says what to do", async () => {
 		const missing = makeProvisioner([{ body: [] }]);
-		await expect(missing.notifs.roleMembers("gatekeepers")).rejects.toThrow(/no role named .*notifications setup/);
+		await expect(missing.notifs.roleMembers("gatekeepers")).rejects.toThrow(/no role named .*setup notifications/);
 		const twice = makeProvisioner([
 			{ body: [...roles, { id: "92", name: "gatekeepers", color: 0, mentionable: false }] },
 		]);

@@ -30,7 +30,7 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 The "token" for `send()` is the full webhook URL, not a separate API key. The bot token and the client secret are for provisioning and sign-in, and the `HOLOCRON_NOTIFY_*` secrets are for workflows. [Tokens](/holocron/tokens/#discord) says what each one is for.
 
-The webhook is the last resort for a post that names no channel, alias or `defaultChannel`, so the plugin lists it as an optional token: `holocron doctor credentials` does not expect it in the credentials environment, and `holocron auth export` marks it `(optional)` when it has none. The connection check (`holocron doctor`, `holocron probe discord connection`) uses the webhook when there is one and the bot token when there is not, so a missing webhook is not a broken connection as long as the bot can be reached.
+The webhook is the last resort for a post that names no channel, alias or `defaultChannel`, so the plugin lists it as an optional token: `holocron doctor credentials` does not expect it in the credentials environment, and `holocron export tokens` marks it `(optional)` when it has none. The connection check (`holocron doctor`, `holocron probe discord connection`) uses the webhook when there is one and the bot token when there is not, so a missing webhook is not a broken connection as long as the bot can be reached.
 
 ## Config
 
@@ -63,7 +63,7 @@ The URL looks like: `https://discord.com/api/webhooks/{webhook.id}/{webhook.toke
 ### 2. Store the webhook URL
 
 ```bash
-holocron auth set discord https://discord.com/api/webhooks/1234567890/abcdefghij...
+holocron new token discord https://discord.com/api/webhooks/1234567890/abcdefghij...
 ```
 
 Or via env var:
@@ -111,25 +111,25 @@ await notif.send("", "Deploy complete");
 
 Posting needs only a webhook URL. Setting a server up (creating channels, roles and webhooks) needs the **Holonet bot** instead:
 
-| What               | Value                                                                                                                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                                                                                           |
-| Client secret      | `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`) — Developer Portal → OAuth2 → Reset Secret. Only [`notifications link`](/holocron/commands/notifications-link/) reads it |
-| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                                                                                          |
-| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                                                                                           |
-| `layout` (config)  | Categories, channels and roles to create; see [`notifications setup`](/holocron/commands/notifications-setup/)                                                                         |
+| What               | Value                                                                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                                                                               |
+| Client secret      | `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`) — Developer Portal → OAuth2 → Reset Secret. Only [`link account`](/holocron/commands/link-account/) reads it |
+| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                                                                              |
+| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                                                                               |
+| `layout` (config)  | Categories, channels and roles to create; see [`setup notifications`](/holocron/commands/setup-notifications/)                                                             |
 
 The bot token is read only when a provisioning command runs; `send()` never needs it. Discord returns a webhook's URL only to the application that created it, so an existing webhook cannot be read back.
 
 ```bash
-holocron notifications setup --dry-run   # preview
-holocron notifications setup             # apply
-holocron notifications channel add sync --category AUTOMATION --with-webhook
+holocron setup notifications --dry-run   # preview
+holocron setup notifications             # apply
+holocron new channel sync --category AUTOMATION --with-webhook
 ```
 
 ## Posting from GitHub Actions
 
-A workflow does not use the plugin or `holocron auth`. It posts through the **`notify` action**, a composite action in `theholocron/.github` (`.github/actions/notify`, synced from `ci/actions/notify/action.yml` in this repository), with one webhook secret for the channel the message belongs in.
+A workflow does not use the plugin or `holocron check token`. It posts through the **`notify` action**, a composite action in `theholocron/.github` (`.github/actions/notify`, synced from `ci/actions/notify/action.yml` in this repository), with one webhook secret for the channel the message belongs in.
 
 | Input      | Default    | What it does                                                                                                                                                         |
 | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -143,7 +143,7 @@ By default the action never fails the job it reports on: a missing webhook is a 
 
 ### The `HOLOCRON_NOTIFY_*` secrets
 
-`holocron notifications setup` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/notifications-setup/#security)).
+`holocron setup notifications` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/setup-notifications/#security)).
 
 | Secret                              | Holds                                                                                                                                                                      | Written for                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -172,7 +172,7 @@ Two more feeds reach Discord without a workflow: Sentry alerts go to #errors thr
 
 `check-notify` is a manual workflow (`workflow_dispatch`, from the Actions tab). Its reusable half posts one labelled test message to each channel of its `channels` input, using the real org secrets, and each channel is its own job (`Check <channel>`), so one red job names the channel to fix and the others still run. A channel marked `mention` (alerts) also needs `HOLOCRON_NOTIFY_ALERT_ROLE` and pings it, and a missing or malformed role id fails that job. A caller can pass its own `channels` (a JSON array of `{ name, secret, mention }`).
 
-Three channels are left out on purpose. `ideas` is a forum that `specs sync` writes through the bot token, so there is no webhook post to prove. `holonet` is the channel `holocron doctor notifications` uses for its own test post. Nothing posts in `dev`. `rules` and `welcome` are in the list, so their jobs fail until the layout gives them `webhook: true` and `setup` has stored the secrets.
+Three channels are left out on purpose. `ideas` is a forum that `sync specs` writes through the bot token, so there is no webhook post to prove. `holonet` is the channel `holocron doctor notifications` uses for its own test post. Nothing posts in `dev`. `rules` and `welcome` are in the list, so their jobs fail until the layout gives them `webhook: true` and `setup` has stored the secrets.
 
 It is a different check from `holocron doctor notifications`: the doctor compares the server with the layout and can post through the webhook it finds on the channel, while this workflow proves that the **stored secret** holds a working URL and that the role ping resolves. A run started from `alpha` that goes red is also reported by the Notifications workflow, because its caller is named `check-notify`.
 
@@ -180,9 +180,9 @@ It is a different check from `holocron doctor notifications`: the doctor compare
 
 `.github/workflows/platform.notifications.yml` (`name: Notifications`) tells Discord about runs nobody is watching, instead of each workflow carrying its own notify step. It starts on `workflow_run` when one of these finishes: the callers named for their task id (`test:unit`, `typecheck`, `lint:code`, `build`, `release`, `validate:specs`, `validate:docs`, `deploy-docs`, `check-tokens`, and so on), or `deploy-sentinel`, or `sync-specs`.
 
-- **A failure goes to #alerts**, with the ping, when the run ended in error, was not a pull request and ran on `alpha` or `main`. **`deploy`, `deploy-docs`, `deploy-components`, `preview`, deploy-sentinel and the `ci.deploy-preview.yml` and `ci.check-preview.yml` runs go to #deploys** instead. The message names the workflow, its file, the branch and the run, and adds `(attempt N)` on a rerun. It then lists the jobs of that attempt that errored (or timed out), each as a link to the job: five at most, then `and N more`. The job runs with `actions: read` (the only job in the file that has it) to read them from `GET /actions/runs/{id}/attempts/{n}/jobs`, up to the first 100 jobs. Job names are used as they are, with `[` and `]` replaced and each cut to 80 characters, so the post stays inside Discord's 2000. When the jobs cannot be read, or none of them failed (a cancelled run), the post is the line it always was. `check-tokens` is in the list, so a token close to expiring reaches #alerts the day it is found.
+- **A failure goes to #alerts**, with the ping, when the run ended in error, was not a pull request and ran on `alpha` or `main`. **`deploy`, `deploy-docs`, `deploy-components`, `preview`, deploy-sentinel and the `ci.deploy-preview.yml` and `ci.check-preview.yml` runs go to #deploys** instead. The message names the workflow, its file, the branch and the run, and adds `(attempt N)` on a rerun. It then lists the jobs of that attempt that errored (or timed out), each as a link to the job: five at most, then `and N more`. The job runs with `actions: read` (the only job in the file that has it) to read them from `GET /actions/runs/{id}/attempts/{n}/jobs`, up to the first 100 jobs. Job names are used as they are, with `[` and `]` replaced and each cut to 80 characters, so the post stays inside Discord's 2000. When the jobs cannot be read, or none of them errored (a cancelled run), the post is the line it always was. `check-tokens` is in the list, so a token close to expiring reaches #alerts the day it is found.
 - **A release goes to #releases.** When the `release` run (`ci.release.yml`) succeeds, the job lists the tags made since the run began (from git, newest first, at most ten). A package line such as `clients-v*` is tagged without a GitHub release, which is why the tags come from git. No new tag, no post.
-- **Left out on purpose:** repo sync (`ci.sync-repo.yml`), which posts its own result, and this workflow, so a failure here cannot loop.
+- **Left out on purpose:** sync (`ci.sync-repo.yml`), which posts its own result, and this workflow, so a failure here cannot loop.
 - **A missing webhook secret is not an error.** The notify action skips and the run stays green.
 
 :::caution
@@ -193,11 +193,11 @@ This workflow is hand-maintained in this repository. It is not part of the gener
 
 ## Forum channels
 
-A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/notifications-setup/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
+A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/setup-notifications/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
 
 ### Discussion posts
 
-The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron specs sync`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state; with `prLine` it also swaps the `PR:` paragraph of the bot's own first message (a message edit that keeps every other paragraph and the footer, for `specs sync --refresh-origin`; with `idLine` it swaps the first line of that message, the document's id as plain text or as a link to its file, for `--refresh` and for a file that moved, and refuses a message that does not start with an id; a `title` renames the thread for `--refresh-titles`, unarchiving a closed post to do it and closing it again). The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
+The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron sync specs`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state; with `prLine` it also swaps the `PR:` paragraph of the bot's own first message (a message edit that keeps every other paragraph and the footer, for `sync specs --refresh-origin`; with `idLine` it swaps the first line of that message, the document's id as plain text or as a link to its file, for `--refresh` and for a file that moved, and refuses a message that does not start with an id; a `title` renames the thread for `--refresh-titles`, unarchiving a closed post to do it and closing it again). The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
 
 On Discord:
 
@@ -210,7 +210,7 @@ On Discord:
 
 ## Channel content from a file
 
-What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `notifications setup` pins whatever the file says:
+What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `setup notifications` pins whatever the file says:
 
 ```ts
 layout: {
@@ -218,7 +218,7 @@ layout: {
 },
 ```
 
-`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron notifications setup`, and #rules shows the new text.
+`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron setup notifications`, and #rules shows the new text.
 
 - **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from .holocron/pinned/rules.md`), and fails the `pinned` row when the file cannot be read.
 - **The text is the file, as Discord will show it.** A byte-order mark is dropped, line endings become `\n` and blank lines at the end are trimmed, so a trailing newline never counts as a change. Markdown is Discord's, not GitHub's: a single newline is a line break there, so write a blank line between paragraphs if the file is also read on GitHub.

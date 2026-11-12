@@ -1,5 +1,5 @@
 /**
- * `holocron repo setup` — orchestrates per-capability setup actions across
+ * `holocron setup` — orchestrates per-capability setup actions across
  * every plugin loaded from `holocron.config.json`.
  *
  * Per CLAUDE.md soft-skip: each step is wrapped in a try/catch and
@@ -77,7 +77,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const logger = getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
-	assertPluginsResolvable(loader, "repo setup");
+	assertPluginsResolvable(loader, "setup");
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
@@ -85,7 +85,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
 	// Stamped into every workflow thin caller written below, same marker
-	// `holocron repo sync` uses (holocron#1026) and checked the same way
+	// `holocron sync` uses (holocron#1026) and checked the same way
 	// via assertNoPackageCollision -- before writing, read the file back
 	// through the loaded Source capability and compare its marker (holocron#1068;
 	// previously setup could only stamp its own marker for a LATER sync
@@ -173,7 +173,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 	// ── source: the files generated from the config ─────────────────────
 	// Thin-caller workflows, config files, git hooks, codecov.yml and turbo.json come from `generateRepoFiles`, which
-	// needs no provider; this only writes what it returns through the source. `repo sync` writes the same files.
+	// needs no provider; this only writes what it returns through the source. `sync` writes the same files.
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
 		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));
@@ -423,7 +423,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				step: "configure GitHub Pages",
 				status: "skip",
 				message:
-					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
+					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron new token github.deploy <PAT>",
 			});
 			print(formatStep(steps[steps.length - 1]!));
 		} else if (source.configurePages) {
@@ -684,7 +684,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				}
 				for (const key of keys) {
 					steps.push(
-						await runStep("errors", `secrets set ${key}`, dryRun, async () => {
+						await runStep("errors", `new secret ${key}`, dryRun, async () => {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);
 						})
 					);
@@ -866,7 +866,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			)
 		);
 		print(style.hint("                       or keyring keys github.admin / github.org / github.deploy"));
-		print(style.hint("     Then re-run:      holocron repo setup"));
+		print(style.hint("     Then re-run:      holocron setup"));
 		print(style.hint("     (--token <pat> overrides every token, the org one included; use it only when one"));
 		print(style.hint("      token covers everything.)"));
 	}

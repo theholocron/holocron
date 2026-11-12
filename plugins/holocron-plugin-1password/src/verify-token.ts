@@ -1,5 +1,5 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth check`.
+ * `verifyToken` — plugin-level export used by `holocron check token`.
  *
  * 1Password doesn't use a bearer token like the REST-transport plugins
  * do — the `op` CLI manages its own auth via desktop-app biometric on
@@ -7,7 +7,7 @@
  * argument is intentionally IGNORED here. What we actually check is:
  * is `op` installed AND signed in (i.e., can it answer `whoami`).
  *
- * If someone tries `holocron auth set 1password <token>`, the token
+ * If someone tries `holocron new token 1password <token>`, the token
  * will be stored in the keyring but never read by this plugin — the
  * `AUTH_HINT` below explains that up front.
  */

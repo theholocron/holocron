@@ -9,7 +9,7 @@ import { runNotificationsSyncRoles } from "./index.js";
 import { type NotificationsSyncRolesArgs, notificationsSyncRolesArgs } from "./notifications-sync-roles.args.js";
 
 export const notificationsSyncRolesCommand: CommandModule<GlobalArgs, NotificationsSyncRolesArgs> = {
-	command: "sync-roles",
+	command: "roles",
 	describe: "Make who holds a server role match a team, through the links file",
 	builder: notificationsSyncRolesArgs,
 	handler: async (argv) => {

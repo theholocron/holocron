@@ -184,10 +184,10 @@ describe("reusableTemplates()", () => {
 		expect(action).toContain('exit "$exit_code"');
 	});
 
-	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+	it("platform.repoSync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/command: repo sync/);
+		expect(wf).toMatch(/command: sync/);
 		expect(wf).not.toContain("node cli/cli/dist/cli.mjs");
 		// the standalone `pnpm build` step is gone — the action handles it
 		expect(wf).not.toMatch(/^\s+- run: pnpm build\n\s+name: Build CLI/m);
@@ -324,6 +324,44 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(action).toMatch(/uploaded" -eq 0 \] && \[ "\$ALLOW_EMPTY" != "true"/);
 	});
 
+	it("codecov-upload asks for a new OIDC token before every upload, because one token does not last a whole run", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		// the request lives in one function, not inline once at the top
+		expect(action.match(/ACTIONS_ID_TOKEN_REQUEST_URL&audience=https:\/\/codecov\.io/g)).toHaveLength(1);
+		expect(action).toMatch(/fetch_token\(\) \{/);
+		// the first token is for create-commit and create-report; each upload attempt then takes its own
+		expect(action.indexOf("fetch_token || exit 1")).toBeLessThan(action.indexOf("create-commit"));
+		expect(action.indexOf("until fetch_token")).toBeGreaterThan(action.indexOf("create-report"));
+		// a failed request fails the step instead of uploading with a stale or empty token
+		expect(action).toMatch(/Could not get an OIDC token\."\n\s+return 1/);
+	});
+
+	it("codecov-upload uploads each report with its paths from the repo root, and leaves out an empty one", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		// a package-relative `SF:src/index.ts` is ambiguous across the packages, so Codecov rejects the report
+		expect(action).toContain("rooted_copy()");
+		expect(action).toContain('awk -v prefix="$dir/"');
+		expect(action).toContain('--file "$reports/$flag.$n.info"');
+		// the upload takes the copy, never the original report
+		expect(action).not.toMatch(/args\+=\(--file "\$f"\)/);
+		// a report at the repo root, and a path that is already absolute, keep their paths
+		expect(action).toContain('case "$dir" in . | coverage) dir="" ;; esac');
+		expect(action).toContain('substr($0, 4, 1) != "/"');
+		// a report with no source file is left out instead of uploaded to be rejected as empty
+		expect(action).toContain("if ! grep -q '^SF:' \"$f\"; then");
+		expect(action).toMatch(/if \[ "\$n" -eq 0 \]; then\n\s+echo "· \$flag: no coverage files"\n\s+continue/);
+	});
+
+	it("codecov-upload tries each flag's upload up to four times before it fails the job", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		expect(action).toMatch(/until fetch_token && "\$CODECOV_CLI" do-upload [^\n]*--fail-on-error/);
+		expect(action).toContain('if [ "$attempt" -ge 4 ]');
+		// the failure that ends the retries still fails the step
+		expect(action).toMatch(/Codecov rejected the \$flag upload[^\n]*\n\s+exit 1/);
+		// a wait grows with each attempt, so a short outage is outlasted
+		expect(action).toContain("wait=$((attempt * 15))");
+	});
+
 	it("verification.unitTests uploads per flag only when `uploads` is set, and the old single upload otherwise", () => {
 		const unit = REUSABLE_WORKFLOWS["test:unit"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
@@ -379,12 +417,12 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("VERCEL_TOKEN: ${{");
 	});
 
-	it("delivery.previewCheck runs `holocron monitoring resolve-checks` then `monitoring run-resolved` with the preview URL input", () => {
+	it("delivery.previewCheck runs `holocron resolve checks` then `check resolved` with the preview URL input", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		expect(previewCheck).toContain("workflow_call:");
 		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
-		expect(previewCheck).toContain("command: monitoring resolve-checks");
-		expect(previewCheck).toContain("command: monitoring run-resolved");
+		expect(previewCheck).toContain("command: resolve checks");
+		expect(previewCheck).toContain("command: check resolved");
 		expect(previewCheck).toContain(
 			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}"
 		);
@@ -401,9 +439,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// before the monitoring-resolve-checks/run-resolved steps (which
 		// forward steps.validate.outputs.url, never the raw input) ever run.
 		expect(previewCheck).toMatch(/id: validate[\s\S]*hostname[\s\S]*\.vercel\.app/);
-		expect(previewCheck.indexOf("id: validate")).toBeLessThan(
-			previewCheck.indexOf("command: monitoring resolve-checks")
-		);
+		expect(previewCheck.indexOf("id: validate")).toBeLessThan(previewCheck.indexOf("command: resolve checks"));
 		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
 	});
 
@@ -425,10 +461,10 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// untrusted. It must come first and must never see either secret,
 		// or a malicious config could read and exfiltrate them before the
 		// credentialed step ever runs.
-		expect(previewCheck).toContain("command: monitoring resolve-checks");
-		expect(previewCheck).toContain("command: monitoring run-resolved");
-		const resolveIndex = previewCheck.indexOf("command: monitoring resolve-checks");
-		const runResolvedIndex = previewCheck.indexOf("command: monitoring run-resolved");
+		expect(previewCheck).toContain("command: resolve checks");
+		expect(previewCheck).toContain("command: check resolved");
+		const resolveIndex = previewCheck.indexOf("command: resolve checks");
+		const runResolvedIndex = previewCheck.indexOf("command: check resolved");
 		expect(resolveIndex).toBeGreaterThan(-1);
 		expect(resolveIndex).toBeLessThan(runResolvedIndex);
 
@@ -437,8 +473,8 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// `resolveIndex`'s containing step happens not to mention the
 		// secrets anywhere textually after it.
 		const steps = previewCheck.split(/\n(?= {6}- )/);
-		const resolveStep = steps.find((s) => s.includes("command: monitoring resolve-checks"));
-		const runResolvedStep = steps.find((s) => s.includes("command: monitoring run-resolved"));
+		const resolveStep = steps.find((s) => s.includes("command: resolve checks"));
+		const runResolvedStep = steps.find((s) => s.includes("command: check resolved"));
 		expect(resolveStep).toBeDefined();
 		expect(runResolvedStep).toBeDefined();
 
@@ -471,7 +507,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Review on #1032: a bare *.vercel.app hostname proves nothing on its
 		// own -- anyone can register their own Vercel project. --vercel-project
-		// is what `monitoring run-resolved` gates the bypass header on (see
+		// is what `check resolved` gates the bypass header on (see
 		// packages/cli/src/commands/monitoring-run-resolved.ts); forwarding
 		// it is what makes that gate reachable at all from this workflow.
 		expect(previewCheck).toMatch(/vercel-project:\s*\n\s*description:/);
@@ -541,9 +577,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// monitoring-run-resolved.test.ts's "no Vercel token is
 		// available" case) -- rather than a trust-gated project id that
 		// would skip verification outright for an untrusted deployment.
-		const runResolvedStep = previewCheck
-			.split(/\n(?= {6}- )/)
-			.find((s) => s.includes("command: monitoring run-resolved"))!;
+		const runResolvedStep = previewCheck.split(/\n(?= {6}- )/).find((s) => s.includes("command: check resolved"))!;
 		expect(runResolvedStep).not.toMatch(/vercel-project=\$\{\{[^}]*trust[^}]*\}\}/);
 	});
 
@@ -1004,8 +1038,8 @@ describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project boa
 	});
 
 	it("reconciles, then checks the boards even when the reconcile step failed", () => {
-		expect(wf.indexOf("command: project reconcile")).toBeGreaterThan(-1);
-		expect(wf.indexOf("command: project reconcile")).toBeLessThan(wf.indexOf("command: doctor project"));
+		expect(wf.indexOf("command: reconcile project")).toBeGreaterThan(-1);
+		expect(wf.indexOf("command: reconcile project")).toBeLessThan(wf.indexOf("command: doctor project"));
 		expect(wf).toMatch(/name: Check the boards\n\s+if: \$\{\{ !cancelled\(\) \}\}/);
 	});
 
@@ -1098,7 +1132,7 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	});
 
 	it.each([
-		["release", "SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_AUTH_TOKEN"],
+		["release", "SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_RELEASE_TOKEN"],
 		["build", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
 		["test:unit", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
 	])("%s maps the prefixed secret onto the bare name %s (#1711)", (id, bare, prefixed) => {
@@ -1106,8 +1140,10 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	});
 
 	it("no reusable workflow reads a bare TURBO_TOKEN or SENTRY_AUTH_TOKEN secret without its HOLOCRON_ name first, and each declares both", () => {
-		for (const bare of ["TURBO_TOKEN", "SENTRY_AUTH_TOKEN"]) {
-			const prefixed = `HOLOCRON_${bare}`;
+		for (const [bare, prefixed] of [
+			["TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
+			["SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_RELEASE_TOKEN"],
+		] as const) {
 			for (const text of Object.values(REUSABLE_WORKFLOWS)) {
 				for (const m of text.matchAll(new RegExp(`secrets\\.${bare}\\b`, "g"))) {
 					expect(text.slice(Math.max(0, m.index - `secrets.${prefixed} || `.length), m.index)).toBe(

@@ -966,7 +966,7 @@ describe("runNotificationsSetup", () => {
 		});
 		await runNotificationsSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader });
 		expect(log).toHaveBeenCalledWith(expect.stringContaining("1 ok, 0 fail, 0 skipped"));
-		expect(log).not.toHaveBeenCalledWith(expect.stringContaining("notifications setup"));
+		expect(log).not.toHaveBeenCalledWith(expect.stringContaining("setup notifications"));
 		log.mockRestore();
 	});
 

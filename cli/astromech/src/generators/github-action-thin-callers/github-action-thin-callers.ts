@@ -3,7 +3,7 @@
  *
  * `WORKFLOW_TEMPLATES` holds each reusable `.github/workflows/<name>.yml`
  * (synced to `theholocron/.github`); `generateThinCallerContent` wraps one
- * into the thin caller `holocron repo setup` / `holocron repo sync` write locally.
+ * into the thin caller `holocron setup` / `holocron sync` write locally.
  */
 
 import { idFromSource } from "@theholocron/ci";
@@ -327,7 +327,7 @@ export function generateCombinedDeployContent(
  *   - chromatic-projects entries' untraced array → newline-joined string
  *   - plain arrays → JSON-stringified for YAML scalar quoting
  *
- * Used by both `holocron repo setup` and `sync-workflow-templates`.
+ * Used by both `holocron setup` and `sync-workflow-templates`.
  */
 export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
 	const result = { ...raw };
@@ -370,7 +370,7 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 
 /**
  * Derive on.push.paths entries from the deploy with: shorthand.
- * Used by both `holocron repo setup` and `sync-workflow-templates`.
+ * Used by both `holocron setup` and `sync-workflow-templates`.
  */
 export function deriveDeployPaths(raw: Record<string, unknown>): string[] {
 	const paths: string[] = [];

@@ -1,7 +1,7 @@
 import { KNOWN_STACK_DEPS } from "../derived-properties/index.js";
 
 /**
- * The env keys `holocron repo setup` pushes a tracker's DSN under: the
+ * The env keys `holocron setup` pushes a tracker's DSN under: the
  * provider's `envKeys` (always), then the `frameworkEnvKeys` of every
  * framework in the repo's detected `stack`; a repeated key is pushed once.
  * `unknown` lists the `frameworkEnvKeys` names that are not a known stack name

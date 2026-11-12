@@ -70,7 +70,7 @@ export interface RunAuthExportInput {
 	env?: NodeJS.ProcessEnv;
 	/**
 	 * The active org, as the token resolvers use it: a token is looked up under `<keyring key>.<org>` before the plain
-	 * key, so a token stored per organization (`auth set --org`) is found the way the commands find it.
+	 * key, so a token stored per organization (`new token --org`) is found the way the commands find it.
 	 */
 	org?: string;
 	/** Reads a keyring entry, or null. Defaults to the OS keyring. */
@@ -83,7 +83,7 @@ export interface RunAuthExportInput {
 	logger?: Logger;
 }
 
-/** What `holocron auth export` did. Names only; never a value. */
+/** What `holocron export tokens` did. Names only; never a value. */
 export interface AuthExportReport {
 	/** `fail` when it could not write (clipboard, a file, an unreachable keyring), `skip` when no token was found, otherwise `ok`. */
 	status: "ok" | "fail" | "skip";

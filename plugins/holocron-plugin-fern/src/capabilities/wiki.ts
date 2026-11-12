@@ -45,12 +45,12 @@ export interface FernWikiOptions extends ResolveTokenInput {
 	/**
 	 * One-line description shown on the global product switcher card.
 	 * Falls back to the top-level `description` field in `holocron.config.ts`
-	 * when omitted. Only used by `holocron repo sync --steps wiki`.
+	 * when omitted. Only used by `holocron sync --steps wiki`.
 	 */
 	subtitle?: string;
 	/**
 	 * Font Awesome icon class for the product switcher card (e.g. `"fa-duotone fa-gear"`).
-	 * Only used by `holocron repo sync --steps wiki`.
+	 * Only used by `holocron sync --steps wiki`.
 	 */
 	icon?: string;
 }

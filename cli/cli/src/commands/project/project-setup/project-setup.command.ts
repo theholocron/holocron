@@ -8,7 +8,7 @@ import { tokenContext } from "../../token-context/index.js";
 import { runProjectSetup } from "./project-setup.js";
 
 export const projectSetupCommand: CommandModule<GlobalArgs, GlobalArgs> = {
-	command: "setup",
+	command: "project",
 	describe: "Make each board providers.projects declares match its template, creating the ones that are missing",
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);

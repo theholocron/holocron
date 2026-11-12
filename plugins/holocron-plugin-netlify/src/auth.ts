@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "netlify",
 	errorMessage:
 		"no Netlify token found. Pass --token <TOKEN>, set HOLOCRON_NETLIFY_TOKEN / NETLIFY_AUTH_TOKEN, " +
-		"or run: holocron auth set netlify <TOKEN>",
+		"or run: holocron new token netlify <TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

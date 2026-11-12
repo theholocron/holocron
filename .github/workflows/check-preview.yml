@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/check-preview.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
@@ -172,12 +172,12 @@ jobs:
         # single line of PR-authored code.
         uses: theholocron/.github/.github/actions/holocron@main
         with:
-          command: monitoring resolve-checks
+          command: resolve checks
           args: --cwd=${{ inputs.cwd }} --out=${{ runner.temp }}/monitoring-checks.json
 
       - name: Verify project and run monitoring checks
         env:
-          # Read directly by `monitoring run-resolved`
+          # Read directly by `check resolved`
           # (cli/cli/src/cli/cli.ts) -- not part of the CLI's own
           # `--token`-resolution chain, since neither is a vendor API
           # credential this command calls anything with: VERCEL_TOKEN
@@ -203,12 +203,12 @@ jobs:
           # (the synced org variable HOLOCRON_VERCEL_TEAM_ID, `repo.variables.sync`; the bare VERCEL_TEAM_ID until it is renamed),
           # which scopes the ownership lookup to the right team. It is
           # read from the org's settings, never from the PR's config
-          # (`run-resolved` loads none), so a PR cannot change it.
+          # (`check resolved` loads none), so a PR cannot change it.
           HOLOCRON_VERCEL_TEAM_ID: ${{ vars.HOLOCRON_VERCEL_TEAM_ID || vars.VERCEL_TEAM_ID }}
           VERCEL_TEAM_ID: ${{ vars.HOLOCRON_VERCEL_TEAM_ID || vars.VERCEL_TEAM_ID }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
-          command: monitoring run-resolved
+          command: check resolved
           # vercel-project is NOT gated on trust (sourcery review on
           # #1058's first attempt) -- it isn't a secret, and clearing
           # it for an untrusted deployment would make

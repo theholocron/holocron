@@ -12,7 +12,7 @@ export const npmBumpVersionsCommand: CommandModule<GlobalArgs, NpmBumpVersionsAr
 	builder: npmBumpVersionsArgs,
 	handler: async (argv) => {
 		const [newVersion] = await promptForPositionals(
-			getEntry("package bump-versions"),
+			getEntry("publish bump-versions"),
 			argv as Record<string, unknown>
 		);
 		const report = await runNpmBumpVersions({

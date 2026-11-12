@@ -94,7 +94,7 @@ describe("dns.delete", () => {
 describe("a transient Cloudflare failure", () => {
 	const unavailable = (status: number, text = "boom") => ({ status, text });
 
-	it("is retried for a read, which then succeeds (the repo setup failure in #1398)", async () => {
+	it("is retried for a read, which then succeeds (the setup failure in #1398)", async () => {
 		const { dns, calls } = client([unavailable(500), cfOk([record])]);
 		await expect(dns.list(ZONE, { type: "CNAME", name: "www" })).resolves.toEqual([record]);
 		expect(calls).toHaveLength(2);

@@ -44,7 +44,7 @@ export interface PluginToken {
 	/**
 	 * `true` when the plugin only falls back to this token: nothing needs it unless a call names no better source (the
 	 * Discord webhook a post uses when it names no channel). The checks that expect every token a plugin lists, such as
-	 * `holocron doctor credentials`, do not expect it, and `holocron auth export` marks it as optional when it has none.
+	 * `holocron doctor credentials`, do not expect it, and `holocron export tokens` marks it as optional when it has none.
 	 * Default `false`.
 	 */
 	optional?: boolean;
@@ -83,7 +83,7 @@ export interface RunAuthSetInput {
 	org?: string;
 	/**
 	 * The `credentials` provider and environment the config names, when it has one. The CLI cannot write to it, so
-	 * after the token is stored `auth set` says which variable to add there by hand.
+	 * after the token is stored `new token` says which variable to add there by hand.
 	 */
 	credentials?: { provider: string; environment: string };
 }

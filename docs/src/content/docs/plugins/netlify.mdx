@@ -21,7 +21,7 @@ providers: {
     accountSlug: "my-team",
     // Needed by listEnvVars / setEnvVar: the env var API is scoped to /accounts/{account_id}/env
     accountId: "6ac41cd9a87355ef3d13d261",
-    // Custom domain `holocron repo setup` attaches to the site
+    // Custom domain `holocron setup` attaches to the site
     domain: "app.example.com",
   }],
 }
@@ -33,7 +33,7 @@ providers: {
 | ------------- | -------- | ------------------------------------------------------------------------------------------------ |
 | `accountSlug` | No       | Account slug. Required for `ensureProject` (the call throws without it)                          |
 | `accountId`   | No       | Account id, not the slug. Required for the env var methods (they throw without it). Not a secret |
-| `domain`      | No       | Custom domain attached to the site by `holocron repo setup`                                      |
+| `domain`      | No       | Custom domain attached to the site by `holocron setup`                                           |
 
 ## Authentication
 
@@ -44,11 +44,11 @@ Create a Personal Access Token under **User settings → Applications → Person
 ### 2. Store the token
 
 ```bash
-holocron auth set netlify <TOKEN>
-holocron auth check netlify
+holocron new token netlify <TOKEN>
+holocron check token netlify
 ```
 
-`auth check` verifies the token with Netlify's `GET /user`.
+`check token` verifies the token with Netlify's `GET /user`.
 
 Or via env var:
 

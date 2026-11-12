@@ -3,7 +3,7 @@
  * it. Both are public, so a plugin's `src/auth.ts` is a one-line call.
  *
  * The keyring itself, with its best-effort failure model and its per-process cache, is `createKeyring` in
- * `@theholocron/kyber/secrets`; this file only names the service. Managed via `holocron auth` subcommands and consulted
+ * `@theholocron/kyber/secrets`; this file only names the service. Managed via `holocron check token` subcommands and consulted
  * last in every plugin's precedence chain (after --token / HOLOCRON_<X>_TOKEN / <native>_TOKEN). See
  * `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
  */
@@ -44,14 +44,14 @@ export function createResolveToken(config: ResolveTokenConfig): TokenResolver {
 /**
  * Kyber's `createFeatureResolver` for a strict, single-feature token: the flag, the feature's variable, the
  * `credentials` providers' variable of that name, the keyring. No broad-token fallback; if the feature's token is absent
- * the operation fails with a message naming the exact variable to set and `holocron auth set`.
+ * the operation fails with a message naming the exact variable to set and `holocron new token`.
  */
 export function createFeatureResolver(config: FeatureResolverConfig): FeatureResolver {
 	return Object.assign(
 		createKyberFeatureResolver({
 			...config,
 			vendor: config.vendor ?? "GitHub",
-			setCommand: (key) => `holocron auth set ${key} <token>`,
+			setCommand: (key) => `holocron new token ${key} <token>`,
 			keyring: keyring.get,
 		}),
 		{ token: { envName: config.envName, keyringKey: config.keyringKey } }

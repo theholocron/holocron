@@ -3,8 +3,8 @@ import type { TemplateInputs } from "../template-inputs/index.js";
 export function render(inputs: TemplateInputs): string {
 	const factoryName = `create${inputs.vendorName}RestClient`;
 	return `/**
- * \`verifyToken\` — plugin-level export used by \`holocron auth set\` +
- * \`holocron auth check\`. Hits a lightweight whoami-style endpoint
+ * \`verifyToken\` — plugin-level export used by \`holocron new token\` +
+ * \`holocron check token\`. Hits a lightweight whoami-style endpoint
  * and translates the response into the normalized \`VerifyTokenResult\`
  * shape.
  *

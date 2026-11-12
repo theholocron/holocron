@@ -1,0 +1,44 @@
+---
+title: "reconcile project"
+description: Set the status of board items where a rule says so (blocked, unblocked, closed), and the hourly task that runs it.
+---
+
+```bash
+holocron reconcile project [board] [--dry-run]
+```
+
+Reads every item of each board that `providers.projects` declares, and sets the item's **status** where one of these rules applies. It touches status only, never priority or any other field, and re-running it changes nothing that is already right.
+
+| The item is                                  | Rule                                                            |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| open, with an open blocker, not in `blocked` | set to the template's `blocked` status                          |
+| open, in `blocked`, with no open blocker     | set to `planned` (`Todo`); the status it held before is unknown |
+| closed or merged, not in `done`              | set to the template's `done` status                             |
+| open, with no status                         | reported, not set: it needs a decision, not a rule              |
+
+A rule names a status **category**, not a spelling: where a template has several statuses of one category the first in the template's order is used, and where it has none the item is reported and left alone. A closed item is set to `done` whatever its blockers say, and an open item with no status is reported even when it has a blocker.
+
+```
+v5 (roadmap)
+  ✓ set #1782 Todo → Blocked (has an open blocker)
+  ✓ set #1790 Blocked → Todo (no open blocker left)
+  ✓ set #1701 In Progress → Done (closed)
+  ⚠ #1795 has no status: needs a decision, left as it is
+
+3 ok, 0 fail, 0 skipped
+```
+
+`[board]` limits the run to one declared board, by name. `--dry-run` prints the plan with `would set` and calls no mutator. A refusal from the provider (a Jira workflow can refuse a transition) is a reported failure and the run goes on with the next item; the exit code is non-zero if any status could not be set. A provider without `items` or `setStatus` is skipped cleanly.
+
+The rules are one pure function, `planReconcile()`, so Sentinel can supply the same rules later; the command only reads, plans and applies.
+
+## Run on a schedule
+
+The job is the task `reconcile-projects`, like `check-tokens`: a registry task, a reusable workflow template (`ci/workflows/reconcile-projects.yml`) and a thin caller generated from the `tasks:` list (add `"reconcile-projects"` to enable it in a repo that declares boards). Hourly, and on demand, it runs `holocron reconcile project` and then `holocron doctor project`. The reconcile output goes into the run's summary. A failure of either step fails the run, and the run reaches `#alerts` through `platform.notifications.yml`, which lists the workflow as `reconcile-projects`. What reconcile changed is not an alert.
+
+`GITHUB_TOKEN` cannot write an organization project, so the run mints the GitHub App's installation token with `actions/create-github-app-token`. Two things are done once, by a person:
+
+- Give the App the **organization Projects** permission (read and write); setup cannot grant it.
+- Add the Actions variable `SENTINEL_GITHUB_APP_ID` (the App's id, which is public; a secret of that name is still read when no variable is set) and the secret `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the private key; the workflow still reads the old `SENTINEL_APP_ID` and `SENTINEL_APP_PRIVATE_KEY` when the new ones are not set) at the organization scope, for example through `repo.variables.sync` and `repo.secrets.sync`.
+
+The event-driven path (Sentinel reconciling on `issue_dependencies` and on closes) follows when Sentinel is back in production; it adds speed only, because this schedule is the net for a missed delivery.

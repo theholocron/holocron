@@ -11,7 +11,7 @@
  *   - Environments — dev / stg / prd (each has a root config with the
  *     same name)
  *   - Configs — the root configs plus optional branch configs (e.g.,
- *     `dev_local`, `dev_ci`). `holocron secrets sync` reads from
+ *     `dev_local`, `dev_ci`). `holocron sync secrets` reads from
  *     configs, not environments.
  *
  * Write semantics: `POST /v3/configs/config/secrets` accepts a
@@ -39,7 +39,7 @@ export interface DopplerVaultOptions {
  * Doppler auto-injects these into every config's secrets download —
  * bookkeeping about the config itself, not something any caller
  * defined. `readEnvironment()` fans its result out to real destinations
- * (`holocron secrets sync` → CI secrets, deploy env vars); shipping
+ * (`holocron sync secrets` → CI secrets, deploy env vars); shipping
  * these alongside real secrets is pure noise there (theholocron/holocron#742
  * — found via Sentinel's deploy picking them up as if they were its own
  * env). Confirmed stable, documented Doppler behavior — not

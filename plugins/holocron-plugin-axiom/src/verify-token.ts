@@ -1,6 +1,6 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set axiom`
- * + `holocron auth check`. Hits `GET /v2/user` and translates the
+ * `verifyToken` — plugin-level export used by `holocron new token axiom`
+ * + `holocron check token`. Hits `GET /v2/user` and translates the
  * response into the normalized `VerifyTokenResult` shape.
  *
  * Kept as a standalone function (not a capability method) so the auth

@@ -24,7 +24,7 @@ const projectCloseArgs = (yy: Argv<GlobalArgs>) =>
 type ProjectCloseArgs = InferArgs<typeof projectCloseArgs>;
 
 export const projectCloseCommand: CommandModule<GlobalArgs, ProjectCloseArgs> = {
-	command: "close <board>",
+	command: "project <board>",
 	describe: "Close a board (reversible)",
 	builder: projectCloseArgs,
 	handler: async (argv) => {

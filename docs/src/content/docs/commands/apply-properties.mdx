@@ -1,0 +1,26 @@
+---
+title: "apply properties"
+description: Add the capabilities the organization's holocron_capabilities property does not allow yet.
+---
+
+```bash
+holocron apply properties            # asks first
+holocron apply properties --yes      # no question
+holocron apply properties --dry-run  # print what would be added, change nothing
+```
+
+`holocron_capabilities` is an organization custom property whose allowed values are an organization setting. Every capability the CLI defines has to be one of them before a repo can declare it, or `setup` is refused with a `422` when it syncs properties. [`doctor repo`](/holocron/commands/doctor-repo/) checks that and names this command; this is the separate step that fixes it.
+
+```text
+  · apply properties  dry run: would add tunnels
+```
+
+## It writes, so it asks
+
+The allowed values are organization-wide. Without `--yes` it asks `Allow tunnels in holocron_capabilities for the whole organization?` and changes nothing on a no. Without a terminal and without `--yes` it refuses instead of waiting for an answer.
+
+It only adds. A value is never removed or reordered, and the rest of the property's definition (type, description, default, who can edit it) is read first and sent back as it was, because GitHub replaces the whole definition on a write.
+
+## Token
+
+Reading needs the organization's Custom properties: read; writing needs Custom properties: admin (`HOLOCRON_ORG_TOKEN`). When the definition cannot be read, or the property is not a select, the command fails and says why.

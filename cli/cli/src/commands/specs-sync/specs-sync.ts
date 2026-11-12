@@ -1,5 +1,5 @@
 /**
- * `holocron specs sync` -- keep each ADR and spec in step with a post in a forum channel.
+ * `holocron sync specs` -- keep each ADR and spec in step with a post in a forum channel.
  *
  * Every document under `docs/wiki/decisions`, `.notes` and `docs/wiki/specifications` gets one post (titled with the document's own title) made from the file, tagged with its status, and the post's address is written into the file as
  * `discussion.url`. The file stays the source of truth. A gatekeeper who changes a post's tag is asking for a status
@@ -44,14 +44,14 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "specs sync");
+	assertPluginsResolvable(loader, "sync specs");
 
 	const dryRun = input.context.dryRun ?? false;
 	const refuse = (message: string, reason: string = message): SpecsSyncReport => {
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "specs sync");
+		logger.warn({ reason }, "sync specs");
 		return { status: "fail", files: [], message };
 	};
 
@@ -169,7 +169,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				break;
 			}
 			outcome = { path: doc.path, did: [], problem: describeError(err), text: doc.text };
-			logger.warn({ path: doc.path, reason: logReason(err) }, "specs sync");
+			logger.warn({ path: doc.path, reason: logReason(err) }, "sync specs");
 		}
 		files.push(outcome);
 		if (outcome.prLineRewritten) rewritten++;
@@ -212,7 +212,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	print(style.header(`${ok} ok, ${failed} fail, ${skipped} skipped`));
 	logger.info(
 		{ provider: notifications.providerName, channel: forum.channel, files: files.length, failed, status },
-		"specs sync"
+		"sync specs"
 	);
 	return {
 		status,

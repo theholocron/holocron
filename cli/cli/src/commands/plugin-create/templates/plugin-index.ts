@@ -15,7 +15,7 @@ export function render(inputs: TemplateInputs): string {
  *
  * Implements the \`${inputs.capability}\` capability against ${inputs.vendorName}'s
  * REST API. Also exports \`verifyToken\` + \`AUTH_HINT\` for
- * \`holocron auth\`. See README for auth + config docs.
+ * \`holocron check token\`. See README for auth + config docs.
  *
  * TODO: once you fill in the ${inputs.capabilityClass} methods and add
  * \`implements ${capabilityInterface}\` to the class, add the type import:
@@ -74,13 +74,13 @@ export function createPlugin(options: ${inputs.vendorName}PluginOptions) {
 }
 
 /**
- * One-line hint printed by \`holocron auth set ${inputs.slug}\` when no
+ * One-line hint printed by \`holocron new token ${inputs.slug}\` when no
  * token is supplied or the supplied token is rejected. Edit this to
  * point operators at the specific ${inputs.vendorName} docs path for
  * generating a token.
  */
 export const AUTH_HINT =
-	"generate a ${inputs.vendorName} API token, then run: holocron auth set ${inputs.slug} <TOKEN>";
+	"generate a ${inputs.vendorName} API token, then run: holocron new token ${inputs.slug} <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

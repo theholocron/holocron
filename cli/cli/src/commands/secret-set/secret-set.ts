@@ -1,7 +1,7 @@
 /**
- * `holocron secrets set` — one-shot single-secret push.
+ * `holocron new secret` — one-shot single-secret push.
  *
- * Complements `holocron secrets sync` (bulk vault → destinations) for
+ * Complements `holocron sync secrets` (bulk vault → destinations) for
  * ad-hoc scenarios:
  *   - Bootstrap secrets (e.g., NPM_TOKEN on theholocron/holocron itself
  *     before the rest of the setup exists)
@@ -31,7 +31,7 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "secrets set");
+	assertPluginsResolvable(loader, "new secret");
 
 	const dryRun = input.context.dryRun ?? false;
 	const scope: SecretScope = input.scope ?? { kind: "repo" };

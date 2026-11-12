@@ -48,7 +48,7 @@ export function channelProbe(deps: ChecklyProbeDeps): Probe {
 					: {
 							status: "fail",
 							label: "template differs from the shipped one",
-							detail: "run `holocron notifications setup` to put it back",
+							detail: "run `holocron setup notifications` to put it back",
 						}
 			);
 			// A check the config routes to other channels is not expected on this one.
@@ -65,7 +65,7 @@ export function channelProbe(deps: ChecklyProbeDeps): Probe {
 					: {
 							status: "fail",
 							label: `${ids.length - missing} of ${ids.length} checks use it`,
-							detail: "run `holocron notifications setup` to subscribe the rest",
+							detail: "run `holocron setup notifications` to subscribe the rest",
 						}
 			);
 		},

@@ -1,0 +1,70 @@
+---
+title: "doctor shared-values"
+description: Find secrets that hold the same value in two layers (local, dev, ci and prod). Read-only, names only.
+---
+
+```bash
+holocron doctor shared-values [--strict] [--allow NAME]...
+```
+
+Each layer of a repository keeps its own values, so a leak from CI does not expose what a laptop holds. This check reads the Environments `<org>/<repo> - local`, `- dev`, `- ci` and `- prod` and reports the secrets that hold the same value in two of them. It changes nothing and prints **names only**: no value, hash or length reaches the output, a log or an error.
+
+```text
+  · ci = dev      info: 2 secrets share a value between dev and ci: HOLOCRON_ADMIN_TOKEN, HOLOCRON_SYNC_TOKEN
+  ✓ prod = dev    no secret shares a value
+  ✓ prod = ci     no secret shares a value
+
+3 pairs compared, 2 shared names
+
+2 ok, 0 fail, 1 skipped
+```
+
+## What it compares
+
+| Rule                 | Detail                                                                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Only secrets         | An entry the vault holds concealed. A visible variable is meant to be the same in every layer and is ignored. The 1Password plugin reads the flag from `op environment secret list --format=json` |
+| No fallback          | The `credentials` chain falls back from `local` to `dev`. This check reads each layer by its own name                                                                                             |
+| Salted hash          | Each value becomes an HMAC under a salt made fresh for the run and is compared only in memory. A hash from one run means nothing in another. An empty value is ignored                            |
+| Same value, any name | A value held under two names counts and is shown as `LATER_NAME = EARLIER_NAME`                                                                                                                   |
+
+A vault provider that cannot say which entries are concealed (it has `readEnvironment` only) has every entry compared, and a skipped row says so. List a visible value that is meant to be shared in `doctor.sharedVariables`.
+
+## Rows
+
+One row per pair of layers, in `local, dev, ci, prod` order.
+
+| Row                     | When                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| ok                      | The pair shares no secret                                                                                                  |
+| info (shown as skipped) | The pair shares one or more secrets. With `--strict` this row is a failure and the exit is 1                               |
+| info (variables)        | `variables missing from dev, present in ci` or `variables differ between ci and dev`: see below. Only when they have names |
+| skipped                 | A layer's Environment could not be read: the row names it and why. A missing `local` is silent                             |
+
+With fewer than two readable layers a row says there is nothing to compare. The exit is 0 unless `--strict` is set and a secret is shared.
+
+## Variables that drift between ci and dev
+
+The organization's constants live in the `ci` layer and have a copy in `dev`; no layer falls back to another. The visible (unconcealed) entries of `ci` and `dev` are compared by name: a variable that `ci` has and `dev` lacks, and one whose value differs, are reported as `info` rows, since a `dev` value may differ on purpose. `--strict` does not apply to them, and identical variables add no row. Values are compared in memory and dropped; only names are printed.
+
+```text
+  · variables missing from dev, present in ci   info: 1 variable: HOLOCRON_TURBO_TEAM
+  · variables differ between ci and dev         info: 2 variables: HOLOCRON_AXIOM_ORG, HOLOCRON_SENTRY_ORG
+```
+
+## Shared on purpose
+
+A name that two layers hold on purpose (one bot identity) is left out when it is:
+
+- listed in `doctor.sharedVariables` in `holocron.config.ts`, the same list [`doctor variable-owners`](/holocron/commands/doctor-variable-owners/) reads, or
+- passed with `--allow NAME`, repeated for more.
+
+Names are compared without regard to case. For a value held under two names, allowing either name is enough.
+
+```bash
+holocron doctor shared-values --strict --allow HOLOCRON_DISCORD_BOT_TOKEN
+```
+
+## Needs
+
+A `vault` provider in `holocron.config.ts` that can read an environment (`1password`), and an `origin` remote that names the repository, which gives the Environment names. It runs as part of `holocron doctor --all` with the defaults.

@@ -25,7 +25,7 @@ export async function deriveDefaults(found: Loaded<HolocronConfig>): Promise<Hol
 
 	// Layer in the task manifest. `holocron.config`'s `tasks` key is one input;
 	// a dedicated `astromech.config.{ts,js,mjs,json}` is merged on top (it wins
-	// on scalars, task arrays concatenate). Doing it here keeps `holocron repo setup`
+	// on scalars, task arrays concatenate). Doing it here keeps `holocron setup`
 	// / `sync` / `doctor` on the same manifest that `holocron run` / `holocron
 	// ci` resolve directly via `loadTasksConfig` — handed the file already loaded
 	// above so it isn't found and loaded a second time.

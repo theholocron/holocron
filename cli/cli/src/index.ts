@@ -4,7 +4,7 @@ export * from "./commands/notifications-sync-roles/public.js";
 export * from "./commands/setup/derived-properties/index.js";
 export { CANONICAL_LABELS } from "./commands/setup/labels.js";
 // The 1Password plugin's `export-environment` probe resolves a layer word and decides where secrets may be written
-// with the same pieces `secrets sync` and `auth export` use.
+// with the same pieces `sync secrets` and `export tokens` use.
 export type { AuthExportOutKind } from "./commands/auth-export/auth-export.type.js";
 export { stdoutKind } from "./commands/auth-export/stdout-kind/index.js";
 export { resolveEnvironmentId } from "./commands/secrets-sync/resolve-environment-id/index.js";

@@ -42,6 +42,6 @@ describe("resolveToken", () => {
 		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_CHECKLY_TOKEN/);
-		expect((err as Error).message).toMatch(/holocron auth set checkly/);
+		expect((err as Error).message).toMatch(/holocron new token checkly/);
 	});
 });

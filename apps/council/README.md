@@ -2,7 +2,7 @@
 
 An Obsidian plugin for the ideas vault ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). It adds two commands:
 
-- **File this idea** (command palette and a ribbon button) acts on the open note. It sets `status` to the filing state, runs `holocron ideas sync --yes` on desktop, and moves the note to Obsidian's trash only once the note carries an `issue:`.
+- **File this idea** (command palette and a ribbon button) acts on the open note. It sets `status` to the filing state, runs `holocron sync ideas --yes` on desktop, and moves the note to Obsidian's trash only once the note carries an `issue:`.
 - **Set idea status** shows a picker of the configured states (`seed`, `exploring`, `in-progress`, `dropped`) and sets `status` on the open note. Obsidian's property editor has no fixed list.
 
 This is a private app: it is not published to npm and has no release of its own.
@@ -38,15 +38,15 @@ Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/
 4. Read the note again. Move it to the trash only if it now has an `issue:`.
 5. Otherwise leave it, restore nothing, and show a notice with the end of the command's output (a skipped attachment, an error). A non-zero exit never trashes.
 
-`ideas sync` files every ready note in the vault, not only the open one, and moves nothing itself. This plugin trashes only the open note.
+`sync ideas` files every ready note in the vault, not only the open one, and moves nothing itself. This plugin trashes only the open note.
 
 ## Limits
 
 - **Filing is desktop only.** On iOS there is no checkout, shell or git, so the command only sets the state. The note is filed the next time a Mac runs **File this idea** on it.
 - **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The login shell option fixes that on every Mac. With it off, the plugin only adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`; put full paths in the Command setting, which differ between Macs.
-- **One filing run at a time.** A second **File this idea** during a run shows a notice and starts nothing. This covers one Obsidian instance only. Overlapping runs from elsewhere (a terminal, a second Mac) are handled by [`ideas sync`](https://docs.theholocron.dev/holocron/commands/ideas-sync/): after it creates an issue it searches for the note's marker again, and when an older open issue carries it, it comments on and closes its own issue and records the older key, so both runs end with the same key. The duplicate is moved to the tracker's done state: closed as completed on GitHub, and on Linear the team's completed state, or its canceled state if the team has none. This depends on the search seeing both issues. If it misses a twin (a lagging index, or an error in the search), the run keeps its own issue, so the runs can record different keys and an extra open issue can remain; close it by hand. If commenting on or closing the duplicate is rejected, the note still gets the older key and a warning row names both issues, and the duplicate stays open until it is closed by hand.
+- **One filing run at a time.** A second **File this idea** during a run shows a notice and starts nothing. This covers one Obsidian instance only. Overlapping runs from elsewhere (a terminal, a second Mac) are handled by [`sync ideas`](https://docs.theholocron.dev/holocron/commands/sync-ideas/): after it creates an issue it searches for the note's marker again, and when an older open issue carries it, it comments on and closes its own issue and records the older key, so both runs end with the same key. The duplicate is moved to the tracker's done state: closed as completed on GitHub, and on Linear the team's completed state, or its canceled state if the team has none. This depends on the search seeing both issues. If it misses a twin (a lagging index, or an error in the search), the run keeps its own issue, so the runs can record different keys and an extra open issue can remain; close it by hand. If commenting on or closing the duplicate is rejected, the note still gets the older key and a warning row names both issues, and the duplicate stays open until it is closed by hand.
 - **Login shell families.** The option supports `sh`, `bash`, `zsh`, `dash` and `ksh`; another shell, such as fish, runs the command directly with a notice.
 - **No token field, ever.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac.
 - It has not been run inside Obsidian by the tests: they cover the decisions and the order with a mock of the Obsidian API.
 
-See [the docs page](https://docs.theholocron.dev/holocron/council/) and [`ideas sync`](https://docs.theholocron.dev/holocron/commands/ideas-sync/).
+See [the docs page](https://docs.theholocron.dev/holocron/council/) and [`sync ideas`](https://docs.theholocron.dev/holocron/commands/sync-ideas/).

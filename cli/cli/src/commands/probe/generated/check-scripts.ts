@@ -37,7 +37,7 @@ export function checkScripts({ packages, desired, turboKeys }: CheckScriptsInput
 		if (location === "." && desired !== null) {
 			for (const name of mergeScripts(scripts, desired, turboKeys).changed) {
 				problems.fail.push(
-					`${file}: script "${name}" is ${scripts[name] === undefined ? "missing" : JSON.stringify(scripts[name])}, holocron generates ${JSON.stringify(desired[name])}; run \`holocron repo sync\` and commit the result`
+					`${file}: script "${name}" is ${scripts[name] === undefined ? "missing" : JSON.stringify(scripts[name])}, holocron generates ${JSON.stringify(desired[name])}; run \`holocron sync\` and commit the result`
 				);
 			}
 		}

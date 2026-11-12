@@ -27,7 +27,7 @@ const projectCreateArgs = (yy: Argv<GlobalArgs>) =>
 type ProjectCreateArgs = InferArgs<typeof projectCreateArgs>;
 
 export const projectCreateCommand: CommandModule<GlobalArgs, ProjectCreateArgs> = {
-	command: "create [template]",
+	command: "project [template]",
 	describe: "Make a board from a template",
 	builder: projectCreateArgs,
 	handler: async (argv) => {

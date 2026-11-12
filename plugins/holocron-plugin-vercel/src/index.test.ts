@@ -5,7 +5,7 @@ import { AuthError, createPlugin, VercelDeployment } from "./index.js";
 describe("createPlugin", () => {
 	it("defers the missing-token AuthError to the first authenticated call", async () => {
 		// keyring: () => null — without this, a real "vercel" entry in the
-		// local OS keychain (e.g. from `holocron auth set vercel <PAT>`)
+		// local OS keychain (e.g. from `holocron new token vercel <PAT>`)
 		// makes resolveToken() succeed, and listProjects() then makes a
 		// real network call instead of throwing, hanging until timeout.
 		const deployment = createPlugin({ env: {}, keyring: () => null }).capabilities.deployment();

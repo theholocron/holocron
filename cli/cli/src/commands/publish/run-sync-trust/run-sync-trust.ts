@@ -15,7 +15,7 @@ import type {
 } from "./run-sync-trust.type.js";
 
 /**
- * `holocron package publish --sync-trust <old-file> <new-file>` — bulk-migrates npm
+ * `holocron publish package --sync-trust <old-file> <new-file>` — bulk-migrates npm
  * Trusted Publisher (OIDC) config to a new workflow filename across every
  * public package. See issue #689 / `scripts/npm-trust-migrate.sh` (the
  * shell-script prototype this supersedes) for the full "why": npm ties

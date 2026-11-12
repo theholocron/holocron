@@ -1,10 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const loadConfig = vi.hoisted(() => vi.fn());
+const runSync = vi.hoisted(() => vi.fn());
+const runSyncReadme = vi.hoisted(() => vi.fn());
 const runSyncGithub = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const report = vi.hoisted(() => vi.fn());
 const resolveToken = vi.hoisted(() => vi.fn());
-const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("../../config/index.js", () => ({ loadConfig }));
+vi.mock("./sync.js", () => ({ runSync }));
+vi.mock("../sync-readme/index.js", () => ({ runSyncReadme }));
+vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
+vi.mock("../resolve-org/index.js", () => ({
+	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
+}));
 vi.mock("../sync-github/index.js", () => ({ runSyncGithub }));
 vi.mock("../../observability/logger/index.js", () => ({ reportError: report }));
 vi.mock("../../auth/index.js", async (importActual) => ({
@@ -14,18 +23,19 @@ vi.mock("../../auth/index.js", async (importActual) => ({
 vi.mock("../token-context/index.js", () => ({
 	tokenContext,
 }));
-vi.mock("../../interactive-menu/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../interactive-menu/index.js")>()),
-	launchMenu,
-}));
 
 import { AuthError } from "../../auth/index.js";
 import { runCommand } from "../run-command.testing.js";
 import { syncGithubCommand } from "../sync-github/sync-github.command.js";
 import { syncCommand } from "./sync.command.js";
 
+const summary = (fail: number) => ({ summary: { ok: 1, fail, skip: 0 } });
+
 beforeEach(() => {
 	vi.clearAllMocks();
+	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
+	runSync.mockResolvedValue(summary(0));
+	runSyncReadme.mockResolvedValue({ status: "ok" });
 	tokenContext.mockReturnValue({ cliToken: "t" });
 	resolveToken.mockReturnValue("sync-token");
 	runSyncGithub.mockResolvedValue({ status: "ok" });
@@ -34,7 +44,7 @@ afterEach(() => void (process.exitCode = undefined));
 
 describe("sync github", () => {
 	it("is `sync github`, under `sync`", () => {
-		expect(syncCommand.command).toBe("sync");
+		expect(syncCommand.command).toBe("sync [steps..]");
 		expect(syncGithubCommand.command).toBe("github");
 	});
 
@@ -82,13 +92,43 @@ describe("sync github", () => {
 		await runCommand(syncCommand, ["sync", "github"]);
 		expect(runSyncGithub).not.toHaveBeenCalled();
 	});
+});
 
-	it("a bare `sync` opens the menu of its subcommands", async () => {
+describe("sync", () => {
+	it("syncs the named steps, or all of them, for --repo", async () => {
+		await runCommand(syncCommand, ["sync", "labels", "topics", "--repo", "acme/widgets"]);
+		expect(runSync.mock.calls[0]![0]).toMatchObject({
+			steps: ["labels", "topics"],
+			context: { repo: "acme/widgets", cliToken: "t", org: "acme" },
+		});
 		await runCommand(syncCommand, ["sync"]);
-		expect(launchMenu).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.anything(),
-			expect.objectContaining({ pickMessage: "sync — choose a subcommand:", startPath: ["sync"] })
-		);
+		const bare = runSync.mock.calls[1]![0];
+		expect("steps" in bare || "repo" in bare.context).toBe(false);
+	});
+
+	it("exits 1 when a step failed, and stops when --token cannot be parsed", async () => {
+		runSync.mockResolvedValue(summary(1));
+		await runCommand(syncCommand, ["sync"]);
+		expect(process.exitCode).toBe(1);
+		tokenContext.mockReturnValue(null);
+		runSync.mockClear();
+		await runCommand(syncCommand, ["sync"]);
+		expect(runSync).not.toHaveBeenCalled();
+	});
+
+	it("`sync readme` updates the README, and reports why it failed", async () => {
+		await runCommand(syncCommand, ["sync", "readme", "--dry-run"]);
+		expect(runSyncReadme).toHaveBeenCalledWith({
+			loaded: { resolved: { org: "acme" }, filepath: "/x" },
+			context: { repoRoot: "/repo", dryRun: true },
+		});
+		runSyncReadme.mockResolvedValue({ status: "fail", message: "no package.json" });
+		await runCommand(syncCommand, ["sync", "readme"]);
+		expect(report).toHaveBeenCalledWith("sync readme: no package.json");
+		expect(process.exitCode).toBe(1);
+		report.mockClear();
+		runSyncReadme.mockResolvedValue({ status: "fail" });
+		await runCommand(syncCommand, ["sync", "readme"]);
+		expect(report).not.toHaveBeenCalled();
 	});
 });

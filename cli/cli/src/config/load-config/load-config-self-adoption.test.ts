@@ -172,7 +172,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			FERN_TOKEN: "HOLOCRON_FERN_TOKEN",
 			VERCEL_PROTECTION_BYPASS_SECRET: "HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
 			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
-			SENTRY_AUTH_TOKEN: "HOLOCRON_SENTRY_AUTH_TOKEN",
+			SENTRY_AUTH_TOKEN: "HOLOCRON_SENTRY_RELEASE_TOKEN",
 			TURBO_TOKEN: "HOLOCRON_TURBO_TOKEN",
 		};
 		const secretEntries = (expected as unknown as { repo: { secrets: { sync: { keys: string[] }[] } } }).repo
@@ -185,6 +185,30 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				.map((key) => secretRenames[key] ?? key)
 				.sort();
 		}
+		// And (#2062): the organization entry is two, each with its readers. The first is read by `holocron` and the
+		// frozen reusables in `.github`; the second only by holocron's own workflows.
+		const onlyHolocron = [
+			"HOLOCRON_CLOUDFLARE_TOKEN",
+			"HOLOCRON_CODECOV_TOKEN",
+			"HOLOCRON_SENTRY_RELEASE_TOKEN",
+			"HOLOCRON_TURBO_TOKEN",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+		];
+		const orgEntry = secretEntries.find((entry) => (entry as { scope?: string }).scope === "org=theholocron")!;
+		secretEntries.splice(
+			secretEntries.indexOf(orgEntry),
+			1,
+			{
+				...orgEntry,
+				keys: orgEntry.keys.filter((key) => !onlyHolocron.includes(key)),
+				repos: ["theholocron/holocron", "theholocron/.github"],
+			} as never,
+			{
+				...orgEntry,
+				keys: orgEntry.keys.filter((key) => onlyHolocron.includes(key)),
+				repos: ["theholocron/holocron"],
+			} as never
+		);
 		// And (#1727): `SENTRY_ORG` is a synced variable too (the release workflow reads it); the Sentry `errors` entry
 		// is unchanged, its `org` now filled from `.holocron/org.ts` instead of written inline.
 		// And (#1827): the Cloudflare `accountId` is no longer a literal in the presets (the plugin reads

@@ -234,9 +234,9 @@ export interface DiscordNotificationsOptions {
 	 * without an explicit channel, or with an empty string.
 	 */
 	defaultChannel?: string;
-	/** Discord server (guild) id that `notifications setup` provisions. Not a secret. */
+	/** Discord server (guild) id that `setup notifications` provisions. Not a secret. */
 	guildId?: string;
-	/** The server layout `notifications setup` applies. */
+	/** The server layout `setup notifications` applies. */
 	layout?: NotificationsLayout;
 	/** A custom API host, for tests. Webhook tokens are only sent to it when `unsafeBotBaseUrl` is also set. */
 	baseUrl?: string;
@@ -2294,7 +2294,7 @@ export class DiscordNotifications implements Notifications {
 			DiscordNotifications.same(r.name, name)
 		);
 		if (matches.length === 0)
-			throw new Error(`no role named \`${name}\` — run \`holocron notifications setup\` to create it`);
+			throw new Error(`no role named \`${name}\` — run \`holocron setup notifications\` to create it`);
 		if (matches.length > 1) {
 			throw new Error(
 				`${matches.length} roles are named \`${name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so it is clear which one to manage`

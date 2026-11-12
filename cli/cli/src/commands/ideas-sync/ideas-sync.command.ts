@@ -10,7 +10,7 @@ import { runIdeasSync } from "./run-ideas-sync/index.js";
 type Args = GlobalArgs & { yes?: boolean };
 
 export const ideasSyncCommand: CommandModule<GlobalArgs, Args> = {
-	command: "sync",
+	command: "ideas",
 	describe: "File the idea notes that are ready as issues, and record the issue in each note",
 	builder: (y: Argv<GlobalArgs>) =>
 		y.option("yes", {

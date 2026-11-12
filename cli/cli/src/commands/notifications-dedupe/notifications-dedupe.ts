@@ -1,5 +1,5 @@
 /**
- * `holocron notifications dedupe` — delete the extra posts of a forum that has more than one post for the same key.
+ * `holocron cleanup posts` — delete the extra posts of a forum that has more than one post for the same key.
  *
  * Two deliveries that race (Sentinel's pull-request feed on serverless instances, #2032) can each make the post for one
  * pull request. This reads the forum afresh, lists every key with more than one post, and for each keeps the oldest
@@ -54,7 +54,7 @@ export async function runNotificationsDedupe(input: RunNotificationsDedupeInput)
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications dedupe");
+	assertPluginsResolvable(loader, "cleanup posts");
 
 	const dryRun = input.context.dryRun ?? false;
 	const report: NotificationsDedupeReport = { status: "ok", duplicates: [], deleted: 0, failures: [] };
@@ -62,7 +62,7 @@ export async function runNotificationsDedupe(input: RunNotificationsDedupeInput)
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason: message }, "notifications dedupe");
+		logger.warn({ reason: message }, "cleanup posts");
 		return { ...report, status: "fail", message };
 	};
 
@@ -110,7 +110,7 @@ export async function runNotificationsDedupe(input: RunNotificationsDedupeInput)
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
 			throw new NonInteractiveError(
-				`\`notifications dedupe\` deletes ${plural(extra, "post")} from #${channel}; pass --yes to run it without asking, or --dry-run to preview`
+				`\`cleanup posts\` deletes ${plural(extra, "post")} from #${channel}; pass --yes to run it without asking, or --dry-run to preview`
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
@@ -148,7 +148,7 @@ export async function runNotificationsDedupe(input: RunNotificationsDedupeInput)
 			failures: report.failures.length,
 			status: report.status,
 		},
-		"notifications dedupe"
+		"cleanup posts"
 	);
 	return report;
 }

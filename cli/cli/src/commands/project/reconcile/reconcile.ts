@@ -1,5 +1,5 @@
 /**
- * `holocron project reconcile [board]` — set the status of board items where a rule says so (spec `command-project`,
+ * `holocron reconcile project [board]` — set the status of board items where a rule says so (spec `command-project`,
  * "Keeping a board true"): an open item with an open blocker goes to the `blocked` status, an open blocked one with no
  * blocker returns to `planned`, a closed or merged one goes to `done`. Status only, never priority or any other field.
  *
@@ -37,7 +37,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "project reconcile");
+	assertPluginsResolvable(loader, "reconcile project");
 
 	const dryRun = input.context.dryRun ?? false;
 	const report: ProjectReconcileReport = { status: "ok", boards: [], failures: [] };
@@ -45,7 +45,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "project reconcile");
+		logger.warn({ reason }, "reconcile project");
 		return { ...report, status: "fail", message };
 	};
 	const failStep = (step: string, message: string) => {
@@ -104,13 +104,13 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		try {
 			board = await projects.find(owner, declared.name);
 			if (!board) {
-				failStep(declared.name, "the board does not exist or is closed; run `holocron project setup`");
+				failStep(declared.name, "the board does not exist or is closed; run `holocron setup project`");
 				continue;
 			}
 			plan = planReconcile(await projects.items(owner, board, template), template);
 		} catch (err) {
 			failStep(declared.name, describeError(err));
-			logger.warn({ board: declared.name, reason: logReason(err) }, "project reconcile");
+			logger.warn({ board: declared.name, reason: logReason(err) }, "reconcile project");
 			continue;
 		}
 
@@ -140,7 +140,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 				print(`  ${style.success(`${result.transitioned ? "set" : "already"} ${line(change)}`)}`);
 			} catch (err) {
 				failStep(change.key, describeError(err));
-				logger.warn({ board: declared.name, key: change.key, reason: logReason(err) }, "project reconcile");
+				logger.warn({ board: declared.name, key: change.key, reason: logReason(err) }, "reconcile project");
 			}
 		}
 		for (const item of plan.unset) {
@@ -170,7 +170,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 			failures: report.failures.length,
 			status: report.status,
 		},
-		"project reconcile"
+		"reconcile project"
 	);
 	return report;
 }

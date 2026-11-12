@@ -14,9 +14,9 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("github-app create command", () => {
+describe("new github-app command", () => {
 	it("passes the options, the working directory and the org", async () => {
-		await runCommand(githubAppCreateCommand, ["create", ...required, "--org", "acme"], { cwd: "/work" });
+		await runCommand(githubAppCreateCommand, ["github-app", ...required, "--org", "acme"], { cwd: "/work" });
 		expect(runGithubAppCreate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				dir: "/work",
@@ -33,7 +33,7 @@ describe("github-app create command", () => {
 
 	it("passes the file, the webhook secret name and the keep and force flags", async () => {
 		await runCommand(githubAppCreateCommand, [
-			"create",
+			"github-app",
 			...required,
 			"--file",
 			"dev.env",
@@ -48,13 +48,13 @@ describe("github-app create command", () => {
 	});
 
 	it("needs a name, a webhook URL and a manifest", async () => {
-		await expect(runCommand(githubAppCreateCommand, ["create"])).rejects.toThrow(/Missing required/);
+		await expect(runCommand(githubAppCreateCommand, ["github-app"])).rejects.toThrow(/Missing required/);
 		expect(runGithubAppCreate).not.toHaveBeenCalled();
 	});
 
 	it("exits non-zero when it fails", async () => {
 		runGithubAppCreate.mockResolvedValue({ status: "fail" });
-		await runCommand(githubAppCreateCommand, ["create", ...required]);
+		await runCommand(githubAppCreateCommand, ["github-app", ...required]);
 		expect(process.exitCode).toBe(1);
 	});
 });

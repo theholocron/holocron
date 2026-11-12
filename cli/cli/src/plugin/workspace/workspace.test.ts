@@ -45,16 +45,16 @@ describe("assertPluginsResolvable", () => {
 
 		const err = (() => {
 			try {
-				assertPluginsResolvable(loader, "repo sync");
+				assertPluginsResolvable(loader, "sync");
 			} catch (e) {
 				return e;
 			}
 		})();
 		expect(err).toBeInstanceOf(WorkspaceContextError);
-		expect((err as WorkspaceContextError).command).toBe("repo sync");
+		expect((err as WorkspaceContextError).command).toBe("sync");
 		expect((err as WorkspaceContextError).packages).toEqual(["@theholocron/holocron-plugin-github"]);
 		expect((err as WorkspaceContextError).message).toMatch(/needs @theholocron\/holocron-plugin-github/);
-		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron repo sync/);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron sync/);
 	});
 
 	it("names the extra count (singular) when one other package is unresolved", async () => {
@@ -62,7 +62,7 @@ describe("assertPluginsResolvable", () => {
 		await loader.load();
 		const err = (() => {
 			try {
-				assertPluginsResolvable(loader, "repo setup");
+				assertPluginsResolvable(loader, "setup");
 			} catch (e) {
 				return e;
 			}
@@ -78,7 +78,7 @@ describe("assertPluginsResolvable", () => {
 		await loader.load();
 		const err = (() => {
 			try {
-				assertPluginsResolvable(loader, "repo setup");
+				assertPluginsResolvable(loader, "setup");
 			} catch (e) {
 				return e;
 			}
@@ -92,7 +92,7 @@ describe("assertPluginsResolvable", () => {
 			{ "@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }) }
 		);
 		await loader.load();
-		expect(() => assertPluginsResolvable(loader, "repo setup")).not.toThrow();
+		expect(() => assertPluginsResolvable(loader, "setup")).not.toThrow();
 	});
 
 	it("is a no-op when there are no providers / no failures", async () => {

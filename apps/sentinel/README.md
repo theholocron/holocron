@@ -98,7 +98,7 @@ failure other than a 404 propagates, as for every other read.
 
 Execution reuses `@theholocron/datapad`'s `loadConfigFromContent()`
 (fetched content, not a file already on disk — the same `loadFile`
-internals `loadConfigFile()` uses locally for `holocron repo setup`/`sync`,
+internals `loadConfigFile()` uses locally for `holocron setup`/`sync`,
 D8) — so a real
 `holocron.config.ts` that does
 `import { defineConfig } from "@theholocron/cli"` (the CLI README's own
@@ -145,7 +145,7 @@ of orgs/accounts unchanged.
 ## `syncPropertiesFromConfig({ client, repo, defaultBranch, config })`
 
 Resolves and syncs GitHub custom properties for a repo — the same 10
-fields `holocron repo sync`'s `properties` step computes (6 manual, straight
+fields `holocron sync`'s `properties` step computes (6 manual, straight
 from `holocron.config.ts`'s `repo.properties` / `repo.protection`; 4
 derived — #677) — from data fetched over the GitHub API instead of a
 local checkout, so it can run from a webhook delivery. Pass
@@ -155,7 +155,7 @@ re-fetching the same file.
 The derivation logic itself —
 `deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/`deriveCompliance()`
 — is imported from `@theholocron/cli` unchanged (D8): the same functions
-`holocron repo sync` calls locally. Only the _inputs_ differ: workspace-package
+`holocron sync` calls locally. Only the _inputs_ differ: workspace-package
 discovery walks the default branch's tree via `client.git.getTree()`
 (recursive) instead of a local `readdir`, filtering for
 `packages/*/package.json` and `apps/*/package.json`. Every read goes
@@ -281,7 +281,7 @@ since this section had already drifted out of sync with it once.
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ SENTINEL_GITHUB_APP_ID, SENTINEL_GITHUB_APP_PRIVATE_KEY,
-SENTINEL_WEBHOOK_SECRET }` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of a deployment set before #1864 are still read), wired via `holocron secrets sync`. Three more
+SENTINEL_WEBHOOK_SECRET }` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of a deployment set before #1864 are still read), wired via `holocron sync secrets`. Three more
 Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`, `HOLOCRON_AXIOM_ORG`)
 feed the module-level logger and the Axiom links directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
@@ -366,7 +366,7 @@ one.
 setup step, not something to redo on every deploy:
 
 ```bash
-holocron repo setup --cwd apps/sentinel
+holocron setup --cwd apps/sentinel
 ```
 
 Attaches `sentinel.theholocron.dev` (declared in `holocron.config.ts`)
@@ -374,7 +374,7 @@ to the Vercel project via `Deployment.ensureCustomDomain()`, then hands
 the CNAME verification challenge Vercel returns straight to
 Cloudflare's `dns` capability — fully automated, no manual DNS entry.
 Sentinel has no `source` provider configured, so every repo-settings
-step `holocron repo setup` normally runs is cleanly skipped; only the
+step `holocron setup` normally runs is cleanly skipped; only the
 `deployment`/`dns`/`vault` steps this config actually declares run.
 
 ### Why production only
@@ -437,7 +437,7 @@ from it, and refuses an open range with `invalid_version_value`
 ## GitHub App registration (manual, one-time)
 
 The App can be created from a manifest instead of the form below:
-`holocron github-app create --manifest apps/sentinel/github-app.manifest.json
+`holocron new github-app --manifest apps/sentinel/github-app.manifest.json
 --name ... --webhook-url ... --org theholocron` (GitHub's manifest flow; it
 needs one click on GitHub and writes the id, key and webhook secret to a
 private `.credentials` file — see the command's page). The manifest holds
@@ -466,8 +466,8 @@ permissions.
 
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
-set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
-["Custom domain"](#custom-domain-one-time) step — `holocron repo setup
+set (`holocron new token vercel <token>` or `VERCEL_TOKEN`), then the
+["Custom domain"](#custom-domain-one-time) step — `holocron setup
 --cwd apps/sentinel` attaches `sentinel.theholocron.dev` and hands
 Cloudflare the verification CNAME automatically. That domain, not a
 per-deployment `*.vercel.app` URL, is the stable webhook URL below.
@@ -515,7 +515,7 @@ App and the dev one that `holocron dev` runs, holocron#1968), never a person's.
 | Permission | Access | Why                                                                                                                                                                                              |
 | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Members    | Read   | `teams.members()` — role sync (holocron#1595) lists a team's members; only used when the role-sync settings below are set                                                                        |
-| Projects   | Write  | the `reconcile-projects` workflow mints an installation token with this permission to set board item statuses (`holocron project reconcile`, holocron#1744); Sentinel's own code does not use it |
+| Projects   | Write  | the `reconcile-projects` workflow mints an installation token with this permission to set board item statuses (`holocron reconcile project`, holocron#1744); Sentinel's own code does not use it |
 
 **Contents bumped from Read to Write for holocron#820, Issues bumped from
 none to Write for holocron#834, Pull requests bumped from Read to Write and
@@ -535,7 +535,7 @@ The three fixers (prettier, markdownlint, editorconfig) are guarded against undo
 a fix is committed Sentinel reads the pull request's commits (`findAutoFixLoop()`, the first 100 that GitHub lists),
 and a fixer that already committed since the last commit of a person's is not run again. The pull request gets one
 comment saying so (`postAutoFixLoopComment()`, looked for by its `<!-- sentinel:auto-fix-loop -->` marker), and the checks
-keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A failed read
+keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A read that errors
 of the commits blocks nothing. The commit subjects are `AUTO_FIX_SUBJECTS`, the one list the fixers write and the guard
 reads.
 
@@ -569,13 +569,13 @@ checks' verdicts are unchanged) and is left for its author to fix. A file GitHub
 
 ### Role sync settings (optional)
 
-Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron secrets sync Sentinel`.
+Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron sync secrets Sentinel`.
 
 ### `#prs` forum feed settings (optional)
 
 The feed keeps one forum post per pull request in the `#prs` forum (`docs/wiki/specifications/tech-sentinel-pr-feed.spec.md`, holocron#1738): the post is titled `repo#123: title`, the first message is a summary that is edited as the pull request changes (a link without the title, the status lines, then the pull request's description with Sourcery's parts and HTML comments removed), the post's tag is its state (`draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged`, `closed`), and messages are appended when it opens, when `ci / Required checks` finishes (passed, or did not pass, with the failing checks linked, five at most) and when it closes, after which the post is archived and locked. A redelivery adds nothing twice: each appended line ends with a marker (`-# ci: <sha> <conclusion>`, `-# pr: opened`) that is looked for first.
 
-It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron notifications setup` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
+It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron setup notifications` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
 
 ### Private key
 
@@ -595,11 +595,11 @@ have their own) and one shared org slug. Sentinel's Environment holds the Axiom 
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `secrets sync` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `sync secrets` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above; the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG`); with either unset the check run has no details link.
 
 ```sh
-holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
+holocron sync secrets Sentinel --cwd apps/sentinel --project-id sentinel --target production \
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```
@@ -625,7 +625,7 @@ community report says otherwise), run the same command locally instead.
   every PR to this whole repo — not only ones touching Sentinel, since
   the thin caller's `pull_request: {}` trigger carries no path filter
   — its own Vercel preview deployment, built from that PR's own,
-  not-yet-reviewed code. `secrets sync`'s `deployment` destination now
+  not-yet-reviewed code. `sync secrets`'s `deployment` destination now
   sends only the keys `repo.secrets.deploy` names in this config (the
   `SENTINEL_` prefix and `HOLOCRON_AXIOM_ORG`, `HOLOCRON_DISCORD_BOT_TOKEN`,
   `HOLOCRON_USER_SYNC_TOKEN`, #2061), but that is still every runtime key —
@@ -679,7 +679,7 @@ the `dev` layer 1Password Environment (`<org>/<repo> - dev`).
 ```bash
 # once: the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
 # go to a private .credentials file to import into the `dev` layer Environment)
-holocron github-app create --cwd apps/sentinel --org theholocron \
+holocron new github-app --cwd apps/sentinel --org theholocron \
   --name "The Holocron Sentinel - dev" \
   --webhook-url https://sentinel-dev.theholocron.dev/api/webhook \
   --manifest github-app.manifest.json
@@ -689,7 +689,7 @@ pnpm --filter @theholocron/sentinel dev
 ```
 
 `pnpm dev` is [`holocron dev`](/holocron/commands/dev/), configured by the `dev` block of this directory's `holocron.config.ts` (the Environment, the tunnel's name and hostname, the port and the command, so the hostname is set in one place): it sets up the named tunnel and its DNS record the way
-`holocron tunnel up` does (nothing changes when they are already right), reads the variables of the `dev` layer in
+`holocron new tunnel` does (nothing changes when they are already right), reads the variables of the `dev` layer in
 memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) beside `cloudflared` with those variables and `PORT` in the application's
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).

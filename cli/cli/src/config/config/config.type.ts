@@ -18,7 +18,7 @@ export interface LogConfig {
 	 * `HOLOCRON_AXIOM_DATASET` variable (`holocron`, synced from 1Password) with no config at all.
 	 * Set `axiom.dataset` only for a repo that keeps its own dataset: the CLI
 	 * pairs it with the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the
-	 * OS keyring (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still
+	 * OS keyring (`holocron new token axiom[.<org>] <TOKEN>`). Env vars still
 	 * win, and a `global`-context command ignores it.
 	 */
 	axiom?: {
@@ -100,7 +100,7 @@ export interface DocsConfig {
 	 * GitHub Pages build source.
 	 * "workflow" → GitHub Actions  (PUT { build_type: "workflow" })
 	 * "branch"   → classic gh-pages branch (PUT { build_type: "legacy", source: { branch: "gh-pages", path: "/" } })
-	 * When absent, Pages is not managed by `holocron repo setup`.
+	 * When absent, Pages is not managed by `holocron setup`.
 	 */
 	build?: "workflow" | "branch";
 	/**
@@ -138,7 +138,7 @@ export interface RepoVariables {
 	 */
 	org?: Record<string, string | { value: string; visibility?: "all" | "private" }>;
 	/**
-	 * The vault environments `holocron secrets sync` fills variables from, so one 1Password Environment is the only
+	 * The vault environments `holocron sync secrets` fills variables from, so one 1Password Environment is the only
 	 * place they are edited. Names only. A name here must not also be a literal value in `repo` or `org`, and `prune`
 	 * cannot be combined with it; either is a config error.
 	 */
@@ -148,11 +148,11 @@ export interface RepoVariables {
 }
 
 /**
- * One vault environment that `holocron secrets sync` pushes into GitHub Actions variables. Not secrets: a variable is
+ * One vault environment that `holocron sync secrets` pushes into GitHub Actions variables. Not secrets: a variable is
  * readable in GitHub afterwards, so keep it in an environment of its own, apart from the one that fills secrets.
  */
 export interface RepoVariablesSync {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -169,7 +169,7 @@ export interface RepoVariablesSync {
 
 /**
  * The names of the secrets that must exist for this repository's workflows to work, so `holocron doctor secrets`
- * can say which are missing. Only names go here, never values; `holocron secrets set` and `secrets sync` write
+ * can say which are missing. Only names go here, never values; `holocron new secret` and `sync secrets` write
  * them. The secrets the config already implies (the notification layout's webhooks and roles, a Chromatic project
  * token) are expected without being listed again. A secret that exists but is not listed is never a problem.
  */
@@ -181,12 +181,12 @@ export interface RepoSecrets {
 	/** Environment secrets, by environment name. */
 	environments?: Record<string, string[]>;
 	/**
-	 * The vault environments `holocron secrets sync` fills secrets from. `holocron doctor secrets` expects the
+	 * The vault environments `holocron sync secrets` fills secrets from. `holocron doctor secrets` expects the
 	 * keys each one holds (or lists) at its scope. Names only; the doctor never reads or prints a value.
 	 */
 	sync?: RepoSecretsSync[];
 	/**
-	 * The names `holocron secrets sync` may send to a deployment (`--project-id`) or a Worker (`--worker`), per vault
+	 * The names `holocron sync secrets` may send to a deployment (`--project-id`) or a Worker (`--worker`), per vault
 	 * environment. Required for such a sync: an environment with no entry sends nothing and the command stops with a
 	 * `ConfigError`. Names and prefixes only (spec `tech-deployment-key-allowlist`, #2061).
 	 */
@@ -199,7 +199,7 @@ export interface RepoSecrets {
  * `ConfigError`: there is no "all keys".
  */
 export interface RepoSecretsDeploy {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -212,9 +212,9 @@ export interface RepoSecretsDeploy {
 	prefix?: string;
 }
 
-/** One vault environment that `holocron secrets sync` pushes into GitHub secrets, declared so the doctor can check them. */
+/** One vault environment that `holocron sync secrets` pushes into GitHub secrets, declared so the doctor can check them. */
 export interface RepoSecretsSync {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -228,6 +228,17 @@ export interface RepoSecretsSync {
 	keys?: string[];
 	/** Where the secrets land, as `--github-secret-scope` words it: `"repo"` (the default), `"env=<name>"` or `"org=<name>"`. */
 	scope?: string;
+	/**
+	 * Organization scope only: who can read the secrets. Only `"selected"` is accepted for a secret (`"all"` and
+	 * `"private"` are a `ConfigError`); it may be left out when `repos` is given.
+	 */
+	visibility?: "all" | "private" | "selected";
+	/**
+	 * Organization scope only, and required there: the repositories that can read the secrets, by name in the
+	 * organization (`"holocron"`, or `"theholocron/holocron"`). A secret is never readable by every repository (spec
+	 * `tech-org-secret-visibility`, #2062).
+	 */
+	repos?: string[];
 }
 
 /** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */
@@ -277,7 +288,7 @@ export interface OrgConfig {
 	};
 }
 
-/** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */
+/** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron setup`. */
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
@@ -287,7 +298,7 @@ export interface RepoConfig {
 	 * Sentinel's `validateConfig()` reads (D6: the App only ever reads config
 	 * from the repo's default branch, never a PR ref, as a security boundary
 	 * — never widen that to read PR branches instead of fixing this field).
-	 * Synced by `holocron repo setup`. Omit to leave GitHub's current setting
+	 * Synced by `holocron setup`. Omit to leave GitHub's current setting
 	 * untouched — most repos never need this. Exists for a repo using a
 	 * `main`/`alpha` prerelease-channel split (CLAUDE.md's Releases section)
 	 * where active development happens on a non-`main` branch: set this to
@@ -297,7 +308,7 @@ export interface RepoConfig {
 	 */
 	defaultBranch?: string;
 	/**
-	 * Branch protection preset applied by `holocron repo setup`. When omitted,
+	 * Branch protection preset applied by `holocron setup`. When omitted,
 	 * no protection is applied and no `branch_protection_level` property is set.
 	 * Required-status-check contexts for `"strict"` are derived from the task
 	 * manifest — `{ required: true }` tasks + top-level `extraRequiredChecks`
@@ -305,7 +316,7 @@ export interface RepoConfig {
 	 */
 	protection?: RepoProtection;
 	/**
-	 * GitHub teams granted repository access. Synced by `holocron repo setup`, which
+	 * GitHub teams granted repository access. Synced by `holocron setup`, which
 	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.
 	 * String shorthand defaults to `push` (Write).
 	 */
@@ -314,7 +325,7 @@ export interface RepoConfig {
 	topics?: string[];
 	/** GitHub custom properties synced to the org dashboard. */
 	properties?: RepoProperties;
-	/** GitHub Actions variables reconciled by `holocron repo setup`. */
+	/** GitHub Actions variables reconciled by `holocron setup`. */
 	variables?: RepoVariables;
 	/** The secrets that must exist, checked by `holocron doctor secrets`. Names only; nothing writes them. */
 	secrets?: RepoSecrets;
@@ -343,6 +354,7 @@ export interface DoctorConfig {
 	 * Variable names that live in more than one place on purpose (an Environment's entry and the one a second
 	 * Environment holds), which `holocron doctor variable-owners` does not report. Names only. The copy a
 	 * `repo.secrets.sync` or `repo.variables.sync` entry makes is never reported, so it needs no entry here.
+	 * `holocron doctor shared-values` leaves out the same names: a secret two layers hold the same value of on purpose.
 	 */
 	sharedVariables?: string[];
 }
@@ -536,7 +548,7 @@ export interface StorybookDeployProject {
  * `ChromaticProjectConfig[]` directly; each entry's `untraced` glob list may
  * be authored as an array and is newline-joined for you.
  *
- * `docs` / `storybook` are high-level deploy shorthand that `holocron repo setup`
+ * `docs` / `storybook` are high-level deploy shorthand that `holocron setup`
  * translates to `type` / `storybook-projects` before writing the thin caller.
  * They also drive automatic `paths:` derivation so you never need to write
  * `paths:` manually for deploy entries.
@@ -600,7 +612,7 @@ export interface HolocronConfig {
 	name?: string;
 	/** A one-line description of the project. */
 	description?: string;
-	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron repo sync`. */
+	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron sync`. */
 	homepage?: string;
 	/**
 	 * Active org name for namespaced keyring lookup. When set, token resolution
@@ -641,7 +653,7 @@ export interface HolocronConfig {
 	 *   "knowledge.wiki" | "knowledge.docs" | "knowledge.components" |
 	 *   "review" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping"
 	 *
-	 * `holocron repo setup` writes `.github/workflows/<name>.yml` for each entry,
+	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
 	 * calling the corresponding reusable workflow in `theholocron/.github`.
 	 * Files are overwritten on each run — they are generated artifacts.
 	 *
@@ -714,7 +726,7 @@ export interface HolocronConfig {
 	 */
 	tasks?: Array<string | TaskEntryConfig>;
 	/**
-	 * Opt out of `holocron repo sync`'s `package.json` script writes. Default `true`.
+	 * Opt out of `holocron sync`'s `package.json` script writes. Default `true`.
 	 */
 	syncScripts?: boolean;
 	/**
@@ -725,15 +737,15 @@ export interface HolocronConfig {
 	holocronScript?: string;
 	/**
 	 * Required status-check contexts not backed by a `required` task (codecov
-	 * gates, the bundle-build check, …). `holocron repo setup` appends these to the
+	 * gates, the bundle-build check, …). `holocron setup` appends these to the
 	 * task-derived list from `astromech.requiredChecks()`.
 	 */
 	extraRequiredChecks?: string[];
 	/**
-	 * Git hooks `holocron repo setup` installs. `true` / `{ prePush: true }` writes
+	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
 	 * `.husky/pre-push` (runs `holocron run ci` before every push); `false` /
 	 * `{ prePush: false }` opts out. Omitted → on for `protection: "strict"`,
-	 * off otherwise. `--hooks` / `--no-hooks` on `holocron repo setup` override.
+	 * off otherwise. `--hooks` / `--no-hooks` on `holocron setup` override.
 	 */
 	hooks?: boolean | { prePush?: boolean };
 	/** Which provider backs each capability. */
@@ -743,7 +755,7 @@ export interface HolocronConfig {
 	/** Settings for `holocron doctor`. */
 	doctor?: DoctorConfig;
 	/**
-	 * Agent runtime that determines where skills are installed by `holocron repo setup`.
+	 * Agent runtime that determines where skills are installed by `holocron setup`.
 	 * Skills are installed to `.agents/skills/<name>/` (canonical) with a
 	 * relative symlink at the agent-specific path:
 	 * - `"claude"` → `.claude/skills/<name>` → `../../.agents/skills/<name>`
@@ -751,7 +763,7 @@ export interface HolocronConfig {
 	 */
 	agent?: "claude" | "codex" | "gemini";
 	/**
-	 * Skill names from `@theholocron/skills` to install during `holocron repo setup`.
+	 * Skill names from `@theholocron/skills` to install during `holocron setup`.
 	 * Installed paths are gitignored and managed by setup — do not commit them.
 	 *
 	 * @example
@@ -759,7 +771,7 @@ export interface HolocronConfig {
 	 */
 	skills?: string[];
 	/**
-	 * GitHub Pages configuration. When present, `holocron repo setup` calls the
+	 * GitHub Pages configuration. When present, `holocron setup` calls the
 	 * Pages API using `HOLOCRON_DEPLOY_TOKEN` (requires `pages:write` + `repo` scope).
 	 * When absent, Pages is left as-is.
 	 *
@@ -805,7 +817,7 @@ export interface HolocronConfig {
 	 */
 	githubApps?: GitHubAppConfig[];
 	/**
-	 * The state that files an idea as an issue, for `holocron ideas sync`. Where the ideas are kept is
+	 * The state that files an idea as an issue, for `holocron sync ideas`. Where the ideas are kept is
 	 * `providers.ideas`; the older `ideas.dir` is deprecated and still read when `providers.ideas` is absent.
 	 *
 	 * @example
@@ -902,7 +914,7 @@ export interface ResolvedHolocronConfig {
 	holocronScript?: string;
 	/** Required status checks not backed by a task. */
 	extraRequiredChecks?: string[];
-	/** Git hooks `holocron repo setup` installs. */
+	/** Git hooks `holocron setup` installs. */
 	hooks?: boolean | { prePush?: boolean };
 	/** Resolved provider entries by capability. */
 	providers: ResolvedProvidersConfig;

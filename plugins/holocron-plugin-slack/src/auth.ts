@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "slack",
 	errorMessage:
 		"no Slack bot token found. Pass --token <TOKEN>, set HOLOCRON_SLACK_TOKEN / SLACK_BOT_TOKEN, " +
-		"or run: holocron auth set slack <xoxb-TOKEN>",
+		"or run: holocron new token slack <xoxb-TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

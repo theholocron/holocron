@@ -19,7 +19,7 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 	teamId?: string;
 	/** Default framework slug for new project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
-	/** Custom domain that `holocron repo setup` should attach to the Vercel project. */
+	/** Custom domain that `holocron setup` should attach to the Vercel project. */
 	domain?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -83,12 +83,12 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 }
 
 /**
- * One-line hint printed by `holocron auth set vercel` when no token
+ * One-line hint printed by `holocron new token vercel` when no token
  * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Vercel Personal Access Token at https://vercel.com/account/tokens " +
-	"(scope: Full Account for team ops), then run: holocron auth set vercel <PAT>";
+	"(scope: Full Account for team ops), then run: holocron new token vercel <PAT>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

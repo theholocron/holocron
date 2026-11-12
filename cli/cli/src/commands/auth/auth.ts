@@ -1,12 +1,11 @@
 /**
- * `holocron auth <subcommand>` — manage bootstrap credentials in the
- * OS keyring.
+ * The token commands — manage bootstrap credentials in the OS keyring.
  *
- * Subcommands:
- *   auth set <provider> [token]   verify + store
- *   auth unset <provider>         remove
- *   auth check <provider>         re-verify a stored token
- *   auth list                     every provider with a stored entry
+ * Commands:
+ *   new token <provider> [token]   verify + store
+ *   remove token <provider>         remove
+ *   check token <provider>         re-verify a stored token
+ *   list tokens                     every provider with a stored entry
  *
  * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
  *
@@ -63,7 +62,7 @@ export const defaultImporter: AuthImporter = (pkg) => createDefaultImporter()(pk
 
 /**
  * Resolve a token from (positional → HOLOCRON_<X> → vendor-native env).
- * Keyring is NOT consulted here — `auth set` writes TO the keyring, so
+ * Keyring is NOT consulted here — `new token` writes TO the keyring, so
  * pulling FROM it would just re-store the same value.
  */
 export function resolveAuthSetToken(input: {
@@ -103,7 +102,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 
 	if (!token) {
 		print(style.fail(`no token supplied for \`${keyringKey}\`.`));
-		print(style.hint(`  pass as positional arg: holocron auth set ${provider} <token>`));
+		print(style.hint(`  pass as positional arg: holocron new token ${provider} <token>`));
 		if (!isFeatureKey) {
 			print(
 				style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`)
@@ -113,7 +112,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 				print(style.hint(`  hint: ${hint}`));
 			}
 		}
-		logger.warn({ provider, keyringKey, reason: "no token supplied" }, `auth set: ${keyringKey}`);
+		logger.warn({ provider, keyringKey, reason: "no token supplied" }, `new token: ${keyringKey}`);
 		return { status: "fail", message: "no token supplied" };
 	}
 
@@ -131,7 +130,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 					if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 					logger.warn(
 						{ provider, keyringKey, verified: false, reason: verified.message },
-						`auth set: ${keyringKey}`
+						`new token: ${keyringKey}`
 					);
 					return { status: "fail", message: verified.message };
 				}
@@ -143,7 +142,9 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 			const msg = errorMessage(err);
 			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
 			print(
-				style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`)
+				style.hint(
+					`  storing token anyway; run 'holocron check token ${provider}' once the plugin is installed`
+				)
 			);
 		}
 	}
@@ -151,7 +152,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	const stored = keyring.set(keyringKey, token);
 	if (!stored) {
 		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
-		logger.warn({ provider, keyringKey, reason: "keyring unavailable" }, `auth set: ${keyringKey}`);
+		logger.warn({ provider, keyringKey, reason: "keyring unavailable" }, `new token: ${keyringKey}`);
 		return { status: "fail", message: "keyring unavailable" };
 	}
 
@@ -167,7 +168,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	}
 	logger.info(
 		{ provider, keyringKey, verified: subject !== undefined, ...(subject ? { subject } : {}), status: "ok" },
-		`auth set: ${keyringKey}`
+		`new token: ${keyringKey}`
 	);
 	return { status: "ok", ...(subject ? { message: subject } : {}) };
 }
@@ -178,11 +179,11 @@ export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
 	const removed = keyring.delete(input.provider);
 	if (removed) {
 		print(style.success(`removed ${input.provider} token`));
-		logger.info({ provider: input.provider, status: "ok" }, `auth unset: ${input.provider}`);
+		logger.info({ provider: input.provider, status: "ok" }, `remove token: ${input.provider}`);
 		return { status: "ok" };
 	}
 	print(style.dim(`no stored token for ${input.provider}`));
-	logger.info({ provider: input.provider, status: "skip" }, `auth unset: ${input.provider}`);
+	logger.info({ provider: input.provider, status: "skip" }, `remove token: ${input.provider}`);
 	return { status: "skip", message: "nothing to remove" };
 }
 
@@ -196,7 +197,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	const token = keyring.get(keyringKey);
 	if (!token) {
 		print(style.dim(`no stored token for ${keyringKey}`));
-		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `auth check: ${keyringKey}`);
+		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `check token: ${keyringKey}`);
 		return { status: "skip", message: "no stored token" };
 	}
 
@@ -220,7 +221,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 			print(style.success(`${keyringKey}: ok — ${verified.subject}`));
 			logger.info(
 				{ provider, keyringKey, verified: true, subject: verified.subject, status: "ok" },
-				`auth check: ${keyringKey}`
+				`check token: ${keyringKey}`
 			);
 			return { status: "ok", message: verified.subject };
 		}
@@ -228,25 +229,25 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 		logger.warn(
 			{ provider, keyringKey, verified: false, reason: verified.message, status: "fail" },
-			`auth check: ${keyringKey}`
+			`check token: ${keyringKey}`
 		);
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = errorMessage(err);
-		// Global install: the plugin package isn't resolvable here. `auth set` /
-		// `auth list` already work plugin-free — `auth check` degrades to the
+		// Global install: the plugin package isn't resolvable here. `new token` /
+		// `list tokens` already work plugin-free — `check token` degrades to the
 		// same "we have a token, we just can't confirm it" report rather than
 		// failing outright (theholocron/holocron#576).
 		if (isModuleNotFound(err)) {
 			print(style.warn(`${keyringKey}: token present — verification skipped (plugin not available here)`));
 			logger.info(
 				{ provider, keyringKey, status: "ok", reason: "plugin not resolvable" },
-				`auth check: ${keyringKey}`
+				`check token: ${keyringKey}`
 			);
 			return { status: "ok", message: "stored, unverified (plugin not available)" };
 		}
 		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
-		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `auth check: ${keyringKey}`);
+		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `check token: ${keyringKey}`);
 		return { status: "fail", message: msg };
 	}
 }
@@ -259,8 +260,8 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 
 	if (providers.length === 0) {
 		print(style.dim("no stored tokens."));
-		print(style.hint("run: holocron auth set <provider> <token>"));
-		logger.info({ providers: 0 }, "auth list: done");
+		print(style.hint("run: holocron new token <provider> <token>"));
+		logger.info({ providers: 0 }, "list tokens: done");
 		return { status: "ok", message: "none" };
 	}
 
@@ -277,7 +278,7 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 			print(`  ${style.fail(label)}`);
 		} else print(`  ${style.dim(`· ${label}`)}`);
 	}
-	logger.info({ providers: providers.length, ok, fail }, "auth list: done");
+	logger.info({ providers: providers.length, ok, fail }, "list tokens: done");
 	return { status: "ok" };
 }
 

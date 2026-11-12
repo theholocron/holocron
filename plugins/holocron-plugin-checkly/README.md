@@ -6,7 +6,7 @@ Checkly plugin for [Holocron](../cli). Implements the
 `monitoring` capability against [Checkly's REST API](https://api.checklyhq.com/v1)
 (API checks only — browser checks, heartbeats, and dashboards are out of
 scope until a real consumer needs them), plus exports `verifyToken` +
-`AUTH_HINT` for use by `holocron auth`.
+`AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -31,15 +31,15 @@ granular roles, but require the Starter tier or above — not available
 on the free Hobby tier. Revisit if/when the account upgrades.
 
 ```bash
-holocron auth set checkly <TOKEN>
-holocron auth check checkly    # verify — hits GET /v1/accounts
+holocron new token checkly <TOKEN>
+holocron check token checkly    # verify — hits GET /v1/accounts
 ```
 
 ## Config
 
 `accountId` is required on every request (Checkly's `x-checkly-account`
 header) — it is not a secret, the same status as Vercel's `teamId`.
-`checks` is the list of API checks `holocron repo setup` ensures exist,
+`checks` is the list of API checks `holocron setup` ensures exist,
 each matched and upserted by exact `name`. **`locations` is required** —
 Checkly refuses a check with neither `locations` nor `privateLocations`
 set (`400 "You have to set at least one location or privateLocation"`)
@@ -103,10 +103,10 @@ subscribed to a channel it is routed away from.
   alert settings and its routed subscriptions.
 - `monitoring.whoami()` — lightweight auth probe (`GET /checks?limit=1`).
 - `monitoring.checks` — the configured check list, read by
-  `holocron repo setup` to loop over `ensureCheck`.
+  `holocron setup` to loop over `ensureCheck`.
 - `verifyToken` — `GET /v1/accounts` (the one Checkly endpoint that does
-  **not** require `x-checkly-account`), used by `holocron auth set` /
-  `holocron auth check` before any `accountId` is in scope.
+  **not** require `x-checkly-account`), used by `holocron new token` /
+  `holocron check token` before any `accountId` is in scope.
 
 ## Status
 

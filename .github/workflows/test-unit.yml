@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/test/unit.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
@@ -110,7 +110,7 @@ jobs:
       - id: flags
         name: Upload coverage to Codecov, one flag per group
         if: ${{ inputs.uploads != '' }}
-        uses: theholocron/.github/.github/actions/codecov-upload@main
+        uses: ./ci/actions/codecov-upload
         with:
           uploads: ${{ inputs.uploads }}
           allow-empty: ${{ inputs.affected }}

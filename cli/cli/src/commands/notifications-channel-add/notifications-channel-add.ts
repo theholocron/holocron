@@ -1,5 +1,5 @@
 /**
- * `holocron notifications channel add` — create one channel (and, with
+ * `holocron new channel` — create one channel (and, with
  * `--with-webhook`, an inbound webhook whose URL goes straight into a secret).
  *
  * Provider-neutral: it drives the `notifications` capability's `ensure*`
@@ -183,7 +183,7 @@ export function layoutSecretProblem(layout: NotificationsLayout): string | undef
 	return undefined;
 }
 
-/** Ensure one channel and, if asked, its webhook + secret. Shared with `notifications setup`. */
+/** Ensure one channel and, if asked, its webhook + secret. Shared with `setup notifications`. */
 export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): Promise<ChannelOutcome> {
 	const { notifications, secrets, scope, dryRun, print, tally } = deps;
 	const webhookCfg = spec.webhook || undefined;
@@ -440,10 +440,10 @@ export async function runNotificationsChannelAdd(
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications channel add");
+	assertPluginsResolvable(loader, "new channel");
 
 	const dryRun = input.context.dryRun ?? false;
-	print(`Holocron notifications channel add — ${input.name}${dryRun ? " (dry-run)" : ""}`);
+	print(`Holocron new channel — ${input.name}${dryRun ? " (dry-run)" : ""}`);
 
 	// Every failure below is printed and returned, never thrown: the CLI's global
 	// handler swallows a plain Error, so a bare throw would exit 1 with no message.
@@ -492,7 +492,7 @@ export async function runNotificationsChannelAdd(
 		);
 		logger.info(
 			{ channel: input.name, created: channel.created, provider: notifications.providerName, status: "ok" },
-			`notifications channel add: ${input.name}`
+			`new channel: ${input.name}`
 		);
 		if (channel.webhook && !channel.webhook.stored && !dryRun) {
 			// `note` is always set when a webhook was requested but not stored.
@@ -504,7 +504,7 @@ export async function runNotificationsChannelAdd(
 	} catch (err) {
 		const message = describeError(err);
 		print(`  ${style.fail(message)}`);
-		logger.warn({ channel: input.name, reason: logReason(err) }, `notifications channel add: ${input.name}`);
+		logger.warn({ channel: input.name, reason: logReason(err) }, `new channel: ${input.name}`);
 		return { status: "fail", message };
 	}
 }

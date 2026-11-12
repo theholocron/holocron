@@ -103,7 +103,7 @@ export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 		``,
 		// `compose(withNode(), withTypecheck())` is the org baseline preset — the full
 		// task manifest (lint/test/typecheck required, security/review/… ) rides
-		// in via `...preset`, so `holocron repo setup` can derive CodeQL mode and the
+		// in via `...preset`, so `holocron setup` can derive CodeQL mode and the
 		// required-check contexts. See theholocron/holocron#642.
 		`const preset = compose(withNode(), withTypecheck());`,
 		`export default defineConfig({`,
@@ -479,7 +479,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 		}
 
 		print("");
-		print("  Running holocron repo setup…");
+		print("  Running holocron setup…");
 		try {
 			const setupArgs: string[] = ["setup"];
 			const setupEnv: Record<string, string> = {};
@@ -504,7 +504,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 
 			execFn("holocron", setupArgs, { cwd: repoDir, stdio: "inherit", env: setupEnv });
 		} catch {
-			print("  ✗ holocron repo setup failed — run it manually after checking your config");
+			print("  ✗ holocron setup failed — run it manually after checking your config");
 		}
 	}
 
@@ -515,7 +515,7 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	print(`    1. cd ${repoDir}`);
 	if (input.noVerify) {
 		print(`    2. pnpm install`);
-		print(`    3. holocron repo setup  # wire up secrets, teams, labels, etc.`);
+		print(`    3. holocron setup  # wire up secrets, teams, labels, etc.`);
 		print(`    4. git push -u origin HEAD`);
 	} else {
 		print(`    2. git push -u origin HEAD`);

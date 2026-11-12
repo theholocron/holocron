@@ -1,7 +1,7 @@
 /**
- * `holocron notifications link` — record which server member is which GitHub account, by having the member
+ * `holocron link account` — record which server member is which GitHub account, by having the member
  * sign in with the provider. The provider reports the GitHub account it has verified they own, so a link
- * cannot be claimed for someone else's account. Writes the links file `sync-roles` reads.
+ * cannot be claimed for someone else's account. Writes the links file `sync roles` reads.
  *
  * Signs in on this machine (a one-shot listener on localhost) unless the hosted service (Sentinel) answers
  * its health route, in which case it points you there. Nothing but the two public ids is stored; the token
@@ -52,14 +52,14 @@ export async function runNotificationsLink(input: RunNotificationsLinkInput): Pr
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications link");
+	assertPluginsResolvable(loader, "link account");
 
 	const dryRun = input.context.dryRun ?? false;
 	const refuse = (message: string, reason: string = message): NotificationsLinkReport => {
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "notifications link");
+		logger.warn({ reason }, "link account");
 		return { status: "fail", message };
 	};
 
@@ -176,7 +176,7 @@ export async function runNotificationsLink(input: RunNotificationsLinkInput): Pr
 		);
 		print("");
 		print(style.header(`${outcome.changed ? 1 : 0} ok, 0 fail, ${outcome.changed ? 0 : 1} skipped`));
-		logger.info({ provider: notifications.providerName, changed: outcome.changed }, "notifications link");
+		logger.info({ provider: notifications.providerName, changed: outcome.changed }, "link account");
 		return {
 			status: "ok",
 			via: "local",

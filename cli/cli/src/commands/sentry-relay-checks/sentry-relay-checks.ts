@@ -18,7 +18,7 @@ const bare = (url: string) => url.replace(/\/+$/, "");
  * The steps of `doctor notifications` that check the error tracker's side of the relay: the integration exists, posts
  * to the relay Worker and is offered as an alert action, and the alert rule is on each project, enabled and sending
  * through the integration. Read-only, and the integration's signing secret is never read. No rows unless the layout
- * declares `relay.errors`, which is what `notifications setup` acts on.
+ * declares `relay.errors`, which is what `setup notifications` acts on.
  */
 export async function sentryRelayChecks(input: SentryRelayChecksInput): Promise<NotificationsCheck[]> {
 	const { layout, errors } = input;

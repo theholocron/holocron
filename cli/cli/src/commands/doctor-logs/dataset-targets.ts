@@ -24,7 +24,7 @@ export function datasetTargets(config: ResolvedHolocronConfig): LogsDatasetTarge
 			label: "the CLI",
 			variable: `${PREFIX}_AXIOM_DATASET`,
 			name: resolveCliDataset({ configAxiomDataset: config.log?.axiom?.dataset }, false),
-			fix: "run `holocron repo setup`, which provisions it",
+			fix: "run `holocron setup`, which provisions it",
 		},
 		{
 			id: "sentinel",

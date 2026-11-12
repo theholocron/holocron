@@ -209,7 +209,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 			repo: {
 				secrets: {
 					sync: [
-						{ environment: "Gha", scope: "org=acme", keys: ["ORG_ONE"] },
+						{ environment: "Gha", scope: "org=acme", repos: ["repo"], keys: ["ORG_ONE"] },
 						{ environment: "Gha", keys: ["REPO_ONE"] },
 						{ environment: "Gha", scope: "env=prod" },
 						{ environment: "Gha", scope: "bad scope" },

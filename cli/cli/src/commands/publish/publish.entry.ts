@@ -32,7 +32,7 @@ const PUBLISH_OTP_OPTION: OptionPrompt = {
 };
 
 export const publishEntry: MenuEntry = {
-	name: "package publish",
+	name: "publish package",
 	description: "Publish @theholocron/* packages to npm",
 	positionals: [],
 	supportsDryRun: true,

@@ -33,7 +33,7 @@ current holders of a role, and the members of a GitHub team (see Role sync).
 
 Members can choose to connect their Discord and GitHub accounts, so that a
 server role can follow membership of a GitHub team. Connecting is optional and
-starts when the member signs in with Discord (`holocron notifications link`),
+starts when the member signs in with Discord (`holocron link account`),
 which a maintainer runs on their own machine. For a member who does connect,
 Holonet processes:
 
@@ -46,7 +46,7 @@ Holonet processes:
   versions of the file stay in that repository's history.
 
 Roles are changed only when a maintainer runs `holocron notifications
-sync-roles`, not automatically: between runs a role can lag behind the team. To
+sync roles`, not automatically: between runs a role can lag behind the team. To
 do that, the command reads the team's members from GitHub and the current
 holders of the role from Discord, and adds or removes the role for linked
 members.
@@ -57,7 +57,7 @@ token stays valid until it expires on its own. The token is never stored.
 Nothing else about a member is kept.
 
 Revoking Holonet in Discord's **Authorized Apps** settings withdraws Discord's
-permission but does not remove the stored pairing, and `sync-roles` keeps using
+permission but does not remove the stored pairing, and `sync roles` keeps using
 the pairing until it is deleted. To unlink, ask for the pairing to be deleted
 (see Contact).
 

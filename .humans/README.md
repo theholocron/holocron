@@ -30,11 +30,11 @@ do. Running it again only changes what is missing.
 
 ### Needed to run things
 
-| Tool            | Command       | Why                                                                                                                                                                                                                                                                                      |
-| --------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cloudflared`   | `cloudflared` | The connector for a Cloudflare named tunnel. `holocron dev` and `holocron tunnel up` run it so GitHub can reach a webhook server on your laptop at a stable hostname (`sentinel-dev.theholocron.dev`). The tunnel's token is handed to it in its environment, never on its command line. |
-| `1password-cli` | `op`          | The `vault` and `credentials` providers read **1Password Environments** through it, so tokens and app secrets are not kept in files on disk or in your shell profile. It needs the 1Password desktop app's CLI integration, which is what lets you unlock with Touch ID.                 |
-| `gh`            | `gh`          | GitHub's own CLI. `holocron new` and the `probe` commands use it, and it is the quickest way to open and check pull requests and to get a token for `holocron repo setup` (`GITHUB_TOKEN=$(gh auth token)`).                                                                             |
+| Tool            | Command       | Why                                                                                                                                                                                                                                                                                       |
+| --------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cloudflared`   | `cloudflared` | The connector for a Cloudflare named tunnel. `holocron dev` and `holocron new tunnel` run it so GitHub can reach a webhook server on your laptop at a stable hostname (`sentinel-dev.theholocron.dev`). The tunnel's token is handed to it in its environment, never on its command line. |
+| `1password-cli` | `op`          | The `vault` and `credentials` providers read **1Password Environments** through it, so tokens and app secrets are not kept in files on disk or in your shell profile. It needs the 1Password desktop app's CLI integration, which is what lets you unlock with Touch ID.                  |
+| `gh`            | `gh`          | GitHub's own CLI. `holocron new` and the `probe` commands use it, and it is the quickest way to open and check pull requests and to get a token for `holocron setup` (`GITHUB_TOKEN=$(gh auth token)`).                                                                                   |
 
 ### Needed to run `holocron run ci` locally
 

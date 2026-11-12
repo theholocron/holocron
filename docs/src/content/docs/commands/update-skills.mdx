@@ -1,0 +1,28 @@
+---
+title: "update skills"
+description: Update installed agent skills to their latest upstream versions.
+---
+
+```bash
+holocron update skills [name]
+```
+
+Updates installed skills to their latest upstream versions via `npx update skills`. Omit `name` to update every installed skill.
+
+## Arguments
+
+| Argument | Default | Description                                   |
+| -------- | ------- | --------------------------------------------- |
+| `[name]` | all     | The skill to update (omit to update them all) |
+
+## Examples
+
+```bash
+# One skill
+holocron update skills commit-standards
+
+# All of them
+holocron update skills
+```
+
+Related: [`install skills`](/holocron/commands/install-skills/), [`remove skill`](/holocron/commands/remove-skill/).

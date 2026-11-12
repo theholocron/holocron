@@ -10,7 +10,7 @@ import type { BoardContextResult, OpenBoardContextInput } from "./board-context.
 
 /**
  * The `projects` provider, the owner, the declared boards and the templates, in one place for `doctor project` and
- * `project move`. A missing provider is a `skip` with the reason (a provider that failed to load says why); options that
+ * `move issues`. A missing provider is a `skip` with the reason (a provider that failed to load says why); options that
  * do not read are a `fail` with every problem.
  */
 export async function openBoardContext(input: OpenBoardContextInput): Promise<BoardContextResult> {

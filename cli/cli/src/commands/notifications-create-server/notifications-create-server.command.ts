@@ -12,7 +12,7 @@ import {
 } from "./notifications-create-server.args.js";
 
 export const notificationsCreateServerCommand: CommandModule<GlobalArgs, NotificationsCreateServerArgs> = {
-	command: "create-server",
+	command: "server",
 	describe: "Create the server the layout describes, apply it, invite its owner and hand it over",
 	builder: notificationsCreateServerArgs,
 	handler: async (argv) => {

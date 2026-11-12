@@ -296,8 +296,8 @@ describe("doctor repo — the organization's capability property", () => {
 		const row = byId(report.rows, ID);
 		expect(row.status).toBe("fail");
 		expect(row.problems).toEqual([
-			'"projects" is not an allowed value of holocron_capabilities; run `holocron repo properties apply`',
-			'"tunnels" is not an allowed value of holocron_capabilities; run `holocron repo properties apply`',
+			'"projects" is not an allowed value of holocron_capabilities; run `holocron apply properties`',
+			'"tunnels" is not an allowed value of holocron_capabilities; run `holocron apply properties`',
 		]);
 	});
 
@@ -329,7 +329,7 @@ describe("doctor repo — labels and teams", () => {
 		expect(byId(report.rows, "repo-labels").problems).toEqual([
 			"missing label bug",
 			`label ${found[0]!.name}: declared ${CANONICAL_LABELS[1]!.color} "${CANONICAL_LABELS[1]!.description}", found 000000 "${CANONICAL_LABELS[1]!.description}"`,
-			"stale label javascript (repo setup removes it)",
+			"stale label javascript (setup removes it)",
 		]);
 	});
 

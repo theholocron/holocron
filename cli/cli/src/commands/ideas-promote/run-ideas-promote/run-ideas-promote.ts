@@ -1,10 +1,10 @@
 /**
- * `holocron ideas promote` — turns a filed idea into a draft spec.
+ * `holocron new spec` — turns a filed idea into a draft spec.
  *
  * It reads the issue through the repo's `issues` provider (`Issues.get`, which parses the key in the tracker's own
  * syntax) and writes `.notes/<name>.spec.md`: draft frontmatter with the `issue:`, the title, and a `Problem` section
- * with the issue's text, less the `Filed from idea:` line and the hidden marker `ideas sync` added. It writes no `id`
- * (`specs sync` numbers the spec once it is on the default branch). It refuses to overwrite a file, and it never edits
+ * with the issue's text, less the `Filed from idea:` line and the hidden marker `sync ideas` added. It writes no `id`
+ * (`sync specs` numbers the spec once it is on the default branch). It refuses to overwrite a file, and it never edits
  * or closes the issue and never touches the vault, whose note was trashed when the idea was filed. Any issue can be
  * promoted; the row says whether it carried the idea marker. It writes, so it asks first unless `--dry-run` or
  * `--yes` (without a terminal it refuses instead).
@@ -57,7 +57,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		printCheckSummary(summary, print);
 		return { status: summary.fail > 0 ? "fail" : "ok", rows, ...(path ? { path } : {}) };
 	};
-	print(style.header(`Holocron ideas promote${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron new spec${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
 	const entry = input.loaded.resolved.providers.issues;
@@ -72,7 +72,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		);
 	/* v8 ignore stop */
 	await loader.load();
-	assertPluginsResolvable(loader, "ideas promote");
+	assertPluginsResolvable(loader, "new spec");
 	if (!loader.has("issues")) {
 		const failure = loader.loadFailures().find((f) => f.key === "issues");
 		return finish([
@@ -126,7 +126,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
 			throw new NonInteractiveError(
-				`\`ideas promote\` writes ${relative}; pass --yes to run it without asking, or --dry-run to preview`
+				`\`new spec\` writes ${relative}; pass --yes to run it without asking, or --dry-run to preview`
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(

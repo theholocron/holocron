@@ -4,7 +4,7 @@
 
 Infisical plugin for [Holocron](../cli). Implements the `vault`
 capability against [Infisical's REST API](https://infisical.com/docs/api-reference/overview/introduction),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## One of several vault providers
 
@@ -45,7 +45,7 @@ Token resolution order:
 2. `HOLOCRON_INFISICAL_TOKEN` env var (preferred — explicit intent)
 3. `INFISICAL_TOKEN` env var (Infisical-native, works in CI)
 4. Keyring `infisical.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `infisical` — unnamespaced fallback; set via `holocron auth set infisical <token>`
+5. Keyring `infisical` — unnamespaced fallback; set via `holocron new token infisical <token>`
 6. `AuthError` naming all five options + the bootstrap hint
 
 ## Setup
@@ -71,9 +71,9 @@ tracked as a follow-up; for now, use one of the two above.
 ```bash
 # 1. Generate the token per the note above.
 # 2. Hand it off to holocron's keyring (one-shot):
-holocron auth set infisical <TOKEN>
+holocron new token infisical <TOKEN>
 # 3. Verify (calls GET /v1/workspace and reports accessible workspaces):
-holocron auth check infisical
+holocron check token infisical
 
 ```
 
@@ -125,7 +125,7 @@ doesn't make sense.
 | `write`             | `POST /v3/secrets/raw/{name}` (create); falls back to `PATCH` on "already exists" body for upsert semantics.         |
 | `list`              | `GET /v3/secrets/raw` at the default `workspace + environment + secretPath=/`.                                       |
 | `environments`      | `GET /v1/workspace/{workspaceId}`, returns each environment's `slug`.                                                |
-| `readEnvironment`   | `GET /v3/secrets/raw?workspaceId&environment=<id>` — bulk KEY=VALUE dump for `holocron secrets sync`.                |
+| `readEnvironment`   | `GET /v3/secrets/raw?workspaceId&environment=<id>` — bulk KEY=VALUE dump for `holocron sync secrets`.                |
 | `ensureProject`     | `POST /v2/workspace` with `{ projectName, slug }`. Treats 400/409/422 "already exists" as idempotent no-op.          |
 | `ensureEnvironment` | `POST /v1/workspace/{project}/environments` with `{ environmentName, environmentSlug }`. Same idempotency semantics. |
 

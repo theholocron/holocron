@@ -3,13 +3,14 @@ title: "skills"
 description: Manage agent skills from the @theholocron/skills registry.
 ---
 
-Skills are reusable Claude/Codex/Gemini instructions installed from `@theholocron/skills` into `.agents/skills/` with agent-specific symlinks. They're gitignored — `holocron repo setup` re-installs them on every fresh checkout.
+Skills are reusable Claude/Codex/Gemini instructions installed from `@theholocron/skills` into `.agents/skills/` with agent-specific symlinks. They're gitignored — `holocron setup` re-installs them on every fresh checkout.
 
 | Command                                                | What it does                                      |
 | ------------------------------------------------------ | ------------------------------------------------- |
-| [`skills install`](/holocron/commands/skills-install/) | Install the skills listed in `holocron.config.ts` |
-| [`skills remove`](/holocron/commands/skills-remove/)   | Remove installed skills                           |
-| [`skills update`](/holocron/commands/skills-update/)   | Update installed skills to their latest versions  |
+| [`install skills`](/holocron/commands/install-skills/) | Install the skills listed in `holocron.config.ts` |
+| [`list skills`](/holocron/commands/list-skills/)       | List the installed skills                         |
+| [`remove skill`](/holocron/commands/remove-skill/)     | Remove installed skills                           |
+| [`update skills`](/holocron/commands/update-skills/)   | Update installed skills to their latest versions  |
 
 ## Skills registry
 

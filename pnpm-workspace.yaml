@@ -30,7 +30,7 @@ catalog:
   "@semantic-release/changelog": ^6.0.3
   "@semantic-release/exec": ^7.1.0
   "@semantic-release/git": ^11.0.1
-  "@sentry/node": ^11.10.0
+  "@sentry/node": ^11.11.0
   "@tsconfig/node-lts": ^24.0.1
   "@types/node": ^26
   "@vitest/coverage-v8": ^5.1.0
@@ -48,7 +48,7 @@ catalog:
   lint-staged: ^17.6.0
   pino: ^10.4.0
   pino-pretty: ^13.2.0
-  posthog-node: ^5.61.2
+  posthog-node: ^5.63.1
   prettier: ^3.9.10
   semantic-release: ^25.0.9
   sort-package-json: ^4.1.0

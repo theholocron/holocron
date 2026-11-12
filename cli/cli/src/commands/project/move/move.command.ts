@@ -26,7 +26,7 @@ const projectMoveArgs = (y: Argv<GlobalArgs>) =>
 type ProjectMoveArgs = InferArgs<typeof projectMoveArgs>;
 
 export const projectMoveCommand: CommandModule<GlobalArgs, ProjectMoveArgs> = {
-	command: "move <from> <to>",
+	command: "issues <from> <to>",
 	describe: "Move the open items of one board to another, with their status and priority; closed ones stay behind",
 	builder: projectMoveArgs,
 	handler: async (argv) => {

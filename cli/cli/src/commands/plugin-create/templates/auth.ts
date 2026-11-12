@@ -12,7 +12,7 @@ export const resolveToken = createResolveToken({
 \tkeyringService: "${inputs.slug}",
 \terrorMessage:
 \t\t"no ${inputs.vendorName} token found. Pass --token <TOKEN>, set ${inputs.tokenEnv} / ${inputs.vendorEnv}, " +
-\t\t"or run: holocron auth set ${inputs.slug} <TOKEN>",
+\t\t"or run: holocron new token ${inputs.slug} <TOKEN>",
 });
 `;
 }

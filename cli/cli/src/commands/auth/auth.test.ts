@@ -108,7 +108,7 @@ describe("runAuthSet", () => {
 		// logs the outcome — provider + keyring key + verified, never the token
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", keyringKey: "doppler", verified: true, status: "ok" }),
-			"auth set: doppler"
+			"new token: doppler"
 		);
 		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});
@@ -346,7 +346,7 @@ describe("runAuthUnset", () => {
 		expect(lines.join("\n")).toMatch(/removed doppler/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", status: "ok" }),
-			"auth unset: doppler"
+			"remove token: doppler"
 		);
 	});
 
@@ -397,7 +397,7 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", verified: true, status: "ok" }),
-			"auth check: doppler"
+			"check token: doppler"
 		);
 		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});
@@ -641,7 +641,7 @@ describe("runAuthList", () => {
 		expect(joined).toMatch(/✗ infisical — expired/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ providers: 2, ok: 1, fail: 1 }),
-			"auth list: done"
+			"list tokens: done"
 		);
 	});
 

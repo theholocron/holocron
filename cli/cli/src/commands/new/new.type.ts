@@ -30,7 +30,7 @@ export interface RunNewInput {
 	isTemplate?: boolean;
 	/** GitHub org that owns both the template and the new repo. Default: "theholocron". */
 	org?: string;
-	/** GitHub admin token forwarded to `holocron repo setup` during verify. */
+	/** GitHub admin token forwarded to `holocron setup` during verify. */
 	token?: string;
 	dryRun?: boolean;
 	noVerify?: boolean;

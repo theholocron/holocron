@@ -103,7 +103,7 @@ describe("specsCheckProbe", () => {
 		expect(rows.at(-1)?.detail).toBe("1 file(s) checked, 0 error(s), 1 warning(s)");
 	});
 
-	it("warns on a spec with no id, which specs sync numbers", async () => {
+	it("warns on a spec with no id, which sync specs numbers", async () => {
 		const rows = await run(makeIo({ ".notes/tech-x.spec.md": md("---", "status: archived", "---") }));
 		expect(rows[1]).toMatchObject({ status: "info", label: ".notes/tech-x.spec.md:1" });
 		expect(rows[1]?.detail).toMatch(/missing `id`.*\[id\]/);

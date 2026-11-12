@@ -1,5 +1,5 @@
 /**
- * `holocron auth export` — print the tokens a configured plugin takes as `NAME=value` lines, to move them into a
+ * `holocron export tokens` — print the tokens a configured plugin takes as `NAME=value` lines, to move them into a
  * credentials environment (`op` cannot write to a 1Password Environment, so the last step is the app's import).
  *
  * The names come from the plugins' `tokens` (the list `doctor tokens` and `doctor credentials` use) and each value from
@@ -34,7 +34,7 @@ import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
 
-const COMMAND = "auth export";
+const COMMAND = "export tokens";
 
 /** Plain code-unit order: the same on every machine, whatever its locale. The names it sorts are all different. */
 const compare = (a: string, b: string): number => (a < b ? -1 : 1);
@@ -235,7 +235,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 				return refuse(
 					"clipboard",
 					`could not copy to the clipboard: ${errorMessage(err)}`,
-					"write the private file instead: `holocron auth export --file`"
+					"write the private file instead: `holocron export tokens --file`"
 				);
 			}
 			destination = "clipboard";
@@ -244,7 +244,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 				return refuse(
 					"windows",
 					"cannot make the file private on Windows: its mode bits are not enforced, so other users may read it",
-					"use `holocron auth export --copy`, or pipe the output to a tool"
+					"use `holocron export tokens --copy`, or pipe the output to a tool"
 				);
 			}
 			// The default is `.holocron/.private/.credentials`, whose directory is made first so git can be asked about it.

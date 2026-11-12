@@ -1,12 +1,12 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/reconcile-projects.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
 name: Reconcile Projects
 
-# Keeps the project boards true to their rules (SPEC-0020, #1744): runs `holocron project reconcile`, which sets an item's
+# Keeps the project boards true to their rules (SPEC-0020, #1744): runs `holocron reconcile project`, which sets an item's
 # status from the issue's state and its "blocked by" links (an open blocker means blocked, no blocker left means planned,
 # a closed issue means done), then `holocron doctor project`, which reports what reconcile cannot fix.
 #
@@ -69,7 +69,7 @@ jobs:
         env:
           HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
-          command: project reconcile
+          command: reconcile project
 
       - name: List what changed
         if: ${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}

@@ -40,11 +40,11 @@ Each capability resolves its own fine-grained token so a compromised credential 
 Store tokens once via the keyring so they are picked up automatically:
 
 ```sh
-holocron auth set github.read     ghp_xxx  # clone + CI run listing
-holocron auth set github.issues   ghp_xxx  # issue management
-holocron auth set github.sync     ghp_xxx  # sync-github workflow templates
-holocron auth set github.release  ghp_xxx  # semantic-release
-holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
+holocron new token github.read     ghp_xxx  # clone + CI run listing
+holocron new token github.issues   ghp_xxx  # issue management
+holocron new token github.sync     ghp_xxx  # sync-github workflow templates
+holocron new token github.release  ghp_xxx  # semantic-release
+holocron new token github.admin    ghp_xxx  # setup, secrets, environments
 ```
 
 See the [token reference](https://docs.theholocron.dev/holocron/tokens/) for full scope requirements and CI setup.
@@ -68,7 +68,7 @@ See the [token reference](https://docs.theholocron.dev/holocron/tokens/) for ful
 
 ## `projects` capability
 
-GitHub Projects v2 boards over GraphQL, for `holocron project ...` (SPEC-0020, #1744). It uses the org token
+GitHub Projects v2 boards over GraphQL, for `list projects`, `new project`, `setup project` (SPEC-0020, #1744). It uses the org token
 (`HOLOCRON_ORG_TOKEN`, keyring `github.org`) with the **Projects** organization permission. Items are keyed `#N` in the
 configured `repo` and `owner/repo#N` elsewhere.
 

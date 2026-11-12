@@ -1,0 +1,122 @@
+---
+title: "publish package"
+description: Publish @theholocron/* packages to npm — steady-state (CI/OIDC) or the one-shot Trusted Publishing bootstrap.
+---
+
+```bash
+holocron publish package [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--group <folder> | --exclude-group <folder>...] [--dry-run]
+holocron publish package --initial [--tag <tag>] [--otp <code>] [--dry-run]
+holocron publish package --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--force] [--dry-run]
+```
+
+Three modes:
+
+- **Steady-state** (no flags, or `--provenance`/`--skip-already-published`) — the `exec.publishCmd` a `release.config.ts` should call. Runs under CI, authenticated via OIDC automatically — no interactive step. Replaces each repo's hand-typed `pnpm -r --filter=./packages/* publish ...` shell with one uniform invocation (config-resolution workstream, [#676](https://github.com/theholocron/holocron/issues/676)).
+- **`--initial`** — one-shot bootstrap publish for packages that haven't been registered on npm yet. Solves the chicken-and-egg problem: npm Trusted Publishing (OIDC) requires the package to exist before you can configure it, so the first publish must happen with browser auth.
+- **`--sync-trust`** — bulk-migrate npm Trusted Publisher config to a new workflow filename.
+
+## Publishing one version group (`--group`)
+
+`--group <folder>` limits discovery to the packages in one folder of the repo (`clients`, `observability`), for steady-state, `--initial` and `--sync-trust` alike. A group with no packages has nothing to publish, so it fails with "nothing to publish" rather than falling back to the root package. `--exclude-group <folder>` (repeatable) is the opposite: everything except those groups, for the repo-wide release of a repo whose other folders release on their own. See [releasing a version group](/self-hosting/#releasing-a-version-group).
+
+## Migrating Trusted Publisher config (`--sync-trust`)
+
+npm's Trusted Publisher config is tied to a specific workflow **filename** per package, and npm checks the **calling** workflow's filename. When a workflow calls a reusable one (`workflow_call`), register the caller, not the reusable: in this repo that is `ci.release.yml`, which calls the reusable `release.yml`. Registering the reusable's name makes the publish fail with `ENEEDAUTH`. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.
+
+```bash
+holocron publish package --sync-trust release.yml delivery.publish.yml
+```
+
+For every public package (auto-discovered the same way as `--initial`), the command reads the current binding with `npm trust list <pkg> --json`, which reports the bound `file` and `repository`. A package is skipped only when **both** match the target: the new filename and `--repo` (default `theholocron/holocron`, compared case-insensitively). Otherwise the existing binding is revoked and a new one is created:
+
+| Current binding                     | Action                |
+| ----------------------------------- | --------------------- |
+| same file, same repository          | skipped               |
+| same file, **different repository** | revoked and recreated |
+| different file                      | revoked and recreated |
+| none                                | created               |
+
+The same-file, different-repository case is what happens when a package is folded into this repo from another one: the workflow filename can stay the same, but npm still trusts the old repo. A binding that reports no repository can't be proven to match, so it is re-registered too. If the read itself fails for any reason other than a 2FA request (for example `E401` when not logged in), that package is reported as errored and nothing is revoked or created for it. Already-migrated packages are skipped, so it's safe to re-run.
+
+### Replacing an expired entry (`--force`)
+
+npm expires a Trusted Publisher entry that is not used for a publish soon after it is made, and the expired entry still lists the right file and repository. A plain run reads it as matching and skips it, so the next publish keeps failing with `ENEEDAUTH`. `--force` revokes and recreates the entry of every package even when it matches:
+
+```bash
+holocron publish package --sync-trust ci.release.yml ci.release.yml --group configs --force
+```
+
+Run it only when a release is ready to go, and publish right after: a fresh entry that sits unused expires again. With `--force` a re-run after a 2FA stop redoes the packages it already finished, because a finished entry looks the same as an expired one.
+
+### Previewing with `--dry-run`
+
+```bash
+holocron publish package --sync-trust delivery.publish.yml delivery.publish.yml --repo theholocron/holocron --dry-run
+```
+
+`--dry-run` does the read-only `trust list` for each package and prints what the real run would do, without revoking or creating anything:
+
+```text
+=== @theholocron/env-utils ===
+  would revoke (repo=theholocron/utils, file=delivery.publish.yml, id=56d3…) and create theholocron/holocron / delivery.publish.yml
+=== @theholocron/skills ===
+  already on theholocron/holocron / delivery.publish.yml, skipping
+```
+
+Reads can need a fresh 2FA approval too. When one does, the dry run stops and prints the `authUrl` exactly as the real run does; approve it and re-run.
+
+**This can't run unattended.** npm's `trust` mutations — and reads, once a short-lived OTP grant lapses — require a fresh interactive browser 2FA approval. There's no token that bypasses this (npm's own docs: Granular Access Tokens with the bypass-2FA option are explicitly unsupported for trust endpoints). When the command hits this, it stops immediately, prints the `authUrl` to open and approve, and returns a `needs-auth` result for that package — open the link, approve it, and re-run.
+
+See [issue #689](https://github.com/theholocron/holocron/issues/689) for the full background.
+
+## Workflow
+
+```bash
+# Steady-state — the exec.publishCmd release.config.ts calls in CI.
+pnpm exec holocron publish package
+
+# Skip packages whose exact version already exists on npm — for repos
+# with many independently-versioned packages where a release doesn't
+# bump every one (configs' own case).
+pnpm exec holocron publish package --skip-already-published
+```
+
+```bash
+# 1. Build everything
+pnpm install --frozen-lockfile && pnpm build
+
+# 2. Bootstrap publish — logs in via `npm login --auth-type=web` automatically
+#    if `npm whoami` shows no session, then publishes and prints Trusted
+#    Publisher config links.
+holocron publish package --initial --otp 123456
+```
+
+After `--initial` runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)). The printout names the workflow to register, the release caller found in `.github/workflows` (`ci.release.yml`, or `delivery.publish.yml` in a repo that still has that one).
+
+## Repo layouts
+
+- **Monorepo** (`pnpm-workspace.yaml` declares public packages): publishes every public workspace package via `pnpm -r --filter=./<glob>` for each workspace glob (or, with `--skip-already-published`, one workspace at a time via `pnpm --filter <dir> publish`).
+- **Single package** (no workspace packages — most `node-template` scaffolds): publishes the root package directly via a plain `pnpm publish`.
+
+The command fails loudly — `nothing to publish` — rather than silently no-op'ing when it finds no publishable package in either layout.
+
+## Options
+
+| Option                     | Default                                         | Description                                                                                                   |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--initial`                | `false`                                         | Runs the one-shot bootstrap publish instead of the steady-state path                                          |
+| `--tag`                    | `alpha` (`--initial`) / `latest` (steady-state) | npm distribution tag                                                                                          |
+| `--otp`                    | —                                               | TOTP code from your authenticator (if 2FA is required for writes)                                             |
+| `--provenance`             | `true`                                          | Steady-state only: publish with `--provenance`                                                                |
+| `--skip-already-published` | `false`                                         | Steady-state only: check `npm view <pkg>@<version>` first, skip a package whose exact version exists          |
+| `--sync-trust`             | —                                               | `<old-file> <new-file>` — migrate every package's Trusted Publisher config                                    |
+| `--repo`                   | `theholocron/holocron`                          | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)                                           |
+| `--force`                  | `false`                                         | Replace entries that already match, which npm may have expired (`--sync-trust` only)                          |
+| `--dry-run`                | `false`                                         | Print what would happen without making any changes (`--sync-trust` still does the read-only `npm trust list`) |
+
+## Notes
+
+- Packages marked `"private": true` in their `package.json` are skipped automatically.
+- Steady-state authenticates via CI's OIDC token exchange — no `npm whoami`/login step, no Trusted Publisher next-steps printout (both `--initial`-only).
+- `--initial`: if `npm whoami` shows no authenticated session, the command runs `npm login --auth-type=web` itself (interactive, browser-based) before continuing. If the command detects `NPM_TOKEN` in env, it prints a reminder to revoke the token afterward.
+- If the (bulk, non-`--skip-already-published`) publish fails with `EOTP`, the corrected command with `--otp` is printed.

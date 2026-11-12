@@ -194,13 +194,13 @@ export function createPlugin(options: GitHubPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set github` when no token
+ * One-line hint printed by `holocron new token github` when no token
  * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate fine-grained Personal Access Tokens at https://github.com/settings/tokens " +
 	"(one per feature — see docs/tokens.md for required scopes per operation), " +
-	"then run: holocron auth set github.<feature> <PAT>";
+	"then run: holocron new token github.<feature> <PAT>";
 
 // ── Public re-exports ─────────────────────────────────────────────────
 
@@ -220,16 +220,19 @@ export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { verifyToken } from "./verify-token.js";
 
-/** Every token this plugin takes, for `holocron doctor tokens`. */
+/**
+ * Every token this plugin takes, for `holocron doctor tokens`. The release token is `optional`: only CI's release
+ * workflow reads it (from the org secret), so a development environment has no reason to hold it.
+ */
 export const tokens: PluginToken[] = [
-	resolveReadToken,
-	resolveIssuesToken,
-	resolveSyncToken,
-	resolveReleaseToken,
-	resolveAdminToken,
-	resolveSecretsToken,
-	resolveDeployToken,
-	resolveUserSyncToken,
-	resolveOrgToken,
-].map((resolver) => resolver.token);
+	resolveReadToken.token,
+	resolveIssuesToken.token,
+	resolveSyncToken.token,
+	{ ...resolveReleaseToken.token, optional: true },
+	resolveAdminToken.token,
+	resolveSecretsToken.token,
+	resolveDeployToken.token,
+	resolveUserSyncToken.token,
+	resolveOrgToken.token,
+];
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

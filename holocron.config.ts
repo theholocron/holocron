@@ -20,7 +20,7 @@ const { domain } = orgArea;
 // One Codecov upload per workspace package, so a PR that changes one package uploads only the packages whose tests
 // ran and Codecov carries every other package's flag forward (a flag is carried whole or not at all, so a flag per
 // group folder would drop a group's untouched packages). The flags are the package slugs listed under
-// `flag_management` in codecov.yml; both come from the workspace (`holocron repo sync`). Packages write lcov.info to
+// `flag_management` in codecov.yml; both come from the workspace (`holocron sync`). Packages write lcov.info to
 // `<location>/coverage/`, except `skills`, which runs node's test runner and writes it next to its package.json.
 const codecovUploads = generateCodecovUploads(readWorkspacePackages(fileURLToPath(new URL(".", import.meta.url))), {
 	skills: "skills/lcov.info",
@@ -71,7 +71,7 @@ export default defineConfig({
 		// teams, topics, variables and secrets live in .holocron/repo.ts; the loader adds them to `repo` here.
 	},
 	// Required status checks not backed by a `{ required: true }` task.
-	// `holocron repo setup` appends these to the task-derived contexts from
+	// `holocron setup` appends these to the task-derived contexts from
 	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong
 	// here: a ruleset takes no wildcards and a package a PR does not touch posts
 	// no status, so a per-package `codecov/patch/<slug>` can neither be listed
@@ -141,13 +141,13 @@ export default defineConfig({
 		// Credentials: tokens come from the 1Password Environment `<org/repo> - <layer>`, derived from the git remote
 		// and the layer (#2063, see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env` still wins.
 		credentials: ["1password"],
-		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink name their own layer (`prod`) in their
+		// Vault: the source `holocron sync secrets` reads. Sentinel and Comlink name their own layer (`prod`) in their
 		// configs; this one is for the GitHub Actions secrets, so it is the `ci` layer, `<org/repo> - ci` (#2069).
-		// `holocron secrets sync ci` reads it (`repo.secrets.sync` says where each key goes).
+		// `holocron sync secrets ci` reads it (`repo.secrets.sync` says where each key goes).
 		vault: ["1password", { layer: "ci" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
-		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
+		// Errors: Sentry — `holocron setup` provisions the project and pushes the
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
@@ -159,14 +159,14 @@ export default defineConfig({
 		logs: "axiom",
 		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
 		// template is a built-in (roadmap) or a file in .holocron/projects; the board is found by name among the open
-		// ones. `holocron project setup` brings it in line, `doctor project` checks it, and the hourly
+		// ones. `holocron setup project` brings it in line, `doctor project` checks it, and the hourly
 		// `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
 		projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
 		// Ideas: the Obsidian vault "The Holocron" in iCloud Drive, the inbox in front of the issue (SPEC-0072, #1994).
-		// `holocron ideas sync` files the notes whose status is `in-progress` as issues. A machine whose vault is
+		// `holocron sync ideas` files the notes whose status is `in-progress` as issues. A machine whose vault is
 		// elsewhere sets HOLOCRON_IDEAS_DIR, which wins.
 		ideas: ["obsidian", { vault: "The Holocron" }],
-		// Notifications: the Holocron Discord server. `holocron notifications setup`
+		// Notifications: the Holocron Discord server. `holocron setup notifications`
 		// applies the layout below (idempotent; --dry-run previews it). This block
 		// lives in ONE repo on purpose -- a server layout is org-level, so it must
 		// not sit in a shared preset that every repo would then apply. Each webhook

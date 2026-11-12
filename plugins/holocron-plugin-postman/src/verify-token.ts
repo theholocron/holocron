@@ -1,6 +1,6 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set` +
- * `holocron auth check`. Hits Postman's `/me` endpoint (returns the
+ * `verifyToken` — plugin-level export used by `holocron new token` +
+ * `holocron check token`. Hits Postman's `/me` endpoint (returns the
  * authenticated user).
  */
 

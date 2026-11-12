@@ -540,7 +540,7 @@ describe("runDoctorNotifications — who owns the server", () => {
 		const report = await setup(fakeNotifications({ serverOwner }), { builtOnly: true }).run();
 		const step = owner("server-owner")(report);
 		expect(step.status).toBe("fail");
-		expect(step.problems[0]).toContain("create-server --resume --owner");
+		expect(step.problems[0]).toContain("new server --resume --owner");
 	});
 
 	it("reports who owns it when a person does", async () => {
@@ -1535,7 +1535,7 @@ describe("runDoctorNotifications — bot application", () => {
 		const layout = withApp({ intents: { members: true } });
 		expect(check(await setup(fakeNotifications({ layout, found: on })).run()).problems).toEqual([]);
 		expect(check(await setup(fakeNotifications({ layout, found: off })).run()).problems).toEqual([
-			"the Server Members Intent is off but the layout says on (`holocron notifications setup` changes it)",
+			"the Server Members Intent is off but the layout says on (`holocron setup notifications` changes it)",
 		]);
 		const missing = { ...same, application: { ...same.application, intents: undefined } };
 		expect(

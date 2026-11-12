@@ -4,7 +4,7 @@
 
 Netlify plugin for [Holocron](../cli). Implements the
 `deployment` capability against [`@theholocron/netlify-client`](https://github.com/theholocron/holocron/tree/alpha/clients/netlify-client),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -27,8 +27,8 @@ Token resolution order (matches the standard 4-step precedence set by
 
 ```bash
 # Generate a Netlify API token (see vendor docs), then:
-holocron auth set netlify <TOKEN>
-holocron auth check netlify    # verify
+holocron new token netlify <TOKEN>
+holocron check token netlify    # verify
 ```
 
 ## Config
@@ -57,7 +57,7 @@ Plugin options, via the tuple form:
         // Non-secret identifier, safe to commit (same status as
         // Vercel's teamId / Cloudflare's accountId elsewhere in this org).
         "accountId": "6ac41cd9a87355ef3d13d261",
-        // Custom domain `holocron repo setup` attaches to the site.
+        // Custom domain `holocron setup` attaches to the site.
         "domain": "sentinel.theholocron.dev",
       },
     ],

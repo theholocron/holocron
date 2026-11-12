@@ -263,7 +263,7 @@ export const TASKS: Record<string, TaskDef> = {
 	"sync-repo": { group: "Platform", scope: "repo", local: { command: "sync" } },
 	// No local runner -- it posts real messages through org secrets that only a
 	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
-	// `holocron notifications setup`, never part of `holocron run ci`.
+	// `holocron setup notifications`, never part of `holocron run ci`.
 	"check-notify": { group: "Platform", scope: "repo", local: null },
 	// No local equivalent runner distinct from `sync github` itself —
 	// invokes the CLI subcommand directly, same shape as sync-repo's `sync`.
@@ -275,16 +275,16 @@ export const TASKS: Record<string, TaskDef> = {
 	// so it is never part of `holocron run ci` and has no local runner (the README has the local invocation).
 	"sync-secrets": { group: "Platform", scope: "repo", local: null },
 	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
-	// Runs `holocron project reconcile`: sets each item's status on the declared project boards from its issue state and
+	// Runs `holocron reconcile project`: sets each item's status on the declared project boards from its issue state and
 	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.
 	// Scheduled hourly by its workflow; never part of `holocron run ci` (it writes to a live board with a GitHub App token).
-	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "project reconcile" } },
+	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "reconcile project" } },
 
 	// ── Knowledge — published content, not software ───────────────────────
-	// `holocron specs sync`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull
+	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull
 	// request with the edits it made (#1535). Hourly, on a push to `alpha` that changes a spec or ADR, and on demand.
 	// It writes posts with the bot token, so it is never part of `holocron run ci`.
-	"sync-specs": { group: "Knowledge", scope: "repo", local: { command: "specs sync" } },
+	"sync-specs": { group: "Knowledge", scope: "repo", local: { command: "sync specs" } },
 	// The same sync for the files one pull request changes (`--files`, `--pr`), or the withdrawal of their posts when it
 	// closes unmerged (#1600, #1653). It needs the pull request's number and paths, so it has no local runner.
 	"preview-specs": { group: "Knowledge", scope: "repo", local: null },

@@ -4,7 +4,7 @@ import { ConfigError } from "../../../config/index.js";
 import { board, fakeProjects, inputFor, loadedWith } from "../project-test-kit/index.js";
 import { runProjectList } from "./project-list.js";
 
-describe("project list", () => {
+describe("list projects", () => {
 	it("prints the boards newest first with their state", async () => {
 		const projects = fakeProjects({
 			list: async () => [board({ number: 3, name: "old", closed: true }), board({ number: 7, name: "v5" })],

@@ -79,7 +79,7 @@ export type {
 } from "./pulls/pulls.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset, GitHubRulesetDetail } from "./rulesets/rulesets.js";
-export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
+export type { GitHubPublicKey, OrgSecretInfo, OrgSecretVisibility, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";
 export type { RepoTeam, TeamMember, TeamPermission } from "./teams/teams.js";
 export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";

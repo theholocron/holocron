@@ -69,11 +69,11 @@ export function createPlugin(options: PostHogPluginOptions = {}) {
 	};
 }
 
-/** One-line hint shown by `holocron auth set posthog` when no token is given or the token is rejected. */
+/** One-line hint shown by `holocron new token posthog` when no token is given or the token is rejected. */
 export const AUTH_HINT =
 	"create a personal API key at https://app.posthog.com/settings/user/api-keys " +
 	"(not the project API key — that is the client-side phc_* tracking token), " +
-	"then run: holocron auth set posthog <phx_KEY>";
+	"then run: holocron new token posthog <phx_KEY>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

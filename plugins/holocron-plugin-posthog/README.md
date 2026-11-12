@@ -22,7 +22,7 @@ Token resolution order:
 2. `HOLOCRON_POSTHOG_TOKEN` env var
 3. `POSTHOG_PERSONAL_API_KEY` env var
 4. Keyring `posthog.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `posthog` — unnamespaced fallback; set via `holocron auth set posthog <phx_key>`
+5. Keyring `posthog` — unnamespaced fallback; set via `holocron new token posthog <phx_key>`
 
 The token must be a **personal API key** (`phx_*`), found at
 **app.posthog.com → Settings → User → Personal API keys**. This is
@@ -53,6 +53,6 @@ runtime — the personal key is for management only.
 | `whoami`        | Calls `/api/users/@me/` to verify the token and return the org slug.                                                                                                           |
 | `ensureProject` | Lists projects and returns the existing one if found by name; creates it via `POST /api/projects/` otherwise. Returns the project's `api_token` (`phc_*`) and `alreadyExists`. |
 
-`holocron repo setup` calls `ensureProject` and pushes `NEXT_PUBLIC_POSTHOG_KEY`
+`holocron setup` calls `ensureProject` and pushes `NEXT_PUBLIC_POSTHOG_KEY`
 (the project `api_token`) and `NEXT_PUBLIC_POSTHOG_HOST` (the resolved
 `host` value) to GitHub Secrets.

@@ -36,7 +36,7 @@ describe("COMMAND_REGISTRY", () => {
 	});
 
 	it("covers every command on the documented surface, except run (dynamically merged in), the hook-only one, and the CI-only ones", () => {
-		// `monitoring resolve-checks`/`monitoring run-resolved`
+		// `resolve checks`/`check resolved`
 		// (holocron#1030/#1032) are the two halves of the
 		// delivery.previewCheck split -- meant for CI, not a human
 		// navigating `holocron monitoring` interactively. Neither calls
@@ -49,8 +49,8 @@ describe("COMMAND_REGISTRY", () => {
 			"dev",
 			"dev serve",
 			"run lint commit-msg",
-			"monitoring resolve-checks",
-			"monitoring run-resolved",
+			"resolve checks",
+			"check resolved",
 			"deploy stage",
 		]);
 		const missing = Object.keys(COMMAND_CONTEXTS)
@@ -75,8 +75,8 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 		menuItems(COMMAND_REGISTRY, path).find((i) => i.name === name)?.value;
 
 	it("the top level shows one row per first word, with groups opening a submenu", () => {
-		expect(valueOf("repo ›")).toBe("group:repo");
-		expect(valueOf("auth ›")).toBe("group:auth");
+		expect(valueOf("upgrade ›")).toBe("group:upgrade");
+		expect(valueOf("check ›")).toBe("group:check");
 		expect(valueOf("doctor ›")).toBe("group:doctor");
 		expect(names()).not.toContain("doctor");
 	});
@@ -103,24 +103,35 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"tokens",
 			"variables",
 			"variable-owners",
+			"shared-values",
 			"ci",
 		]);
 		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");
 	});
 
-	it("does not collapse a one-command group: `config show` is config › then show", () => {
-		expect(names()).toContain("config ›");
-		expect(names(["config"])).toEqual(["show"]);
-		expect(names(["sync"])).toEqual(["github", "issues"]);
+	it("does not collapse a one-command group: `show config` is show › then config", () => {
+		expect(names()).toContain("show ›");
+		expect(names(["show"])).toEqual(["config"]);
+		expect(names(["sync"])).toEqual([
+			"sync (run it)",
+			"secrets",
+			"roles",
+			"specs",
+			"github",
+			"issues",
+			"ideas",
+			"readme",
+		]);
 		expect(valueOf("ci", ["run"])).toBe("run ci");
 	});
 
 	it("nests as deep as the names go, and gives a runnable group a leading `(run it)` item", () => {
-		expect(names(["repo"])).toEqual(["setup", "properties ›", "sync ›", "cleanup ›", "upgrade ›"]);
-		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
-		expect(menuItems(COMMAND_REGISTRY, ["repo", "sync"])[0]).toMatchObject({
+		expect(names(["setup"])).toEqual(["setup (run it)", "notifications", "project"]);
+		expect(names(["cleanup"])).toEqual(["posts", "branches"]);
+		expect(names(["upgrade"])).toEqual(["node", "deps"]);
+		expect(menuItems(COMMAND_REGISTRY, ["sync"])[0]).toMatchObject({
 			name: "sync (run it)",
-			value: "repo sync",
+			value: "sync",
 		});
 		expect(menuItems(COMMAND_REGISTRY, ["deploy"]).map((i) => i.value)).toEqual([
 			"deploy",
@@ -182,19 +193,19 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 		expect(call.validate("   ")).toMatch(/required/);
 	});
 
-	it("resolves auth unset's thunk choices from the stored providers (no fixed provider set)", async () => {
+	it("resolves remove token's thunk choices from the stored providers (no fixed provider set)", async () => {
 		listStoredProvidersMock.mockReturnValue(["cloudflare", "github"]);
 		selectMock.mockResolvedValue("cloudflare");
-		const values = await promptForPositionals(getEntry("auth unset"), {});
+		const values = await promptForPositionals(getEntry("remove token"), {});
 		expect(values).toEqual(["cloudflare"]);
 		expect(selectMock).toHaveBeenCalledWith(
 			expect.objectContaining({ choices: [{ value: "cloudflare" }, { value: "github" }] })
 		);
 	});
 
-	it("throws NonInteractiveError for auth unset when there are no stored providers to choose from", async () => {
+	it("throws NonInteractiveError for remove token when there are no stored providers to choose from", async () => {
 		listStoredProvidersMock.mockReturnValue([]);
-		const err = await promptForPositionals(getEntry("auth unset"), {}).catch((e: unknown) => e);
+		const err = await promptForPositionals(getEntry("remove token"), {}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(NonInteractiveError);
 		expect((err as Error).message).toMatch(/nothing stored yet/);
 		expect(selectMock).not.toHaveBeenCalled();
@@ -205,10 +216,10 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 		expect(await promptForPositionals(getEntry("new plugin"), {})).toEqual(["my-slug", "MyVendor"]);
 	});
 
-	it("uses `cliArg` in the non-TTY hint for package bump-versions", async () => {
+	it("uses `cliArg` in the non-TTY hint for publish bump-versions", async () => {
 		setTTY(false);
-		const err = await promptForPositionals(getEntry("package bump-versions"), {}).catch((e: unknown) => e);
-		expect((err as Error).message).toMatch(/holocron package bump-versions <new-version>/);
+		const err = await promptForPositionals(getEntry("publish bump-versions"), {}).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/holocron publish bump-versions <new-version>/);
 	});
 });
 
@@ -217,14 +228,14 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 // to see each state; env.get() itself re-reads process.env on every call,
 // but that one-time computation already baked a boolean into the object by
 // the time any later read would happen (holocron#1052 follow-up).
-describe("package publish's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#1052 follow-up)", () => {
+describe("publish package's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#1052 follow-up)", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.resetModules();
 	});
 
 	function otpOption(registry: typeof COMMAND_REGISTRY) {
-		const publish = registry.find((e) => e.name === "package publish")!;
+		const publish = registry.find((e) => e.name === "publish package")!;
 		const steady = publish.modes!.find((m) => m.key === "steady")!;
 		return steady.options!.find((o) => o.key === "otp")!;
 	}

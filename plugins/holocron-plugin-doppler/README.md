@@ -4,7 +4,7 @@
 
 Doppler plugin for [Holocron](../cli). Implements the `vault`
 capability against [Doppler's REST API](https://docs.doppler.com/reference/api),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -22,7 +22,7 @@ Token resolution order:
 2. `HOLOCRON_DOPPLER_TOKEN` env var (preferred — explicit intent)
 3. `DOPPLER_TOKEN` env var (Doppler-native, works in CI)
 4. Keyring `doppler.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `doppler` — unnamespaced fallback; set via `holocron auth set doppler <token>`
+5. Keyring `doppler` — unnamespaced fallback; set via `holocron new token doppler <token>`
 6. `AuthError` naming all five options + the bootstrap hint
 
 ## Manual setup (one-time, per operator)
@@ -42,10 +42,10 @@ doppler login
 # 3. Hand the token off to holocron's keyring (one-shot). After this,
 #    every plugin call reads the token from the keyring — no env vars
 #    to remember, no dotfiles to sync.
-holocron auth set doppler $(doppler configure get token --plain)
+holocron new token doppler $(doppler configure get token --plain)
 
 # 4. Verify:
-holocron auth check doppler
+holocron check token doppler
 
 ```
 
@@ -91,17 +91,17 @@ reference doesn't make sense.
 | `write`             | `POST /v3/configs/config/secrets` with `{ project, config, secrets: {name: value} }`. Doppler's native upsert — no probe. |
 | `list`              | `GET /v3/configs/config/secrets` on the default project + config.                                                         |
 | `environments`      | `GET /v3/environments?project`. Returns environment slugs (`dev`/`stg`/`prd`).                                            |
-| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron secrets sync`.                  |
+| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron sync secrets`.                  |
 | `ensureProject`     | `POST /v3/projects`, treats 409/422 "already exists" as idempotent no-op.                                                 |
 | `ensureEnvironment` | `POST /v3/environments`, same idempotency semantics.                                                                      |
 
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):
 
-| Export        | Purpose                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.  |
-| `AUTH_HINT`   | One-line hint printed by `holocron auth set` when no token is supplied or the token is bad. |
+| Export        | Purpose                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.   |
+| `AUTH_HINT`   | One-line hint printed by `holocron new token` when no token is supplied or the token is bad. |
 
 ## Status
 

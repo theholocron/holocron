@@ -43,6 +43,6 @@ describe("resolveToken", () => {
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_AXIOM_TOKEN/);
 		expect((err as Error).message).toMatch(/AXIOM_TOKEN/);
-		expect((err as Error).message).toMatch(/holocron auth set axiom/);
+		expect((err as Error).message).toMatch(/holocron new token axiom/);
 	});
 });

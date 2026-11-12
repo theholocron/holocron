@@ -270,7 +270,7 @@ describe("runMonitoringCheck", () => {
 
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ url: "https://pr-preview.example.com", total: 1, failed: 0, status: "ok" }),
-			"monitoring check: done"
+			"check monitor: done"
 		);
 	});
 });

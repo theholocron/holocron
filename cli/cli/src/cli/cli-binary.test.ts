@@ -18,7 +18,7 @@ const demo = { name: "demo", providers: {} };
 describe.concurrent("holocron (the built CLI)", () => {
 	describe("errors", () => {
 		it("prints a plain Error's message and exits 1, with no usage and no stack trace (#1103)", async () => {
-			const run = await runCli(["config", "show"], { config: "{ nope" });
+			const run = await runCli(["show", "config"], { config: "{ nope" });
 			expect(run.code).toBe(1);
 			expect(run.stderr).toContain("is not valid JSON");
 			expect(run.stderr).not.toMatch(/\n\s+at /);
@@ -42,7 +42,7 @@ describe.concurrent("holocron (the built CLI)", () => {
 			const unknown = await runCli(["frobnicate"], { config: demo });
 			expect(unknown.code).toBe(1);
 			expect(unknown.stderr).toContain("Unknown argument: frobnicate");
-			const option = await runCli(["config", "show", "--nope"], { config: demo });
+			const option = await runCli(["show", "config", "--nope"], { config: demo });
 			expect(option.code).toBe(1);
 			expect(option.stderr).toContain("Unknown argument: nope");
 		});
@@ -56,7 +56,7 @@ describe.concurrent("holocron (the built CLI)", () => {
 
 	describe("output", () => {
 		it("shows the resolved config as JSON", async () => {
-			const run = await runCli(["config", "show"], { config: demo });
+			const run = await runCli(["show", "config"], { config: demo });
 			expect(run.code).toBe(0);
 			expect(JSON.parse(run.stdout)).toMatchObject({ name: "demo", providers: {} });
 		});
@@ -73,14 +73,12 @@ describe.concurrent("holocron (the built CLI)", () => {
 	});
 
 	describe("command groups", () => {
-		it("lists the subcommands of `doctor` and `skills` in their --help", async () => {
-			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["skills", "--help"])]);
+		it("lists the subcommands of `doctor` and `install` in their --help", async () => {
+			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["install", "--help"])]);
 			expect(doctor.code).toBe(0);
 			expect(doctor.stdout).toMatch(/notifications\s+Check the layout/);
 			expect(skills.code).toBe(0);
-			for (const sub of ["install", "remove \\[names..\\]", "update \\[name\\]"]) {
-				expect(skills.stdout).toMatch(new RegExp(`skills ${sub}`));
-			}
+			expect(skills.stdout).toMatch(/install skills/);
 			expect(skills.stdout).not.toMatch(/\$0/);
 		});
 

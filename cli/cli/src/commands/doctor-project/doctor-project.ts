@@ -3,7 +3,7 @@
  *
  * Read-only. Per declared board, found by name among the open boards: one row for the board, then the rows of
  * `boardRows()` (statuses in order, each field and its options, each view, each automation rule) and the four item rows of
- * `itemRows()`. What the board has beyond the template, and the items `project reconcile` would fix, are `info` rows: they
+ * `itemRows()`. What the board has beyond the template, and the items `reconcile project` would fix, are `info` rows: they
  * never fail the run. A template file that does not read is a failure naming the file. `--post [channel]` shares the
  * failing rows through the `notifications` provider's bot, like `doctor notifications --post`.
  */
@@ -114,8 +114,8 @@ async function checkBoards(input: RunDoctorProjectInput, loader: PluginLoader): 
 						closed ? "the board is closed" : "no open board has this name",
 						[
 							closed
-								? "reopen it, or run `holocron project setup` to make a new one"
-								: "run `holocron project setup`",
+								? "reopen it, or run `holocron setup project` to make a new one"
+								: "run `holocron setup project`",
 						]
 					)
 				);

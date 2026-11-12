@@ -76,9 +76,9 @@ documents, not a naming convention repos need to follow.
 | `release`                            | semantic-release                                                                                                                                                 | no local equivalent — CI only; carries `preview` (npm dist-tags)                                             |
 | `deploy`                             | Cloudflare Pages / Vercel                                                                                                                                        | no local equivalent — CI only; carries `preview`                                                             |
 | `measure:bundle`                     | bundle-size upload to Codecov                                                                                                                                    | no local equivalent — CI only                                                                                |
-| `check-preview`                      | `holocron monitoring check <url>` against the PR's own Vercel preview URL                                                                                        | no local equivalent — CI only; triggered by `deployment_status`, not `push`/`pull_request`                   |
+| `check-preview`                      | `holocron check monitor <url>` against the PR's own Vercel preview URL                                                                                           | no local equivalent — CI only; triggered by `deployment_status`, not `push`/`pull_request`                   |
 | `check-notify`                       | _(none — manual workflow)_                                                                                                                                       | posts a labelled test message to every notification channel; fails per channel that does not work            |
-| `sync-repo`                          | `holocron repo sync`                                                                                                                                             | keeps generated files current                                                                                |
+| `sync-repo`                          | `holocron sync`                                                                                                                                                  | keeps generated files current                                                                                |
 | `lint:commits`                       | commitlint                                                                                                                                                       | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI            |
 | `validate:specs`                     | `holocron probe specs check`                                                                                                                                     | spec/ADR frontmatter — a leaf of the `validate` suite, not a linter                                          |
 | `validate:docs`                      | `holocron probe docs validate`                                                                                                                                   | docs presence (warns) and token docs (fails) — a leaf of the `validate` suite, not a linter                  |
@@ -177,7 +177,7 @@ neither has a plain-production-only fallback template.
 `packageScripts()` emits the `holocron` entry (`holocronScript ?? "holocron"`)
 plus the scripts `scriptsFor(config, registry, { monorepo })` computes; it skips
 `local: false` entries and tasks with no local runner at all, and returns
-`{}` when `syncScripts: false` or there is no config. The same function backs `repo sync`, which merges the result with
+`{}` when `syncScripts: false` or there is no config. The same function backs `sync`, which merges the result with
 `mergeScripts()`, and `probe generated check`, which fails on a root script that differs and on a script that breaks the
 rules of `checkPackageScripts()`.
 
@@ -211,7 +211,7 @@ single always-run jobs now, so their context
 names that job directly (`"typecheck / Run tsc --noEmit"`) — the `… /
 Conclusion` fan-in job inside a workflow is only used where a task genuinely has
 several conditionally-run jobs feeding one check
-(`test:unit`). `holocron repo setup`
+(`test:unit`). `holocron setup`
 applies the list for `protection: "strict"` repos. Policy-free — manifest only.
 
 ### The `ci` aggregate
@@ -220,7 +220,7 @@ applies the list for `protection: "strict"` repos. Policy-free — manifest only
 `expected` ids are the part before `/` of each required task's context and of each `extraRequiredChecks` entry that
 is not a `codecov/` status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
 the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
-`holocron repo sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
+`holocron sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 
 ### `codecov.yml`
@@ -233,7 +233,7 @@ came from), same manifest-derived category as `thinCallers()`. Pass the
 current file's content (or `null`) and it either merges the
 `individual_components` list in (preserving everything else in the file —
 thresholds, flags, custom rules) or scaffolds a fresh file from the base
-template. `holocron repo setup` writes the result via the `source` capability;
+template. `holocron setup` writes the result via the `source` capability;
 this method never touches the filesystem beyond reading `packages/*` and
 `apps/*` under `cwd`.
 
@@ -284,10 +284,10 @@ config surface don't pull `@commitlint/*` in:
   what `holocron run lint commit-msg <file>` (the `commit-msg` hook) runs.
 - `ALEX_CONFIG`, `ALEX_IGNORE_PATTERNS`, `PRETTIER_IGNORE_PATTERNS`,
   `EDITORCONFIG_CHECKER_EXCLUDE` and `isEditorConfigExcluded(path)` — read
-  from the same templates `holocron repo setup` writes, so Sentinel's central
+  from the same templates `holocron setup` writes, so Sentinel's central
   checks skip exactly what each repo's own CI skips.
 
-The root entry also exports the config-file generators `holocron repo setup`
+The root entry also exports the config-file generators `holocron setup`
 writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 `createHeader`.
 
@@ -311,7 +311,7 @@ webhook and the GitHub API (#929).
 
 ## Upgrade — `@theholocron/astromech/upgrade`
 
-The repo-agnostic machinery behind `holocron repo upgrade`, in a subpath so the CLI and any other tool can use it.
+The repo-agnostic machinery behind `holocron upgrade`, in a subpath so the CLI and any other tool can use it.
 
 - `runUpgradeNode({ to, from?, cwd?, dryRun?, extra?, logger? })` walks the repo and rewrites every Node.js major pin:
   `engines.node`, an exact `@types/node`, `.nvmrc`, `.node-version`, workflow `node-version:`, Dockerfile

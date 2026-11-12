@@ -1,3 +1,9 @@
+## [1.58.0-alpha.28](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.27...clients-v1.58.0-alpha.28) (2026-11-11)
+
+### Features
+
+* **secrets:** name who can read an org secret when the sync writes it ([#2095](https://github.com/theholocron/holocron/issues/2095)) ([abe8825](https://github.com/theholocron/holocron/commit/abe88255ac61fd3edc41b47b9b9e4c97cfcacca2)), closes [#2062](https://github.com/theholocron/holocron/issues/2062)
+
 ## [1.58.0-alpha.27](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.26...clients-v1.58.0-alpha.27) (2026-11-09)
 
 ### Features

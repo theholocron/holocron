@@ -16,6 +16,6 @@ export function propertyFixHints(githubMessage: string): string[] {
 	}
 	return [...byProperty].map(
 		([property, values]) =>
-			`add ${values.map((v) => `"${v}"`).join(", ")} to the allowed values of the organization custom property ${property} (the organization's Settings, Custom properties), then run repo setup again`
+			`add ${values.map((v) => `"${v}"`).join(", ")} to the allowed values of the organization custom property ${property} (the organization's Settings, Custom properties), then run setup again`
 	);
 }

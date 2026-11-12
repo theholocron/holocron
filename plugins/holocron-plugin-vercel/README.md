@@ -23,7 +23,7 @@ Token resolution order:
 2. `HOLOCRON_VERCEL_TOKEN` env var
 3. `VERCEL_TOKEN` env var (the default the Vercel CLI also reads)
 4. Keyring `vercel.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `vercel` — unnamespaced fallback; set via `holocron auth set vercel <token>`
+5. Keyring `vercel` — unnamespaced fallback; set via `holocron new token vercel <token>`
 
 If none are set, the plugin throws a clear error. No `vercel auth`
 fallback — Vercel's CLI auth is per-account and the scopes don't
@@ -78,9 +78,9 @@ Capability covers:
   ownership state, returning a per-project CNAME target — never a
   fixed well-known host — only when DNS isn't already configured. The
   returned DNS record is handed to the configured `dns` provider by
-  `holocron repo setup`.
+  `holocron setup`.
 
-Declare the production domain in the Vercel provider options. On `holocron repo setup`,
+Declare the production domain in the Vercel provider options. On `holocron setup`,
 the domain is attached to the project and any Vercel verification CNAME is
 upserted through the configured DNS provider:
 
