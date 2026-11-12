@@ -1,4 +1,5 @@
 ---
+id: SPEC-0082
 status: draft
 issue: theholocron/holocron#2089
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2058
   - theholocron/holocron#2059
   - theholocron/holocron#2063
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569974442661122110
 ---
 
 # `doctor shared-values`: find a secret that holds one value in two layers
