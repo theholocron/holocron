@@ -12,6 +12,8 @@ describe("validateSecretsSync", () => {
 		["neither", {}],
 		["both", { environment: "E", layer: "ci" }],
 		["a layer that is no layer word", { layer: "Prod" }],
+		["the dev layer, which is never synced", { layer: "dev", keys: ["A"] }],
+		["the local layer, which is never synced", { layer: "local" }],
 	])("is a ConfigError for %s", (_label, entry) => {
 		const err = (() => {
 			try {

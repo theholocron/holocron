@@ -115,11 +115,35 @@ describe("secrets sync", () => {
 		});
 	});
 
+	it.each(["dev", "local"])(
+		"refuses the %s layer whatever else is given, before any config is loaded",
+		async (layer) => {
+			const err = await go([
+				"sync",
+				layer,
+				"--github-secret",
+				"A",
+				"--project-id",
+				"p1",
+				"--worker",
+				"w",
+				"--dry-run",
+			]).catch((e: unknown) => e);
+			expect((err as Error).name).toBe("ConfigError");
+			expect((err as Error).message).toContain("never synced");
+			expect(loadConfig).not.toHaveBeenCalled();
+			expect(runSecretsSync).not.toHaveBeenCalled();
+		}
+	);
+
 	it("leaves out the project, worker and GitHub secrets it was not given", async () => {
 		await go(["sync", "prd"]);
 		const input = runSecretsSync.mock.calls[0]![0];
-		expect(["projectId", "workerScript", "githubSecretKeys", "secretRoutes"].some((k) => k in input)).toBe(false);
-		expect(input.githubSecretScope).toEqual({ kind: "repo" });
+		expect(
+			["projectId", "workerScript", "githubSecretKeys", "secretRoutes", "githubSecretScope"].some(
+				(k) => k in input
+			)
+		).toBe(false);
 	});
 
 	it("takes the routes into GitHub secrets from the repo.secrets.sync entries for that environment", async () => {

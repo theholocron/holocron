@@ -2,6 +2,7 @@ import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { loadConfig } from "../../config/index.js";
+import { assertSyncableLayer } from "../../credentials-environments/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
@@ -18,8 +19,11 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const githubSecretScope = parseScope(argv.githubSecretScope as string);
+		// Only a scope given on the command line counts as naming a destination (#2104).
+		const githubSecretScope = argv.githubSecretScope ? parseScope(argv.githubSecretScope as string) : undefined;
 		const [environmentId] = await promptForPositionals(getEntry("secrets sync"), argv as Record<string, unknown>);
+		// `local` and `dev` are read by this machine and never synced, whatever else is given (#2104).
+		await assertSyncableLayer(environmentId!, { repoRoot: argv.cwd });
 		const loaded = await loadConfig(argv.cwd);
 		// A layer word (`prod`) names this repository's Environment of that layer; any other text is a literal name.
 		const environment = await resolveEnvironmentId(environmentId!, { repoRoot: argv.cwd });
@@ -45,7 +49,7 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 			// A deployment or Worker receives only what `repo.secrets.deploy` names; with no entry the run throws (#2061).
 			...(deploy ? { deployFilter: deploy } : {}),
 			...(argv.githubSecret?.length ? { githubSecretKeys: argv.githubSecret as string[] } : {}),
-			githubSecretScope,
+			...(githubSecretScope ? { githubSecretScope } : {}),
 			...(routes.length ? { secretRoutes: routes } : variablesOnly ? { secretRoutes: [] } : {}),
 			...(variables.length ? { variableRoutes: variables } : {}),
 			targets: argv.target as Array<"development" | "preview" | "production">,

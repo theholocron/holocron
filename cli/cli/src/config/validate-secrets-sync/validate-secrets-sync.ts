@@ -1,5 +1,6 @@
 import { ConfigError } from "@theholocron/kyber/config";
 
+import { isUnsyncedLayer, unsyncedLayerMessage } from "../../credentials-environments/unsynced-layer/index.js";
 import type { RepoSecrets } from "../config/index.js";
 import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 
@@ -20,6 +21,7 @@ export function validateSecretsSync(secrets: RepoSecrets | undefined): void {
 	for (const entry of secrets?.sync ?? []) {
 		const named = validateEnvironmentChoice(entry, "a `repo.secrets.sync` entry");
 		const label = `\`repo.secrets.sync\` entry for ${JSON.stringify(named)}`;
+		if (isUnsyncedLayer(entry.layer)) throw new ConfigError(unsyncedLayerMessage(label, entry.layer));
 		const scope = entry.scope ?? "repo";
 		if (!scope.startsWith("org=")) {
 			if (entry.visibility !== undefined || entry.repos !== undefined) {

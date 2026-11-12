@@ -1,3 +1,4 @@
+import type { GitExec } from "@theholocron/git-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
@@ -71,6 +72,8 @@ export interface RunSecretsSyncInput {
 	 * the vault is read, and never sends every key.
 	 */
 	deployFilter?: DeployFilter;
+	/** How to read the repository's `origin` remote, to recognise the derived name of an unsynced layer (tests inject a fake). */
+	gitExec?: GitExec;
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
