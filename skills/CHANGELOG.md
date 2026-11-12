@@ -1,3 +1,11 @@
+## [1.12.1-alpha.3](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.2...skills-v1.12.1-alpha.3) (2026-11-12)
+
+### Refactoring
+
+* **cli:** ♻️ add install and update, and sweep the old names ([#2122](https://github.com/theholocron/holocron/issues/2122)) ([0ea4071](https://github.com/theholocron/holocron/commit/0ea40712fe111cd96ef8b27fbc095d096c264f81)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add publish bump-versions, package and tag ([#2120](https://github.com/theholocron/holocron/issues/2120)) ([4ed311d](https://github.com/theholocron/holocron/commit/4ed311d746eec70d64e3ed1b6a6632e501bc794e)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add setup, upgrade, cleanup and apply ([#2119](https://github.com/theholocron/holocron/issues/2119)) ([b2d3e38](https://github.com/theholocron/holocron/commit/b2d3e381494b5c5a4a6e83068040c01b101da58a)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
 ## [1.12.1-alpha.2](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.1...skills-v1.12.1-alpha.2) (2026-11-03)
 
 ### Refactoring
