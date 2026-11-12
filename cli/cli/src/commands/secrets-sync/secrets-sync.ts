@@ -17,7 +17,7 @@
  *    list and/or a `prefix`), passed in as `deployFilter`. With none, the run throws a `ConfigError` before it reads
  *    the vault. A name outside the filter is reported by name only and never reaches the provider.
  *  - `secrets` (GH Actions) fails closed too (#2104): with no `repo.secrets.sync` entry for the environment, no
- *    `--github-secret` / `--github-secret-scope` and no deployment or Worker destination, the run throws a
+ *    `--github-secret` (`--github-secret-scope` alone names no keys and is refused) and no deployment or Worker destination, the run throws a
  *    `ConfigError` before the vault is read, `--dry-run` included. A deployment or Worker sync alone writes nothing
  *    to `secrets`. Where a destination is named, `secrets` defaults to every key, repo-scoped — and a
  *    caller can pass `githubSecretKeys` (an allowlist, from repeatable
@@ -51,6 +51,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { RepoSecretsSync } from "../../config/index.js";
+import { resolvedEnvironment } from "../../config/resolved-environment/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -75,10 +76,10 @@ import { splitDeployKeys } from "./split-deploy-keys/index.js";
  * The `ConfigError` text for a sync that names no destination for `secrets`: the environment, and the environments
  * `repo.secrets.sync` does have an entry for.
  */
-function noSecretsEntryMessage(environmentId: string, entries: RepoSecretsSync[] | undefined): string {
-	const known = [...new Set((entries ?? []).flatMap((entry) => (entry.environment ? [entry.environment] : [])))];
+function noSecretsEntryMessage(environmentId: string, entries: RepoSecretsSync[]): string {
+	const known = [...new Set(entries.map((entry) => resolvedEnvironment(entry)))];
 	const list = known.length > 0 ? known.map((name) => JSON.stringify(name)).join(", ") : "none";
-	return `no \`repo.secrets.sync\` entry for environment ${JSON.stringify(environmentId)}: a sync with no entry would write every key to the repository's secrets. Environments with an entry: ${list}. Add { environment: ${JSON.stringify(environmentId)}, keys: [...], scope: "repo" } (or layer: "<layer>") to repo.secrets.sync, or name the destination with --github-secret <KEY> (and --github-secret-scope)`;
+	return `no \`repo.secrets.sync\` entry for environment ${JSON.stringify(environmentId)}: a sync with no entry would write every key to the repository's secrets. Environments with an entry: ${list}. Add { environment: ${JSON.stringify(environmentId)}, keys: [...], scope: "repo" } (or layer: "<layer>") to repo.secrets.sync, or name the destination with --github-secret <KEY> (with --github-secret-scope for another scope)`;
 }
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
@@ -114,12 +115,16 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	}
 	// Fail closed, before anything is read: with no entry and no destination named on the command line, `secrets`
 	// would otherwise receive every key of the environment (#2104).
-	const namesSecretsDestination =
-		input.secretRoutes !== undefined ||
-		Boolean(input.githubSecretKeys?.length) ||
-		input.githubSecretScope !== undefined;
+	const namesSecretsDestination = input.secretRoutes !== undefined || Boolean(input.githubSecretKeys?.length);
+	if (!namesSecretsDestination && input.githubSecretScope !== undefined) {
+		throw new ConfigError(
+			`--github-secret-scope names a scope but no keys: pass the keys to write with --github-secret <KEY>, or declare environment ${JSON.stringify(input.environmentId)} in \`repo.secrets.sync\``
+		);
+	}
 	if (!namesSecretsDestination && !input.projectId && !input.workerScript) {
-		throw new ConfigError(noSecretsEntryMessage(input.environmentId, input.loaded.resolved.repo?.secrets?.sync));
+		throw new ConfigError(
+			noSecretsEntryMessage(input.environmentId, input.loaded.resolved.repo?.secrets?.sync ?? [])
+		);
 	}
 	// Fail closed, before anything is read: an organization secret is never readable by every repository (#2062).
 	for (const route of input.secretRoutes ?? [{ scope: input.githubSecretScope ?? { kind: "repo" } }]) {
@@ -180,13 +185,8 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		// With neither an entry nor a flag naming `secrets` (a deployment or Worker sync), nothing goes to it (#2104).
 		const routes =
 			input.secretRoutes ??
-			(namesSecretsDestination
-				? [
-						{
-							scope: input.githubSecretScope ?? { kind: "repo" },
-							...(input.githubSecretKeys ? { keys: input.githubSecretKeys } : {}),
-						},
-					]
+			(input.githubSecretKeys?.length
+				? [{ scope: input.githubSecretScope ?? ({ kind: "repo" } as const), keys: input.githubSecretKeys }]
 				: []);
 		for (const route of routes) {
 			print(style.step(routes.length > 1 ? `secrets (${scopeLabel(route.scope)})` : "secrets"));

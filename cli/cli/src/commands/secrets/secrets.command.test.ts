@@ -115,6 +115,27 @@ describe("secrets sync", () => {
 		});
 	});
 
+	it.each(["dev", "local"])(
+		"refuses the %s layer whatever else is given, before any config is loaded",
+		async (layer) => {
+			const err = await go([
+				"sync",
+				layer,
+				"--github-secret",
+				"A",
+				"--project-id",
+				"p1",
+				"--worker",
+				"w",
+				"--dry-run",
+			]).catch((e: unknown) => e);
+			expect((err as Error).name).toBe("ConfigError");
+			expect((err as Error).message).toContain("never synced");
+			expect(loadConfig).not.toHaveBeenCalled();
+			expect(runSecretsSync).not.toHaveBeenCalled();
+		}
+	);
+
 	it("leaves out the project, worker and GitHub secrets it was not given", async () => {
 		await go(["sync", "prd"]);
 		const input = runSecretsSync.mock.calls[0]![0];

@@ -23,6 +23,8 @@ describe("validateSecretsDeploy", () => {
 		["neither an environment nor a layer", { keys: ["A"] }],
 		["a layer and an environment", { layer: "prod", environment: "E", keys: ["A"] }],
 		["a layer that is no layer word", { layer: "production", keys: ["A"] }],
+		["the dev layer, which is never synced", { layer: "dev", keys: ["A"] }],
+		["the local layer, which is never synced", { layer: "local", prefix: "X_" }],
 	])("is a ConfigError for %s", (_label, entry) => {
 		const err = (() => {
 			try {

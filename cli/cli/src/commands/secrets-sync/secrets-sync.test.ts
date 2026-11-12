@@ -65,7 +65,7 @@ describe("runSecretsSync", () => {
 				loaded,
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "env_1",
-				githubSecretScope: { kind: "repo" },
+				secretRoutes: [{ scope: { kind: "repo" } }],
 				loader,
 				print: () => {},
 			})
@@ -101,7 +101,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 			logger: fakeLogger(),
@@ -143,7 +143,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: (l: string) => lines.push(l),
 			logger: fakeLogger(),
@@ -178,7 +178,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 			logger: fakeLogger(),
@@ -218,7 +218,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 			logger: log,
@@ -265,7 +265,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 		});
@@ -346,7 +346,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test", dryRun: true },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 		});
@@ -382,7 +382,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 		});
@@ -499,7 +499,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "environment", name: "production" },
+			secretRoutes: [{ scope: { kind: "environment", name: "production" } }],
 			loader,
 			print: () => {},
 		});
@@ -534,7 +534,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
-			githubSecretScope: { kind: "repo" },
+			secretRoutes: [{ scope: { kind: "repo" } }],
 			loader,
 			print: () => {},
 		});
@@ -739,7 +739,7 @@ describe("runSecretsSync", () => {
 					loaded: t.loaded,
 					context: { repoRoot: "/tmp/test", dryRun },
 					environmentId: "env_1",
-					githubSecretScope: { kind: "repo" },
+					secretRoutes: [{ scope: { kind: "repo" } }],
 					projectId: "prj_1",
 					deployFilter: everyKey,
 					targets: ["production"],
@@ -1084,7 +1084,7 @@ describe("runSecretsSync", () => {
 					loaded: t.loaded,
 					context: { repoRoot: "/tmp/test" },
 					environmentId: "prod",
-					githubSecretScope: { kind: "repo" },
+					secretRoutes: [{ scope: { kind: "repo" } }],
 					...extra,
 					loader: t.loader,
 					print: () => {},
@@ -1102,7 +1102,7 @@ describe("runSecretsSync", () => {
 				loaded: t.loaded,
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "prod",
-				githubSecretScope: { kind: "repo" },
+				secretRoutes: [{ scope: { kind: "repo" } }],
 				loader: t.loader,
 				print: () => {},
 			});
@@ -1246,6 +1246,7 @@ describe("runSecretsSync — who can read an organization secret (#2062)", () =>
 		expect((err as Error).message).toMatch(/need an explicit reader list/);
 		const manual = await run(true, {
 			secretRoutes: undefined,
+			githubSecretKeys: ["OLD"],
 			githubSecretScope: { kind: "organization", name: "theholocron" },
 		}).catch((e: unknown) => e);
 		expect((manual as Error).name).toBe("ConfigError");
@@ -1310,6 +1311,15 @@ describe("runSecretsSync — an environment with no repo.secrets.sync entry (#21
 
 	it("says none when the config has no entries at all", async () => {
 		const t = build();
+		const bare = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const none = await runSecretsSync({
+			loaded: bare,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "dev",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((none as Error).message).toContain("Environments with an entry: none");
 		const err = await runSecretsSync({
 			loaded: t.loaded,
 			context: { repoRoot: "/tmp/test" },
@@ -1320,17 +1330,46 @@ describe("runSecretsSync — an environment with no repo.secrets.sync entry (#21
 		expect((err as Error).message).toContain("Environments with an entry: none");
 	});
 
-	it("still runs when --github-secret-scope alone names the destination", async () => {
+	it("refuses --github-secret-scope alone, since it names a scope but no keys", async () => {
+		const t = build();
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "ci",
+			githubSecretScope: { kind: "repo" },
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toContain("names a scope but no keys");
+		expect(t.reads).toEqual([]);
+	});
+
+	it("runs with --github-secret keys alone, at repo scope", async () => {
 		const t = build();
 		await runSecretsSync({
 			loaded: t.loaded,
 			context: { repoRoot: "/tmp/test" },
-			environmentId: "dev",
+			environmentId: "ci",
+			githubSecretKeys: ["OTHER"],
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.secretCalls).toEqual(["OTHER"]);
+	});
+
+	it("runs with --github-secret keys", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "ci",
+			githubSecretKeys: ["OTHER"],
 			githubSecretScope: { kind: "repo" },
 			loader: t.loader,
 			print: () => {},
 		});
-		expect(t.secretCalls.sort()).toEqual(["OTHER", "SENTINEL_A"]);
+		expect(t.secretCalls).toEqual(["OTHER"]);
 	});
 
 	it("sends a deployment only what repo.secrets.deploy names, and nothing to secrets", async () => {
