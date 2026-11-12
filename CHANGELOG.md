@@ -1,3 +1,9 @@
+## [5.0.0-alpha.421](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.420...v5.0.0-alpha.421) (2026-11-12)
+
+### Bug Fixes
+
+* **secrets:** refuse a secrets sync for an environment with no repo.secrets.sync entry ([#2105](https://github.com/theholocron/holocron/issues/2105)) ([26bb984](https://github.com/theholocron/holocron/commit/26bb9842f479673c6ffce1df81f877c17b241bcc)), closes [#2104](https://github.com/theholocron/holocron/issues/2104)
+
 ## [5.0.0-alpha.420](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.419...v5.0.0-alpha.420) (2026-11-12)
 
 ### Features
