@@ -1315,7 +1315,7 @@ describe("runSecretsSync — an environment with no repo.secrets.sync entry (#21
 		const none = await runSecretsSync({
 			loaded: bare,
 			context: { repoRoot: "/tmp/test" },
-			environmentId: "dev",
+			environmentId: "staging",
 			loader: t.loader,
 			print: () => {},
 		}).catch((e: unknown) => e);
@@ -1323,7 +1323,7 @@ describe("runSecretsSync — an environment with no repo.secrets.sync entry (#21
 		const err = await runSecretsSync({
 			loaded: t.loaded,
 			context: { repoRoot: "/tmp/test" },
-			environmentId: "dev",
+			environmentId: "staging",
 			loader: t.loader,
 			print: () => {},
 		}).catch((e: unknown) => e);
@@ -1386,5 +1386,70 @@ describe("runSecretsSync — an environment with no repo.secrets.sync entry (#21
 		});
 		expect(t.envCalls).toEqual(["SENTINEL_A"]);
 		expect(t.secretCalls).toEqual([]);
+	});
+});
+
+describe("runSecretsSync — the local and dev layers are never synced (#2104)", () => {
+	const gitExec = async () => "git@github.com:theholocron/holocron.git\n";
+	const plugins = (reads: string[]) => ({
+		"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+			vault: {
+				providerName: "1password",
+				readEnvironment: async (id: string) => {
+					reads.push(id);
+					return { A: "v" };
+				},
+			},
+		}),
+		"@theholocron/holocron-plugin-github": makePlugin("gh", {
+			secrets: { providerName: "github", setSecret: async () => {} },
+		}),
+	});
+	const extras: Array<[string, Record<string, unknown>]> = [
+		["nothing else", {}],
+		["--dry-run", { context: { repoRoot: "/tmp/test", dryRun: true } }],
+		["githubSecretKeys", { githubSecretKeys: ["A"] }],
+		["secretRoutes", { secretRoutes: [{ scope: { kind: "repo" } }] }],
+		["projectId", { projectId: "prj_1", deployFilter: { keys: ["A"], prefixes: [] } }],
+		["workerScript", { workerScript: "w", deployFilter: { keys: ["A"], prefixes: [] } }],
+	];
+
+	it.each(["local", "dev", "theholocron/holocron - local", "theholocron/holocron - dev"])(
+		"refuses %s before anything is read, with %s",
+		async (environmentId) => {
+			for (const [, extra] of extras) {
+				const reads: string[] = [];
+				const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+				const err = await runSecretsSync({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId,
+					gitExec,
+					loader: makeLoaderWith(loaded, plugins(reads)),
+					print: () => {},
+					...extra,
+				} as never).catch((e: unknown) => e);
+				expect((err as Error).name).toBe("ConfigError");
+				expect((err as Error).message).toContain("never synced");
+				expect(reads).toEqual([]);
+			}
+		}
+	);
+
+	it("leaves ci and prod, by word or by derived name, to the other rules", async () => {
+		for (const environmentId of ["ci", "prod", "theholocron/holocron - ci", "theholocron/holocron - prod"]) {
+			const reads: string[] = [];
+			const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+			await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId,
+				gitExec,
+				githubSecretKeys: ["A"],
+				loader: makeLoaderWith(loaded, plugins(reads)),
+				print: () => {},
+			});
+			expect(reads).toEqual([environmentId]);
+		}
 	});
 });

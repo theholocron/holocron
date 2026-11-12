@@ -52,6 +52,7 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { RepoSecretsSync } from "../../config/index.js";
 import { resolvedEnvironment } from "../../config/resolved-environment/index.js";
+import { assertSyncableLayer } from "../../credentials-environments/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -90,6 +91,11 @@ function workersMissing(loader: PluginLoader): string {
 }
 
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
+	// `local` and `dev` are never synced, whoever calls: refused before any provider is loaded or the vault is read (#2104).
+	await assertSyncableLayer(input.environmentId, {
+		repoRoot: input.context.repoRoot,
+		...(input.gitExec ? { gitExec: input.gitExec } : {}),
+	});
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
