@@ -95,6 +95,19 @@ describe("generateConfigFiles", () => {
 		expect(file(".husky/pre-commit")).toBeDefined();
 	});
 
+	it("watches the workflow sources in Dependabot only in a repo that hosts the reusables", async () => {
+		const loaded = loadedFrom({ name: "x", repo: { protection: "strict" } });
+		const dependabot = async () => {
+			const entries = await generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
+			return entries.find((e) => e.kind === "file" && e.path === ".github/dependabot.yml");
+		};
+		expect(await dependabot()).toMatchObject({ content: expect.not.stringContaining("/ci/workflows") });
+
+		mkdirSync(join(root, "ci"), { recursive: true });
+		writeFileSync(join(root, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
+		expect(await dependabot()).toMatchObject({ content: expect.stringContaining("- /ci/actions/*") });
+	});
+
 	it("leaves the Dependabot and DCO files out for protection: none", async () => {
 		const entries = await generateConfigFiles({
 			loaded: loadedFrom({ name: "x", repo: { protection: "none" } }),

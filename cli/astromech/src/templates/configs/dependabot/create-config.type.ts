@@ -6,4 +6,11 @@ export interface DependabotConfigOptions {
 	 * only honours an `ignore` entry that lists `versions`.
 	 */
 	ignore?: readonly string[];
+
+	/**
+	 * Directories, besides `.github/workflows` (`/`), whose workflow and action files the github-actions ecosystem
+	 * watches: the sources a repo generates its workflows from. Dependabot does not bump those otherwise, so
+	 * `probe generated check` fails on the difference. Globs are allowed.
+	 */
+	sources?: readonly string[];
 }

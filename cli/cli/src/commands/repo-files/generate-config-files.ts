@@ -25,7 +25,11 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import { ownCatalogPackages } from "../setup/own-catalog-packages/index.js";
 import { hooksEnabled } from "./hooks-enabled.js";
+import { hostsReusables } from "./hosted-reusables.js";
 import type { GeneratedRepoFile, RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
+
+/** Where a repo that hosts the reusables keeps the sources of its generated workflows and the actions they run. */
+const HOSTED_SOURCES = ["/ci/workflows", "/ci/workflows/*", "/ci/actions/*"] as const;
 
 function file(path: string, content: string, note?: string): GeneratedRepoFile {
 	const step = `write ${path}`;
@@ -46,7 +50,13 @@ export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFi
 
 	if (config.repo?.protection !== "none") {
 		entries.push(
-			file(".github/dependabot.yml", createDependabot({ ignore: ownCatalogPackages(input.repoRoot) })),
+			file(
+				".github/dependabot.yml",
+				createDependabot({
+					ignore: ownCatalogPackages(input.repoRoot),
+					sources: hostsReusables(input.repoRoot) ? HOSTED_SOURCES : [],
+				})
+			),
 			file(".github/dco.yml", createDco())
 		);
 	}

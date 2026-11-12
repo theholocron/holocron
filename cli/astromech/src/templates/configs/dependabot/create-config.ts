@@ -14,14 +14,26 @@ function ignoreBlock(names: readonly string[]): string {
 	return `    ignore:\n${entries.join("")}`;
 }
 
+/** The github-actions entry's one directory line, which `sources` widens to a list. */
+const ACTIONS_DIRECTORY =
+	'    directory: /\n    schedule:\n      interval: weekly\n    labels:\n      - dependencies\n    commit-message:\n      prefix: "chore(deps)"\n    groups:\n      all-actions:';
+
+function directoriesBlock(sources: readonly string[]): string {
+	const entries = ["/", ...new Set(sources)].map((dir) => `      - ${dir}\n`);
+	return `    directories:\n${entries.join("")}`;
+}
+
 /**
  * The content of `.github/dependabot.yml`, with its generated-file header. Names in `ignore` get a name-only
- * `ignore` entry on the npm ecosystem; with none, the file is the shared body unchanged.
+ * `ignore` entry on the npm ecosystem, and `sources` are watched next to `/` (`.github/workflows`) by the
+ * github-actions one; with neither, the file is the shared body unchanged.
  */
-export function createConfig({ ignore = [] }: DependabotConfigOptions = {}): string {
-	const body =
-		ignore.length === 0
-			? dependabotBody
-			: dependabotBody.replace(NPM_GROUPS, `${ignoreBlock(ignore)}${NPM_GROUPS}`);
+export function createConfig({ ignore = [], sources = [] }: DependabotConfigOptions = {}): string {
+	let body = dependabotBody;
+	if (ignore.length > 0) body = body.replace(NPM_GROUPS, `${ignoreBlock(ignore)}${NPM_GROUPS}`);
+	if (sources.length > 0) {
+		const rest = ACTIONS_DIRECTORY.slice("    directory: /\n".length);
+		body = body.replace(ACTIONS_DIRECTORY, `${directoriesBlock(sources)}${rest}`);
+	}
 	return `${workflowHeader()}${body}`;
 }
