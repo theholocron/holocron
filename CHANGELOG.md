@@ -1,3 +1,9 @@
+## [5.0.0-alpha.422](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.421...v5.0.0-alpha.422) (2026-11-12)
+
+### Bug Fixes
+
+* **doctor:** make the GitHub release token optional for doctor credentials ([#2111](https://github.com/theholocron/holocron/issues/2111)) ([6896236](https://github.com/theholocron/holocron/commit/68962361e363cbb32bf889f0b28300f3e8cb3a7a)), closes [#2059](https://github.com/theholocron/holocron/issues/2059)
+
 ## [5.0.0-alpha.421](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.420...v5.0.0-alpha.421) (2026-11-12)
 
 ### Bug Fixes
