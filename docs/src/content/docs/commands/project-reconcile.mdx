@@ -39,6 +39,6 @@ The job is the task `reconcile-projects`, like `check-tokens`: a registry task, 
 `GITHUB_TOKEN` cannot write an organization project, so the run mints the GitHub App's installation token with `actions/create-github-app-token`. Two things are done once, by a person:
 
 - Give the App the **organization Projects** permission (read and write); setup cannot grant it.
-- Add the Actions variable `SENTINEL_GITHUB_APP_ID` (the App's id, which is public; a secret of that name is still read when no variable is set) and the secret `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the private key; the workflow still reads the old `SENTINEL_APP_ID` and `SENTINEL_APP_PRIVATE_KEY` when the new ones are not set) at the organization scope, for example through `repo.variables.sync` and `repo.secrets.sync`.
+- Add the Actions variable `SENTINEL_GITHUB_APP_ID` (the App's id, which is public) and the secret `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the private key) at the organization scope, for example through `repo.variables.sync` and `repo.secrets.sync`.
 
 The event-driven path (Sentinel reconciling on `issue_dependencies` and on closes) follows when Sentinel is back in production; it adds speed only, because this schedule is the net for a missed delivery.
