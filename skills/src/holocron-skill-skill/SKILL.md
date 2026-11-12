@@ -14,7 +14,7 @@ The standalone `theholocron/skills` repo is archived; do not add skills there.
 Replace `<name>` with the skill's kebab-case identifier (e.g. `git-safety`, `holocron-skill-config`).
 
 There is no registry file or index to edit: the package ships everything under
-`skills/src/`, `holocron setup` / `holocron skills` copy `skills/src/<name>/`
+`skills/src/`, `holocron setup` / `holocron install skills` copy `skills/src/<name>/`
 by name into a consuming repo, and the smoke test discovers skills by listing
 the directories. Creating the directory is the registration; the README row and
 docs page keep the human-facing listings in sync.
