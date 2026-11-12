@@ -535,7 +535,7 @@ The three fixers (prettier, markdownlint, editorconfig) are guarded against undo
 a fix is committed Sentinel reads the pull request's commits (`findAutoFixLoop()`, the first 100 that GitHub lists),
 and a fixer that already committed since the last commit of a person's is not run again. The pull request gets one
 comment saying so (`postAutoFixLoopComment()`, looked for by its `<!-- sentinel:auto-fix-loop -->` marker), and the checks
-keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A failed read
+keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A read that errors
 of the commits blocks nothing. The commit subjects are `AUTO_FIX_SUBJECTS`, the one list the fixers write and the guard
 reads.
 
