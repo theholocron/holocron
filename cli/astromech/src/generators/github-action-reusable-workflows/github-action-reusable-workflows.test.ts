@@ -336,6 +336,22 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(action).toMatch(/Could not get an OIDC token\."\n\s+return 1/);
 	});
 
+	it("codecov-upload uploads each report with its paths from the repo root, and leaves out an empty one", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		// a package-relative `SF:src/index.ts` is ambiguous across the packages, so Codecov rejects the report
+		expect(action).toContain("rooted_copy()");
+		expect(action).toContain('awk -v prefix="$dir/"');
+		expect(action).toContain('--file "$reports/$flag.$n.info"');
+		// the upload takes the copy, never the original report
+		expect(action).not.toMatch(/args\+=\(--file "\$f"\)/);
+		// a report at the repo root, and a path that is already absolute, keep their paths
+		expect(action).toContain('case "$dir" in . | coverage) dir="" ;; esac');
+		expect(action).toContain('substr($0, 4, 1) != "/"');
+		// a report with no source file is left out instead of uploaded to be rejected as empty
+		expect(action).toContain("if ! grep -q '^SF:' \"$f\"; then");
+		expect(action).toMatch(/if \[ "\$n" -eq 0 \]; then\n\s+echo "· \$flag: no coverage files"\n\s+continue/);
+	});
+
 	it("codecov-upload tries each flag's upload up to four times before it fails the job", () => {
 		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
 		expect(action).toMatch(/until fetch_token && "\$CODECOV_CLI" do-upload [^\n]*--fail-on-error/);

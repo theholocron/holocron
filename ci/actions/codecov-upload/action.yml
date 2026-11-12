@@ -77,6 +77,23 @@ runs:
         # the per-flag uploads attach to. Uploading alone leaves the report unprocessed and posts no status.
         "$CODECOV_CLI" create-commit -t "$token" --fail-on-error --git-service github
         "$CODECOV_CLI" create-report -t "$token" --fail-on-error --git-service github
+        # A package's report names its files from the package (`SF:src/index.ts`), and Codecov places a path by
+        # matching it against the whole repo. `src/index.ts` exists in dozens of packages, so a package whose files
+        # are all named like another's cannot be placed and its upload is rejected as an unusable report. Each report
+        # is uploaded as a copy whose paths start at the repo root (`SF:clients/doppler-client/src/index.ts`). The
+        # package is the report's folder, less a trailing `coverage`; a report at the repo root is left as it is.
+        reports="$(mktemp -d "${RUNNER_TEMP:-/tmp}/codecov-reports.XXXXXX")"
+        rooted_copy() {
+          local dir
+          dir="$(dirname "$1")"
+          dir="${dir%/coverage}"
+          case "$dir" in . | coverage) dir="" ;; esac
+          if [ -n "$dir" ]; then
+            awk -v prefix="$dir/" '/^SF:/ && substr($0, 4, 1) != "/" { $0 = "SF:" prefix substr($0, 4) } { print }' "$1" > "$2"
+          else
+            cp "$1" "$2"
+          fi
+        }
         uploaded=0
         # Read the list on fd 3: the loop body must not share stdin with the CLI, which could swallow the
         # remaining entries. A process substitution (not a pipe) keeps `uploaded` in this shell.
@@ -88,8 +105,22 @@ runs:
             continue
           fi
           args=()
-          for f in "${files[@]}"; do args+=(--file "$f"); done
-          echo "→ $flag: ${#files[@]} file(s)"
+          n=0
+          for f in "${files[@]}"; do
+            # A report that names no source file (a package with nothing to cover) is rejected as empty.
+            if ! grep -q '^SF:' "$f"; then
+              echo "· $flag: $f names no source file, left out"
+              continue
+            fi
+            n=$((n + 1))
+            rooted_copy "$f" "$reports/$flag.$n.info"
+            args+=(--file "$reports/$flag.$n.info")
+          done
+          if [ "$n" -eq 0 ]; then
+            echo "· $flag: no coverage files"
+            continue
+          fi
+          echo "→ $flag: $n file(s)"
           # A fresh token for each try, then a few tries: Codecov also answers an upload with a 5xx now and then.
           attempt=1
           until fetch_token && "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"; do
