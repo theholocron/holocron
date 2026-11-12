@@ -262,7 +262,11 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 			const uploads = REUSABLE_WORKFLOWS[name]!.split("- uses: codecov/codecov-action@").slice(1);
 			expect(uploads.length).toBeGreaterThan(0);
 			for (const step of uploads) {
-				expect(step.split("\n\n")[0]!).toContain("fail_ci_if_error: true");
+				const head = step.split("\n\n")[0]!;
+				// Test results are analytics no required status reads, so only they may fail without the job.
+				expect(head).toContain(
+					head.includes("report_type: test_results") ? "fail_ci_if_error: false" : "fail_ci_if_error: true"
+				);
 			}
 		}
 		// coverage + test results in the unit and Storybook jobs, the empty upload, plus the release-commit upload.

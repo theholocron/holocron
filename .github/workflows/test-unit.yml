@@ -117,10 +117,12 @@ jobs:
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload test results to Codecov
+        # Test results are Codecov's test analytics; no required status reads them, so a failed upload is logged
+        # and the job passes. Coverage above still fails the job: the required statuses depend on it.
         if: ${{ !cancelled() && (!inputs.affected || steps.reports.outputs.tests == 'true') }}
         with:
           use_oidc: true
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           report_type: test_results
           files: "**/test-report.junit.xml"
 
@@ -169,10 +171,11 @@ jobs:
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload test results to Codecov
+        # Test analytics only, as above: a failed upload is logged, not a failed job.
         if: ${{ !cancelled() }}
         with:
           use_oidc: true
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           report_type: test_results
           files: "**/test-report.junit.xml"
 
