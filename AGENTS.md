@@ -185,7 +185,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   The workflows read a few organization Actions variables (`vars.HOLOCRON_TURBO_TEAM`, `vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, …; each is read as `vars.HOLOCRON_X || vars.X` and mapped onto the bare name a tool such as turbo or wrangler reads, #1864). They
   are declared under `repo.variables` and written by `holocron repo setup`, or, for this repo, filled from the `ci` layer's 1Password Environment by `holocron secrets sync ci` (`repo.variables.sync`), never set by hand. A
   missing one fails quietly, so the templates warn and say where it is declared: the shared `setup` composite action
-  when `TURBO_TOKEN` (mapped from `secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN`, as `SENTRY_AUTH_TOKEN` is from `HOLOCRON_SENTRY_AUTH_TOKEN`, #1711) is set without `TURBO_TEAM`, and `preview.yml` (deploy and cleanup) when a Pages project is
+  when `TURBO_TOKEN` (mapped from `secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN`, as `SENTRY_AUTH_TOKEN` is from `HOLOCRON_SENTRY_RELEASE_TOKEN`, #1711) is set without `TURBO_TEAM`, and `preview.yml` (deploy and cleanup) when a Pages project is
   configured without `CLOUDFLARE_ACCOUNT_ID`. Account-specific values deliberately have no default in the templates.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`

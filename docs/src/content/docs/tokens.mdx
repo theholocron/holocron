@@ -189,7 +189,7 @@ Whether a narrower, read-only token would do for Checkly and Cloudflare has not 
 
 ### Sentry
 
-Two tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) provisions projects and their DSNs. The Comlink relay has its own, because creating an integration and an alert rule need far more:
+Three tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) provisions projects and their DSNs and is kept in the `dev` layer. CI has its own, `HOLOCRON_SENTRY_RELEASE_TOKEN` in the `ci` layer, which only `release.yml` reads (sentry-cli creates the release and uploads sourcemaps): use an organization token (`org:ci`), not the general one, and no plugin declares it. The Comlink relay has its own, because creating an integration and an alert rule need far more:
 
 | Env var                         | Keyring key      | Used for                                                        | What to create                                                                                                                                                                                                                              |
 | ------------------------------- | ---------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

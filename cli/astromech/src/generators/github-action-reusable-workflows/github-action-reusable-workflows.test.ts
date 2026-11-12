@@ -1108,7 +1108,7 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	});
 
 	it.each([
-		["release", "SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_AUTH_TOKEN"],
+		["release", "SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_RELEASE_TOKEN"],
 		["build", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
 		["test:unit", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
 	])("%s maps the prefixed secret onto the bare name %s (#1711)", (id, bare, prefixed) => {
@@ -1116,8 +1116,10 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	});
 
 	it("no reusable workflow reads a bare TURBO_TOKEN or SENTRY_AUTH_TOKEN secret without its HOLOCRON_ name first, and each declares both", () => {
-		for (const bare of ["TURBO_TOKEN", "SENTRY_AUTH_TOKEN"]) {
-			const prefixed = `HOLOCRON_${bare}`;
+		for (const [bare, prefixed] of [
+			["TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
+			["SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_RELEASE_TOKEN"],
+		] as const) {
 			for (const text of Object.values(REUSABLE_WORKFLOWS)) {
 				for (const m of text.matchAll(new RegExp(`secrets\\.${bare}\\b`, "g"))) {
 					expect(text.slice(Math.max(0, m.index - `secrets.${prefixed} || `.length), m.index)).toBe(

@@ -85,7 +85,7 @@ repository of the organization (the reads in the `theholocron/.github` reusables
   `HOLOCRON_FERN_TOKEN`, `HOLOCRON_ISSUES_TOKEN`, `HOLOCRON_ORG_TOKEN`, `HOLOCRON_READ_TOKEN`, `HOLOCRON_RELEASE_TOKEN`,
   `HOLOCRON_SYNC_TOKEN` -> `selected [holocron, .github]`.
 - Read only by `holocron`'s own reusable workflows: `HOLOCRON_CLOUDFLARE_TOKEN`, `HOLOCRON_CODECOV_TOKEN`,
-  `HOLOCRON_SENTRY_AUTH_TOKEN`, `HOLOCRON_TURBO_TOKEN`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` -> `selected [holocron]`.
+  `HOLOCRON_SENTRY_RELEASE_TOKEN`, `HOLOCRON_TURBO_TOKEN`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` -> `selected [holocron]`.
 
 The template repositories call the frozen reusables in `theholocron/.github` (`release`, `sync`, `wiki`) with
 `secrets: inherit`, and those read names of the first list. Narrowing the list can stop a template's run from seeing a
