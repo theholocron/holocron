@@ -22,6 +22,7 @@ import {
 	type Secrets,
 	type SecretScope,
 } from "../../plugin/index.js";
+import { layoutSecretScope } from "./layout-secret-scope.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
@@ -465,11 +466,18 @@ export async function runNotificationsChannelAdd(
 			secrets = loader.get("secrets") as Secrets;
 		}
 		const org = input.context.org;
-		const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
+		let scope: SecretScope | undefined =
+			input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
 		if (input.withWebhook && !scope && !dryRun) {
 			throw new Error(
 				"no org to store the webhook secret under — pass --scope or set `org` in holocron.config.ts"
 			);
+		}
+		// An organization secret is readable only by the layout's `readers`, never by every repository (#2131).
+		if (input.withWebhook && scope && !dryRun) {
+			const narrowed = layoutSecretScope(scope, notifications.layout?.readers);
+			if ("problem" in narrowed) throw new Error(narrowed.problem);
+			scope = narrowed.scope;
 		}
 
 		if (secrets && scope && !dryRun) await assertSecretsReachable(secrets, scope);

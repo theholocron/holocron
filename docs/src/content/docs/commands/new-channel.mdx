@@ -27,6 +27,8 @@ With `--with-webhook` it also creates an inbound webhook for the channel and sto
 
 ## An existing webhook
 
+The secret is an organization secret that only the repositories in the notification layout's `readers` can read (visibility `selected`, #2131; see [`setup notifications`](/holocron/commands/setup-notifications/)). Without `readers` the command refuses to store it, before it creates anything; `--scope repo` or `env=<name>` needs none.
+
 Discord returns a webhook's URL only to the application that created it, and only when it is created. If the channel already has a webhook that this bot did not create, the command reports that it cannot read the URL back and stores nothing. Delete the webhook in Discord and re-run, or set the secret yourself.
 
 ## Examples

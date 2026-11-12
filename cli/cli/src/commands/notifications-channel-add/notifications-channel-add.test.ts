@@ -39,6 +39,7 @@ function fakeNotifications(over: Partial<Notifications> = {}): Notifications {
 		key: "notifications",
 		providerName: "discord",
 		send: async () => {},
+		layout: { readers: ["theholocron/holocron"] },
 		ensureChannel: vi.fn(async () => ({ id: "1", created: true })),
 		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/secret" })),
 		...over,
@@ -154,7 +155,7 @@ describe("runNotificationsChannelAdd", () => {
 		const report = await result;
 		expect(secrets.calls).toEqual([
 			{
-				scope: { kind: "organization", name: "theholocron" },
+				scope: { kind: "organization", name: "theholocron", visibility: "selected", repos: ["holocron"] },
 				name: "HOLOCRON_NOTIFY_WEBHOOK_ALERTS",
 				value: "https://hook/secret",
 			},
@@ -166,6 +167,32 @@ describe("runNotificationsChannelAdd", () => {
 			stored: true,
 		});
 		expect(lines.join("\n")).not.toContain("https://hook/secret");
+	});
+
+	it("refuses to write an organization secret when the layout names no readers, before creating anything", async () => {
+		for (const layout of [undefined, { readers: [] }]) {
+			const secrets = fakeSecrets();
+			const n = fakeNotifications({ layout });
+			const { result, lines } = run(n, secrets, { withWebhook: true });
+			const report = await result;
+			expect(report.status).toBe("fail");
+			expect(lines.join("\n")).toMatch(/readers/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			expect(secrets.calls).toEqual([]);
+		}
+	});
+
+	it("needs no readers for a repository scope, and previews without them on --dry-run", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications({ layout: undefined });
+		const { result } = run(n, secrets, { withWebhook: true, scope: { kind: "repo" } });
+		expect((await result).status).toBe("ok");
+		const dry = fakeNotifications({ layout: undefined });
+		const preview = run(dry, undefined, {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		expect((await preview.result).status).not.toBe("fail");
 	});
 
 	it("honours --webhook-name, --secret and --scope", async () => {

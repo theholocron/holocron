@@ -33,6 +33,7 @@ function makeLoader(loaded: LoadedConfig, modules: Record<string, unknown>): Plu
 }
 
 const LAYOUT: NotificationsLayout = {
+	readers: ["theholocron/holocron"],
 	categories: [
 		{
 			name: "ALERTS",
@@ -58,6 +59,8 @@ function fakeNotifications(over: Partial<Notifications> = {}): Notifications {
 		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/x" })),
 		ensureRole: vi.fn(async () => ({ id: "99", created: true })),
 		...over,
+		// A layout a test gives gets the readers unless it says its own (an empty list is "none").
+		...(over.layout && !("readers" in over.layout) ? { layout: { ...over.layout, readers: LAYOUT.readers } } : {}),
 	} as Notifications;
 }
 
@@ -92,6 +95,7 @@ function setup(
 		},
 	});
 	const stored: Array<{ name: string; value: string }> = [];
+	const scopes: unknown[] = [];
 	const loader = makeLoader(loaded, {
 		"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
 		...(opts.monitoring
@@ -124,7 +128,8 @@ function setup(
 			secrets: {
 				providerName: "github",
 				listSecrets: async () => [] as string[],
-				setSecret: async (_s: unknown, name: string, value: string) => {
+				setSecret: async (scope: unknown, name: string, value: string) => {
+					scopes.push(scope);
 					if (!name.startsWith(PREFLIGHT_PREFIX)) stored.push({ name, value });
 				},
 				deleteSecret: async () => {},
@@ -135,6 +140,7 @@ function setup(
 	const log = fakeLogger();
 	return {
 		stored,
+		scopes,
 		lines,
 		log,
 		run: () =>
@@ -546,7 +552,7 @@ describe("runNotificationsSetup", () => {
 					preflight,
 				})
 			).run();
-			expect(preflight).toHaveBeenCalledWith(SERVER_LAYOUT);
+			expect(preflight).toHaveBeenCalledWith(expect.objectContaining(SERVER_LAYOUT));
 			const dry = vi.fn(async () => {});
 			await setup(fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(), preflight: dry }), {
 				dryRun: true,
@@ -756,6 +762,44 @@ describe("runNotificationsSetup", () => {
 			status: "fail",
 			message: expect.stringMatching(/need a `secrets` capability/),
 		});
+	});
+
+	it("writes every secret, the preflight probe and the role ids too, for the layout's readers only (#2131)", async () => {
+		const { run, scopes, stored } = setup(fakeNotifications());
+		expect((await run()).status).toBe("ok");
+		expect(stored).toHaveLength(2);
+		expect(scopes.length).toBeGreaterThan(2);
+		for (const scope of scopes) {
+			expect(scope).toEqual({
+				kind: "organization",
+				name: "theholocron",
+				visibility: "selected",
+				repos: ["holocron"],
+			});
+		}
+	});
+
+	it("refuses, creating and storing nothing, when the layout names no readers", async () => {
+		const n = fakeNotifications({ layout: { ...LAYOUT, readers: [] } });
+		const { run, scopes } = setup(n);
+		expect(await run()).toMatchObject({ status: "fail", message: expect.stringMatching(/`readers`/) });
+		expect(n.ensureCategory).not.toHaveBeenCalled();
+		expect(scopes).toEqual([]);
+	});
+
+	it("refuses a reader outside the organization", async () => {
+		const n = fakeNotifications({ layout: { ...LAYOUT, readers: ["other/repo"] } });
+		expect(await setup(n).run()).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/must be repositories of theholocron.*other\/repo/),
+		});
+	});
+
+	it("needs no readers on --dry-run, which stores nothing, or for a layout that stores no secret", async () => {
+		const dry = await setup(fakeNotifications({ layout: { ...LAYOUT, readers: [] } }), { dryRun: true }).run();
+		expect(dry.status).toBe("dry-run");
+		const plain: NotificationsLayout = { categories: [{ name: "BUILD", channels: [{ name: "dev" }] }] };
+		expect((await setup(fakeNotifications({ layout: plain })).run()).status).toBe("ok");
 	});
 
 	it("needs an org for the webhook secrets", async () => {

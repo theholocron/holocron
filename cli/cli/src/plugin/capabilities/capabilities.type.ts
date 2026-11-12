@@ -2196,6 +2196,14 @@ export interface NotificationsLinksLayout {
 /** A declared server layout, applied idempotently by `holocron setup notifications`. */
 export interface NotificationsLayout {
 	/**
+	 * The repositories (`owner/repo`) that can read the organization secrets this layout fills (the webhook URLs and
+	 * role ids). Setup and `new channel` write them with visibility `selected` for these repositories only, and
+	 * refuse to write an organization secret when the list is missing or empty, so a webhook is never readable by
+	 * every repository (#2131). `holocron doctor secrets` compares it with who can read them. Not used for a
+	 * repository or environment scope.
+	 */
+	readers?: string[];
+	/**
 	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
 	 * leaves one labelled test message there through its webhook (read back to prove delivery works) for a
 	 * person to look at; the real channels are never given one unless `--deliver` posts and removes it.

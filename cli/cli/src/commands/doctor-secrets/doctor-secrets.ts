@@ -25,7 +25,8 @@ import {
 	type Vault,
 } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
-import { whyMissing } from "../notifications-channel-add/index.js";
+import { layoutSecretNames, whyMissing } from "../notifications-channel-add/index.js";
+import { repoName } from "../secrets-sync/repo-name/index.js";
 import { accessRow, type OrgReaders, shadowRow } from "./access-rows.js";
 import { deployKeyRows } from "./deploy-key-rows.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
@@ -135,6 +136,14 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 			const entry = readers.get(scope.name) ?? { org: scope.name, declared: new Map<string, string[]>() };
 			for (const name of names) entry.declared.set(name, [...new Set(repos)].sort());
 			readers.set(scope.name, entry);
+		}
+		// The notification secrets a layout fills are readable by its `readers` (#2131); a layout with none declares nothing.
+		for (const layout of layouts) {
+			if (!org || !layout.readers?.length) continue;
+			const entry = readers.get(org) ?? { org, declared: new Map<string, string[]>() };
+			const repos = [...new Set(layout.readers.map(repoName))].sort();
+			for (const name of layoutSecretNames(layout)) entry.declared.set(name, repos);
+			readers.set(org, entry);
 		}
 		for (const entry of readers.values()) rows.push(await accessRow(secrets, entry, entry.org === org));
 		if (expected.org.length > 0) rows.push(await shadowRow(secrets, expected.org));

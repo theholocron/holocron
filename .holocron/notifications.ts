@@ -10,6 +10,9 @@ import org from "./org.js";
 const { domain } = org;
 
 export default {
+	// Who can read the HOLOCRON_NOTIFY_* organization secrets (the webhook URLs and role ids): these two repositories
+	// only, never every repository. `.github` goes when its callers are retired. Setup refuses to write them without it.
+	readers: ["theholocron/holocron", "theholocron/.github"],
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
 	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
