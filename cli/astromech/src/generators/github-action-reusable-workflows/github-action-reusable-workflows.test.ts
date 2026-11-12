@@ -324,6 +324,16 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(action).toMatch(/uploaded" -eq 0 \] && \[ "\$ALLOW_EMPTY" != "true"/);
 	});
 
+	it("codecov-upload tries each flag's upload up to four times before it fails the job", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		expect(action).toMatch(/until "\$CODECOV_CLI" do-upload [^\n]*--fail-on-error/);
+		expect(action).toContain('if [ "$attempt" -ge 4 ]');
+		// the failure that ends the retries still fails the step
+		expect(action).toMatch(/Codecov rejected the \$flag upload[^\n]*\n\s+exit 1/);
+		// a wait grows with each attempt, so a short outage is outlasted
+		expect(action).toContain("wait=$((attempt * 15))");
+	});
+
 	it("verification.unitTests uploads per flag only when `uploads` is set, and the old single upload otherwise", () => {
 		const unit = REUSABLE_WORKFLOWS["test:unit"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);

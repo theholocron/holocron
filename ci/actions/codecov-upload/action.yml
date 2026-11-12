@@ -85,7 +85,19 @@ runs:
           args=()
           for f in "${files[@]}"; do args+=(--file "$f"); done
           echo "→ $flag: ${#files[@]} file(s)"
-          "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"
+          # Codecov's API now and then answers a valid upload with "Repository not found" or a 5xx, and about
+          # eighty uploads a run make one such answer likely. Each flag gets a few tries before it fails the job.
+          attempt=1
+          until "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"; do
+            if [ "$attempt" -ge 4 ]; then
+              echo "::error::Codecov rejected the $flag upload $attempt times."
+              exit 1
+            fi
+            wait=$((attempt * 15))
+            echo "::warning::$flag upload failed (attempt $attempt of 4); trying again in ${wait}s."
+            sleep "$wait"
+            attempt=$((attempt + 1))
+          done
           uploaded=$((uploaded + 1))
         done 3< <(jq -c '.[]' <<<"$UPLOADS")
         echo "uploaded=$uploaded" >> "$GITHUB_OUTPUT"
