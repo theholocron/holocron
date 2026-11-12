@@ -51,7 +51,7 @@ Skills authored and maintained in this repo. Published inside the npm package.
 ## External skills
 
 Tracked in [`skills-lock.json`](./skills-lock.json) with source provenance and content hash.
-Not committed to this repo — fetched from upstream by `holocron skills update` (planned).
+Not committed to this repo — fetched from upstream by `holocron update skills` (planned).
 
 | Skill                         | Source                                                                  | Description                                                                             |
 | ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
