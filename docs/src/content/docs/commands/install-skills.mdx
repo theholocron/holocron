@@ -1,10 +1,10 @@
 ---
-title: "skills install"
+title: "install skills"
 description: Install the configured agent skills from the @theholocron/skills registry.
 ---
 
 ```bash
-holocron skills install [--dry-run]
+holocron install skills [--dry-run]
 ```
 
 Copies skills from `@theholocron/skills` into `.agents/skills/<name>/` and creates relative symlinks at the agent's path (for example `.claude/skills/<name>` → `../../.agents/skills/<name>`). Skills are gitignored; [`holocron setup`](/holocron/commands/setup/) re-installs them on a fresh checkout.
@@ -20,8 +20,8 @@ The skills to install come from `skills[]` in `holocron.config.ts`. Skills not i
 ## Examples
 
 ```bash
-holocron skills install
-holocron skills install --dry-run
+holocron install skills
+holocron install skills --dry-run
 ```
 
 ```ts
@@ -32,4 +32,4 @@ export default defineConfig({
 });
 ```
 
-Related: [`remove skill`](/holocron/commands/remove-skill/), [`skills update`](/holocron/commands/skills-update/).
+Related: [`remove skill`](/holocron/commands/remove-skill/), [`update skills`](/holocron/commands/update-skills/).

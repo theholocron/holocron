@@ -453,8 +453,8 @@ describe("runSkillsInstall", () => {
 		await runSkillsInstall({ loaded, context: { repoRoot: tmpDir }, print: (l) => lines.push(l), logger: log });
 		expect(lines.join("\n")).toContain("Installing 1");
 		expect(lines.join("\n")).toContain("installed 1");
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ agent: "claude" }), "skills install: start");
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "skills install: done");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ agent: "claude" }), "install skills: start");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ status: "ok" }), "install skills: done");
 	});
 
 	it("prints a graceful error message when @theholocron/skills cannot be installed", async () => {
@@ -477,7 +477,7 @@ describe("runSkillsInstall", () => {
 		expect(lines.join("\n")).toContain("✗ kaboom");
 		expect(log.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ reason: "kaboom", status: "fail" }),
-			"skills install: done"
+			"install skills: done"
 		);
 		spy.mockRestore();
 	});
@@ -558,7 +558,7 @@ describe("runSkillsList", () => {
 			print: (line) => lines.push(line),
 			readDir: () => [],
 		});
-		expect(lines).toEqual(["No skills installed in .agents/skills/"]);
+		expect(lines).toEqual(["No install skillsed in .agents/skills/"]);
 		expect(report.skills).toEqual([]);
 	});
 });
@@ -618,7 +618,7 @@ describe("runSkillsRemove", () => {
 // ── runSkillsUpdate ───────────────────────────────────────────────────────────
 
 describe("runSkillsUpdate", () => {
-	it("calls npx skills update with no args when no name is given", () => {
+	it("calls npx update skills with no args when no name is given", () => {
 		const calls: Array<{ cmd: string; args: string[]; cwd: string }> = [];
 		const exec = (cmd: string, args: string[], opts: { cwd: string }) => {
 			calls.push({ cmd, args, cwd: opts.cwd });

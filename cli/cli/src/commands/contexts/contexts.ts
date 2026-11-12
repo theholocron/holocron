@@ -31,9 +31,9 @@ export const COMMAND_CONTEXTS = {
 	"publish bump-versions": "global",
 	"publish tag": "global",
 	"publish package": "global",
-	"skills install": "global",
+	"install skills": "global",
 	"remove skill": "global",
-	"skills update": "global",
+	"update skills": "global",
 	"list skills": "global",
 	// The `.husky/commit-msg` hook: works from a bare install, no holocron.config.
 	"run lint commit-msg": "global",

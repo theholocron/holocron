@@ -42,7 +42,7 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 
 	if (!config.agent || !config.skills?.length) {
 		print("Nothing to install — set `agent` and `skills` in holocron.config.ts");
-		logger.info({ status: "skip", reason: "no agent/skills configured" }, "skills install: done");
+		logger.info({ status: "skip", reason: "no agent/skills configured" }, "install skills: done");
 		return;
 	}
 
@@ -51,12 +51,12 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 		for (const name of config.skills) {
 			print(`  → would install: ${name}`);
 		}
-		logger.info({ agent: config.agent, skills: config.skills, status: "dry-run" }, "skills install: done");
+		logger.info({ agent: config.agent, skills: config.skills, status: "dry-run" }, "install skills: done");
 		return;
 	}
 
 	print(`Installing ${config.skills.length} skill(s) for agent: ${config.agent}`);
-	logger.info({ agent: config.agent, count: config.skills.length }, "skills install: start");
+	logger.info({ agent: config.agent, count: config.skills.length }, "install skills: start");
 	try {
 		const result = await installSkills({
 			agent: config.agent,
@@ -64,11 +64,11 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 			repoRoot: input.context.repoRoot,
 		});
 		print(`  → ${result}`);
-		logger.info({ agent: config.agent, skills: config.skills, status: "ok" }, "skills install: done");
+		logger.info({ agent: config.agent, skills: config.skills, status: "ok" }, "install skills: done");
 	} catch (err) {
 		const message = errorMessage(err);
 		print(`  ✗ ${message}`);
-		logger.warn({ agent: config.agent, reason: message, status: "fail" }, "skills install: done");
+		logger.warn({ agent: config.agent, reason: message, status: "fail" }, "install skills: done");
 	}
 }
 
@@ -82,7 +82,7 @@ const readSkillDirs = (dir: string): string[] => {
 	}
 };
 
-/** The names of the skills installed in `.agents/skills/`, sorted. */
+/** The names of the install skillsed in `.agents/skills/`, sorted. */
 export function listInstalledSkills(repoRoot: string, readDir: (dir: string) => string[] = readSkillDirs): string[] {
 	return readDir(join(repoRoot, ".agents", "skills")).sort();
 }
@@ -91,7 +91,7 @@ export function runSkillsList(input: RunSkillsListInput): SkillsListReport {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const skills = listInstalledSkills(input.context.repoRoot, input.readDir);
 	if (skills.length === 0) {
-		print("No skills installed in .agents/skills/");
+		print("No install skillsed in .agents/skills/");
 	}
 	for (const name of skills) print(name);
 	return { status: "ok", skills };

@@ -68,7 +68,7 @@ See the [token reference](https://docs.theholocron.dev/holocron/tokens/) for ful
 
 ## `projects` capability
 
-GitHub Projects v2 boards over GraphQL, for `holocron project ...` (SPEC-0020, #1744). It uses the org token
+GitHub Projects v2 boards over GraphQL, for `list projects`, `new project`, `setup project` (SPEC-0020, #1744). It uses the org token
 (`HOLOCRON_ORG_TOKEN`, keyring `github.org`) with the **Projects** organization permission. Items are keyed `#N` in the
 configured `repo` and `owner/repo#N` elsewhere.
 
