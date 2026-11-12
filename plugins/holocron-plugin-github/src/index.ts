@@ -220,16 +220,19 @@ export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { verifyToken } from "./verify-token.js";
 
-/** Every token this plugin takes, for `holocron doctor tokens`. */
+/**
+ * Every token this plugin takes, for `holocron doctor tokens`. The release token is `optional`: only CI's release
+ * workflow reads it (from the org secret), so a development environment has no reason to hold it.
+ */
 export const tokens: PluginToken[] = [
-	resolveReadToken,
-	resolveIssuesToken,
-	resolveSyncToken,
-	resolveReleaseToken,
-	resolveAdminToken,
-	resolveSecretsToken,
-	resolveDeployToken,
-	resolveUserSyncToken,
-	resolveOrgToken,
-].map((resolver) => resolver.token);
+	resolveReadToken.token,
+	resolveIssuesToken.token,
+	resolveSyncToken.token,
+	{ ...resolveReleaseToken.token, optional: true },
+	resolveAdminToken.token,
+	resolveSecretsToken.token,
+	resolveDeployToken.token,
+	resolveUserSyncToken.token,
+	resolveOrgToken.token,
+];
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
