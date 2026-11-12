@@ -13,7 +13,7 @@ import { configShowCommand } from "./config-show.command.js";
 
 describe("config show", () => {
 	it("is the `config show` command, described as printing the resolved config", () => {
-		expect(configShowCommand.command).toBe("config show");
+		expect(configShowCommand.command).toBe("config");
 		expect(configShowCommand.describe).toBe("Print the resolved holocron config");
 	});
 

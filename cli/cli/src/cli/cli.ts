@@ -14,25 +14,27 @@ import { applyCommand } from "../commands/apply/index.js";
 import { checkCommand } from "../commands/check/index.js";
 import { cleanupCommand } from "../commands/cleanup/index.js";
 import { cloneCommand } from "../commands/clone/clone.command.js";
-import { configShowCommand } from "../commands/config-show/index.js";
+import { closeCommand } from "../commands/close/index.js";
 import { commandsInContext } from "../commands/contexts/index.js";
 import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
 import { exportCommand } from "../commands/export/index.js";
+import { linkCommand } from "../commands/link/index.js";
 import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
+import { moveCommand } from "../commands/move/index.js";
 import { newCommand } from "../commands/new/new.command.js";
-import { notificationsCommand } from "../commands/notifications/notifications.command.js";
 import { probeCommand } from "../commands/probe/index.js";
-import { projectCommand } from "../commands/project/index.js";
 import { providerCommand } from "../commands/provider/index.js";
 import { publishCommand } from "../commands/publish/publish.command.js";
+import { reconcileCommand } from "../commands/reconcile/index.js";
 import { removeCommand } from "../commands/remove/index.js";
 import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
 import { setupCommand } from "../commands/setup/setup.command.js";
+import { showCommand } from "../commands/show/index.js";
 import { skillsCommand } from "../commands/skills/index.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
 import { upgradeCommand } from "../commands/upgrade/index.js";
@@ -145,7 +147,7 @@ try {
 		.command(doctorCommand as never)
 		.command(skillsCommand as never)
 		.command(runCommand as never)
-		.command(configShowCommand as never)
+		.command(showCommand as never)
 		.command(checkCommand as never)
 		.command(exportCommand as never)
 		.command(menuCommand(CLI_VERSION) as never)
@@ -158,15 +160,16 @@ try {
 		.command(removeCommand as never)
 		.command(probeCommand as never)
 		.command(providerCommand as never)
-		.command(notificationsCommand as never)
-		.command(projectCommand as never)
+		.command(linkCommand as never)
+		.command(closeCommand as never)
+		.command(moveCommand as never)
 		.command(migrateCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
 		.command(publishCommand as never)
 		.command(deployCommand as never)
 		.command(resolveCommand as never)
-		.command(projectCommand as never)
+		.command(reconcileCommand as never)
 		.strict()
 		.help()
 		.epilogue(

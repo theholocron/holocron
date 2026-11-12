@@ -20,7 +20,7 @@ Reads `providers.projects.boards` (a list of `{ template, name }`), finds each b
       - rule Auto-add sub-issues to project is off
   · v5: extra statuses                              info: 1 status(es) not in the template (never deleted)
       - Parked
-  · v5: item without a status                       info: 1 item(s); `project reconcile` fixes this
+  · v5: item without a status                       info: 1 item(s); `reconcile project` fixes this
       - #7 an orphaned issue
 
 5 ok, 1 fail, 2 skipped
@@ -40,7 +40,7 @@ Reads `providers.projects.boards` (a list of `{ template, name }`), finds each b
 
 ## Information, never failures
 
-What the board has beyond its template (`extra statuses`, `extra fields`, `extra views`) and the items `project reconcile` would fix are `info` rows. They count as skipped and never fail the run, and the doctor never deletes anything. The item rows read the board's items through the provider:
+What the board has beyond its template (`extra statuses`, `extra fields`, `extra views`) and the items `reconcile project` would fix are `info` rows. They count as skipped and never fail the run, and the doctor never deletes anything. The item rows read the board's items through the provider:
 
 - `item without a status`
 - `closed item not in a done status`
@@ -61,4 +61,4 @@ After the run, posts the failing rows (or only the summary when every row passed
 
 `holocron doctor --all` runs it with the other deep checks.
 
-Related: [`project move`](/holocron/commands/project-move/), [`doctor`](/holocron/commands/doctor/), [`doctor notifications`](/holocron/commands/doctor-notifications/).
+Related: [`move issues`](/holocron/commands/move-issues/), [`doctor`](/holocron/commands/doctor/), [`doctor notifications`](/holocron/commands/doctor-notifications/).

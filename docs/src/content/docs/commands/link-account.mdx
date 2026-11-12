@@ -1,10 +1,10 @@
 ---
-title: "notifications link"
+title: "link account"
 description: Link your server account to your GitHub account by signing in with the provider.
 ---
 
 ```bash
-holocron notifications link [--provider <name>] [--dry-run]
+holocron link account [--provider <name>] [--dry-run]
 ```
 
 Records which server member is which GitHub account, in the links file that [`sync roles`](/holocron/commands/sync-roles/) reads. You sign in with the provider; it reports the GitHub account it has **verified** you own, so a link cannot be claimed for someone else's account. Nothing is stored but your two public ids: the token the provider hands over is revoked as soon as it has been read.

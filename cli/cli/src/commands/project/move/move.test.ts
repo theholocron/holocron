@@ -50,7 +50,7 @@ async function run(caps: Record<string, unknown>, extra: Partial<RunProjectMoveI
 	return { promise, text: () => lines.join("\n") };
 }
 
-describe("project move", () => {
+describe("move issues", () => {
 	it("moves after the answer is yes and prints moved, kept and left", async () => {
 		const projects = provider();
 		const confirm = vi.fn().mockResolvedValue(true);
@@ -211,7 +211,7 @@ describe("project move", () => {
 	});
 });
 
-describe("project move --dry-run", () => {
+describe("move issues --dry-run", () => {
 	const dry = { context: { repoRoot: "/tmp/test", dryRun: true } };
 
 	it("previews from both boards' items and never calls move or asks", async () => {

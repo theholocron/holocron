@@ -39,9 +39,9 @@ import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { setupCommand } from "../setup/setup.command.js";
 import { syncCommand } from "../sync/sync.command.js";
-import { notificationsCommand } from "./notifications.command.js";
+import { linkCommand } from "./link.command.js";
 
-const go = (args: string[]) => runCommand(notificationsCommand, ["notifications", ...args]);
+const go = (args: string[]) => runCommand(linkCommand, ["link", ...args]);
 const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
 const goSetup = (args: string[]) => runCommand(setupCommand, ["setup", ...args]);
 const goCleanup = (args: string[]) => runCommand(cleanupCommand, ["cleanup", ...args]);
@@ -62,7 +62,7 @@ afterEach(() => void (process.exitCode = undefined));
 describe.each([
 	["setup notifications", runSetup, "setup", ["notifications"]],
 	["new server", runCreateServer, "new", ["server", "--owner", "someone"]],
-	["notifications link", runLink, "notifications", ["link"]],
+	["link account", runLink, "link", ["account"]],
 	["sync roles", runSyncRoles, "sync", ["roles"]],
 	["cleanup posts", runDedupe, "cleanup", ["posts"]],
 	["new channel", runChannelAdd, "new", ["channel", "alerts"]],
@@ -120,9 +120,9 @@ describe("notifications options", () => {
 	});
 
 	it("link passes --provider when given", async () => {
-		await go(["link", "--provider", "discord"]);
+		await go(["account", "--provider", "discord"]);
 		expect(runLink.mock.calls[0]![0]).toMatchObject({ provider: "discord" });
-		await go(["link"]);
+		await go(["account"]);
 		expect("provider" in runLink.mock.calls[1]![0]).toBe(false);
 	});
 
@@ -177,15 +177,15 @@ describe("notifications options", () => {
 	});
 });
 
-describe("notifications menus", () => {
-	it("a bare `notifications` opens the menu at that group", async () => {
+describe("link menus", () => {
+	it("a bare `link` opens the menu at that group", async () => {
 		await go([]);
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
 			expect.objectContaining({
-				pickMessage: "notifications — choose a subcommand:",
-				startPath: ["notifications"],
+				pickMessage: "link — choose a subcommand:",
+				startPath: ["link"],
 			})
 		);
 	});

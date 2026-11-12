@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const notificationsLinkEntry: MenuEntry = {
-	name: "notifications link",
+	name: "link account",
 	description: "Link your server account to your GitHub account by signing in with the provider",
 	positionals: [],
 	options: [

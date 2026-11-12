@@ -29,7 +29,7 @@ export const resolveBotToken = createResolveToken({
 		"(Bot → Reset Token), not a webhook URL.",
 });
 
-// Signing members in (`notifications link`) needs the application's OAuth client secret, a third credential.
+// Signing members in (`link account`) needs the application's OAuth client secret, a third credential.
 /** Resolves the Discord application's OAuth client secret used to sign members in, from `HOLOCRON_DISCORD_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET` or the keyring. */
 export const resolveClientSecret = createResolveToken({
 	envName: "HOLOCRON_DISCORD_CLIENT_SECRET",

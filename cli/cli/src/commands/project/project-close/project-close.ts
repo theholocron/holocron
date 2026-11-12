@@ -1,5 +1,5 @@
 /**
- * `holocron project close <number-or-name> [--yes]` — close an open board. Reversible (the provider can reopen it).
+ * `holocron close project <number-or-name> [--yes]` — close an open board. Reversible (the provider can reopen it).
  * Asks first in a terminal; without one it needs `--yes` and is a {@link NonInteractiveError} otherwise.
  */
 
@@ -12,7 +12,7 @@ import { createProjectRows } from "../project-rows/index.js";
 import { terminalPrompt } from "../terminal-prompt/index.js";
 import type { ProjectCloseReport, RunProjectCloseInput } from "./project-close.type.js";
 
-const COMMAND = "project close";
+const COMMAND = "close project";
 
 export async function runProjectClose(input: RunProjectCloseInput): Promise<ProjectCloseReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -22,7 +22,7 @@ export async function runProjectClose(input: RunProjectCloseInput): Promise<Proj
 	const done = (closed: boolean): ProjectCloseReport => ({ ...rows.finish(COMMAND), closed });
 
 	const { projects, options } = await openProjects(input, COMMAND);
-	print(style.header(`Holocron project close — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron close project — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
 	try {
@@ -43,7 +43,7 @@ export async function runProjectClose(input: RunProjectCloseInput): Promise<Proj
 		}
 		if (!input.yes) {
 			if (!prompt.interactive) {
-				throw new NonInteractiveError(`project close: closing ${label} needs a confirmation; pass --yes`);
+				throw new NonInteractiveError(`close project: closing ${label} needs a confirmation; pass --yes`);
 			}
 			if (!(await prompt.confirm(`Close ${label}?`, false))) {
 				rows.skip(label, "kept open");

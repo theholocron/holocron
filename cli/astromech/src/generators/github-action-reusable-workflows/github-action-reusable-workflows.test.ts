@@ -1038,8 +1038,8 @@ describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project boa
 	});
 
 	it("reconciles, then checks the boards even when the reconcile step failed", () => {
-		expect(wf.indexOf("command: project reconcile")).toBeGreaterThan(-1);
-		expect(wf.indexOf("command: project reconcile")).toBeLessThan(wf.indexOf("command: doctor project"));
+		expect(wf.indexOf("command: reconcile project")).toBeGreaterThan(-1);
+		expect(wf.indexOf("command: reconcile project")).toBeLessThan(wf.indexOf("command: doctor project"));
 		expect(wf).toMatch(/name: Check the boards\n\s+if: \$\{\{ !cancelled\(\) \}\}/);
 	});
 
