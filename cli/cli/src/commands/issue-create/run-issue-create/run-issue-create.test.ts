@@ -103,6 +103,34 @@ describe("runIssueCreate", () => {
 		expect(none.text).toContain("not available");
 	});
 
+	it("says why the provider is not available when the loader recorded a reason", async () => {
+		const { report, text } = await run({ loader: fakeLoader({}, { issues: "no token" }) });
+		expect(report.status).toBe("fail");
+		expect(text).toContain("not available (no token)");
+	});
+
+	it("previews an issue with no text, labels or milestone", async () => {
+		const { text } = await run({ context: { repoRoot: "/r", dryRun: true } });
+		expect(text).toContain("would file the issue\n");
+	});
+
+	it("asks with the inquirer prompt by default, and reads whether stdin is a terminal", async () => {
+		inquirerConfirm.mockResolvedValueOnce(true);
+		const tty = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+		Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
+		try {
+			const { report } = await run({ yes: false });
+			expect(inquirerConfirm).toHaveBeenCalledWith({ message: 'File "Fix the thing"?', default: false });
+			expect(report.status).toBe("ok");
+			Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
+			const err = await run({ yes: false }).catch((e: unknown) => e);
+			expect(err).toBeInstanceOf(NonInteractiveError);
+		} finally {
+			if (tty) Object.defineProperty(process.stdin, "isTTY", tty);
+			else delete (process.stdin as { isTTY?: boolean }).isTTY;
+		}
+	});
+
 	it("turns a provider error into a failing row", async () => {
 		const { report, text } = await run({
 			issues: issuesFake(async () => {
