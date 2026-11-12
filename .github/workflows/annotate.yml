@@ -78,7 +78,7 @@ jobs:
 
       - name: YamlLint
         if: ${{ hashFiles('.yamllint.yml') != '' }}
-        uses: reviewdog/action-yamllint@072d1a6ca6f5a03de10f492f6119fcbc8d47302b # v1
+        uses: reviewdog/action-yamllint@020fba38ce9fed550c704d933aeeb7d6360f7d47 # v1
         with:
           reporter: github-pr-annotations
           tool_name: "Review / yamllint"
@@ -87,7 +87,7 @@ jobs:
 
       - name: ActionLint (GitHub Actions)
         if: ${{ hashFiles('.github/workflows/*.yml', '.github/workflows/*.yaml') != '' }}
-        uses: reviewdog/action-actionlint@619a81ec64ff8c0211cd6146eb2b21e8f1d7f440 # v1
+        uses: reviewdog/action-actionlint@a7d35aaf8c309203a4ae861d32b7bd490baa7bf3 # v1
         with:
           reporter: github-pr-annotations
           tool_name: "Review / actionlint"
@@ -99,7 +99,7 @@ jobs:
 
       - name: ESLint
         if: steps.detect.outputs.eslint == 'true'
-        uses: reviewdog/action-eslint@3ee2a450da17e060b9dfa4bffd53976906c6b2b0 # v1.36.1
+        uses: reviewdog/action-eslint@6dad10dc50476699ad1ddbbb19bf55d36f311a39 # v1.37.0
         with:
           reporter: github-pr-annotations
           tool_name: "Review / eslint"
@@ -120,7 +120,7 @@ jobs:
 
       - name: ShellCheck
         if: steps.detect.outputs.shell == 'true'
-        uses: reviewdog/action-shellcheck@d0b8d5fd7fad6afdb6e1b6ce1778892be4d1f427 # v1
+        uses: reviewdog/action-shellcheck@b4ffc0b2a69f857f82b74d1310cd3e62e932f9f7 # v1
         with:
           reporter: github-pr-annotations
           tool_name: "Review / shellcheck"
@@ -132,7 +132,7 @@ jobs:
 
       - name: Hadolint
         if: steps.detect.outputs.docker == 'true'
-        uses: reviewdog/action-hadolint@1df92335c6c70880e301926d46148aeb27de1912 # v1
+        uses: reviewdog/action-hadolint@a3bc84c51f4ddbcbc5b91d950d0b66c15c88b113 # v1
         with:
           reporter: github-pr-annotations
           tool_name: "Review / hadolint"
@@ -154,7 +154,7 @@ jobs:
 
       - name: Alex (inclusive language)
         if: steps.detect.outputs.markdown == 'true'
-        uses: reviewdog/action-alex@a86fdb2da29e06d659cd3bd528095479a2c5c01e # v1
+        uses: reviewdog/action-alex@f39fd335ddb3b76d5595d5c452078903cf872e96 # v1
         with:
           reporter: github-pr-annotations
           tool_name: "Review / alex"
