@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const projectMoveEntry: MenuEntry = {
-	name: "project move",
+	name: "move issues",
 	description: "Move the open items of one board to another, with their status and priority; closed ones stay behind",
 	positionals: [
 		{ key: "from", message: "Board to move the open items from:", type: "input" },

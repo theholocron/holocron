@@ -30,7 +30,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("project move command", () => {
+describe("move issues command", () => {
 	it("runs the move with the boards, the dry-run flag and the resolved org", async () => {
 		await run({ dryRun: true });
 		expect(runProjectMove.mock.calls[0]![0]).toEqual({
@@ -64,8 +64,8 @@ describe("project move command", () => {
 		expect(runProjectMove).not.toHaveBeenCalled();
 	});
 
-	it("is `move <from> <to>`", () => {
-		expect(projectMoveCommand.command).toBe("move <from> <to>");
+	it("is `issues <from> <to>`", () => {
+		expect(projectMoveCommand.command).toBe("issues <from> <to>");
 	});
 
 	it("declares the two boards, --template and --yes", () => {

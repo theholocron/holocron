@@ -91,7 +91,7 @@ describe("createPlugin", () => {
 	});
 });
 
-describe("sign-in (notifications link)", () => {
+describe("sign-in (link account)", () => {
 	function routedFetch(over: { connections?: unknown; revokeFails?: boolean; appFails?: boolean } = {}) {
 		const seen: Array<{ url: string; method: string; authorization: string; body: string }> = [];
 		const f = (async (input: string | URL, init?: RequestInit) => {

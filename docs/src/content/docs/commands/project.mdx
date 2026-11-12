@@ -6,7 +6,7 @@ description: List, create, close and set up the project boards that plan work, f
 ```bash
 holocron list projects
 holocron new project roadmap --title "v5"
-holocron project close 7
+holocron close project 7
 holocron setup project
 ```
 
@@ -47,7 +47,7 @@ It is idempotent on the title, among open boards only (a closed board never bloc
 - with `--yes` it prints the existing board's address;
 - otherwise it stops with `NonInteractiveError`.
 
-## `project close <number-or-name> [--yes]`
+## `close project <number-or-name> [--yes]`
 
 Closes an open board, found by number (`7`) or by name. Closing is reversible from the provider. It asks first in a terminal; without one it needs `--yes`.
 

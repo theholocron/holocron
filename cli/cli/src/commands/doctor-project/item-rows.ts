@@ -22,7 +22,7 @@ const RULES: { id: string; label: string; test: (item: BoardItem) => boolean }[]
 ];
 
 /**
- * One row per rule `project reconcile` fixes, over the board's items. The doctor only reports: a rule with items is an
+ * One row per rule `reconcile project` fixes, over the board's items. The doctor only reports: a rule with items is an
  * `info` row (counted as skipped, never a failure) listing them, and a clean one is `ok`.
  */
 export function itemRows(boardName: string, items: readonly BoardItem[]): CheckRow[] {
@@ -35,7 +35,7 @@ export function itemRows(boardName: string, items: readonly BoardItem[]): CheckR
 					id: `project:${boardName}:${id}`,
 					title,
 					status: "skip",
-					detail: `info: ${hits.length} item(s); \`project reconcile\` fixes this`,
+					detail: `info: ${hits.length} item(s); \`reconcile project\` fixes this`,
 					problems: hits.map((i) => `${i.key} ${i.title}`),
 				};
 	});

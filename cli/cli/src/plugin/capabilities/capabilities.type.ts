@@ -2160,7 +2160,7 @@ export interface NotificationsApplicationLayout {
 		members?: boolean;
 	};
 	/**
-	 * OAuth2 redirect URIs that must be registered, for `notifications link`. The provider's API does not allow
+	 * OAuth2 redirect URIs that must be registered, for `link account`. The provider's API does not allow
 	 * setting them, so these are only checked: `setup` and the doctor say what to add and where.
 	 */
 	redirectUris?: string[];
@@ -2181,7 +2181,7 @@ export interface NotificationsEveryoneLayout {
 export interface NotificationsLinksLayout {
 	/**
 	 * The base URL of the hosted sign-in service (Sentinel), for example `https://sentinel.theholocron.dev`.
-	 * `notifications link` asks it for `/api/link`; when it answers, sign-in happens there, and when it does not
+	 * `link account` asks it for `/api/link`; when it answers, sign-in happens there, and when it does not
 	 * (down, out of quota, no route yet) the command signs in on this machine instead.
 	 */
 	hostedUrl?: string;
