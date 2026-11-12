@@ -102,7 +102,7 @@ no `__tests__` directory. There is no per-package `LICENSE`, `CHANGELOG.md`,
 
 - **`version`**: read it from any sibling (`utils/array-utils/package.json`). The
   `utils/` folder is one version group (tags `utils-vX.Y.Z`, one
-  `utils/CHANGELOG.md`); `holocron package bump-versions --group utils` moves
+  `utils/CHANGELOG.md`); `holocron publish bump-versions --group utils` moves
   every package together at release.
 - **License is MIT** (ADR-0016). No `releases`, `wiki` or `packageManager` fields.
 - `homepage` keeps the full package name (`.../utils/<name>-utils/`).
@@ -283,4 +283,4 @@ import { myUtil } from "@theholocron/<name>-utils";
 8. Open a PR with a `feat(utils):` commit, signed with `-s` — semantic-release
    computes the next `utils-v*` version and publishes the group in lockstep.
    The first publish of a brand-new package needs
-   `holocron package publish --initial --group utils` run by a maintainer.
+   `holocron publish package --initial --group utils` run by a maintainer.

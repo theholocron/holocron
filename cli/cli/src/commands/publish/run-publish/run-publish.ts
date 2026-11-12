@@ -1,5 +1,5 @@
 /**
- * `holocron package publish --initial` — bottles up the chicken-and-egg bootstrap
+ * `holocron publish package --initial` — bottles up the chicken-and-egg bootstrap
  * that every new npm-published holocron monorepo hits.
  *
  * npm requires a package to exist before Trusted Publishing can be
@@ -13,14 +13,14 @@
  *
  *   $ pnpm install --frozen-lockfile
  *   $ pnpm build
- *   $ pnpm --filter @theholocron/cli run start:source package publish --initial
+ *   $ pnpm --filter @theholocron/cli run start:source publish package --initial
  *
  * `npm login --auth-type=web` runs automatically the first time — no
  * separate manual step. `pnpm install` + `pnpm build` stay outside the
  * command (no pnpm-inside-pnpm).
  *
  * `--initial` is required today — this command only implements the
- * bootstrap publish. A non-initial `holocron package publish` (for a manual publish
+ * bootstrap publish. A non-initial `holocron publish package` (for a manual publish
  * outside the semantic-release/OIDC steady state) isn't built yet; the flag
  * exists so the surface doesn't need another rename when it is.
  *
@@ -227,7 +227,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (publish.stdout.includes("EOTP") || publish.stderr.includes("EOTP")) {
 			print("");
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
-			print(`    pnpm --filter @theholocron/cli run start:source package publish --initial --otp <6-digit-code>`);
+			print(`    pnpm --filter @theholocron/cli run start:source publish package --initial --otp <6-digit-code>`);
 		}
 		// Atomic bulk publish: every targeted entry failed together, never partially.
 		for (const entry of newEntries) {

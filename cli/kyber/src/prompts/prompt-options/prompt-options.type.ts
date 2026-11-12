@@ -63,7 +63,7 @@ export interface OptionPrompt {
 
 /**
  * One of a command's mutually exclusive workflows (holocron#1052 follow-up)
- * — `package publish`'s steady-state publish, `--initial` bootstrap, and
+ * — `publish package`'s steady-state publish, `--initial` bootstrap, and
  * `--sync-trust` maintenance mode are three different things to do, not
  * three independent flags. The mode picked first decides which options are
  * even offered, so nothing contingent on another mode is ever shown.
@@ -111,7 +111,7 @@ export interface ResolvedOptions {
 
 /** The part of a command that {@link promptForOptions} needs: its name and the options (or modes) to offer. */
 export interface OptionsCommand {
-	/** Full command name as typed at the CLI, e.g. `"package publish"`. */
+	/** Full command name as typed at the CLI, e.g. `"publish package"`. */
 	name: string;
 	/** Declared options, in order. Undefined/empty means nothing to offer — no prompt at all. Ignored when `modes` is set. */
 	options?: OptionPrompt[];

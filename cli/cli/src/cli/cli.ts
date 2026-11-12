@@ -25,10 +25,10 @@ import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
 import { newCommand } from "../commands/new/new.command.js";
 import { notificationsCommand } from "../commands/notifications/notifications.command.js";
-import { packageCommand } from "../commands/package/package.command.js";
 import { probeCommand } from "../commands/probe/index.js";
 import { projectCommand } from "../commands/project/index.js";
 import { providerCommand } from "../commands/provider/index.js";
+import { publishCommand } from "../commands/publish/publish.command.js";
 import { removeCommand } from "../commands/remove/index.js";
 import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
@@ -163,7 +163,7 @@ try {
 		.command(migrateCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
-		.command(packageCommand as never)
+		.command(publishCommand as never)
 		.command(deployCommand as never)
 		.command(resolveCommand as never)
 		.command(projectCommand as never)

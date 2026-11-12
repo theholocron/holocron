@@ -19,7 +19,7 @@ beforeEach(() => {
 	runNpmBumpVersions.mockResolvedValue({ status: "ok", bumped: [], skipped: [] });
 });
 
-describe("package bump-versions command", () => {
+describe("publish bump-versions command", () => {
 	it("bumps the whole workspace when no group is given", async () => {
 		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0"]);
 		const input = runNpmBumpVersions.mock.calls[0]![0];

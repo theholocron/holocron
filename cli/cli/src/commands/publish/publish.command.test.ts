@@ -1,71 +1,139 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const runNpmBumpVersions = vi.hoisted(() => vi.fn());
 const runPublish = vi.hoisted(() => vi.fn());
 const runSteadyPublish = vi.hoisted(() => vi.fn());
 const runSyncTrust = vi.hoisted(() => vi.fn());
-vi.mock("./index.js", async (importActual) => ({
-	...(await importActual<typeof import("./index.js")>()),
-	runPublish,
-	runSteadyPublish,
-	runSyncTrust,
+const resolveOtp = vi.hoisted(() => vi.fn());
+const reportError = vi.hoisted(() => vi.fn());
+const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("../npm-bump-versions/index.js", () => ({ runNpmBumpVersions }));
+vi.mock("./index.js", () => ({ runPublish, runSteadyPublish, runSyncTrust, resolveOtp }));
+vi.mock("../../observability/logger/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../observability/logger/index.js")>()),
+	reportError,
+}));
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
+	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["new-version"]],
+}));
+vi.mock("../../interactive-menu/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../interactive-menu/index.js")>()),
+	launchMenu,
 }));
 
+import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
 import { runCommand } from "../run-command.testing.js";
 import { publishCommand } from "./publish.command.js";
 
+const go = (args: string[]) => runCommand(publishCommand, args);
+
 beforeEach(() => {
 	vi.clearAllMocks();
-	process.exitCode = undefined;
+	resolveOtp.mockReturnValue(undefined);
+	runNpmBumpVersions.mockResolvedValue({ status: "ok" });
 	runPublish.mockResolvedValue({ status: "ok", packageNames: ["a"] });
-	runSteadyPublish.mockResolvedValue({ status: "ok", packageNames: ["a"] });
+	runSteadyPublish.mockResolvedValue({ status: "ok" });
 	runSyncTrust.mockResolvedValue({ status: "ok" });
 });
+afterEach(() => {
+	process.exitCode = undefined;
+	vi.unstubAllEnvs();
+});
 
-describe("publish command's --group", () => {
-	it("steady-state publishes the whole workspace without it", async () => {
-		await runCommand(publishCommand, ["publish"]);
-		expect("group" in runSteadyPublish.mock.calls[0]![0]).toBe(false);
+describe("publish bump-versions", () => {
+	it("bumps every package to the version, and exits 1 on failure", async () => {
+		await go(["publish", "bump-versions", "2.0.0", "--dry-run"]);
+		expect(runNpmBumpVersions).toHaveBeenCalledWith({ version: "2.0.0", cwd: "/repo", dryRun: true });
+		runNpmBumpVersions.mockResolvedValue({ status: "fail" });
+		await go(["publish", "bump-versions", "2.0.0"]);
+		expect(process.exitCode).toBe(1);
+	});
+});
+
+describe("publish package", () => {
+	it("publishes in steady state with provenance by default, passing the tag and OTP", async () => {
+		resolveOtp.mockReturnValue("123456");
+		await go(["publish", "package", "--tag", "next", "--otp", "123456", "--skip-already-published"]);
+		expect(runSteadyPublish).toHaveBeenCalledWith({
+			cwd: "/repo",
+			dryRun: false,
+			provenance: true,
+			skipAlreadyPublished: true,
+			tag: "next",
+			otp: "123456",
+		});
 	});
 
-	it("steady-state publishes one group with it", async () => {
-		await runCommand(publishCommand, ["publish", "--group", "clients", "--skip-already-published"]);
-		expect(runSteadyPublish.mock.calls[0]![0]).toMatchObject({ group: "clients", skipAlreadyPublished: true });
+	it("leaves out the tag and OTP it was not given, and exits 1 when publishing failed", async () => {
+		runSteadyPublish.mockResolvedValue({ status: "fail" });
+		await go(["publish", "package"]);
+		const options = runSteadyPublish.mock.calls[0]![0];
+		expect("tag" in options || "otp" in options).toBe(false);
+		expect(process.exitCode).toBe(1);
 	});
 
-	it("--initial bootstraps only the group's packages, or all without it", async () => {
-		await runCommand(publishCommand, ["publish", "--initial", "--group", "observability"]);
-		expect(runPublish.mock.calls[0]![0]).toMatchObject({ group: "observability" });
-		await runCommand(publishCommand, ["publish", "--initial"]);
-		expect("group" in runPublish.mock.calls[1]![0]).toBe(false);
+	it("does the one-shot bootstrap publish with --initial", async () => {
+		resolveOtp.mockReturnValue("1");
+		await go(["publish", "package", "--initial", "--tag", "alpha", "--otp", "1"]);
+		expect(runPublish).toHaveBeenCalledWith({ cwd: "/repo", dryRun: false, tag: "alpha", otp: "1" });
+		expect(runSteadyPublish).not.toHaveBeenCalled();
+		resolveOtp.mockReturnValue(undefined);
+		await go(["publish", "package", "--initial"]);
+		expect(runPublish).toHaveBeenLastCalledWith({ cwd: "/repo", dryRun: false });
 	});
 
-	it("--sync-trust migrates only the group's packages, or all without it", async () => {
-		await runCommand(publishCommand, ["publish", "--sync-trust", "old.yml", "new.yml", "--group", "utils"]);
-		expect(runSyncTrust.mock.calls[0]![0]).toMatchObject({
+	it("exits 1 when the bootstrap publish failed, and says 'nothing to do' to the menu only for a preview with no packages", async () => {
+		runPublish.mockResolvedValue({ status: "fail", packageNames: [] });
+		await go(["publish", "package", "--initial"]);
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		runPublish.mockResolvedValue({ status: "ok", packageNames: [] });
+		await go(["publish", "package", "--initial"]);
+		expect(process.exitCode).toBeUndefined();
+		vi.stubEnv(DRY_RUN_PREVIEW_ENV_VAR, "1");
+		await go(["publish", "package", "--initial"]);
+		expect(process.exitCode).toBe(DRY_RUN_NOOP_EXIT_CODE);
+	});
+
+	it("migrates the trusted-publisher config with --sync-trust <old> <new>, for the repo if named", async () => {
+		await go(["publish", "package", "--sync-trust", "old.yml", "new.yml", "--repo", "acme/widgets"]);
+		expect(runSyncTrust).toHaveBeenCalledWith({
+			cwd: "/repo",
 			oldFile: "old.yml",
 			newFile: "new.yml",
-			group: "utils",
+			dryRun: false,
+			force: false,
+			repo: "acme/widgets",
 		});
-		await runCommand(publishCommand, ["publish", "--sync-trust", "old.yml", "new.yml"]);
-		expect("group" in runSyncTrust.mock.calls[1]![0]).toBe(false);
+		await go(["publish", "package", "--sync-trust", "old.yml", "new.yml"]);
+		expect("repo" in runSyncTrust.mock.calls[1]![0]).toBe(false);
 	});
 
-	it("steady-state publishes everything except the --exclude-group groups", async () => {
-		await runCommand(publishCommand, ["publish", "--exclude-group", "observability", "--exclude-group", "skills"]);
-		const input = runSteadyPublish.mock.calls[0]![0];
-		expect(input).toMatchObject({ excludeGroups: ["observability", "skills"] });
-		expect("group" in input).toBe(false);
+	it("passes --force on to --sync-trust", async () => {
+		await go(["publish", "package", "--sync-trust", "old.yml", "new.yml", "--force"]);
+		expect(runSyncTrust).toHaveBeenCalledWith(expect.objectContaining({ force: true }));
 	});
 
-	it("passes the excluded groups to --initial and --sync-trust too", async () => {
-		await runCommand(publishCommand, ["publish", "--initial", "--exclude-group", "utils"]);
-		expect(runPublish.mock.calls[0]![0]).toMatchObject({ excludeGroups: ["utils"] });
-		await runCommand(publishCommand, ["publish", "--sync-trust", "old.yml", "new.yml", "--exclude-group", "utils"]);
-		expect(runSyncTrust.mock.calls[0]![0]).toMatchObject({ excludeGroups: ["utils"] });
+	it("needs exactly two files for --sync-trust, and exits 1 when it failed", async () => {
+		await go(["publish", "package", "--sync-trust", "only-one.yml"]);
+		expect(reportError).toHaveBeenCalledWith(expect.stringContaining("requires exactly two values"));
+		expect(runSyncTrust).not.toHaveBeenCalled();
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		runSyncTrust.mockResolvedValue({ status: "fail" });
+		await go(["publish", "package", "--sync-trust", "a.yml", "b.yml"]);
+		expect(process.exitCode).toBe(1);
 	});
+});
 
-	it("passes no excluded groups when none are given", async () => {
-		await runCommand(publishCommand, ["publish"]);
-		expect("excludeGroups" in runSteadyPublish.mock.calls[0]![0]).toBe(false);
+describe("publish", () => {
+	it("a bare `publish` opens the menu of its subcommands", async () => {
+		await go(["publish"]);
+		expect(launchMenu).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.anything(),
+			expect.objectContaining({ pickMessage: "publish — choose a subcommand:", startPath: ["publish"] })
+		);
 	});
 });

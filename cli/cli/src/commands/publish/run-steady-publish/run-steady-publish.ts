@@ -8,7 +8,7 @@ import { workspaceFilterArgs } from "../workspace-filter-args.js";
 import type { RunSteadyPublishInput } from "./run-steady-publish.type.js";
 
 /**
- * `holocron package publish` (no `--initial`) — the steady-state publish
+ * `holocron publish package` (no `--initial`) — the steady-state publish
  * `exec.publishCmd` in `release.config.ts` should call, replacing each
  * repo's hand-typed `pnpm -r --filter=./packages/* publish ...` shell (which
  * differs, today, only in monorepo-vs-single-package, provenance on/off, and
@@ -112,7 +112,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 		if (publish.stdout.includes("EOTP") || publish.stderr.includes("EOTP")) {
 			print("");
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
-			print(`    pnpm exec holocron package publish --otp <6-digit-code>`);
+			print(`    pnpm exec holocron publish package --otp <6-digit-code>`);
 		}
 		logger.warn({ tag, reason: message }, "publish: done");
 		return { status: "fail", message, packageNames };

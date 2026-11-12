@@ -26,7 +26,7 @@ export interface MenuEntry {
 	 * own options are then offered, so nothing contingent on a different
 	 * mode is ever shown. Use this only when `options` would otherwise
 	 * need `when` to express a real either/or relationship between them
-	 * (`package publish`'s steady-state / `--initial` / `--sync-trust`);
+	 * (`publish package`'s steady-state / `--initial` / `--sync-trust`);
 	 * plain `options` stays the simpler default for everything else.
 	 */
 	modes?: OptionMode[];

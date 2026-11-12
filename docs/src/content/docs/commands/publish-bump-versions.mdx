@@ -1,10 +1,10 @@
 ---
-title: "package bump-versions"
+title: "publish bump-versions"
 description: Bump every non-private package's version in lockstep — the semantic-release prepareCmd.
 ---
 
 ```bash
-holocron package bump-versions <version> [--group <folder> | --exclude-group <folder>...] [--include-private]
+holocron publish bump-versions <version> [--group <folder> | --exclude-group <folder>...] [--include-private]
 ```
 
 Bumps every non-private package's `version` field in every package the workspace declares (`pnpm-workspace.yaml`) to `<version>`. Used as the `prepareCmd` in `release.config.ts` during a `semantic-release` run.
@@ -30,11 +30,11 @@ With `--exclude-group` (repeatable), the opposite: the repo-wide bump moves the 
 
 ```bash
 # In release.config.ts:
-prepareCmd: "node cli/cli/dist/cli.mjs package bump-versions ${nextRelease.version}"
+prepareCmd: "node cli/cli/dist/cli.mjs publish bump-versions ${nextRelease.version}"
 
 # One group, as that group's release.config.ts runs it:
-prepareCmd: "node cli/cli/dist/cli.mjs package bump-versions ${nextRelease.version} --group clients"
+prepareCmd: "node cli/cli/dist/cli.mjs publish bump-versions ${nextRelease.version} --group clients"
 
 # Manual invocation:
-holocron package bump-versions 4.2.0 --dry-run
+holocron publish bump-versions 4.2.0 --dry-run
 ```

@@ -19,16 +19,16 @@ beforeEach(() => {
 	runMoveTag.mockResolvedValue({ status: "ok", tag: "ci-v1", target: "ci-v1.4.0" });
 });
 
-describe("package move-tag command", () => {
+describe("publish tag command", () => {
 	it("moves the group's major tag to its latest stable release, on origin", async () => {
-		await runCommand(moveTagCommand, ["move-tag", "ci"]);
+		await runCommand(moveTagCommand, ["tag", "ci"]);
 		const input = runMoveTag.mock.calls[0]![0];
 		expect(input).toMatchObject({ group: "ci", cwd: "/repo", dryRun: false, remote: "origin" });
 		expect("version" in input).toBe(false);
 	});
 
 	it("passes the release, the remote and --dry-run through", async () => {
-		await runCommand(moveTagCommand, ["move-tag", "ci", "1.4.0", "--remote", "upstream", "--dry-run"]);
+		await runCommand(moveTagCommand, ["tag", "ci", "1.4.0", "--remote", "upstream", "--dry-run"]);
 		expect(runMoveTag.mock.calls[0]![0]).toMatchObject({
 			group: "ci",
 			version: "1.4.0",
@@ -39,7 +39,7 @@ describe("package move-tag command", () => {
 
 	it("exits 1 when the tag could not be moved", async () => {
 		runMoveTag.mockResolvedValue({ status: "fail", message: "no stable ci-v<version> tag" });
-		await runCommand(moveTagCommand, ["move-tag", "ci"]);
+		await runCommand(moveTagCommand, ["tag", "ci"]);
 		expect(process.exitCode).toBe(1);
 	});
 });
