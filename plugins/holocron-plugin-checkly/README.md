@@ -6,7 +6,7 @@ Checkly plugin for [Holocron](../cli). Implements the
 `monitoring` capability against [Checkly's REST API](https://api.checklyhq.com/v1)
 (API checks only — browser checks, heartbeats, and dashboards are out of
 scope until a real consumer needs them), plus exports `verifyToken` +
-`AUTH_HINT` for use by `holocron auth`.
+`AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -32,7 +32,7 @@ on the free Hobby tier. Revisit if/when the account upgrades.
 
 ```bash
 holocron new token checkly <TOKEN>
-holocron auth check checkly    # verify — hits GET /v1/accounts
+holocron check token checkly    # verify — hits GET /v1/accounts
 ```
 
 ## Config
@@ -106,7 +106,7 @@ subscribed to a channel it is routed away from.
   `holocron repo setup` to loop over `ensureCheck`.
 - `verifyToken` — `GET /v1/accounts` (the one Checkly endpoint that does
   **not** require `x-checkly-account`), used by `holocron new token` /
-  `holocron auth check` before any `accountId` is in scope.
+  `holocron check token` before any `accountId` is in scope.
 
 ## Status
 

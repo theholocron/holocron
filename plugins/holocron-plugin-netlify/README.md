@@ -4,7 +4,7 @@
 
 Netlify plugin for [Holocron](../cli). Implements the
 `deployment` capability against [`@theholocron/netlify-client`](https://github.com/theholocron/holocron/tree/alpha/clients/netlify-client),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -28,7 +28,7 @@ Token resolution order (matches the standard 4-step precedence set by
 ```bash
 # Generate a Netlify API token (see vendor docs), then:
 holocron new token netlify <TOKEN>
-holocron auth check netlify    # verify
+holocron check token netlify    # verify
 ```
 
 ## Config

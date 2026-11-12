@@ -7,7 +7,7 @@ export function render(inputs: TemplateInputs): string {
 
 ${inputs.vendorName} plugin for [Holocron](../cli). Implements the
 \`${inputs.capability}\` capability against [${inputs.vendorName}'s REST API](${inputs.baseUrl}),
-plus exports \`verifyToken\` + \`AUTH_HINT\` for use by \`holocron auth\`.
+plus exports \`verifyToken\` + \`AUTH_HINT\` for use by \`holocron check token\`.
 
 ## Install
 
@@ -31,7 +31,7 @@ Token resolution order (matches the standard 4-step precedence set by
 \`\`\`bash
 # Generate a ${inputs.vendorName} API token (see vendor docs), then:
 holocron new token ${inputs.slug} <TOKEN>
-holocron auth check ${inputs.slug}    # verify
+holocron check token ${inputs.slug}    # verify
 \`\`\`
 
 ## Config

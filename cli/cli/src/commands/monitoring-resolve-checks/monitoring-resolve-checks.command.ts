@@ -9,7 +9,7 @@ import { runMonitoringResolveChecks } from "./index.js";
 import { type MonitoringResolveChecksArgs, monitoringResolveChecksArgs } from "./monitoring-resolve-checks.args.js";
 
 export const monitoringResolveChecksCommand: CommandModule<GlobalArgs, MonitoringResolveChecksArgs> = {
-	command: "resolve-checks",
+	command: "checks",
 	describe:
 		"Load config/plugins and write the configured `monitoring` checks to a file as JSON — the untrusted half of the delivery.previewCheck split (holocron#1030/#1032)",
 	builder: monitoringResolveChecksArgs,

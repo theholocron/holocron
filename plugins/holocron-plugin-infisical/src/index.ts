@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-infisical` — entrypoint.
  *
  * Implements the `vault` capability against Infisical's REST API.
- * Also exports `verifyToken` + `AUTH_HINT` for `holocron auth`.
+ * Also exports `verifyToken` + `AUTH_HINT` for `holocron check token`.
  * See README for auth + config docs.
  */
 

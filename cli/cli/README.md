@@ -17,7 +17,7 @@ holocron --help
 ## Interactive mode
 
 Run `holocron` with no command, a parent command with no subcommand
-(`holocron auth`, `holocron repo`, `holocron repo upgrade`, …), or a leaf command
+(`holocron check`, `holocron repo`, `holocron repo upgrade`, …), or a leaf command
 missing a required positional (`holocron deploy`, `holocron new secret`), and
 you get a prompt instead of a `--help` dead end.
 
@@ -89,7 +89,7 @@ through. A non-interactive shell (CI, a script, a pipe) gets the old
 hard-failure message instead of hanging on a prompt.
 
 For a command whose handler honours `--dry-run` (most of them — everything
-except `auth *` and `config show`), the menu always previews it first — a
+except the token commands and `config show`), the menu always previews it first — a
 dry run doesn't mutate anything, so there's nothing to ask permission for —
 then asks the one real decision:
 
@@ -115,7 +115,7 @@ Every command is tagged with how much of a repo it needs:
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
-use `pnpm exec holocron <cmd>`. `auth check` degrades to "token present,
+use `pnpm exec holocron <cmd>`. `check token` degrades to "token present,
 verification skipped" instead. `holocron --help` prints the grouping; see
 [Execution Contexts](https://docs.theholocron.dev/holocron/execution-contexts).
 
@@ -529,7 +529,7 @@ Provider plugins support this through the `Deployment` capability's
 existing `getDeployment(id)`. They should set `errorMessage` on the
 returned `DeploymentRecord` whenever the provider exposes one.
 
-### `holocron monitoring check <url>`
+### `holocron check monitor <url>`
 
 Runs every configured `monitoring` check against `<url>` instead of each
 check's own configured `url` — no vendor API call, only a plain HTTP
@@ -781,22 +781,22 @@ See [`docs/tokens.md`](../../docs/tokens.md) for required PAT scopes per feature
 
 A plugin lists the tokens it takes in a `tokens: PluginToken[]` export (each resolver exposes its own as `.token`), as
 `{ envName, vendorEnvName?, keyringKey, verifiable?, optional? }`, so `holocron doctor tokens`, `doctor credentials` and
-`auth export` can find them. Set `optional: true` on a token the plugin only falls back to, such as the Discord
+`export tokens` can find them. Set `optional: true` on a token the plugin only falls back to, such as the Discord
 webhook a post uses when it names no channel: the checks that expect every listed token do not expect it, and
-`auth export` marks it `(optional)` when it has no value. `verifiable: false` marks a token `verifyToken` does not
+`export tokens` marks it `(optional)` when it has no value. `verifiable: false` marks a token `verifyToken` does not
 apply to.
 
-Additional `auth` subcommands:
+The token commands:
 
 ```sh
-holocron auth check github.read   # re-verify a stored token
+holocron check token github.read   # re-verify a stored token
 holocron remove token github.read   # remove a stored token
 holocron list tokens                # show all stored providers
 holocron list skills                # the skills installed in .agents/skills/
 holocron remove skill --all         # remove every installed skill (or name some; a bare call asks on a terminal)
-holocron auth export             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
-holocron auth export --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
-holocron auth export --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
+holocron export tokens             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
+holocron export tokens --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
+holocron export tokens --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron new github-app --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials
 holocron new tunnel --name sentinel-dev --hostname sentinel-dev.example.dev --port 3000 --run  # a named tunnel with a stable hostname to a local port
 holocron list projects           # the org's project boards (also: create [template], close <number-or-name>, setup)
@@ -929,9 +929,9 @@ the local override exists to exempt.
   `astromech.reusableTemplates()` (written in `ci/`) to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
-  `monitoring check`, `list secrets`, `new secret`, `secrets sync`, `package publish`,
+  `check monitor`, `list secrets`, `new secret`, `secrets sync`, `package publish`,
   `package bump-versions`, `package move-tag`, `sync github`, `repo upgrade node`,
-  `repo upgrade deps`, `new plugin`, `auth`, `notifications setup`,
+  `repo upgrade deps`, `new plugin`, `check token`, `export tokens`, `notifications setup`,
   `new channel`, `notifications link`,
   `notifications sync-roles`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor project`, `doctor repo`, `doctor secrets`, `doctor shared-values`, `doctor tokens`, `doctor variable-owners`, `doctor variables`
   `notifications sync-roles`, `project reconcile`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor repo`, `doctor secrets`, `doctor shared-values`, `doctor tokens`, `doctor variable-owners`, `doctor variables`
@@ -945,7 +945,7 @@ the local override exists to exempt.
   and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
   `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.
 - `src/plugin/probes/connection-probe/` — the `connectionProbe` a plugin offers, kyber's `connectionProbe` (`@theholocron/kyber/checks`)
-  typed as the plugin system's `Probe` with `verify` returning `VerifyTokenResult`; `monitoring check` runs its checks
+  typed as the plugin system's `Probe` with `verify` returning `VerifyTokenResult`; `check monitor` runs its checks
   with kyber's `runCheckAgainstUrl`.
 - `src/commands/move-tag/` — the `package move-tag` yargs command, the registry entry and `runMoveTag`, which adds the
   command-bound logger to kyber's `moveMajorTag` (`@theholocron/kyber/git`).

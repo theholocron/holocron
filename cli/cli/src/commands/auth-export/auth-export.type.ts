@@ -83,7 +83,7 @@ export interface RunAuthExportInput {
 	logger?: Logger;
 }
 
-/** What `holocron auth export` did. Names only; never a value. */
+/** What `holocron export tokens` did. Names only; never a value. */
 export interface AuthExportReport {
 	/** `fail` when it could not write (clipboard, a file, an unreachable keyring), `skip` when no token was found, otherwise `ok`. */
 	status: "ok" | "fail" | "skip";

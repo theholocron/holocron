@@ -1,12 +1,12 @@
 /**
- * `holocron monitoring resolve-checks` — loads config/plugins and writes
+ * `holocron resolve checks` — loads config/plugins and writes
  * the configured `monitoring` checks to a file as JSON (holocron#1030/
  * #1032 review).
  *
  * The untrusted half of the `delivery.previewCheck` split: this process
  * executes a PR's own `holocron.config.ts`, so it must never run with a
  * credential worth protecting (e.g. a Deployment Protection bypass
- * secret) present in its environment. `monitoring run-resolved` is the
+ * secret) present in its environment. `check resolved` is the
  * trusted half — it reads this command's output file and performs the
  * actual authenticated request, with no config loading at all.
  */

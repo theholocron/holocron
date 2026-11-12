@@ -88,10 +88,10 @@ Store it:
 
 ```bash
 holocron new token checkly <KEY>
-holocron auth check checkly
+holocron check token checkly
 ```
 
-`auth check` verifies the key with `GET /v1/accounts`, the one Checkly endpoint that does not require `x-checkly-account`. It works before any `accountId` is in scope.
+`check token` verifies the key with `GET /v1/accounts`, the one Checkly endpoint that does not require `x-checkly-account`. It works before any `accountId` is in scope.
 
 Or via env var:
 

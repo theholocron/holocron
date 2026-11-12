@@ -1,6 +1,6 @@
 /**
  * `verifyToken` — plugin-level export used by `holocron new token` +
- * `holocron auth check`. Hits `GET /v1/accounts`, not `/me` — Checkly
+ * `holocron check token`. Hits `GET /v1/accounts`, not `/me` — Checkly
  * has no account-independent "who am I" endpoint, but this one is
  * explicitly `x-checkly-account`-optional (confirmed against the live
  * OpenAPI spec): it lists every account the key can see, which is

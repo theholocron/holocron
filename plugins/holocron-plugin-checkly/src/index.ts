@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-checkly` — entrypoint.
  *
  * Implements the `monitoring` capability against Checkly's REST API.
- * Also exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See
+ * Also exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See
  * README for auth + config docs.
  */
 

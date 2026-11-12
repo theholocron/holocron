@@ -11,6 +11,11 @@ import { stdoutKind } from "./stdout-kind/index.js";
 
 const authExportArgs = (yy: Argv<GlobalArgs>) =>
 	yy
+		.positional("names", {
+			type: "string",
+			array: true,
+			describe: "Export only these tokens (the same names `--only` takes); none exports every stored token",
+		})
 		.option("from-env", {
 			type: "boolean",
 			default: false,
@@ -59,7 +64,7 @@ const authExportArgs = (yy: Argv<GlobalArgs>) =>
 type AuthExportArgs = InferArgs<typeof authExportArgs>;
 
 export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
-	command: "export",
+	command: "tokens [names..]",
 	describe:
 		"Write the stored tokens as NAME=value lines to a private, short-lived file (or the clipboard, or a pipe) to move them into a credentials environment",
 	builder: authExportArgs,
@@ -69,12 +74,14 @@ export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
 		const org = resolveOrg(argv, loaded.resolved);
 		// `--file` with no path is the default file; `--file` or `--copy` is an explicit choice of where to write.
 		const to: AuthExportTarget | undefined = argv.copy ? "clipboard" : argv.file !== undefined ? "file" : undefined;
+		// The names after `tokens` and `--only` are the same filter, so they are one list.
+		const only = [...(argv.names ?? []), ...(argv.only ?? [])].map(String);
 		const report = await runAuthExport({
 			loaded,
 			out: (text) => void process.stdout.write(text),
 			outKind: stdoutKind(process.stdout.isTTY === true),
 			fromEnv: argv.fromEnv,
-			...(argv.only?.length ? { only: argv.only } : {}),
+			...(only.length ? { only } : {}),
 			blank: argv.blank,
 			vendorNames: argv.vendorNames,
 			...(org ? { org } : {}),

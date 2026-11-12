@@ -142,12 +142,13 @@ export default defineConfig({
 			{
 				label: "Commands",
 				items: [
-					{ label: "auth", slug: "commands/auth" },
+					{ label: "check token", slug: "commands/check-token" },
 					{ label: "clone", slug: "commands/clone" },
 					{ label: "config show", slug: "commands/config-show" },
 					{ label: "deploy", slug: "commands/deploy" },
 					{ label: "doctor", slug: "commands/doctor" },
 					{ label: "doctor notifications", slug: "commands/doctor-notifications" },
+					{ label: "export tokens", slug: "commands/export-tokens" },
 					{ label: "new plugin", slug: "commands/new-plugin" },
 					{ label: "new repo", slug: "commands/new-repo" },
 					{ label: "new channel", slug: "commands/new-channel" },
