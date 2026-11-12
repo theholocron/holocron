@@ -91,7 +91,7 @@ export class GitHubSource implements Source {
 		this.repo = opts.repo;
 		// `opts.repoRoot` is whatever --cwd the command was invoked with --
 		// a monorepo subpackage directory (e.g. apps/sentinel) for the
-		// --cwd-scoped `holocron repo setup --cwd apps/sentinel` flow, not
+		// --cwd-scoped `holocron setup --cwd apps/sentinel` flow, not
 		// necessarily the repo root .github/ actually lives at (holocron#1072
 		// review). Resolved up to the real git root here, once, so every
 		// workflow/repo-file read or write below targets the one real

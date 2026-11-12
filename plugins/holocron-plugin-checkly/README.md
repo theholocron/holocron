@@ -39,7 +39,7 @@ holocron check token checkly    # verify — hits GET /v1/accounts
 
 `accountId` is required on every request (Checkly's `x-checkly-account`
 header) — it is not a secret, the same status as Vercel's `teamId`.
-`checks` is the list of API checks `holocron repo setup` ensures exist,
+`checks` is the list of API checks `holocron setup` ensures exist,
 each matched and upserted by exact `name`. **`locations` is required** —
 Checkly refuses a check with neither `locations` nor `privateLocations`
 set (`400 "You have to set at least one location or privateLocation"`)
@@ -103,7 +103,7 @@ subscribed to a channel it is routed away from.
   alert settings and its routed subscriptions.
 - `monitoring.whoami()` — lightweight auth probe (`GET /checks?limit=1`).
 - `monitoring.checks` — the configured check list, read by
-  `holocron repo setup` to loop over `ensureCheck`.
+  `holocron setup` to loop over `ensureCheck`.
 - `verifyToken` — `GET /v1/accounts` (the one Checkly endpoint that does
   **not** require `x-checkly-account`), used by `holocron new token` /
   `holocron check token` before any `accountId` is in scope.

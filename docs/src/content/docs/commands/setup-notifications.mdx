@@ -1,10 +1,10 @@
 ---
-title: "notifications setup"
+title: "setup notifications"
 description: Apply the server layout a notifications provider declares in holocron.config.ts.
 ---
 
 ```bash
-holocron notifications setup [--scope <scope>] [--provider <name>] [--dry-run]
+holocron setup notifications [--scope <scope>] [--provider <name>] [--dry-run]
 ```
 
 Reads the `layout` a `notifications` provider declares in `holocron.config.ts` and creates whatever is missing: categories, channels (with their topics), a webhook per channel that asks for one, and roles. Every step looks things up by name first, so re-running it changes nothing that already exists, and `--dry-run` previews it. A step that fails is reported and the rest still run; the command exits non-zero if any did.

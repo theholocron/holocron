@@ -30,7 +30,7 @@ import type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from 
  * | `"shebang"`         | `#!/bin/sh` + `# …`    | Shell scripts (`prepare-commit-msg`, hooks)           |
  */
 export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
-	const { source, tool = "holocron repo setup", forPrimary = false } = options;
+	const { source, tool = "holocron setup", forPrimary = false } = options;
 
 	const doNotEdit = forPrimary
 		? `AUTO-GENERATED — do not edit in theholocron/.github directly.`
@@ -66,7 +66,7 @@ export function createHeader(options: CreateHeaderOptions): HeaderFunctions {
 
 		scaffoldHeader(): string {
 			return [
-				`# Scaffolded by holocron repo setup — edit this file freely.`,
+				`# Scaffolded by holocron setup — edit this file freely.`,
 				`# Source:  theholocron/holocron · ${source}`,
 				``,
 			].join("\n");

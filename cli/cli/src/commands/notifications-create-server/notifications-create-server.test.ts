@@ -225,7 +225,7 @@ describe("runNotificationsCreateServer", () => {
 		runSetup.mockResolvedValueOnce({ status: "fail", failures: [{ step: "x", message: "boom" }] } as never);
 		expect((await run()).message).toContain("boom");
 		runSetup.mockResolvedValueOnce({ status: "fail", failures: [] } as never);
-		expect((await run()).message).toContain("setup --dry-run");
+		expect((await run()).message).toContain("setup notifications --dry-run");
 	});
 
 	it("creates nothing when the layout stores secrets and there is no secrets provider", async () => {

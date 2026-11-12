@@ -19,24 +19,24 @@ vi.mock("../resolve-org/index.js", () => ({
 }));
 
 import { runCommand } from "../run-command.testing.js";
-import { repoCleanupCommand } from "./repo-cleanup.command.js";
+import { cleanupCommand } from "./cleanup.command.js";
 
-describe("repo cleanup", () => {
+describe("cleanup", () => {
 	it("nests `branches` under it", async () => {
-		await runCommand(repoCleanupCommand, ["cleanup", "branches", "--dry-run"]);
+		await runCommand(cleanupCommand, ["cleanup", "branches", "--dry-run"]);
 		expect(runCleanupBranches).toHaveBeenCalledTimes(1);
 	});
 
 	it("opens the menu at the group when it is bare", async () => {
 		runCleanupBranches.mockClear();
-		await runCommand(repoCleanupCommand, ["cleanup"]);
+		await runCommand(cleanupCommand, ["cleanup"]);
 		expect(runCleanupBranches).not.toHaveBeenCalled();
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
 			expect.objectContaining({
-				pickMessage: "repo cleanup — choose a subcommand:",
-				startPath: ["repo", "cleanup"],
+				pickMessage: "cleanup — choose a subcommand:",
+				startPath: ["cleanup"],
 			})
 		);
 	});

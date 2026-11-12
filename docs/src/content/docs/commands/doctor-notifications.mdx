@@ -9,7 +9,7 @@ holocron doctor notifications [--scope <scope>] [--provider <name>] [--built-onl
 
 Compares the `layout` a `notifications` provider declares in `holocron.config.ts` with what is actually on the server and in the secrets store, and prints one line per step. A plain run changes nothing except one labelled test message it leaves in the layout's `testChannel` (see `post-works`); `--built-only` is fully read-only, so it is safe to run at any time. It exits non-zero while any step fails.
 
-It is the end-to-end check for [`notifications setup`](/holocron/commands/notifications-setup/), and it keeps working afterwards as a drift check: if someone renames a channel, deletes a webhook or removes a secret by hand, the next run says so.
+It is the end-to-end check for [`setup notifications`](/holocron/commands/setup-notifications/), and it keeps working afterwards as a drift check: if someone renames a channel, deletes a webhook or removes a secret by hand, the next run says so.
 
 ```
   ✓ server reachable                                  Holocron (as Holonet)
@@ -89,7 +89,7 @@ None of them reads a secret value. The Worker's bindings are listed by name, the
 
 ### Tokens
 
-The steps use the tokens the providers already take, so nothing new is needed. They only read: the Checkly alert channels and checks, the Cloudflare Worker scripts, routes and secret names, and the Sentry integrations, projects and alert rules. For Sentry that is the Comlink token (`sentry.comlink`), as for `notifications setup`. See [tokens](/holocron/tokens/). Whether a narrower, read-only token would do for each has not been tried against the providers, so the scopes listed there are the ones `setup` needs.
+The steps use the tokens the providers already take, so nothing new is needed. They only read: the Checkly alert channels and checks, the Cloudflare Worker scripts, routes and secret names, and the Sentry integrations, projects and alert rules. For Sentry that is the Comlink token (`sentry.comlink`), as for `setup notifications`. See [tokens](/holocron/tokens/). Whether a narrower, read-only token would do for each has not been tried against the providers, so the scopes listed there are the ones `setup` needs.
 
 ## The Notifications workflow
 

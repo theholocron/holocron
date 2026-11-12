@@ -117,13 +117,13 @@ Posting needs only a webhook URL. Setting a server up (creating channels, roles 
 | Client secret      | `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`) — Developer Portal → OAuth2 → Reset Secret. Only [`notifications link`](/holocron/commands/notifications-link/) reads it |
 | Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                                                                                          |
 | `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                                                                                           |
-| `layout` (config)  | Categories, channels and roles to create; see [`notifications setup`](/holocron/commands/notifications-setup/)                                                                         |
+| `layout` (config)  | Categories, channels and roles to create; see [`setup notifications`](/holocron/commands/setup-notifications/)                                                                         |
 
 The bot token is read only when a provisioning command runs; `send()` never needs it. Discord returns a webhook's URL only to the application that created it, so an existing webhook cannot be read back.
 
 ```bash
-holocron notifications setup --dry-run   # preview
-holocron notifications setup             # apply
+holocron setup notifications --dry-run   # preview
+holocron setup notifications             # apply
 holocron new channel sync --category AUTOMATION --with-webhook
 ```
 
@@ -143,7 +143,7 @@ By default the action never fails the job it reports on: a missing webhook is a 
 
 ### The `HOLOCRON_NOTIFY_*` secrets
 
-`holocron notifications setup` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/notifications-setup/#security)).
+`holocron setup notifications` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/setup-notifications/#security)).
 
 | Secret                              | Holds                                                                                                                                                                      | Written for                                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -193,7 +193,7 @@ This workflow is hand-maintained in this repository. It is not part of the gener
 
 ## Forum channels
 
-A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/notifications-setup/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
+A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/setup-notifications/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
 
 ### Discussion posts
 
@@ -210,7 +210,7 @@ On Discord:
 
 ## Channel content from a file
 
-What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `notifications setup` pins whatever the file says:
+What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `setup notifications` pins whatever the file says:
 
 ```ts
 layout: {
@@ -218,7 +218,7 @@ layout: {
 },
 ```
 
-`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron notifications setup`, and #rules shows the new text.
+`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron setup notifications`, and #rules shows the new text.
 
 - **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from .holocron/pinned/rules.md`), and fails the `pinned` row when the file cannot be read.
 - **The text is the file, as Discord will show it.** A byte-order mark is dropped, line endings become `\n` and blank lines at the end are trimmed, so a trailing newline never counts as a change. Markdown is Discord's, not GitHub's: a single newline is a line break there, so write a blank line between paragraphs if the file is also read on GitHub.

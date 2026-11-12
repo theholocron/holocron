@@ -6,7 +6,7 @@ import { runProjectSetup } from "./project-setup.js";
 
 const declared = [{ template: "roadmap", name: "v5" }];
 
-describe("project setup", () => {
+describe("setup project", () => {
 	it("creates a missing board, then ensures it", async () => {
 		const projects = fakeProjects({
 			ensure: async () => ({ created: false, changes: ["status Blocked added"], todos: [] }),

@@ -11,8 +11,8 @@ const EVERY_COMMAND = [
 	"clone",
 	"new repo",
 	"new plugin",
-	"repo upgrade node",
-	"repo upgrade deps",
+	"upgrade node",
+	"upgrade deps",
 	"new token",
 	"remove token",
 	"list tokens",
@@ -22,8 +22,8 @@ const EVERY_COMMAND = [
 	"list projects",
 	"new project",
 	"project close",
-	"project setup",
-	"repo properties apply",
+	"setup project",
+	"apply properties",
 	"migrate issue",
 	"migrate issues",
 	"migrate project",
@@ -45,16 +45,16 @@ const EVERY_COMMAND = [
 	"config show",
 	"sync readme",
 	"doctor",
-	"repo setup",
+	"setup",
 	"list secrets",
 	"new secret",
 	"sync secrets",
 	"new channel",
-	"notifications setup",
+	"setup notifications",
 	"notifications link",
 	"new server",
 	"sync roles",
-	"notifications dedupe",
+	"cleanup posts",
 	"sync specs",
 	"doctor all",
 	"doctor notifications",
@@ -82,7 +82,7 @@ const EVERY_COMMAND = [
 	"resolve checks",
 	"check resolved",
 	"sync",
-	"repo cleanup branches",
+	"cleanup branches",
 	"sync github",
 	"sync issues",
 	"sync ideas",
@@ -113,7 +113,7 @@ describe("COMMAND_CONTEXTS", () => {
 	it("keeps the plugin-dependent commands in `workspace`", () => {
 		for (const cmd of [
 			"sync",
-			"repo setup",
+			"setup",
 			"doctor",
 			"sync secrets",
 			"deploy",
@@ -122,16 +122,16 @@ describe("COMMAND_CONTEXTS", () => {
 			"check monitor",
 			"resolve checks",
 			"new channel",
-			"notifications setup",
+			"setup notifications",
 			"notifications link",
 			"new server",
 			"sync roles",
-			"notifications dedupe",
+			"cleanup posts",
 			"sync specs",
 			"list projects",
 			"new project",
 			"project close",
-			"project setup",
+			"setup project",
 			"doctor all",
 			"doctor notifications",
 			"doctor environments",
@@ -174,7 +174,7 @@ describe("COMMAND_CONTEXTS", () => {
 
 describe("contextForCommand", () => {
 	it("resolves an exact multi-token key", () => {
-		expect(contextForCommand("repo upgrade node")).toBe("global");
+		expect(contextForCommand("upgrade node")).toBe("global");
 		expect(contextForCommand("sync secrets")).toBe("workspace");
 	});
 

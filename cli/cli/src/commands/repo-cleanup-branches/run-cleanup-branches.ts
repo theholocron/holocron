@@ -59,7 +59,7 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "repo cleanup branches");
+	assertPluginsResolvable(loader, "cleanup branches");
 
 	if (!loader.has("source")) {
 		throw new Error("source capability is not configured — add a source provider to holocron.config.json");
@@ -121,7 +121,7 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 	const safe = entries.filter((e) => SAFE.includes(e.group));
 	if (input.context.dryRun === true) {
 		print(style.dim(`Dry run: ${safe.length} branches are proven merged. Nothing was deleted.`));
-		logger.info({ proven: safe.length, deleted: 0 }, "repo cleanup branches: dry run");
+		logger.info({ proven: safe.length, deleted: 0 }, "cleanup branches: dry run");
 		return report;
 	}
 	if (entries.length === 0) return report;
@@ -130,7 +130,7 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 	if (input.yes !== true) {
 		if (!process.stdin.isTTY) {
 			throw new NonInteractiveError(
-				"`repo cleanup branches` asks which branches to delete — run it in a terminal, or pass --yes to delete the proven-merged ones, or --dry-run to only list them"
+				"`cleanup branches` asks which branches to delete — run it in a terminal, or pass --yes to delete the proven-merged ones, or --dry-run to only list them"
 			);
 		}
 		if (!(await confirm({ message: "Choose branches to delete?", default: true }))) return report;
@@ -167,6 +167,6 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 	for (const { name, where, message } of report.failed) print(style.fail(`${name} [${where}]: ${message}`));
 	print(`Deleted ${report.deleted.length} of ${report.deleted.length + report.failed.length} branches.`);
 	if (report.failed.length > 0) report.status = "fail";
-	logger.info({ deleted: report.deleted.length, failed: report.failed.length }, "repo cleanup branches: done");
+	logger.info({ deleted: report.deleted.length, failed: report.failed.length }, "cleanup branches: done");
 	return report;
 }

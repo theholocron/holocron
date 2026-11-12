@@ -104,7 +104,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		try {
 			board = await projects.find(owner, declared.name);
 			if (!board) {
-				failStep(declared.name, "the board does not exist or is closed; run `holocron project setup`");
+				failStep(declared.name, "the board does not exist or is closed; run `holocron setup project`");
 				continue;
 			}
 			plan = planReconcile(await projects.items(owner, board, template), template);

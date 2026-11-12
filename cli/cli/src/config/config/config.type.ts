@@ -100,7 +100,7 @@ export interface DocsConfig {
 	 * GitHub Pages build source.
 	 * "workflow" → GitHub Actions  (PUT { build_type: "workflow" })
 	 * "branch"   → classic gh-pages branch (PUT { build_type: "legacy", source: { branch: "gh-pages", path: "/" } })
-	 * When absent, Pages is not managed by `holocron repo setup`.
+	 * When absent, Pages is not managed by `holocron setup`.
 	 */
 	build?: "workflow" | "branch";
 	/**
@@ -288,7 +288,7 @@ export interface OrgConfig {
 	};
 }
 
-/** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */
+/** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron setup`. */
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
@@ -298,7 +298,7 @@ export interface RepoConfig {
 	 * Sentinel's `validateConfig()` reads (D6: the App only ever reads config
 	 * from the repo's default branch, never a PR ref, as a security boundary
 	 * — never widen that to read PR branches instead of fixing this field).
-	 * Synced by `holocron repo setup`. Omit to leave GitHub's current setting
+	 * Synced by `holocron setup`. Omit to leave GitHub's current setting
 	 * untouched — most repos never need this. Exists for a repo using a
 	 * `main`/`alpha` prerelease-channel split (CLAUDE.md's Releases section)
 	 * where active development happens on a non-`main` branch: set this to
@@ -308,7 +308,7 @@ export interface RepoConfig {
 	 */
 	defaultBranch?: string;
 	/**
-	 * Branch protection preset applied by `holocron repo setup`. When omitted,
+	 * Branch protection preset applied by `holocron setup`. When omitted,
 	 * no protection is applied and no `branch_protection_level` property is set.
 	 * Required-status-check contexts for `"strict"` are derived from the task
 	 * manifest — `{ required: true }` tasks + top-level `extraRequiredChecks`
@@ -316,7 +316,7 @@ export interface RepoConfig {
 	 */
 	protection?: RepoProtection;
 	/**
-	 * GitHub teams granted repository access. Synced by `holocron repo setup`, which
+	 * GitHub teams granted repository access. Synced by `holocron setup`, which
 	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.
 	 * String shorthand defaults to `push` (Write).
 	 */
@@ -325,7 +325,7 @@ export interface RepoConfig {
 	topics?: string[];
 	/** GitHub custom properties synced to the org dashboard. */
 	properties?: RepoProperties;
-	/** GitHub Actions variables reconciled by `holocron repo setup`. */
+	/** GitHub Actions variables reconciled by `holocron setup`. */
 	variables?: RepoVariables;
 	/** The secrets that must exist, checked by `holocron doctor secrets`. Names only; nothing writes them. */
 	secrets?: RepoSecrets;
@@ -548,7 +548,7 @@ export interface StorybookDeployProject {
  * `ChromaticProjectConfig[]` directly; each entry's `untraced` glob list may
  * be authored as an array and is newline-joined for you.
  *
- * `docs` / `storybook` are high-level deploy shorthand that `holocron repo setup`
+ * `docs` / `storybook` are high-level deploy shorthand that `holocron setup`
  * translates to `type` / `storybook-projects` before writing the thin caller.
  * They also drive automatic `paths:` derivation so you never need to write
  * `paths:` manually for deploy entries.
@@ -653,7 +653,7 @@ export interface HolocronConfig {
 	 *   "knowledge.wiki" | "knowledge.docs" | "knowledge.components" |
 	 *   "review" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping"
 	 *
-	 * `holocron repo setup` writes `.github/workflows/<name>.yml` for each entry,
+	 * `holocron setup` writes `.github/workflows/<name>.yml` for each entry,
 	 * calling the corresponding reusable workflow in `theholocron/.github`.
 	 * Files are overwritten on each run — they are generated artifacts.
 	 *
@@ -737,15 +737,15 @@ export interface HolocronConfig {
 	holocronScript?: string;
 	/**
 	 * Required status-check contexts not backed by a `required` task (codecov
-	 * gates, the bundle-build check, …). `holocron repo setup` appends these to the
+	 * gates, the bundle-build check, …). `holocron setup` appends these to the
 	 * task-derived list from `astromech.requiredChecks()`.
 	 */
 	extraRequiredChecks?: string[];
 	/**
-	 * Git hooks `holocron repo setup` installs. `true` / `{ prePush: true }` writes
+	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
 	 * `.husky/pre-push` (runs `holocron run ci` before every push); `false` /
 	 * `{ prePush: false }` opts out. Omitted → on for `protection: "strict"`,
-	 * off otherwise. `--hooks` / `--no-hooks` on `holocron repo setup` override.
+	 * off otherwise. `--hooks` / `--no-hooks` on `holocron setup` override.
 	 */
 	hooks?: boolean | { prePush?: boolean };
 	/** Which provider backs each capability. */
@@ -755,7 +755,7 @@ export interface HolocronConfig {
 	/** Settings for `holocron doctor`. */
 	doctor?: DoctorConfig;
 	/**
-	 * Agent runtime that determines where skills are installed by `holocron repo setup`.
+	 * Agent runtime that determines where skills are installed by `holocron setup`.
 	 * Skills are installed to `.agents/skills/<name>/` (canonical) with a
 	 * relative symlink at the agent-specific path:
 	 * - `"claude"` → `.claude/skills/<name>` → `../../.agents/skills/<name>`
@@ -763,7 +763,7 @@ export interface HolocronConfig {
 	 */
 	agent?: "claude" | "codex" | "gemini";
 	/**
-	 * Skill names from `@theholocron/skills` to install during `holocron repo setup`.
+	 * Skill names from `@theholocron/skills` to install during `holocron setup`.
 	 * Installed paths are gitignored and managed by setup — do not commit them.
 	 *
 	 * @example
@@ -771,7 +771,7 @@ export interface HolocronConfig {
 	 */
 	skills?: string[];
 	/**
-	 * GitHub Pages configuration. When present, `holocron repo setup` calls the
+	 * GitHub Pages configuration. When present, `holocron setup` calls the
 	 * Pages API using `HOLOCRON_DEPLOY_TOKEN` (requires `pages:write` + `repo` scope).
 	 * When absent, Pages is left as-is.
 	 *
@@ -914,7 +914,7 @@ export interface ResolvedHolocronConfig {
 	holocronScript?: string;
 	/** Required status checks not backed by a task. */
 	extraRequiredChecks?: string[];
-	/** Git hooks `holocron repo setup` installs. */
+	/** Git hooks `holocron setup` installs. */
 	hooks?: boolean | { prePush?: boolean };
 	/** Resolved provider entries by capability. */
 	providers: ResolvedProvidersConfig;

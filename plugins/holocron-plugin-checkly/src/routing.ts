@@ -2,7 +2,7 @@ import type { MonitoringCheckInput } from "@theholocron/cli";
 
 /**
  * Whether the config routes the check `checkName` away from the alert channel `channelName`: it declares the check with
- * a non-empty `alertChannels` that does not name the channel (compared without regard to case, as `notifications setup`
+ * a non-empty `alertChannels` that does not name the channel (compared without regard to case, as `setup notifications`
  * does). A check the config does not declare, or declares with no routes (or an empty list), alerts through every channel.
  */
 export function routedAway(

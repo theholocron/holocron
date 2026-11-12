@@ -2,7 +2,7 @@ import type { NotificationsLayout } from "@theholocron/cli";
 
 import org from "./org.js";
 
-// The Holocron Discord server layout: `holocron notifications setup` applies it and Sentinel's role sync reads it.
+// The Holocron Discord server layout: `holocron setup notifications` applies it and Sentinel's role sync reads it.
 // `holocron.config.ts` keeps the provider entry (`guildId`); the loader puts this default export on its `layout`.
 // The package import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no
 // runtime code from a package. The one sibling import is `./org.js`, plain data: Sentinel fetches the whole
@@ -11,7 +11,7 @@ const { domain } = org;
 
 export default {
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
-	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `notifications setup`.
+	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
 	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
@@ -170,7 +170,7 @@ export default {
 		],
 	},
 	// Pinned at the top of #welcome and #rules. The layout is the whole set of messages the bot has pinned in a channel, so
-	// editing this text (or the file a message names) replaces the pinned message on the next `holocron notifications setup`.
+	// editing this text (or the file a message names) replaces the pinned message on the next `holocron setup notifications`.
 	pinned: [
 		{
 			channel: "welcome",
@@ -194,7 +194,7 @@ export default {
 				"The maintainers hold the gatekeepers role.",
 			].join("\n"),
 		},
-		// The rules live in .holocron/pinned/rules.md; `notifications setup` pins whatever it says.
+		// The rules live in .holocron/pinned/rules.md; `setup notifications` pins whatever it says.
 		{ channel: "rules", file: ".holocron/pinned/rules.md" },
 	],
 	// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,

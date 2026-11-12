@@ -5,7 +5,7 @@ import { propertyFixHints } from "./property-fix-hints.js";
 describe("propertyFixHints", () => {
 	it("says to add a refused value to the organization's definition", () => {
 		expect(propertyFixHints("Value 'credentials' is not allowed for property 'holocron_capabilities'")).toEqual([
-			'add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization\'s Settings, Custom properties), then run repo setup again',
+			'add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization\'s Settings, Custom properties), then run setup again',
 		]);
 	});
 

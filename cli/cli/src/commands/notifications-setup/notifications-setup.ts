@@ -1,5 +1,5 @@
 /**
- * `holocron notifications setup` — apply the server layout a `notifications`
+ * `holocron setup notifications` — apply the server layout a `notifications`
  * provider declares in `holocron.config.ts` (categories, channels, roles, and
  * a webhook secret per channel that asks for one).
  *
@@ -340,7 +340,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	if (!input.preloaded) await loader.load();
-	assertPluginsResolvable(loader, "notifications setup");
+	assertPluginsResolvable(loader, "setup notifications");
 
 	const dryRun = input.context.dryRun ?? false;
 	const report: NotificationsSetupReport = { status: "ok", categories: [], channels: [], roles: [], failures: [] };
@@ -351,7 +351,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "notifications setup");
+		logger.warn({ reason }, "setup notifications");
 		return { ...report, status: "fail", message };
 	};
 
@@ -875,7 +875,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			failures: report.failures.length,
 			status: report.status,
 		},
-		"notifications setup"
+		"setup notifications"
 	);
 	return report;
 }

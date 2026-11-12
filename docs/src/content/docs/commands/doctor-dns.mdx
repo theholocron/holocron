@@ -9,7 +9,7 @@ holocron doctor dns
 
 Compares the DNS records the config makes setup write with what the `dns` provider lists for each zone, and prints one row per zone. It changes nothing and exits non-zero while any row fails.
 
-[`repo setup`](/holocron/commands/repo-setup/) and `notifications setup` write these records. One that is missing, changed by hand or pointing at the wrong target is otherwise found when a preview URL or the relay stops answering.
+[`setup`](/holocron/commands/setup/) and `setup notifications` write these records. One that is missing, changed by hand or pointing at the wrong target is otherwise found when a preview URL or the relay stops answering.
 
 ```text
   ✗ preview.example.dev records exist  1 problem(s)

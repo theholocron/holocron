@@ -1,10 +1,10 @@
 ---
-title: "repo cleanup branches"
+title: "cleanup branches"
 description: List the branches whose pull request is merged and delete the ones you pick.
 ---
 
 ```bash
-holocron repo cleanup branches [--local | --remote] [--yes] [--repo <owner/name>] [--dry-run]
+holocron cleanup branches [--local | --remote] [--yes] [--repo <owner/name>] [--dry-run]
 ```
 
 Squash-merging leaves every merged branch looking unmerged to git, so `git branch --merged` finds almost none of them. This command asks the source provider which pull requests merged, then sorts every branch and deletes only the ones you choose. It needs the source provider's plugin, so run it with `pnpm exec holocron`.

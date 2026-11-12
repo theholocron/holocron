@@ -1,5 +1,5 @@
 /**
- * `holocron repo setup` — orchestrates per-capability setup actions across
+ * `holocron setup` — orchestrates per-capability setup actions across
  * every plugin loaded from `holocron.config.json`.
  *
  * Per CLAUDE.md soft-skip: each step is wrapped in a try/catch and
@@ -77,7 +77,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const logger = getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
-	assertPluginsResolvable(loader, "repo setup");
+	assertPluginsResolvable(loader, "setup");
 
 	const config = input.loaded.resolved;
 	const dryRun = input.context.dryRun ?? false;
@@ -866,7 +866,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			)
 		);
 		print(style.hint("                       or keyring keys github.admin / github.org / github.deploy"));
-		print(style.hint("     Then re-run:      holocron repo setup"));
+		print(style.hint("     Then re-run:      holocron setup"));
 		print(style.hint("     (--token <pat> overrides every token, the org one included; use it only when one"));
 		print(style.hint("      token covers everything.)"));
 	}

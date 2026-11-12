@@ -995,7 +995,7 @@ export interface Deployment extends ProviderIdentity {
 	readonly key: "deployment";
 	/**
 	 * Custom domain declared in the deployment provider's configuration.
-	 * `holocron repo setup` attaches it to the configured project and hands any
+	 * `holocron setup` attaches it to the configured project and hands any
 	 * returned verification record to the `dns` capability.
 	 */
 	readonly domain?: string;
@@ -1413,7 +1413,7 @@ export interface Dns extends ProviderIdentity {
 // Both are self-contained: they activate at runtime from env vars alone
 // (`HOLOCRON_SENTRY_DSN`, `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`)
 // with no provider entry in `holocron.config`. The provider entry only
-// enables `holocron repo setup` provisioning and `holocron doctor` checks.
+// enables `holocron setup` provisioning and `holocron doctor` checks.
 // ───────────────────────────────────────────────────────────────────────
 
 /** Error tracking: describes what an app needs at runtime and, where the provider allows, creates projects and relays alerts. */
@@ -1566,7 +1566,7 @@ export interface LogsDataset {
 // Unlike `errors`/`logs`, this one is NOT self-contained: there is no
 // runtime SDK a monitored app imports — the check runs on the provider's
 // own infrastructure, hitting a deployed URL from outside. The plugin's
-// token is only ever used by `holocron repo setup`/`doctor` themselves
+// token is only ever used by `holocron setup`/`doctor` themselves
 // (the standard 4-step `--token` / `HOLOCRON_<VENDOR>_TOKEN` /
 // `<VENDOR_NATIVE_ENV>` / keyring precedence every other plugin uses),
 // never by the monitored app. Vendor-neutral by design — a future
@@ -1638,7 +1638,7 @@ export interface MonitoringCheckInput {
 	/**
 	 * Route this check to specific alert channels, by their names (the `feeds.monitoring` name of a notifications channel,
 	 * `Message to #uptime` by default). Absent, the check alerts through every alert channel; given, only through the
-	 * ones named. A name no alert channel carries is refused by `notifications setup`.
+	 * ones named. A name no alert channel carries is refused by `setup notifications`.
 	 */
 	alertChannels?: string[];
 }
@@ -1728,7 +1728,7 @@ export interface Monitoring extends ProviderIdentity {
 	/**
 	 * Checks this provider is configured to ensure exist — populated from
 	 * the provider's own config (`holocron.config.ts`'s provider tuple),
-	 * the same place `Deployment.domain` comes from. `holocron repo setup`
+	 * the same place `Deployment.domain` comes from. `holocron setup`
 	 * loops this list and calls `ensureCheck` for each; empty when none
 	 * are configured.
 	 */
@@ -2193,7 +2193,7 @@ export interface NotificationsLinksLayout {
 	path?: string;
 }
 
-/** A declared server layout, applied idempotently by `holocron notifications setup`. */
+/** A declared server layout, applied idempotently by `holocron setup notifications`. */
 export interface NotificationsLayout {
 	/**
 	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
@@ -2216,7 +2216,7 @@ export interface NotificationsLayout {
 	webhookAvatar?: NotificationsPicture;
 	/**
 	 * The Worker that carries other services' alerts into the channels with a `feeds.errors`: built beforehand
-	 * (`apps/comlink`), deployed by `notifications setup` with each channel's webhook URL as a secret, and served at
+	 * (`apps/comlink`), deployed by `setup notifications` with each channel's webhook URL as a secret, and served at
 	 * `host`. Secrets set some other way (the service's signing secret) are kept across deploys.
 	 */
 	relay?: {
@@ -2442,7 +2442,7 @@ export interface Notifications extends ProviderIdentity {
 
 	/**
 	 * The server layout the owner declared for this provider, if any. Read by
-	 * `holocron notifications setup`; the provider just carries it from its options.
+	 * `holocron setup notifications`; the provider just carries it from its options.
 	 */
 	readonly layout?: NotificationsLayout;
 

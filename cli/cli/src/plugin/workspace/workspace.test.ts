@@ -62,7 +62,7 @@ describe("assertPluginsResolvable", () => {
 		await loader.load();
 		const err = (() => {
 			try {
-				assertPluginsResolvable(loader, "repo setup");
+				assertPluginsResolvable(loader, "setup");
 			} catch (e) {
 				return e;
 			}
@@ -78,7 +78,7 @@ describe("assertPluginsResolvable", () => {
 		await loader.load();
 		const err = (() => {
 			try {
-				assertPluginsResolvable(loader, "repo setup");
+				assertPluginsResolvable(loader, "setup");
 			} catch (e) {
 				return e;
 			}
@@ -92,7 +92,7 @@ describe("assertPluginsResolvable", () => {
 			{ "@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }) }
 		);
 		await loader.load();
-		expect(() => assertPluginsResolvable(loader, "repo setup")).not.toThrow();
+		expect(() => assertPluginsResolvable(loader, "setup")).not.toThrow();
 	});
 
 	it("is a no-op when there are no providers / no failures", async () => {

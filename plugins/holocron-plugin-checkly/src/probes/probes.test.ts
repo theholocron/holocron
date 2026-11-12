@@ -139,7 +139,7 @@ describe("probe checkly channel", () => {
 		const { ctx, rows } = ctxFor();
 		await checklyProbes(deps).channel!.run(ctx);
 		expect(rows[0]!.detail).toContain("sends: nothing");
-		expect(rows[1]).toMatchObject({ status: "fail", detail: expect.stringContaining("notifications setup") });
+		expect(rows[1]).toMatchObject({ status: "fail", detail: expect.stringContaining("setup notifications") });
 		expect(rows[2]).toMatchObject({ status: "fail", label: "1 of 2 checks use it" });
 	});
 

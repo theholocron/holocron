@@ -1,10 +1,10 @@
 ---
-title: "repo setup"
+title: "setup"
 description: Apply all infra setup actions across every configured capability.
 ---
 
 ```bash
-holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
+holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 ```
 
 `setup` is the primary provisioning command. It applies a deterministic set of infrastructure actions for every configured capability. Each step is wrapped in a try/catch — failures are reported but don't abort subsequent steps. A summary at the end shows counts for ok, fail, and skip.
@@ -48,7 +48,7 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 **Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only, with the organization token when there is one; it needs read access to the organization's custom properties, otherwise the step says it could not read them), quotes GitHub's message, and says how to fix it, which does not need the definitions to be readable:
 
 ```text
-✗ sync properties  (GitHub refused the custom properties (422), so none was set: ... GitHub said: Value 'credentials' is not allowed for property 'holocron_capabilities'. To fix it: add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization's Settings, Custom properties), then run repo setup again)
+✗ sync properties  (GitHub refused the custom properties (422), so none was set: ... GitHub said: Value 'credentials' is not allowed for property 'holocron_capabilities'. To fix it: add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization's Settings, Custom properties), then run setup again)
 ```
 
 Fix it in the organization's property definitions, not in the repo: a new capability (the ones a `holocron.config` wires are listed in `holocron_capabilities`) is a value to add there once, and every repo can then use it. [`holocron doctor repo`](/holocron/commands/doctor-repo/) checks the values against the definitions before you run setup.
@@ -60,7 +60,7 @@ aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DC
 caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
-**The `ci` aggregate.** `repo setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
+**The `ci` aggregate.** `setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
 beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
 commit until every expected id has a check run named `<id> / ...` and all of them completed, and every `codecov/*`
 status reached `success`, or 30 minutes pass. An id that never posted fails as "never posted"; `success`, `skipped` and
@@ -108,13 +108,13 @@ Run `pnpm install` once to activate it; bypass one push with `git push --no-veri
 
 ```bash
 # Full setup
-holocron repo setup
+holocron setup
 
 # Dry-run — see every action without executing
-holocron repo setup --dry-run
+holocron setup --dry-run
 
 # Target a specific repo
-holocron repo setup --repo my-org/my-project
+holocron setup --repo my-org/my-project
 ```
 
 ## Notes
@@ -143,7 +143,7 @@ repo: {
 },
 ```
 
-`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: LEGACY_FLAG, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
+`holocron setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: LEGACY_FLAG, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
 
 Values are stored in plain text and shown in the UI. Never declare a secret here; use the `secrets` capability for those. Names follow GitHub's rules: letters, digits and underscores, not starting with a digit or `GITHUB_`.
 

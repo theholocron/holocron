@@ -3,14 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const loadConfig = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const reportError = vi.hoisted(() => vi.fn());
-const runSetup = vi.hoisted(() => vi.fn());
 const runUpgradeNode = vi.hoisted(() => vi.fn());
 const runUpgradeDeps = vi.hoisted(() => vi.fn());
 const readFileSync = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("node:fs", async (importActual) => ({ ...(await importActual<typeof import("node:fs")>()), readFileSync }));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
-vi.mock("../setup/index.js", () => ({ runSetup }));
 vi.mock("../upgrade-node/index.js", () => ({ runUpgradeNode }));
 vi.mock("../upgrade-deps/index.js", () => ({ runUpgradeDeps }));
 vi.mock("../../observability/logger/index.js", async (importActual) => ({
@@ -36,16 +34,14 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 }));
 
 import { runCommand } from "../run-command.testing.js";
-import { repoCommand } from "./repo.command.js";
+import { upgradeCommand } from "./upgrade.command.js";
 
-const go = (args: string[]) => runCommand(repoCommand, ["repo", ...args]);
-const summary = (fail: number) => ({ summary: { ok: 1, fail, skip: 0 } });
+const go = (args: string[]) => runCommand(upgradeCommand, ["upgrade", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
 	tokenContext.mockReturnValue({ cliToken: "t" });
-	runSetup.mockResolvedValue(summary(0));
 	runUpgradeNode.mockResolvedValue({ status: "ok" });
 	runUpgradeDeps.mockResolvedValue({ status: "ok" });
 	readFileSync.mockImplementation(() => {
@@ -54,33 +50,10 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("repo setup", () => {
-	it("applies setup with the tokens, the org and --repo, and --hooks when given", async () => {
-		await go(["setup", "--repo", "acme/widgets", "--no-hooks"]);
-		expect(runSetup.mock.calls[0]![0]).toMatchObject({
-			hooks: false,
-			context: { repoRoot: "/repo", repo: "acme/widgets", cliToken: "t", org: "acme" },
-		});
-		await go(["setup"]);
-		const bare = runSetup.mock.calls[1]![0];
-		expect("hooks" in bare || "repo" in bare.context).toBe(false);
-	});
-
-	it("exits 1 when a step failed, and stops when --token cannot be parsed", async () => {
-		runSetup.mockResolvedValue(summary(2));
-		await go(["setup"]);
-		expect(process.exitCode).toBe(1);
-		tokenContext.mockReturnValue(null);
-		runSetup.mockClear();
-		await go(["setup"]);
-		expect(runSetup).not.toHaveBeenCalled();
-	});
-});
-
-describe("repo upgrade", () => {
+describe("upgrade", () => {
 	it("`upgrade node` moves the pins to the new major, from --from, with the extra files from the config", async () => {
 		readFileSync.mockReturnValue(JSON.stringify({ upgrade: { node: { extra: ["a.yml", "b.yml"] } } }));
-		await go(["upgrade", "node", "24", "--from", "22"]);
+		await go(["node", "24", "--from", "22"]);
 		expect(runUpgradeNode).toHaveBeenCalledWith({
 			to: 24,
 			from: 22,
@@ -91,57 +64,48 @@ describe("repo upgrade", () => {
 	});
 
 	it("`upgrade node` copes with no config, a config without the section, or an `extra` that is not a list", async () => {
-		await go(["upgrade", "node", "24"]);
+		await go(["node", "24"]);
 		expect(runUpgradeNode).toHaveBeenLastCalledWith({ to: 24, cwd: "/repo", dryRun: false, extra: [] });
 		readFileSync.mockReturnValue("{}");
-		await go(["upgrade", "node", "24"]);
+		await go(["node", "24"]);
 		expect(runUpgradeNode.mock.calls[1]![0].extra).toEqual([]);
 		readFileSync.mockReturnValue(JSON.stringify({ upgrade: { node: { extra: "nope" } } }));
-		await go(["upgrade", "node", "24"]);
+		await go(["node", "24"]);
 		expect(runUpgradeNode.mock.calls[2]![0].extra).toEqual([]);
 	});
 
 	it("`upgrade node` reports why it failed", async () => {
 		runUpgradeNode.mockResolvedValue({ status: "fail", message: "no pins" });
-		await go(["upgrade", "node", "24"]);
+		await go(["node", "24"]);
 		expect(reportError).toHaveBeenCalledWith("upgrade node: no pins");
 		expect(process.exitCode).toBe(1);
 		reportError.mockClear();
 		runUpgradeNode.mockResolvedValue({ status: "fail" });
-		await go(["upgrade", "node", "24"]);
+		await go(["node", "24"]);
 		expect(reportError).not.toHaveBeenCalled();
 	});
 
 	it("`upgrade deps` bumps the pins, with --pins-only, and reports why it failed", async () => {
-		await go(["upgrade", "deps", "--pins-only"]);
+		await go(["deps", "--pins-only"]);
 		expect(runUpgradeDeps).toHaveBeenCalledWith({ cwd: "/repo", dryRun: false, pinsOnly: true });
 		runUpgradeDeps.mockResolvedValue({ status: "fail", message: "registry down" });
-		await go(["upgrade", "deps"]);
+		await go(["deps"]);
 		expect(reportError).toHaveBeenCalledWith("upgrade deps: registry down");
 		expect(process.exitCode).toBe(1);
 		reportError.mockClear();
 		runUpgradeDeps.mockResolvedValue({ status: "fail" });
-		await go(["upgrade", "deps"]);
+		await go(["deps"]);
 		expect(reportError).not.toHaveBeenCalled();
 	});
 });
 
-describe("repo menus", () => {
-	it("a bare `repo` or `repo upgrade` opens the menu at that group", async () => {
+describe("upgrade menu", () => {
+	it("a bare `upgrade` opens the menu at that group", async () => {
 		await go([]);
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			expect.objectContaining({ pickMessage: "repo — choose a subcommand:", startPath: ["repo"] })
-		);
-		await go(["upgrade"]);
-		expect(launchMenu).toHaveBeenLastCalledWith(
-			expect.anything(),
-			expect.anything(),
-			expect.objectContaining({
-				pickMessage: "repo upgrade — choose a subcommand:",
-				startPath: ["repo", "upgrade"],
-			})
+			expect.objectContaining({ pickMessage: "upgrade — choose a subcommand:", startPath: ["upgrade"] })
 		);
 	});
 });

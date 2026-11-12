@@ -14,7 +14,7 @@ Logs reach Axiom only when a token and a dataset name are both present, so a typ
 | Row                    | Passes when                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `token is accepted`    | Axiom accepts the token. A token Axiom refuses (401) fails. A token that cannot be read, or a check that cannot be made, is skipped                     |
-| `dataset for the CLI`  | the dataset named by `HOLOCRON_AXIOM_DATASET` (`holocron`) exists. A missing one fails and names `holocron repo setup`, which provisions it             |
+| `dataset for the CLI`  | the dataset named by `HOLOCRON_AXIOM_DATASET` (`holocron`) exists. A missing one fails and names `holocron setup`, which provisions it                  |
 | `dataset for Sentinel` | the dataset named by `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`) exists. A missing one fails; setup provisions only the CLI's, so create it in Axiom |
 | other services         | a `dev.serve.logging.datasetVar` in the config that names a dataset the rows above do not already cover gets a row of its own                           |
 | `organization`         | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`, is set. It is an organization variable, so an unset one here is a skip, not a failure                           |

@@ -21,6 +21,6 @@ describe("thinCallerFile", () => {
 
 	it("names `sync` as the tool whichever command writes the file, so both write the same bytes", () => {
 		expect(thinCallerFile(".", "x")).toContain("# Tool:    holocron sync");
-		expect(thinCallerFile(".", "x")).not.toContain("holocron repo setup");
+		expect(thinCallerFile(".", "x")).not.toContain("holocron setup");
 	});
 });

@@ -98,7 +98,7 @@ failure other than a 404 propagates, as for every other read.
 
 Execution reuses `@theholocron/datapad`'s `loadConfigFromContent()`
 (fetched content, not a file already on disk — the same `loadFile`
-internals `loadConfigFile()` uses locally for `holocron repo setup`/`sync`,
+internals `loadConfigFile()` uses locally for `holocron setup`/`sync`,
 D8) — so a real
 `holocron.config.ts` that does
 `import { defineConfig } from "@theholocron/cli"` (the CLI README's own
@@ -366,7 +366,7 @@ one.
 setup step, not something to redo on every deploy:
 
 ```bash
-holocron repo setup --cwd apps/sentinel
+holocron setup --cwd apps/sentinel
 ```
 
 Attaches `sentinel.theholocron.dev` (declared in `holocron.config.ts`)
@@ -374,7 +374,7 @@ to the Vercel project via `Deployment.ensureCustomDomain()`, then hands
 the CNAME verification challenge Vercel returns straight to
 Cloudflare's `dns` capability — fully automated, no manual DNS entry.
 Sentinel has no `source` provider configured, so every repo-settings
-step `holocron repo setup` normally runs is cleanly skipped; only the
+step `holocron setup` normally runs is cleanly skipped; only the
 `deployment`/`dns`/`vault` steps this config actually declares run.
 
 ### Why production only
@@ -467,7 +467,7 @@ permissions.
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
 set (`holocron new token vercel <token>` or `VERCEL_TOKEN`), then the
-["Custom domain"](#custom-domain-one-time) step — `holocron repo setup
+["Custom domain"](#custom-domain-one-time) step — `holocron setup
 --cwd apps/sentinel` attaches `sentinel.theholocron.dev` and hands
 Cloudflare the verification CNAME automatically. That domain, not a
 per-deployment `*.vercel.app` URL, is the stable webhook URL below.
@@ -575,7 +575,7 @@ Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-
 
 The feed keeps one forum post per pull request in the `#prs` forum (`docs/wiki/specifications/tech-sentinel-pr-feed.spec.md`, holocron#1738): the post is titled `repo#123: title`, the first message is a summary that is edited as the pull request changes (a link without the title, the status lines, then the pull request's description with Sourcery's parts and HTML comments removed), the post's tag is its state (`draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged`, `closed`), and messages are appended when it opens, when `ci / Required checks` finishes (passed, or did not pass, with the failing checks linked, five at most) and when it closes, after which the post is archived and locked. A redelivery adds nothing twice: each appended line ends with a marker (`-# ci: <sha> <conclusion>`, `-# pr: opened`) that is looked for first.
 
-It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron notifications setup` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
+It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron setup notifications` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
 
 ### Private key
 

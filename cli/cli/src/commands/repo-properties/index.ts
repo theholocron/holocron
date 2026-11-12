@@ -1,1 +1,1 @@
-export * from "./repo-properties.command.js";
+export * from "./repo-properties-apply.command.js";

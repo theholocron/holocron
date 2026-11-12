@@ -1,5 +1,5 @@
 /**
- * The labels every repository gets from `repo setup`, with their GitHub colours (hex, no `#`) and descriptions. A
+ * The labels every repository gets from `setup`, with their GitHub colours (hex, no `#`) and descriptions. A
  * plugin that makes labels of its own, such as Linear's setup, takes the colour of the one with the same name.
  */
 export const CANONICAL_LABELS = [

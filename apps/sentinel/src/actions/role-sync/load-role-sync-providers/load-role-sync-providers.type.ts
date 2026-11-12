@@ -16,7 +16,7 @@ export type RoleSource = GitHubSource;
 export interface RoleSyncEnv {
 	/** `owner/repo` whose default-branch `holocron.config.ts` declares the notifications layout (the roles and their teams). */
 	SENTINEL_ROLE_SYNC_REPO?: string;
-	/** The Discord bot token (the same one `holocron notifications setup` uses). */
+	/** The Discord bot token (the same one `holocron setup notifications` uses). */
 	HOLOCRON_DISCORD_BOT_TOKEN?: string;
 	/** The `github.user-sync` token: reads the links file in the org's private config repo. */
 	HOLOCRON_USER_SYNC_TOKEN?: string;
