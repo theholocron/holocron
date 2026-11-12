@@ -711,6 +711,9 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
   kebab-case, or `--name` as the whole name) with `status: draft`, `issue:`, `blocked-by: []`, no `id`, and the issue's text
   under `## Problem` less the `Filed from idea:` line and the marker. It never overwrites a file, never edits the issue or
   touches the vault, and asks first unless `--dry-run` or `--yes`.
+- **`holocron new issue <title> [--body <text>] [--label <name>]... [--milestone <value>] [--dry-run] [--yes]`** — files an
+  issue through the `issues` provider (`Issues.create`: GitHub or Linear) and prints its key. It asks first unless
+  `--dry-run` or `--yes` (without a terminal it refuses instead) and does not look for a duplicate.
 
 ## Syncing issues
 

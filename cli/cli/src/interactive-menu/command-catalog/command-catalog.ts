@@ -30,6 +30,7 @@ import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-var
 import { githubAppCreateEntry } from "../../commands/github-app-create/github-app-create.entry.js";
 import { ideasPromoteEntry } from "../../commands/ideas-promote/ideas-promote.entry.js";
 import { ideasSyncEntry } from "../../commands/ideas-sync/ideas-sync.entry.js";
+import { issueCreateEntry } from "../../commands/issue-create/issue-create.entry.js";
 import { migrateIssueEntry } from "../../commands/migrate/migrate-issue/migrate-issue.entry.js";
 import { migrateIssuesEntry } from "../../commands/migrate/migrate-issues/migrate-issues.entry.js";
 import { migrateProjectEntry } from "../../commands/migrate/migrate-project/migrate-project.entry.js";
@@ -135,6 +136,7 @@ const registry = createCommandRegistry(
 		syncIssuesEntry,
 		ideasSyncEntry,
 		ideasPromoteEntry,
+		issueCreateEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,
