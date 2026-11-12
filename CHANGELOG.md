@@ -1,3 +1,13 @@
+## [5.0.0-alpha.424](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.423...v5.0.0-alpha.424) (2026-11-12)
+
+### Bug Fixes
+
+* **notifications:** write the HOLOCRON_NOTIFY_* org secrets for named readers only ([#2132](https://github.com/theholocron/holocron/issues/2132)) ([beb678b](https://github.com/theholocron/holocron/commit/beb678b619922a9af3cdfda4f487c57a7167f97a)), closes [#2131](https://github.com/theholocron/holocron/issues/2131)
+
+### Chores
+
+* **deps:** bump the all-actions group across 4 directories with 4 updates ([#2133](https://github.com/theholocron/holocron/issues/2133)) ([a4fceb3](https://github.com/theholocron/holocron/commit/a4fceb3771fea77201e9b59e7514a902e5a21043))
+
 ## [5.0.0-alpha.423](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.422...v5.0.0-alpha.423) (2026-11-12)
 
 ### Refactoring
