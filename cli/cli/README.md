@@ -107,11 +107,11 @@ entirely, straight to the real run, for when you already know what you want.
 
 Every command is tagged with how much of a repo it needs:
 
-| Context      | Needs                                                    | Examples                                                                                                                      |
-| ------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin`, `upgrade …`, `new token` / `check`, `package …`, `run lint commit-msg`, `skills …` |
-| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `show config`, `sync readme`, `deploy on-release`                                                            |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`           |
+| Context      | Needs                                                    | Examples                                                                                                                                                                                                                               |
+| ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin` / `token` / `github-app`, `upgrade …`, `check token` / `resolved`, `remove token` / `skill`, `list tokens` / `skills`, `publish …`, `install skills`, `update skills`, `run lint commit-msg` |
+| `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `show config`, `sync readme`, `deploy on-release`                                                                                                                                                                     |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`                                                                                                                    |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
