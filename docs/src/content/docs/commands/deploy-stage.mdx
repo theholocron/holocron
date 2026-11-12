@@ -9,7 +9,7 @@ holocron deploy stage [--package-dir <dir>] [--out <dir>]
 
 Writes `.vercel-deploy/` for a package that ships as a Vercel Function (Sentinel), so `holocron deploy --files .vercel-deploy` uploads exactly that and nothing else:
 
-- `api/webhook.mjs`, `vercel.json` and `dist/index.mjs` copied from the package (run its `delivery.build` first),
+- `api/webhook.mjs`, `vercel.json` and `dist/index.mjs` copied from the package (run its `build` first),
 - a trimmed `package.json` with the name, version, `type`, `engines` and `dependencies` only, each dependency pinned to the version installed in `node_modules` (Vercel's `npm install` cannot read `workspace:` or `catalog:` specifiers).
 
 An `@theholocron/*` dependency installed at an `alpha` prerelease is pinned to the version npm's `alpha` tag points at instead. A workspace package's `package.json` is not updated when it is released (the plugins sit at `5.0.0-alpha.132` on disk and are far past that on npm, and each peers on exactly one CLI version), so the installed version would stage a stale plugin beside a newer CLI. Each change is printed, and so is a warning when a pinned release peers on an exact version of another staged package that differs from the one staged (two releases cut between lookups). The lookup is `npm view <name>@alpha`: a package without an `alpha` tag keeps its installed version, and the command fails, writing nothing, when npm cannot be reached.
@@ -28,6 +28,6 @@ It refuses, before writing anything, when `dist/index.mjs` imports a package tha
 ## Examples
 
 ```bash
-# What Sentinel's delivery.deploy runs
-pnpm run delivery.build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel
+# What Sentinel's deploy script runs
+pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel
 ```

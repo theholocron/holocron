@@ -24,15 +24,17 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 
 import yargs from "yargs";
 
+import { installCommand } from "../install/install.command.js";
 import { listCommand } from "../list/list.command.js";
 import { removeCommand } from "../remove/remove.command.js";
-import { skillsCommand } from "./skills.command.js";
+import { updateCommand } from "../update/update.command.js";
 
 const parse = (args: string[]) =>
 	yargs(args)
 		.option("cwd", { type: "string", default: "/repo" })
 		.option("dry-run", { type: "boolean", default: false })
-		.command(skillsCommand as never)
+		.command(installCommand as never)
+		.command(updateCommand as never)
 		.command(listCommand as never)
 		.command(removeCommand as never)
 		.fail((msg, err) => {
@@ -50,9 +52,9 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("skills command", () => {
+describe("install and update skills", () => {
 	it("installs from the config in --cwd, honouring --dry-run", async () => {
-		await parse(["skills", "install", "--dry-run"]);
+		await parse(["install", "skills", "--dry-run"]);
 		expect(runSkillsInstall).toHaveBeenCalledWith({
 			loaded: { resolved: {}, filepath: "/x" },
 			context: { repoRoot: "/repo", dryRun: true },
@@ -60,21 +62,21 @@ describe("skills command", () => {
 	});
 
 	it("updates one skill, or all of them, and exits 1 on failure", async () => {
-		await parse(["skills", "update", "a"]);
+		await parse(["update", "skills", "a"]);
 		expect(runSkillsUpdate).toHaveBeenCalledWith({ context: { repoRoot: "/repo", dryRun: false }, name: "a" });
 		runSkillsUpdate.mockClear();
 		runSkillsUpdate.mockReturnValue({ status: "fail" });
-		await parse(["skills", "update"]);
+		await parse(["update", "skills"]);
 		expect(runSkillsUpdate).toHaveBeenCalledWith({ context: { repoRoot: "/repo", dryRun: false } });
 		expect(process.exitCode).toBe(1);
 	});
 
-	it("opens a menu of the subcommands for a bare `skills`", async () => {
-		await parse(["skills"]);
+	it("opens a menu of the subcommands for a bare `install`", async () => {
+		await parse(["install"]);
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({ cwd: "/repo" }),
-			expect.objectContaining({ pickMessage: "skills — choose a subcommand:", startPath: ["skills"] })
+			expect.objectContaining({ pickMessage: "install — choose a subcommand:", startPath: ["install"] })
 		);
 	});
 });

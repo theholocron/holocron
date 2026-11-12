@@ -73,14 +73,12 @@ describe.concurrent("holocron (the built CLI)", () => {
 	});
 
 	describe("command groups", () => {
-		it("lists the subcommands of `doctor` and `skills` in their --help", async () => {
-			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["skills", "--help"])]);
+		it("lists the subcommands of `doctor` and `install` in their --help", async () => {
+			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["install", "--help"])]);
 			expect(doctor.code).toBe(0);
 			expect(doctor.stdout).toMatch(/notifications\s+Check the layout/);
 			expect(skills.code).toBe(0);
-			for (const sub of ["install", "update \\[name\\]"]) {
-				expect(skills.stdout).toMatch(new RegExp(`skills ${sub}`));
-			}
+			expect(skills.stdout).toMatch(/install skills/);
 			expect(skills.stdout).not.toMatch(/\$0/);
 		});
 

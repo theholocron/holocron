@@ -11,8 +11,8 @@ import yargs from "yargs";
 
 import { configShowCommand } from "./config-show.command.js";
 
-describe("config show", () => {
-	it("is the `config show` command, described as printing the resolved config", () => {
+describe("show config", () => {
+	it("is the `config` command under `show`, described as printing the resolved config", () => {
 		expect(configShowCommand.command).toBe("config");
 		expect(configShowCommand.describe).toBe("Print the resolved holocron config");
 	});

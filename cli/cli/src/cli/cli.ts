@@ -20,6 +20,7 @@ import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
 import { exportCommand } from "../commands/export/index.js";
+import { installCommand } from "../commands/install/index.js";
 import { linkCommand } from "../commands/link/index.js";
 import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
@@ -35,8 +36,8 @@ import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
 import { setupCommand } from "../commands/setup/setup.command.js";
 import { showCommand } from "../commands/show/index.js";
-import { skillsCommand } from "../commands/skills/index.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
+import { updateCommand } from "../commands/update/index.js";
 import { upgradeCommand } from "../commands/upgrade/index.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
@@ -145,7 +146,8 @@ try {
 		// ── commands ────────────────────────────────────────────────────────
 		.command(cloneCommand as never)
 		.command(doctorCommand as never)
-		.command(skillsCommand as never)
+		.command(installCommand as never)
+		.command(updateCommand as never)
 		.command(runCommand as never)
 		.command(showCommand as never)
 		.command(checkCommand as never)
