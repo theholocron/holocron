@@ -15,6 +15,7 @@ import {
 	GitHubProjects,
 	GitHubSecrets,
 	GitHubSource,
+	tokens,
 } from "./index.js";
 
 const LABELS = { inProgress: "status:in-progress", inReview: "status:in-review" };
@@ -182,5 +183,29 @@ describe("projects capability", () => {
 		expect(plugin.capabilities.projects()).toBeInstanceOf(GitHubProjects);
 		const bare = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null });
 		expect(() => bare.capabilities.projects()).toThrow(/HOLOCRON_ORG_TOKEN/);
+	});
+});
+
+describe("the plugin's tokens export", () => {
+	it("marks only the release token optional, since only CI's release workflow reads it", () => {
+		const optional = tokens.filter((t) => t.optional === true).map((t) => t.envName);
+		expect(optional).toEqual(["HOLOCRON_RELEASE_TOKEN"]);
+		expect(tokens.find((t) => t.envName === "HOLOCRON_RELEASE_TOKEN")).toMatchObject({
+			keyringKey: "github.release",
+		});
+	});
+
+	it("still lists every other token as needed", () => {
+		expect(tokens.map((t) => t.envName)).toEqual([
+			"HOLOCRON_READ_TOKEN",
+			"HOLOCRON_ISSUES_TOKEN",
+			"HOLOCRON_SYNC_TOKEN",
+			"HOLOCRON_RELEASE_TOKEN",
+			"HOLOCRON_ADMIN_TOKEN",
+			"HOLOCRON_SECRETS_TOKEN",
+			"HOLOCRON_DEPLOY_TOKEN",
+			"HOLOCRON_USER_SYNC_TOKEN",
+			"HOLOCRON_ORG_TOKEN",
+		]);
 	});
 });
