@@ -108,6 +108,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const rules = options.layout?.pinned?.find((pin) => pin.channel === "rules");
 		expect(rules).toEqual({ channel: "rules", file: "RULES.md" });
 		rules!.file = ".holocron/pinned/rules.md";
+		// And (#2131): the layout names who reads the notification secrets.
+		expect(options.layout?.readers).toBeUndefined();
+		options.layout!.readers = ["theholocron/holocron", "theholocron/.github"];
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.
 		const ideas = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])

@@ -29,12 +29,14 @@ import {
 	type NotificationsPicture,
 	PluginLoader,
 	type Secrets,
+	type SecretScope,
 	type Workers,
 } from "../../plugin/index.js";
 import {
 	assertSecretsReachable,
 	describeAvatarSource,
 	layoutSecretProblem,
+	layoutSecretScope,
 	loadAvatar,
 	loadFirstAvatar,
 	notificationProviders,
@@ -391,7 +393,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		secrets = loader.get("secrets") as Secrets;
 	}
 	const org = input.context.org;
-	const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
+	let scope: SecretScope | undefined =
+		input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
 	if (wantsSecrets && !scope && !dryRun) {
 		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
@@ -479,7 +482,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
 	// creating any webhook, instead of leaving an orphan per channel on a bad token.
+	// An organization secret is readable only by the layout's `readers`; no list is a refusal, never `all` (#2131).
+	// The probe is written with those readers too, so it also proves each of them resolves.
 	if (secrets && scope && !dryRun) {
+		const narrowed = layoutSecretScope(scope, layout.readers);
+		if ("problem" in narrowed) return refuse(narrowed.problem);
+		scope = narrowed.scope;
 		try {
 			await assertSecretsReachable(secrets, scope);
 		} catch (err) {

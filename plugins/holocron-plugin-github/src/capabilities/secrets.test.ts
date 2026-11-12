@@ -99,7 +99,7 @@ describe("GitHubSecrets — organization scope", () => {
 		expect(calls[0]?.url).toBe("https://api.github.com/orgs/theholocron/actions/secrets");
 	});
 
-	it("setSecret keeps visibility=all when the scope names no readers (secret set, setup notifications)", async () => {
+	it("setSecret keeps visibility=all when the scope names no readers (an older caller; the CLI always names them)", async () => {
 		const { publicKeyBase64 } = await makeKeypair();
 		const { secrets, calls } = makeSecrets([
 			{ status: 200, body: { key_id: "org-keyid", key: publicKeyBase64 } },

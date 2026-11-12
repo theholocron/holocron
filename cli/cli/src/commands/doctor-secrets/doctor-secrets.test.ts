@@ -142,6 +142,75 @@ describe("doctor secrets — organization", () => {
 		expect(listSecrets).toHaveBeenCalledWith({ kind: "organization", name: "acme" });
 	});
 
+	describe("the layout's readers (#2131)", () => {
+		const withReaders = {
+			providerName: "discord",
+			layout: { ...NOTIFY.layout, readers: ["acme/holocron", "acme/.github", "acme/holocron"] },
+		};
+		const runWith = (
+			notify: unknown,
+			access: Record<string, { visibility: string; repos?: string[] }> | "none" | Error
+		) =>
+			run(
+				loadedWith(undefined, { providers: { secrets: "github", notifications: ["discord"] } }),
+				{
+					listSecrets: async () => ["HOLOCRON_NOTIFY_WEBHOOK_SYNC"],
+					...(access === "none"
+						? {}
+						: {
+								listSecretAccess: async () => {
+									if (access instanceof Error) throw access;
+									return access;
+								},
+							}),
+				},
+				{ org: "acme", notifications: [notify] }
+			);
+		const accessRowOf = (r: Awaited<ReturnType<typeof runWith>>) =>
+			r.report.rows.find((row) => row.id === "org-secret-access")!;
+
+		it("is ok when the secrets are readable by exactly the readers", async () => {
+			const row = accessRowOf(
+				await runWith(withReaders, {
+					HOLOCRON_NOTIFY_WEBHOOK_SYNC: { visibility: "selected", repos: ["holocron", ".github"] },
+				})
+			);
+			expect([row.status, row.detail]).toEqual(["ok", "1 selected [.github, holocron]"]);
+		});
+
+		it("fails by name for a secret readable by every repository or by an extra one", async () => {
+			const all = accessRowOf(
+				await runWith(withReaders, { HOLOCRON_NOTIFY_WEBHOOK_SYNC: { visibility: "all" } })
+			);
+			expect(all.status).toBe("fail");
+			expect(all.problems[0]).toMatch(/HOLOCRON_NOTIFY_WEBHOOK_SYNC is readable by every repository/);
+			const extra = accessRowOf(
+				await runWith(withReaders, {
+					HOLOCRON_NOTIFY_WEBHOOK_SYNC: { visibility: "selected", repos: ["holocron", ".github", "demo"] },
+				})
+			);
+			expect(extra.problems).toEqual([
+				"HOLOCRON_NOTIFY_WEBHOOK_SYNC is also readable by demo; its entry says selected [.github, holocron]",
+			]);
+		});
+
+		it("skips quietly when the token cannot read access, and adds no row for a layout with no readers", async () => {
+			const noToken = accessRowOf(await runWith(withReaders, new MissingTokenError("needs the org token")));
+			expect([noToken.status, noToken.detail]).toEqual(["skip", "needs the org token"]);
+			const none = await runWith(NOTIFY, "none");
+			expect(none.report.rows.map((r) => r.id)).not.toContain("org-secret-access");
+		});
+
+		it("compares nothing when there is no organization to look under", async () => {
+			const { report } = await run(
+				loadedWith(undefined, { providers: { secrets: "github", notifications: ["discord"] } }),
+				{ listSecrets: async () => [], listSecretAccess: async () => ({}) },
+				{ notifications: [withReaders] }
+			);
+			expect(report.rows.map((r) => r.id)).not.toContain("org-secret-access");
+		});
+	});
+
 	it("ignores a notifications provider with no layout", async () => {
 		const { report } = await run(
 			loadedWith(undefined, { providers: { secrets: "github", notifications: ["discord"] } }),

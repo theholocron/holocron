@@ -62,7 +62,8 @@ The rules come from the #2058 discussion; this spec only adds the shape.
    the scope), the sync goes on without the difference and says so once; it never blocks the write.
 7. **`Secrets.setSecret(scope, ...)`** keeps its signature. The organization variant of `SecretScope` gains optional
    `visibility` (`"all" | "private" | "selected"`) and `repos`. The sync always passes `selected` and the names. A caller
-   that passes none (`secret set --scope org=...`, `notifications setup`) keeps today's `all`, see Notifications.
+   that passes none (`secret set --scope org=...`) keeps today's `all`. `notifications setup` and `new channel` always
+   pass `selected` and the layout's `readers`, see Notifications.
 8. **Doctor.** `doctor secrets` adds, for the organization-scope synced entries:
    - `org-secret-access`: one row per organization (names only). It reports by name how many secrets sit at each
      reader list (for example `9 selected [holocron, .github]; 5 selected [holocron]`) and fails, naming the secret, when
@@ -93,11 +94,23 @@ token. The PR body carries the table; the lists are not widened without the main
 
 ## Notifications
 
-`notifications setup` writes `HOLOCRON_NOTIFY_*` through the same `setSecret` with a scope that carries no reader
-list, so it keeps `all` for now. It is a follow-up and not part of this change: the layout needs a `readers` field
-(who reads the webhooks: `holocron` and `.github`), a design of its own, and moving them to `selected` today would
-make `setup` fail until the layout has it. Until then `doctor secrets` does not check them (they are not in
-`repo.secrets.sync`).
+Shipped in #2131. The notification secrets (webhook URLs and role ids) stay organization secrets, because the Discord
+server is the organization's, but they are readable only by a named list. The list is a new optional `readers` field
+(`owner/repo` strings) on the notification layout (`NotificationsLayout`, `.holocron/notifications.ts`), not a
+`repo.secrets.sync` entry, so the secrets keep one writer (`notifications setup`, `new channel`).
+
+- `notifications setup` and `new channel` write every `HOLOCRON_NOTIFY_*` secret, and the preflight probe, with
+  visibility `selected` and those repositories (`layoutSecretScope()`), through the mechanism above. A secret that
+  already exists with `all` is narrowed by the next write, because GitHub replaces who can read a secret on every
+  write. Nothing is deleted.
+- It fails closed: an organization scope with no `readers` (absent or empty) is a refusal naming `readers`, before
+  anything is created, never a silent `all`. A reader outside the organization is refused too. `--dry-run` and a
+  `repo` or `env=` scope need no `readers`. A repository whose layout writes organization secrets must add the field;
+  this is the one breaking change, and it is the point.
+- `doctor secrets` compares the layout's secrets with `readers` in the same `org-secret-access` row, by name: a secret
+  readable by every repository, or by one `readers` does not list, fails, and the row is skipped when the token cannot
+  read access. This repository's list is `theholocron/holocron` and `theholocron/.github` (the workflows that read
+  them today); `.github` is dropped when its callers are retired.
 
 ## Not in scope
 
@@ -112,6 +125,6 @@ make `setup` fail until the layout has it. Until then `doctor secrets` does not 
 2. Should `visibility: "private"` be allowed on a secret? It reads as "every private repository", which is a list the
    entry does not name; the decision above rejects it. A private-only organization could want it.
 3. Should the shadow row also check variables (a repository variable overrides an organization one)?
-4. The notification secrets (`HOLOCRON_NOTIFY_*`): a `readers` field on the layout, or a `repo.secrets.sync` entry for
-   them? Follow-up.
+4. ~~The notification secrets (`HOLOCRON_NOTIFY_*`): a `readers` field on the layout, or a `repo.secrets.sync` entry for
+   them?~~ Resolved (#2131): a `readers` field on the layout, with `selected` visibility and no `all` fallback.
 5. A new repository that needs a secret has to be added to its entry by hand and synced. Should `repo setup` do it?
