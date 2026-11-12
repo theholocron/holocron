@@ -22,7 +22,7 @@ Token resolution order:
 2. `HOLOCRON_CLOUDFLARE_TOKEN` env var
 3. `CLOUDFLARE_API_TOKEN` env var (the standard Cloudflare variable name)
 4. Keyring `cloudflare.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `cloudflare` — unnamespaced fallback; set via `holocron auth set cloudflare <token>`
+5. Keyring `cloudflare` — unnamespaced fallback; set via `holocron new token cloudflare <token>`
 
 Generate a scoped API token at **dash.cloudflare.com/profile/api-tokens**.
 

@@ -44,7 +44,7 @@ const githubAppCreateArgs = (yy: Argv<GlobalArgs>) =>
 type GithubAppCreateArgs = InferArgs<typeof githubAppCreateArgs>;
 
 export const githubAppCreateCommand: CommandModule<GlobalArgs, GithubAppCreateArgs> = {
-	command: "create",
+	command: "github-app",
 	describe: "Create a GitHub App from a manifest and keep its credentials in a private file to import",
 	builder: githubAppCreateArgs,
 	handler: async (argv) => {

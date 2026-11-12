@@ -73,13 +73,13 @@ export function createPlugin(options: InfisicalPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set infisical` when no
+ * One-line hint printed by `holocron new token infisical` when no
  * token is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Token Auth token on your machine identity (organization → " +
 	"access control → identities → your identity → add auth method → Token Auth → " +
-	"create token) OR a Personal API Token, then: holocron auth set infisical <TOKEN>. " +
+	"create token) OR a Personal API Token, then: holocron new token infisical <TOKEN>. " +
 	"NOT Universal Auth's Client Secret — that needs a login exchange this plugin doesn't do yet.";
 
 // ── Public re-exports ────────────────────────────────────────────────

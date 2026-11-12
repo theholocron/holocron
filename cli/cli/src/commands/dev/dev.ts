@@ -2,7 +2,7 @@
  * `holocron dev` — run an application locally behind its development tunnel, in one command.
  *
  * The vault environment's variables are read in memory and handed to the application's process, never written to
- * disk or printed (only how many there are). The tunnel and its DNS record are set up the way `holocron tunnel up`
+ * disk or printed (only how many there are). The tunnel and its DNS record are set up the way `holocron new tunnel`
  * does, and the tunnel's connector runs beside the application; Ctrl-C stops both.
  */
 

@@ -94,14 +94,14 @@ describe("createFeatureResolver", () => {
 		expect(fake.get).toHaveBeenLastCalledWith("github.feat");
 	});
 
-	it("names the vendor given, GitHub when none is, and holocron auth set", () => {
+	it("names the vendor given, GitHub when none is, and holocron new token", () => {
 		const sentry = createFeatureResolver({
 			envName: "HOLOCRON_SENTRY_COMLINK_TOKEN",
 			keyringKey: "sentry.comlink",
 			vendor: "Sentry",
 		});
 		expect(() => sentry({ env: {} })).toThrow(
-			/no Sentry token found.*HOLOCRON_SENTRY_COMLINK_TOKEN.*holocron auth set sentry\.comlink/
+			/no Sentry token found.*HOLOCRON_SENTRY_COMLINK_TOKEN.*holocron new token sentry\.comlink/
 		);
 		expect(() => resolveFeature({ env: {} })).toThrow(/no GitHub token found/);
 	});

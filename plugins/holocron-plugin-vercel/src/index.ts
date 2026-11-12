@@ -83,12 +83,12 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 }
 
 /**
- * One-line hint printed by `holocron auth set vercel` when no token
+ * One-line hint printed by `holocron new token vercel` when no token
  * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Vercel Personal Access Token at https://vercel.com/account/tokens " +
-	"(scope: Full Account for team ops), then run: holocron auth set vercel <PAT>";
+	"(scope: Full Account for team ops), then run: holocron new token vercel <PAT>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

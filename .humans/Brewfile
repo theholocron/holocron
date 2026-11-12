@@ -12,7 +12,7 @@ brew "editorconfig-checker"
 brew "gitleaks"
 brew "yamllint"
 
-# Needed by `holocron dev` and `holocron tunnel up` (the Cloudflare tunnel connector).
+# Needed by `holocron dev` and `holocron new tunnel` (the Cloudflare tunnel connector).
 brew "cloudflared"
 
 # The vault and credentials providers read 1Password Environments through `op`.

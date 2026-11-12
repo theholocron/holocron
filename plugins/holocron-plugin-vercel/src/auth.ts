@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "vercel",
 	errorMessage:
 		"no Vercel token found. Pass --token <PAT>, set HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN, " +
-		"or run: holocron auth set vercel <PAT>",
+		"or run: holocron new token vercel <PAT>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

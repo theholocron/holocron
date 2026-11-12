@@ -85,9 +85,9 @@ describe("createPlugin", () => {
 		expect(asked).toContain("discord.holonet");
 	});
 
-	it("points the user at `holocron auth set discord.holonet` when no bot token is found", () => {
+	it("points the user at `holocron new token discord.holonet` when no bot token is found", () => {
 		const ctx = createContext({ cliToken: WEBHOOK, env: {}, keyring: () => null });
-		expect(() => ctx.bot()).toThrow(/holocron auth set discord\.holonet/);
+		expect(() => ctx.bot()).toThrow(/holocron new token discord\.holonet/);
 	});
 });
 

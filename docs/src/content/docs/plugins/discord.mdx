@@ -63,7 +63,7 @@ The URL looks like: `https://discord.com/api/webhooks/{webhook.id}/{webhook.toke
 ### 2. Store the webhook URL
 
 ```bash
-holocron auth set discord https://discord.com/api/webhooks/1234567890/abcdefghij...
+holocron new token discord https://discord.com/api/webhooks/1234567890/abcdefghij...
 ```
 
 Or via env var:
@@ -124,7 +124,7 @@ The bot token is read only when a provisioning command runs; `send()` never need
 ```bash
 holocron notifications setup --dry-run   # preview
 holocron notifications setup             # apply
-holocron notifications channel add sync --category AUTOMATION --with-webhook
+holocron new channel sync --category AUTOMATION --with-webhook
 ```
 
 ## Posting from GitHub Actions

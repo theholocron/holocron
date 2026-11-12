@@ -21,7 +21,7 @@ Token resolution order:
 2. `HOLOCRON_NEON_API_KEY` env var
 3. `NEON_API_KEY` env var (the default Neon's own CLI reads)
 4. Keyring `neon.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `neon` — unnamespaced fallback; set via `holocron auth set neon <key>`
+5. Keyring `neon` — unnamespaced fallback; set via `holocron new token neon <key>`
 
 ## Config
 

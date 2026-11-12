@@ -78,11 +78,11 @@ export function createPlugin(options: SentryPluginOptions) {
 	};
 }
 
-/** One-line hint shown by `holocron auth set sentry` when no token is given or the token is rejected. */
+/** One-line hint shown by `holocron new token sentry` when no token is given or the token is rejected. */
 export const AUTH_HINT =
 	"generate an auth token at https://sentry.io/settings/account/api/auth-tokens/ " +
 	"with project:read, project:write, and org:read scopes, " +
-	"then run: holocron auth set sentry <TOKEN>";
+	"then run: holocron new token sentry <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

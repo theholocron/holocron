@@ -30,7 +30,7 @@ export function render(inputs: TemplateInputs): string {
  * the most likely fix per error shape.
  *
  * Auth: reads the ${inputs.vendorName} token from holocron's keyring —
- * you must have run \`pnpm holocron auth set ${inputs.slug} <TOKEN>\` first.
+ * you must have run \`pnpm holocron new token ${inputs.slug} <TOKEN>\` first.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-${inputs.slug} validate <arg1> [arg2] ...

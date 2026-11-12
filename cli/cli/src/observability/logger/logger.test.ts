@@ -186,7 +186,7 @@ describe("buildCliLogger — global-context commands (ADR-0012, ADR-0019)", () =
 	it("a global-context command uses the env dataset and an env-var token like any other command", () => {
 		process.env.HOLOCRON_AXIOM_TOKEN = "env-token";
 		process.env.HOLOCRON_AXIOM_DATASET = "shared-ds";
-		buildCliLogger({}, { command: "auth set", configAxiomDataset: "repo-ds" });
+		buildCliLogger({}, { command: "new token", configAxiomDataset: "repo-ds" });
 		expect(getTokenMock).not.toHaveBeenCalled();
 		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "shared-ds", token: "env-token" } });
 	});

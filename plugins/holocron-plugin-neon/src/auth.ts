@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "neon",
 	errorMessage:
 		"no Neon API key found. Pass --token <KEY>, set HOLOCRON_NEON_API_KEY / NEON_API_KEY, " +
-		"or run: holocron auth set neon <KEY>",
+		"or run: holocron new token neon <KEY>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

@@ -2,7 +2,7 @@ import type { ExecutionContext } from "./contexts.type.js";
 
 /**
  * Command → context. Keys are the full command path as it lands in
- * yargs' `argv._` (`"auth set"`, `"repo upgrade node"`), the bare verb
+ * yargs' `argv._` (`"new token"`, `"repo upgrade node"`), the bare verb
  * otherwise; a longer, more specific key wins over its parent.
  *
  * - **`global`** — needs nothing but the CLI binary. Works anywhere.
@@ -17,13 +17,13 @@ export const COMMAND_CONTEXTS = {
 	"new plugin": "global",
 	"repo upgrade node": "global",
 	"repo upgrade deps": "global",
-	"auth set": "global",
+	"new token": "global",
 	"auth unset": "global",
 	"auth list": "global",
 	// `auth export` asks the configured plugins for the tokens they take, so their packages must be resolvable.
 	"auth export": "workspace",
-	// `github-app create` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
-	"github-app create": "global",
+	// `new github-app` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
+	"new github-app": "global",
 	// `auth check` loads a plugin to verify, but degrades to "token present,
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.
@@ -51,23 +51,23 @@ export const COMMAND_CONTEXTS = {
 	doctor: "workspace",
 	"repo setup": "workspace",
 	"secrets list": "workspace",
-	"secrets set": "workspace",
+	"new secret": "workspace",
 	"secrets sync": "workspace",
-	// `tunnel up` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
-	"tunnel up": "workspace",
+	// `new tunnel` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
+	"new tunnel": "workspace",
 	// `project` subcommands call the `projects` provider, so its package must be resolvable.
 	"project list": "workspace",
-	"project create": "workspace",
+	"new project": "workspace",
 	"project close": "workspace",
 	"project setup": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
 	// Loads the config and the handler it names; calls no provider (the vault's variables arrive in the environment).
 	"dev serve": "repo-aware",
-	"notifications channel add": "workspace",
+	"new channel": "workspace",
 	"notifications setup": "workspace",
 	"notifications link": "workspace",
-	"notifications create-server": "workspace",
+	"new server": "workspace",
 	"notifications sync-roles": "workspace",
 	// Loads the notifications provider to list and delete the extra posts of a forum.
 	"notifications dedupe": "workspace",
@@ -125,7 +125,7 @@ export const COMMAND_CONTEXTS = {
 	// Reads ideas through the `ideas` provider and files each ready one through `issues`, so both packages must be resolvable.
 	"ideas sync": "workspace",
 	// Reads the issue through the `issues` provider, so its package must be resolvable.
-	"ideas promote": "workspace",
+	"new spec": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**

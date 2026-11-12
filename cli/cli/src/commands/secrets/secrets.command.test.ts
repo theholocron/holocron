@@ -36,10 +36,12 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { secretsCommand } from "./secrets.command.js";
 
 const go = (args: string[]) => runCommand(secretsCommand, ["secrets", ...args]);
+const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -51,16 +53,16 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("secrets set", () => {
+describe("new secret", () => {
 	it("sets the secret in the scope, with the value, --from-stdin or --from-env as given", async () => {
-		await go(["set", "TOKEN", "v", "--scope", "env=prod"]);
+		await goNew(["secret", "TOKEN", "v", "--scope", "env=prod"]);
 		expect(runSecretSet.mock.calls[0]![0]).toMatchObject({
 			name: "TOKEN",
 			value: "v",
 			scope: { kind: "environment", name: "prod" },
 			context: { repoRoot: "/repo", cliToken: "t", org: "acme" },
 		});
-		await go(["set", "TOKEN", "--from-stdin", "--from-env", "MY_TOKEN"]);
+		await goNew(["secret", "TOKEN", "--from-stdin", "--from-env", "MY_TOKEN"]);
 		expect(runSecretSet.mock.calls[1]![0]).toMatchObject({
 			fromStdin: true,
 			fromEnv: "MY_TOKEN",
@@ -70,18 +72,18 @@ describe("secrets set", () => {
 	});
 
 	it("leaves out the value and sources it was not given", async () => {
-		await go(["set", "TOKEN"]);
+		await goNew(["secret", "TOKEN"]);
 		const input = runSecretSet.mock.calls[0]![0];
 		expect(["value", "fromStdin", "fromEnv"].some((k) => k in input)).toBe(false);
 	});
 
 	it("exits 1 when it failed, and stops when --token cannot be parsed", async () => {
 		runSecretSet.mockResolvedValue({ status: "fail" });
-		await go(["set", "TOKEN"]);
+		await goNew(["secret", "TOKEN"]);
 		expect(process.exitCode).toBe(1);
 		tokenContext.mockReturnValue(null);
 		runSecretSet.mockClear();
-		await go(["set", "TOKEN"]);
+		await goNew(["secret", "TOKEN"]);
 		expect(runSecretSet).not.toHaveBeenCalled();
 	});
 });

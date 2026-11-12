@@ -70,7 +70,7 @@ export interface RunAuthExportInput {
 	env?: NodeJS.ProcessEnv;
 	/**
 	 * The active org, as the token resolvers use it: a token is looked up under `<keyring key>.<org>` before the plain
-	 * key, so a token stored per organization (`auth set --org`) is found the way the commands find it.
+	 * key, so a token stored per organization (`new token --org`) is found the way the commands find it.
 	 */
 	org?: string;
 	/** Reads a keyring entry, or null. Defaults to the OS keyring. */

@@ -30,7 +30,7 @@ Token resolution order (matches the standard 4-step precedence set by
 
 \`\`\`bash
 # Generate a ${inputs.vendorName} API token (see vendor docs), then:
-holocron auth set ${inputs.slug} <TOKEN>
+holocron new token ${inputs.slug} <TOKEN>
 holocron auth check ${inputs.slug}    # verify
 \`\`\`
 

@@ -437,7 +437,7 @@ from it, and refuses an open range with `invalid_version_value`
 ## GitHub App registration (manual, one-time)
 
 The App can be created from a manifest instead of the form below:
-`holocron github-app create --manifest apps/sentinel/github-app.manifest.json
+`holocron new github-app --manifest apps/sentinel/github-app.manifest.json
 --name ... --webhook-url ... --org theholocron` (GitHub's manifest flow; it
 needs one click on GitHub and writes the id, key and webhook secret to a
 private `.credentials` file — see the command's page). The manifest holds
@@ -466,7 +466,7 @@ permissions.
 
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
-set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
+set (`holocron new token vercel <token>` or `VERCEL_TOKEN`), then the
 ["Custom domain"](#custom-domain-one-time) step — `holocron repo setup
 --cwd apps/sentinel` attaches `sentinel.theholocron.dev` and hands
 Cloudflare the verification CNAME automatically. That domain, not a
@@ -679,7 +679,7 @@ the `dev` layer 1Password Environment (`<org>/<repo> - dev`).
 ```bash
 # once: the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
 # go to a private .credentials file to import into the `dev` layer Environment)
-holocron github-app create --cwd apps/sentinel --org theholocron \
+holocron new github-app --cwd apps/sentinel --org theholocron \
   --name "The Holocron Sentinel - dev" \
   --webhook-url https://sentinel-dev.theholocron.dev/api/webhook \
   --manifest github-app.manifest.json
@@ -689,7 +689,7 @@ pnpm --filter @theholocron/sentinel dev
 ```
 
 `pnpm dev` is [`holocron dev`](/holocron/commands/dev/), configured by the `dev` block of this directory's `holocron.config.ts` (the Environment, the tunnel's name and hostname, the port and the command, so the hostname is set in one place): it sets up the named tunnel and its DNS record the way
-`holocron tunnel up` does (nothing changes when they are already right), reads the variables of the `dev` layer in
+`holocron new tunnel` does (nothing changes when they are already right), reads the variables of the `dev` layer in
 memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) beside `cloudflared` with those variables and `PORT` in the application's
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).

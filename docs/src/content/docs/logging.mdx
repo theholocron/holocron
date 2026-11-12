@@ -151,7 +151,7 @@ prefixed name is tried first) → `holocron.config` `log.axiom.dataset` → the
 credential chain, asked for the same two names (the 1Password Environment's
 `HOLOCRON_AXIOM_DATASET`). Env vars always win. The config value is only a per-repo
 override, for a repo that keeps its own dataset; a `global`-context command
-(`clone`, `auth set`, `upgrade node`, …) skips it, so the repo it runs in
+(`clone`, `new token`, `upgrade node`, …) skips it, so the repo it runs in
 never decides where its lines go, and uses the CLI's `holocron` dataset instead.
 
 #### CI
@@ -170,7 +170,7 @@ without removing the secret.
 Store the token in the OS keyring once:
 
 ```bash
-holocron auth set axiom.theholocron <TOKEN>
+holocron new token axiom.theholocron <TOKEN>
 ```
 
 That token backs both `holocron repo setup` / `holocron doctor` (the `logs`

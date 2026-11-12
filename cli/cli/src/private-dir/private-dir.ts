@@ -1,7 +1,7 @@
 /** The directory, relative to the repository root, for files that hold secrets and must never be committed. */
 export const PRIVATE_DIR = ".holocron/.private";
 
-/** The file `auth export` and `github-app create` write by default, relative to the repository root. */
+/** The file `auth export` and `new github-app` write by default, relative to the repository root. */
 export const PRIVATE_CREDENTIALS_FILE = `${PRIVATE_DIR}/.credentials`;
 
 /** The tracked file that keeps the otherwise ignored directory in the checkout. */

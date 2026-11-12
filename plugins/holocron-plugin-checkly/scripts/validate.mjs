@@ -8,7 +8,7 @@
  * `hintFor` helper below points at the most likely fix per error shape.
  *
  * Auth: reads the Checkly token from holocron's keyring —
- * you must have run `pnpm holocron auth set checkly <TOKEN>` first.
+ * you must have run `pnpm holocron new token checkly <TOKEN>` first.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-checkly validate:plugin <accountId>

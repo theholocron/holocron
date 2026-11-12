@@ -540,7 +540,7 @@ describe("runDoctorNotifications — who owns the server", () => {
 		const report = await setup(fakeNotifications({ serverOwner }), { builtOnly: true }).run();
 		const step = owner("server-owner")(report);
 		expect(step.status).toBe("fail");
-		expect(step.problems[0]).toContain("create-server --resume --owner");
+		expect(step.problems[0]).toContain("new server --resume --owner");
 	});
 
 	it("reports who owns it when a person does", async () => {

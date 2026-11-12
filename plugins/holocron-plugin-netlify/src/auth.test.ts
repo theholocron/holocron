@@ -42,6 +42,6 @@ describe("resolveToken", () => {
 		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_NETLIFY_TOKEN/);
-		expect((err as Error).message).toMatch(/holocron auth set netlify/);
+		expect((err as Error).message).toMatch(/holocron new token netlify/);
 	});
 });

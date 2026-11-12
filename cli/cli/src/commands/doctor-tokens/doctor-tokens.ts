@@ -113,7 +113,7 @@ async function checkToken(
 	const value = fromEnv ? env.get(fromEnv) : (stored?.value ?? readToken(keyringKey));
 	if (!value) {
 		const names = vendorEnvName ? `${envName} / ${vendorEnvName}` : envName;
-		return row(keyringKey, "skip", `not set (${names}, or \`holocron auth set ${keyringKey}\`)`);
+		return row(keyringKey, "skip", `not set (${names}, or \`holocron new token ${keyringKey}\`)`);
 	}
 	const verify = token.verify ?? (token.verifiable === false ? undefined : module.verifyToken);
 	if (!verify) {

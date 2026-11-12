@@ -1,5 +1,5 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth set` +
+ * `verifyToken` — plugin-level export used by `holocron new token` +
  * `holocron auth check`. Hits `GET /v1/workspace` and interprets the
  * response permissively:
  *

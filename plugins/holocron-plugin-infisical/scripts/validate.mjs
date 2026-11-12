@@ -12,7 +12,7 @@
  * likely cause per error shape.
  *
  * Auth: reads the Infisical token from holocron's keyring — you
- * must have run `pnpm holocron auth set infisical <TOKEN>` first.
+ * must have run `pnpm holocron new token infisical <TOKEN>` first.
  * Use a **Personal API Token** or a **Token Auth** token — Universal
  * Auth's Client Secret doesn't work (needs a login exchange the
  * plugin doesn't yet do — tracked in #100).

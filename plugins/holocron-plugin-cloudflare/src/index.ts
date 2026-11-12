@@ -116,12 +116,12 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 	};
 }
 
-/** One-line hint printed by `holocron auth set cloudflare` when no token is supplied or the supplied one is rejected. */
+/** One-line hint printed by `holocron new token cloudflare` when no token is supplied or the supplied one is rejected. */
 export const AUTH_HINT =
 	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
 	"with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account-level), " +
 	"Workers Routes:Edit (zone-level) and, for tunnels, Cloudflare Tunnel:Edit (account-level) permissions, " +
-	"then run: holocron auth set cloudflare <TOKEN>";
+	"then run: holocron new token cloudflare <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "clerk",
 	errorMessage:
 		"no Clerk secret key found. Pass --token <KEY>, set HOLOCRON_CLERK_SECRET_KEY / CLERK_SECRET_KEY, " +
-		"or run: holocron auth set clerk <KEY>",
+		"or run: holocron new token clerk <KEY>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

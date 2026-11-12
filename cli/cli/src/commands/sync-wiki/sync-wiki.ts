@@ -15,7 +15,7 @@ const env = createEnvLookup();
 // Token resolution
 // ---------------------------------------------------------------------------
 
-/** The keyring entry `holocron auth set github.read` fills; the last place `sync-wiki` looks. */
+/** The keyring entry `holocron new token github.read` fills; the last place `sync-wiki` looks. */
 export const READ_TOKEN_KEYRING_KEY = "github.read";
 
 function resolveToken(input: RunSyncWikiInput): string | undefined {
@@ -306,7 +306,7 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 			capability: "local",
 			step: "sync wiki",
 			status: "skip",
-			message: `no GitHub token available (set HOLOCRON_READ_TOKEN or GH_TOKEN, or run: holocron auth set ${READ_TOKEN_KEYRING_KEY} <token>)`,
+			message: `no GitHub token available (set HOLOCRON_READ_TOKEN or GH_TOKEN, or run: holocron new token ${READ_TOKEN_KEYRING_KEY} <token>)`,
 		};
 	}
 
