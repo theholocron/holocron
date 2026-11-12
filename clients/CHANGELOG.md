@@ -1,3 +1,9 @@
+## [1.58.0-alpha.29](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.28...clients-v1.58.0-alpha.29) (2026-11-12)
+
+### Refactoring
+
+* **cli:** ♻️ add setup, upgrade, cleanup and apply ([#2119](https://github.com/theholocron/holocron/issues/2119)) ([b2d3e38](https://github.com/theholocron/holocron/commit/b2d3e381494b5c5a4a6e83068040c01b101da58a)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
 ## [1.58.0-alpha.28](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.27...clients-v1.58.0-alpha.28) (2026-11-11)
 
 ### Features
