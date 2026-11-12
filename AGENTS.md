@@ -139,6 +139,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   instances) with its manifest file: the App's id and key are read in memory from the vault environment (`Vault.readEnvironment`,
   never printed), `getApp()` and `listAppInstallations()` of `@theholocron/github-client` read the live App with its JWT, and a
   gap ends with the settings page that fixes it. An instance whose credentials cannot be read is a skip, not a failure.
+  `doctor shared-values` (#2089, spec `tech-doctor-shared-values`) reads each layer's Environment (`<org/repo> - local|dev|ci|prod`) in memory (optional `Vault.readEnvironmentEntries`, which carries `concealed`) and reports by name, one `info` row per pair of layers (`--strict` fails), the concealed secrets that share a value, compared by a per-run salted hash that is never printed, and `info` rows for `ci` variables missing from or different in `dev`; `doctor.sharedVariables` and `--allow` leave out names shared on purpose.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting

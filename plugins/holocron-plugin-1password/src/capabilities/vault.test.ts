@@ -194,6 +194,20 @@ describe("OpVault.readEnvironment", () => {
 	});
 });
 
+describe("OpVault.readEnvironmentEntries", () => {
+	it("reads through `--reveal --format=json` and keeps the concealed flag", async () => {
+		const stdout = JSON.stringify([{ name: "A", value: "1", concealed: true }]);
+		const { vault, calls } = makeVault([{ status: 0, stdout }]);
+		expect(await vault.readEnvironmentEntries("holocron")).toEqual([{ name: "A", value: "1", concealed: true }]);
+		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "holocron", "--reveal", "--format=json"]);
+	});
+
+	it("throws ProviderApiError when op fails", async () => {
+		const { vault } = makeVault([{ status: 1, stderr: "environment not found" }]);
+		await expect(vault.readEnvironmentEntries("missing")).rejects.toThrow(/environment not found/);
+	});
+});
+
 describe("OpVault.readSecret", () => {
 	it("reads one variable of the configured Environment by its bare name", async () => {
 		const { spawn, calls } = stubSpawn([{ status: 0, stdout: "A=1\nCOMLINK_SENTRY_SECRET=s3cret" }]);

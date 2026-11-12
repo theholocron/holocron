@@ -366,6 +366,37 @@ describe("the variables entry", () => {
 	});
 });
 
+const runDoctorSharedValues = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-shared-values/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-shared-values/index.js")>()),
+	runDoctorSharedValues,
+}));
+
+describe("the shared-values entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const shared = DEEP_CHECKS.find((c) => c.name === "shared-values")!;
+
+	it("compares the vault capability and reports the run's status and counts", async () => {
+		expect(shared.capability).toBe("vault");
+		runDoctorSharedValues.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 0 } });
+		expect(await shared.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 0 } });
+	});
+
+	it("carries the reason nothing was compared", async () => {
+		runDoctorSharedValues.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "needs a `vault` provider",
+		});
+		expect(await shared.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "needs a `vault` provider",
+		});
+	});
+});
+
 describe("the variable-owners entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const owners = DEEP_CHECKS.find((c) => c.name === "variable-owners")!;
