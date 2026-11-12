@@ -1,16 +1,19 @@
 /**
- * `holocron skills` — install, remove, and update agent skills from @theholocron/skills.
+ * `holocron install skills`, `list skills`, `remove skill` and `update skills` — install, list, remove and update
+ * agent skills from @theholocron/skills.
  *
  * Unlike `holocron repo setup`, this command is purely local (no GitHub token
  * required). It reads `agent` and `skills` from the config and installs
  * the listed skills into `.agents/skills/<name>/` with a symlink at the
  * agent-specific path (e.g. `.claude/skills/<name>` for Claude Code).
  *
- * `holocron skills remove [name]` and `holocron skills update [name]` delegate
+ * `holocron remove skill [name]` and `holocron update skills [name]` delegate
  * to the corresponding `npx skills` subcommands from the upstream skills CLI.
  */
 
 import { spawnSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -19,8 +22,10 @@ import { installSkills } from "../setup/index.js";
 import type {
 	ExecFn,
 	RunSkillsInput,
+	RunSkillsListInput,
 	RunSkillsRemoveInput,
 	RunSkillsUpdateInput,
+	SkillsListReport,
 	SkillsRemoveReport,
 	SkillsUpdateReport,
 } from "./skills.type.js";
@@ -65,6 +70,31 @@ export async function runSkillsInstall(input: RunSkillsInput): Promise<void> {
 		print(`  ✗ ${message}`);
 		logger.warn({ agent: config.agent, reason: message, status: "fail" }, "skills install: done");
 	}
+}
+
+const readSkillDirs = (dir: string): string[] => {
+	try {
+		return readdirSync(dir, { withFileTypes: true })
+			.filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
+			.map((entry) => entry.name);
+	} catch {
+		return [];
+	}
+};
+
+/** The names of the skills installed in `.agents/skills/`, sorted. */
+export function listInstalledSkills(repoRoot: string, readDir: (dir: string) => string[] = readSkillDirs): string[] {
+	return readDir(join(repoRoot, ".agents", "skills")).sort();
+}
+
+export function runSkillsList(input: RunSkillsListInput): SkillsListReport {
+	const print = input.print ?? ((line: string) => console.log(line));
+	const skills = listInstalledSkills(input.context.repoRoot, input.readDir);
+	if (skills.length === 0) {
+		print("No skills installed in .agents/skills/");
+	}
+	for (const name of skills) print(name);
+	return { status: "ok", skills };
 }
 
 export function runSkillsRemove(input: RunSkillsRemoveInput): SkillsRemoveReport {

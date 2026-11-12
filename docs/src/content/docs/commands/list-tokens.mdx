@@ -1,10 +1,10 @@
 ---
-title: "auth list"
+title: "list tokens"
 description: List the providers that have a token in the OS keyring.
 ---
 
 ```bash
-holocron auth list
+holocron list tokens
 ```
 
 Lists every provider that has a stored token. It prints provider names only, never a token.
@@ -12,7 +12,7 @@ Lists every provider that has a stored token. It prints provider names only, nev
 ## Example
 
 ```bash
-holocron auth list
+holocron list tokens
 ```
 
 ```text
@@ -21,4 +21,4 @@ github.read    ✓ stored
 vercel         ✓ stored
 ```
 
-Related: [`new token`](/holocron/commands/new-token/), [`auth check`](/holocron/commands/auth-check/), [`auth unset`](/holocron/commands/auth-unset/).
+Related: [`new token`](/holocron/commands/new-token/), [`auth check`](/holocron/commands/auth-check/), [`remove token`](/holocron/commands/remove-token/).

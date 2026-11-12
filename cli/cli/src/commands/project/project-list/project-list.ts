@@ -1,5 +1,5 @@
 /**
- * `holocron project list` — the owner's boards, newest first, with their number, name and state. Read-only, so
+ * `holocron list projects` — the owner's boards, newest first, with their number, name and state. Read-only, so
  * `--dry-run` changes nothing here.
  */
 
@@ -10,14 +10,14 @@ import { getLogger } from "../../../observability/logger/index.js";
 import { openProjects, type ProjectReport, type ProjectRunInput } from "../open-projects/index.js";
 import { createProjectRows } from "../project-rows/index.js";
 
-const COMMAND = "project list";
+const COMMAND = "list projects";
 
 export async function runProjectList(input: ProjectRunInput): Promise<ProjectReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const rows = createProjectRows(print, input.logger ?? getLogger());
 	const { projects, options } = await openProjects(input, COMMAND);
 
-	print(style.header(`Holocron project list — ${options.owner}`));
+	print(style.header(`Holocron list projects — ${options.owner}`));
 	print("");
 	try {
 		const boards = (await projects.list(options.owner)).toSorted((a, b) => (b.number ?? 0) - (a.number ?? 0));

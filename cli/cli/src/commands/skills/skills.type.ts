@@ -17,6 +17,21 @@ export interface RunSkillsInput {
 	logger?: Logger;
 }
 
+// ── list ─────────────────────────────────────────────────────────────────────
+
+export interface RunSkillsListInput {
+	context: RuntimeContext;
+	print?: (line: string) => void;
+	/** Names of the directories in a folder; defaults to reading the disk. A missing folder is an empty list. */
+	readDir?: (dir: string) => string[];
+}
+
+export interface SkillsListReport {
+	status: "ok";
+	/** Installed skill names, sorted. */
+	skills: string[];
+}
+
 // ── remove ───────────────────────────────────────────────────────────────────
 
 export interface RunSkillsRemoveInput {

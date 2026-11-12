@@ -346,7 +346,7 @@ describe("runAuthUnset", () => {
 		expect(lines.join("\n")).toMatch(/removed doppler/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", status: "ok" }),
-			"auth unset: doppler"
+			"remove token: doppler"
 		);
 	});
 
@@ -641,7 +641,7 @@ describe("runAuthList", () => {
 		expect(joined).toMatch(/✗ infisical — expired/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ providers: 2, ok: 1, fail: 1 }),
-			"auth list: done"
+			"list tokens: done"
 		);
 	});
 

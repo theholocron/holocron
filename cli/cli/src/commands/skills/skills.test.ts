@@ -18,7 +18,7 @@ import { fakeLogger } from "@theholocron/observability/testing";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import * as setupIndex from "../setup/index.js";
 import { installSkills } from "../setup/index.js";
-import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";
+import { listInstalledSkills, runSkillsInstall, runSkillsList, runSkillsRemove, runSkillsUpdate } from "./skills.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -513,6 +513,53 @@ describe("defaultExec", () => {
 
 		const report = runSkillsUpdate({ context: { repoRoot: "/repo" } });
 		expect(report.status).toBe("fail");
+	});
+});
+
+// ── runSkillsList ─────────────────────────────────────────────────────────────
+
+describe("listInstalledSkills", () => {
+	it("reads .agents/skills under the repo root and sorts the names", () => {
+		const readDir = vi.fn(() => ["pr-workflow", "commit-standards"]);
+		expect(listInstalledSkills("/repo", readDir)).toEqual(["commit-standards", "pr-workflow"]);
+		expect(readDir).toHaveBeenCalledWith(join("/repo", ".agents", "skills"));
+	});
+
+	it("reads the directories on disk, and a missing folder is an empty list", async () => {
+		const root = await mkdtemp(join(tmpdir(), "skills-list-"));
+		try {
+			expect(listInstalledSkills(root)).toEqual([]);
+			await mkdir(join(root, ".agents", "skills", "b"), { recursive: true });
+			await mkdir(join(root, ".agents", "skills", "a"), { recursive: true });
+			await writeFile(join(root, ".agents", "skills", "README.md"), "x");
+			expect(listInstalledSkills(root)).toEqual(["a", "b"]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("runSkillsList", () => {
+	it("prints each installed skill on its own line", () => {
+		const lines: string[] = [];
+		const report = runSkillsList({
+			context: { repoRoot: "/repo" },
+			print: (line) => lines.push(line),
+			readDir: () => ["b", "a"],
+		});
+		expect(lines).toEqual(["a", "b"]);
+		expect(report).toEqual({ status: "ok", skills: ["a", "b"] });
+	});
+
+	it("says so when nothing is installed", () => {
+		const lines: string[] = [];
+		const report = runSkillsList({
+			context: { repoRoot: "/repo" },
+			print: (line) => lines.push(line),
+			readDir: () => [],
+		});
+		expect(lines).toEqual(["No skills installed in .agents/skills/"]);
+		expect(report.skills).toEqual([]);
 	});
 });
 

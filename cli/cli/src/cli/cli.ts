@@ -18,6 +18,7 @@ import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
 import { ideasCommand } from "../commands/ideas/index.js";
+import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
 import { monitoringCommand } from "../commands/monitoring/monitoring.command.js";
@@ -27,6 +28,7 @@ import { packageCommand } from "../commands/package/package.command.js";
 import { probeCommand } from "../commands/probe/index.js";
 import { projectCommand } from "../commands/project/index.js";
 import { providerCommand } from "../commands/provider/index.js";
+import { removeCommand } from "../commands/remove/index.js";
 import { repoCommand } from "../commands/repo/repo.command.js";
 import { runCommand } from "../commands/run/run.command.js";
 import { secretsCommand } from "../commands/secrets/secrets.command.js";
@@ -147,6 +149,8 @@ try {
 		.command(menuCommand(CLI_VERSION) as never)
 		.command(repoCommand as never)
 		.command(newCommand as never)
+		.command(listCommand as never)
+		.command(removeCommand as never)
 		.command(probeCommand as never)
 		.command(providerCommand as never)
 		.command(secretsCommand as never)

@@ -78,7 +78,7 @@ describe.concurrent("holocron (the built CLI)", () => {
 			expect(doctor.code).toBe(0);
 			expect(doctor.stdout).toMatch(/notifications\s+Check the layout/);
 			expect(skills.code).toBe(0);
-			for (const sub of ["install", "remove \\[names..\\]", "update \\[name\\]"]) {
+			for (const sub of ["install", "update \\[name\\]"]) {
 				expect(skills.stdout).toMatch(new RegExp(`skills ${sub}`));
 			}
 			expect(skills.stdout).not.toMatch(/\$0/);
