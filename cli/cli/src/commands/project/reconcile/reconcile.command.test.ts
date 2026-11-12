@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("project reconcile command", () => {
+describe("reconcile project command", () => {
 	it("reconciles every declared board with the dry-run flag and the resolved org", async () => {
 		await run({ dryRun: true });
 		expect(runProjectReconcile.mock.calls[0]![0]).toEqual({
@@ -54,7 +54,7 @@ describe("project reconcile command", () => {
 		expect(runProjectReconcile).not.toHaveBeenCalled();
 	});
 
-	it("is `reconcile [board]`", () => {
-		expect(projectReconcileCommand.command).toBe("reconcile [board]");
+	it("is `project [board]`", () => {
+		expect(projectReconcileCommand.command).toBe("project [board]");
 	});
 });

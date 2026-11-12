@@ -1,10 +1,10 @@
 ---
-title: "config show"
+title: "show config"
 description: Print the fully-resolved Holocron configuration as JSON.
 ---
 
 ```bash
-holocron config show [--cwd <path>]
+holocron show config [--cwd <path>]
 ```
 
 Loads and resolves `holocron.config.ts` (or `.json`), then prints the result as formatted JSON to stdout. Useful for debugging config parsing, provider resolution, and option merging.
@@ -14,7 +14,7 @@ Loads and resolves `holocron.config.ts` (or `.json`), then prints the result as 
 The output is the fully-resolved `ResolvedHolocronConfig` object — provider short names are expanded to their full package names, entries are normalized to canonical tuple form, and defaults are applied.
 
 ```bash
-holocron config show
+holocron show config
 ```
 
 Example output:

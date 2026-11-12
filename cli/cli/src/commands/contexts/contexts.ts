@@ -45,7 +45,7 @@ export const COMMAND_CONTEXTS = {
 	"deploy on-release": "repo-aware",
 	// Copies a built package and pins its dependency versions; loads no plugin.
 	"deploy stage": "repo-aware",
-	"config show": "repo-aware",
+	"show config": "repo-aware",
 	// Writes README + package.json metadata from config; never loads a plugin.
 	"sync readme": "repo-aware",
 
@@ -59,7 +59,7 @@ export const COMMAND_CONTEXTS = {
 	// `project` subcommands call the `projects` provider, so its package must be resolvable.
 	"list projects": "workspace",
 	"new project": "workspace",
-	"project close": "workspace",
+	"close project": "workspace",
 	"setup project": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
@@ -67,7 +67,7 @@ export const COMMAND_CONTEXTS = {
 	"dev serve": "repo-aware",
 	"new channel": "workspace",
 	"setup notifications": "workspace",
-	"notifications link": "workspace",
+	"link account": "workspace",
 	"new server": "workspace",
 	"sync roles": "workspace",
 	// Loads the notifications provider to list and delete the extra posts of a forum.
@@ -75,7 +75,7 @@ export const COMMAND_CONTEXTS = {
 	// Loads the notifications provider to keep a discussion post per ADR and spec.
 	"sync specs": "workspace",
 	// Reads a board's items and sets statuses through the `projects` provider.
-	"project reconcile": "workspace",
+	"reconcile project": "workspace",
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",
@@ -85,8 +85,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor logs": "workspace",
 	// Reads the vault environment that holds each App's id and key, through the `vault` provider.
 	"doctor github-app": "workspace",
-	// `project move` calls the `projects` provider, so its package must be resolvable.
-	"project move": "workspace",
+	// `move issues` calls the `projects` provider, so its package must be resolvable.
+	"move issues": "workspace",
 	// Reads and extends an organization property through the `source` provider.
 	"apply properties": "workspace",
 	// `migrate` loads the source and target `issues` providers (and `projects` for a board), so their packages must be resolvable.

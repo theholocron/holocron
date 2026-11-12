@@ -7,7 +7,7 @@ import { runProjectClose } from "./project-close.js";
 const boards = [board({ number: 7, name: "v5" }), board({ number: 4, name: "v4", closed: true })];
 const withBoards = () => fakeProjects({ list: async () => boards });
 
-describe("project close", () => {
+describe("close project", () => {
 	it("closes an open board by number after confirming", async () => {
 		const projects = withBoards();
 		const { input } = inputFor(projects);

@@ -6,7 +6,7 @@ import type { GlobalArgs } from "../global-args/index.js";
 import { type ConfigShowArgs, configShowArgs } from "./config-show.args.js";
 
 export const configShowCommand: CommandModule<GlobalArgs, ConfigShowArgs> = {
-	command: "config show",
+	command: "config",
 	describe: "Print the resolved holocron config",
 	builder: configShowArgs,
 	handler: async (argv) => {

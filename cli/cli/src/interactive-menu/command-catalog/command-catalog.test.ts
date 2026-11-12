@@ -108,9 +108,9 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");
 	});
 
-	it("does not collapse a one-command group: `config show` is config › then show", () => {
-		expect(names()).toContain("config ›");
-		expect(names(["config"])).toEqual(["show"]);
+	it("does not collapse a one-command group: `show config` is show › then config", () => {
+		expect(names()).toContain("show ›");
+		expect(names(["show"])).toEqual(["config"]);
 		expect(names(["sync"])).toEqual([
 			"sync (run it)",
 			"secrets",

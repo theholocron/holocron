@@ -1,10 +1,10 @@
 ---
-title: "project reconcile"
+title: "reconcile project"
 description: Set the status of board items where a rule says so (blocked, unblocked, closed), and the hourly task that runs it.
 ---
 
 ```bash
-holocron project reconcile [board] [--dry-run]
+holocron reconcile project [board] [--dry-run]
 ```
 
 Reads every item of each board that `providers.projects` declares, and sets the item's **status** where one of these rules applies. It touches status only, never priority or any other field, and re-running it changes nothing that is already right.
@@ -34,7 +34,7 @@ The rules are one pure function, `planReconcile()`, so Sentinel can supply the s
 
 ## Run on a schedule
 
-The job is the task `reconcile-projects`, like `check-tokens`: a registry task, a reusable workflow template (`ci/workflows/reconcile-projects.yml`) and a thin caller generated from the `tasks:` list (add `"reconcile-projects"` to enable it in a repo that declares boards). Hourly, and on demand, it runs `holocron project reconcile` and then `holocron doctor project`. The reconcile output goes into the run's summary. A failure of either step fails the run, and the run reaches `#alerts` through `platform.notifications.yml`, which lists the workflow as `reconcile-projects`. What reconcile changed is not an alert.
+The job is the task `reconcile-projects`, like `check-tokens`: a registry task, a reusable workflow template (`ci/workflows/reconcile-projects.yml`) and a thin caller generated from the `tasks:` list (add `"reconcile-projects"` to enable it in a repo that declares boards). Hourly, and on demand, it runs `holocron reconcile project` and then `holocron doctor project`. The reconcile output goes into the run's summary. A failure of either step fails the run, and the run reaches `#alerts` through `platform.notifications.yml`, which lists the workflow as `reconcile-projects`. What reconcile changed is not an alert.
 
 `GITHUB_TOKEN` cannot write an organization project, so the run mints the GitHub App's installation token with `actions/create-github-app-token`. Two things are done once, by a person:
 

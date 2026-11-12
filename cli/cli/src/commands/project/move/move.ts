@@ -1,5 +1,5 @@
 /**
- * `holocron project move <from> <to>` — carry the open items of one board to another by rule.
+ * `holocron move issues <from> <to>` — carry the open items of one board to another by rule.
  *
  * Every open item goes with its status and priority; a closed or merged one stays behind, and the provider sets it to
  * a done status on the old board when it shows another. An item already on the target keeps its target values. It
@@ -25,13 +25,13 @@ import type { ProjectMoveReport, RunProjectMoveInput } from "./move.type.js";
 export async function runProjectMove(input: RunProjectMoveInput): Promise<ProjectMoveReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const stop = (status: "fail" | "skip", reason: string): ProjectMoveReport => {
-		print(statusRow(status, ["project move", reason]));
+		print(statusRow(status, ["move issues", reason]));
 		return { status, reason };
 	};
 
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "project move");
+	assertPluginsResolvable(loader, "move issues");
 	const opened = await openBoardContext({
 		loaded: input.loaded,
 		context: input.context,
@@ -74,7 +74,7 @@ export async function runProjectMove(input: RunProjectMoveInput): Promise<Projec
 				await projects.items(owner, from, template),
 				await projects.items(owner, to, template)
 			);
-			print(statusRow("skip", ["project move", "dry run: nothing was moved"]));
+			print(statusRow("skip", ["move issues", "dry run: nothing was moved"]));
 			printReport(preview, print, true);
 			return { status: "ok", moved: preview };
 		} catch (err) {
@@ -86,21 +86,21 @@ export async function runProjectMove(input: RunProjectMoveInput): Promise<Projec
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
 			throw new NonInteractiveError(
-				`\`project move\` changes boards on ${projects.providerName}; pass --yes to run it without asking`
+				`\`move issues\` changes boards on ${projects.providerName}; pass --yes to run it without asking`
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
 			`Move the open items of "${from.name}" to "${to.name}"?`
 		);
 		if (!proceed) {
-			print(statusRow("skip", ["project move", "cancelled; nothing was changed"]));
+			print(statusRow("skip", ["move issues", "cancelled; nothing was changed"]));
 			return { status: "cancelled" };
 		}
 	}
 
 	try {
 		const moved = await projects.move(owner, from, to, template);
-		print(statusRow("ok", ["project move", `"${from.name}" to "${to.name}"`]));
+		print(statusRow("ok", ["move issues", `"${from.name}" to "${to.name}"`]));
 		printReport(moved, print, false);
 		return { status: "ok", moved };
 	} catch (err) {

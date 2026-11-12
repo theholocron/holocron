@@ -8,7 +8,7 @@ export interface RunProjectCloseInput extends ProjectRunInput {
 	yes?: boolean | undefined;
 }
 
-/** What `holocron project close` did. */
+/** What `holocron close project` did. */
 export interface ProjectCloseReport extends ProjectReport {
 	/** Whether the board was closed by this run. */
 	closed: boolean;

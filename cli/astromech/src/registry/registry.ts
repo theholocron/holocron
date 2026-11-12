@@ -275,10 +275,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// so it is never part of `holocron run ci` and has no local runner (the README has the local invocation).
 	"sync-secrets": { group: "Platform", scope: "repo", local: null },
 	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
-	// Runs `holocron project reconcile`: sets each item's status on the declared project boards from its issue state and
+	// Runs `holocron reconcile project`: sets each item's status on the declared project boards from its issue state and
 	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.
 	// Scheduled hourly by its workflow; never part of `holocron run ci` (it writes to a live board with a GitHub App token).
-	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "project reconcile" } },
+	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "reconcile project" } },
 
 	// ── Knowledge — published content, not software ───────────────────────
 	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull

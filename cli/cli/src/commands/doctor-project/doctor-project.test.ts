@@ -231,7 +231,7 @@ describe("doctor project: the items", () => {
 			item({ key: "#7", title: "orphan", status: undefined, category: undefined }),
 		]);
 		expect(report.status).toBe("ok");
-		expect(text).toContain("info: 1 item(s); `project reconcile` fixes this");
+		expect(text).toContain("info: 1 item(s); `reconcile project` fixes this");
 		expect(text).toContain("- #7 orphan");
 	});
 

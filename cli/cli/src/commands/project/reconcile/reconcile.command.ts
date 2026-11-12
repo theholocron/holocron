@@ -9,7 +9,7 @@ import { runProjectReconcile } from "./index.js";
 import { type ProjectReconcileArgs, projectReconcileArgs } from "./reconcile.args.js";
 
 export const projectReconcileCommand: CommandModule<GlobalArgs, ProjectReconcileArgs> = {
-	command: "reconcile [board]",
+	command: "project [board]",
 	describe: "Set item statuses where a rule says so: blocked, unblocked, closed (status only)",
 	builder: projectReconcileArgs,
 	handler: async (argv) => {

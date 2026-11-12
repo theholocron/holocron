@@ -7,11 +7,11 @@ The layout of your community server (categories, channels, webhooks, roles, who 
 
 ## What you need first
 
-| Credential                                          | Where it comes from                          | Stored as                                           |
-| --------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
-| Bot token                                           | Developer portal → Bot → Reset Token         | `holocron new token discord.holonet <token>`        |
-| OAuth client secret (only for `notifications link`) | Developer portal → OAuth2 → Reset Secret     | `holocron new token discord.holonet.oauth <secret>` |
-| GitHub tokens                                       | See the [Token Reference](/holocron/tokens/) | `github.secrets`, `github.org`, `github.user-sync`  |
+| Credential                                    | Where it comes from                          | Stored as                                           |
+| --------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
+| Bot token                                     | Developer portal → Bot → Reset Token         | `holocron new token discord.holonet <token>`        |
+| OAuth client secret (only for `link account`) | Developer portal → OAuth2 → Reset Secret     | `holocron new token discord.holonet.oauth <secret>` |
+| GitHub tokens                                 | See the [Token Reference](/holocron/tokens/) | `github.secrets`, `github.org`, `github.user-sync`  |
 
 The bot token and the client secret are two different values that look alike; the portal shows neither again once you leave the page. The full list, with the exact GitHub scopes, is in the [Token Reference](/holocron/tokens/).
 
@@ -22,7 +22,7 @@ The bot token and the client secret are two different values that look alike; th
 1. Discord → User Settings → Advanced → turn on **Developer Mode**.
 2. Right-click your name or avatar → **Copy User ID**.
 
-After [`notifications link`](/holocron/commands/notifications-link/) it is also the `member` value next to your GitHub login in `notifications/discord-links.json` in the org's `.github-private` repo.
+After [`link account`](/holocron/commands/link-account/) it is also the `member` value next to your GitHub login in `notifications/discord-links.json` in the org's `.github-private` repo.
 
 ## Create a new server
 
@@ -58,11 +58,11 @@ Turning community features on is the one step that needs more than the bot keeps
 ## Connect people to their roles
 
 ```bash
-holocron notifications link        # each person signs in once to tie their Discord account to their GitHub login
+holocron link account        # each person signs in once to tie their Discord account to their GitHub login
 holocron sync roles  # give roles to the members of the GitHub team a role follows
 ```
 
-See [`notifications link`](/holocron/commands/notifications-link/) and [`sync roles`](/holocron/commands/sync-roles/).
+See [`link account`](/holocron/commands/link-account/) and [`sync roles`](/holocron/commands/sync-roles/).
 
 ## Check it
 

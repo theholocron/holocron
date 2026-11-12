@@ -10,23 +10,23 @@ vi.mock("../../config/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../config/index.js")>()),
 	loadConfig,
 }));
-vi.mock("./project-list/project-list.js", () => ({ runProjectList }));
-vi.mock("./project-create/project-create.js", () => ({ runProjectCreate }));
-vi.mock("./project-close/project-close.js", () => ({ runProjectClose }));
-vi.mock("./project-setup/project-setup.js", () => ({ runProjectSetup }));
+vi.mock("../project/project-list/project-list.js", () => ({ runProjectList }));
+vi.mock("../project/project-create/project-create.js", () => ({ runProjectCreate }));
+vi.mock("../project/project-close/project-close.js", () => ({ runProjectClose }));
+vi.mock("../project/project-setup/project-setup.js", () => ({ runProjectSetup }));
 vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
+import { closeCommand } from "../close/close.command.js";
 import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { setupCommand } from "../setup/setup.command.js";
-import { projectCommand } from "./index.js";
 
-const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args]);
+const go = (...args: string[]) => runCommand(closeCommand, ["close", "project", ...args]);
 // `create` moved to `new project`; the table tests below still name it `create`.
 const goSub = (sub: string, ...rest: string[]) =>
 	sub === "create"
@@ -35,7 +35,7 @@ const goSub = (sub: string, ...rest: string[]) =>
 			? runCommand(setupCommand, ["setup", "project", ...rest])
 			: sub === "list"
 				? runCommand(listCommand, ["list", "projects", ...rest])
-				: go(sub, ...rest);
+				: go(...rest);
 const ok = { status: "ok", summary: { ok: 1, fail: 0, skip: 0 } };
 
 beforeEach(() => {
@@ -70,12 +70,12 @@ describe("project commands", () => {
 	});
 
 	it("close takes a number as text", async () => {
-		await go("close", "7", "--yes");
+		await go("7", "--yes");
 		expect(runProjectClose).toHaveBeenCalledWith(expect.objectContaining({ board: "7", yes: true }));
 	});
 
 	it("close needs a board", async () => {
-		await expect(go("close")).rejects.toThrow();
+		await expect(go()).rejects.toThrow();
 		expect(runProjectClose).not.toHaveBeenCalled();
 	});
 
@@ -137,6 +137,6 @@ describe("project commands", () => {
 	});
 
 	it("the group itself has nothing to run", () => {
-		expect(projectCommand.handler({} as never)).toBeUndefined();
+		expect(closeCommand.handler({} as never)).toBeUndefined();
 	});
 });
