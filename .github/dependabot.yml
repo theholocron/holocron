@@ -42,7 +42,11 @@ updates:
           - patch
 
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /ci/workflows
+      - /ci/workflows/*
+      - /ci/actions/*
     schedule:
       interval: weekly
     labels:

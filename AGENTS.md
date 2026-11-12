@@ -336,6 +336,7 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   that a catalog lists. Security updates are not affected. To raise a floor,
   edit its line in `pnpm-workspace.yaml` by hand, in the PR that needs the newer
   version, then run `pnpm install`.
+  In a repo that contains the reusables (`hostsReusables()`), the github-actions entry also watches `/ci/workflows`, `/ci/workflows/*` and `/ci/actions/*` (`sources` in `createDependabot()`), so a pin bump reaches the generator sources and not only the `.github/workflows` copies; otherwise `validate:generated` fails on every action bump. Whether Dependabot reads workflow files from those paths is taken from reports, not its documentation: if a PR bumps only `.github/workflows`, copy the pins into the sources by hand.
   The same file sets `labels: [dependencies]` on both update entries, so Dependabot adds no ecosystem label
   (`javascript`, `github_actions`), which `setup` removes as stale (#1967).
 

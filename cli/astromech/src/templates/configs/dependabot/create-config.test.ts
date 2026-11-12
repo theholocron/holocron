@@ -56,4 +56,20 @@ describe("dependabot createConfig", () => {
 		const out = createConfig({ ignore: ["@x/a-client"] });
 		expect(out).not.toContain("versions:");
 	});
+
+	it("watches the sources next to .github/workflows in the github-actions entry only", () => {
+		const out = createConfig({ sources: ["/ci/workflows", "/ci/actions/*", "/ci/workflows"] });
+		const split = out.indexOf("package-ecosystem: github-actions");
+		expect(out.slice(split)).toContain(
+			"    directories:\n      - /\n      - /ci/workflows\n      - /ci/actions/*\n"
+		);
+		expect(out.slice(split)).not.toContain("    directory: /");
+		expect(out.slice(0, split)).toContain("    directory: /");
+		expect(out.match(/- \/ci\/workflows\n/g)).toHaveLength(1);
+	});
+
+	it("leaves the single directory alone with no sources", () => {
+		expect(createConfig({ sources: [] })).toBe(createConfig());
+		expect(createConfig()).not.toContain("directories:");
+	});
 });
