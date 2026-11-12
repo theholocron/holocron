@@ -1,3 +1,25 @@
+## [5.0.0-alpha.423](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.422...v5.0.0-alpha.423) (2026-11-12)
+
+### Refactoring
+
+* **cli:** ♻️ add check, export and resolve ([#2117](https://github.com/theholocron/holocron/issues/2117)) ([81b3ea3](https://github.com/theholocron/holocron/commit/81b3ea34f3bb1300a7744c17088bc1864612fef8)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add close, move, reconcile, link and show ([#2121](https://github.com/theholocron/holocron/issues/2121)) ([0b69d6a](https://github.com/theholocron/holocron/commit/0b69d6a5755fd7ecbb534015f5188b8751066f22)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add install and update, and sweep the old names ([#2122](https://github.com/theholocron/holocron/issues/2122)) ([0ea4071](https://github.com/theholocron/holocron/commit/0ea40712fe111cd96ef8b27fbc095d096c264f81)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add list and remove, and list skills ([#2116](https://github.com/theholocron/holocron/issues/2116)) ([0a22ed6](https://github.com/theholocron/holocron/commit/0a22ed66fdbc38d3c7961d7c5e3b40da84dc294c)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add publish bump-versions, package and tag ([#2120](https://github.com/theholocron/holocron/issues/2120)) ([4ed311d](https://github.com/theholocron/holocron/commit/4ed311d746eec70d64e3ed1b6a6632e501bc794e)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ add setup, upgrade, cleanup and apply ([#2119](https://github.com/theholocron/holocron/issues/2119)) ([b2d3e38](https://github.com/theholocron/holocron/commit/b2d3e381494b5c5a4a6e83068040c01b101da58a)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ move every sync under sync ([#2118](https://github.com/theholocron/holocron/issues/2118)) ([1c82425](https://github.com/theholocron/holocron/commit/1c8242582c347523204c011d264a6b23f3bf1855)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+* **cli:** ♻️ move the create commands under new ([#2115](https://github.com/theholocron/holocron/issues/2115)) ([817960b](https://github.com/theholocron/holocron/commit/817960bf35a685248934d560c781ead4b2855154)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
+### Documentation
+
+* **specs:** 📝 move the settled secrets specs out of .notes and accept them ([#2127](https://github.com/theholocron/holocron/issues/2127)) ([5a22112](https://github.com/theholocron/holocron/commit/5a2211296993a2a302250594b14f168c29a4cfba)), closes [#2061](https://github.com/theholocron/holocron/issues/2061) [#2062](https://github.com/theholocron/holocron/issues/2062) [#2063](https://github.com/theholocron/holocron/issues/2063) [#2069](https://github.com/theholocron/holocron/issues/2069) [#2076](https://github.com/theholocron/holocron/issues/2076) [#2089](https://github.com/theholocron/holocron/issues/2089) [#1817](https://github.com/theholocron/holocron/issues/1817)
+
+### Chores
+
+* **deps:** bump posthog-node ([#2126](https://github.com/theholocron/holocron/issues/2126)) ([f661e59](https://github.com/theholocron/holocron/commit/f661e591faf6b8ad6f528d8adaaf2caa4f3c30eb))
+* **deps:** bump the all-actions group with 7 updates ([#2100](https://github.com/theholocron/holocron/issues/2100)) ([4c3beff](https://github.com/theholocron/holocron/commit/4c3beff946b2128fba3f36aa551a99021527f3b9))
+
 ## [5.0.0-alpha.422](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.421...v5.0.0-alpha.422) (2026-11-12)
 
 ### Bug Fixes
