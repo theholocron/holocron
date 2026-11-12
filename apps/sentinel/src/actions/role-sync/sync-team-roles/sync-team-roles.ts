@@ -1,7 +1,7 @@
 /**
  * Keeps server roles equal to their GitHub teams, for one delivery (holocron#1595).
  *
- * The CLI's `holocron notifications sync-roles` and this are two adapters over one function: the checks and the
+ * The CLI's `holocron sync roles` and this are two adapters over one function: the checks and the
  * sync are `roleTeamProblem`, `sourceProblem`, `readLinks` and `syncRoles` from `@theholocron/cli`, so what
  * counts as in sync, who is never removed (a holder nobody linked) and how a failure is recorded cannot differ
  * between them. What is Sentinel's own is which roles a delivery concerns, and reporting a result instead of

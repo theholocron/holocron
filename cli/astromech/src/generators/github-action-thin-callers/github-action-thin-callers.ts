@@ -3,7 +3,7 @@
  *
  * `WORKFLOW_TEMPLATES` holds each reusable `.github/workflows/<name>.yml`
  * (synced to `theholocron/.github`); `generateThinCallerContent` wraps one
- * into the thin caller `holocron repo setup` / `holocron repo sync` write locally.
+ * into the thin caller `holocron repo setup` / `holocron sync` write locally.
  */
 
 import { idFromSource } from "@theholocron/ci";

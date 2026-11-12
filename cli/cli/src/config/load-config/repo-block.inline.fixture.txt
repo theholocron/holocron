@@ -11,7 +11,7 @@ variables: {
 		TURBO_TEAM: "iamnewton",
 	},
 },
-// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
+// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron sync secrets
 // "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names
 // only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
 // `doctor secrets` expects every key listed here at its scope.

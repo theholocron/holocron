@@ -3,10 +3,10 @@
 # theholocron — agent operating contract
 
 Org-level agent conventions for all `theholocron` repositories. The canonical
-copy is `.holocron/org.md` in `theholocron/holocron`. `holocron repo sync` writes
+copy is `.holocron/org.md` in `theholocron/holocron`. `holocron sync` writes
 it into each repo's `AGENTS.md` between generated markers, so no repo needs a
 sibling checkout to read it; holocron itself imports it with `@.holocron/org.md`.
-Edit it in holocron, then run `holocron repo sync`.
+Edit it in holocron, then run `holocron sync`.
 
 ## Repo map
 
@@ -96,7 +96,7 @@ Every other repo (`configs`, `clients`, `holocron`, `.github-private`) gets
 **thin callers** — lightweight `.github/workflows/` files that delegate to
 `.github` via `uses: theholocron/.github/.github/workflows/<name>.yml@main` and
 `secrets: inherit`. Thin callers are generated from the manifest by
-`astromech.thinCallers()` (`holocron repo sync` / `holocron repo setup`).
+`astromech.thinCallers()` (`holocron sync` / `holocron repo setup`).
 
 ### Sync
 
@@ -220,7 +220,7 @@ Bump both catalog entries together when upgrading — they publish in lockstep.
 
 ### README structure
 
-Every repo README follows this layout. Use `holocron repo sync readme` to regenerate the Installation + Usage block automatically.
+Every repo README follows this layout. Use `holocron sync readme` to regenerate the Installation + Usage block automatically.
 
 ```markdown
 # Package Name
@@ -261,7 +261,7 @@ Link to docs site.
 **Rules:**
 
 - Never write "Getting Started" — use separate "Installation" and "Usage" headings.
-- The `<!-- holocron:description -->` and `<!-- holocron:installation -->` marker blocks must stay in sync with the config/package; run `holocron repo sync readme` after changing `description` in `holocron.config.ts` or `bin` in `package.json`.
+- The `<!-- holocron:description -->` and `<!-- holocron:installation -->` marker blocks must stay in sync with the config/package; run `holocron sync readme` after changing `description` in `holocron.config.ts` or `bin` in `package.json`.
 - The "What's Included" section belongs only in template repos (cli-template, node-template, react-template, etc.) where it describes what the template ships. Library and app repos omit it.
 
 ---

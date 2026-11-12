@@ -53,7 +53,6 @@ import { projectSetupEntry } from "../../commands/project/project-setup/project-
 import { projectReconcileEntry } from "../../commands/project/reconcile/reconcile.entry.js";
 import { providerEntry } from "../../commands/provider/provider.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
-import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
 import { repoPropertiesApplyEntry } from "../../commands/repo-properties/repo-properties-apply.entry.js";
 import { runCiEntry } from "../../commands/run/run-ci.entry.js";
@@ -66,6 +65,7 @@ import { skillsListEntry } from "../../commands/skills/skills-list.entry.js";
 import { skillsRemoveEntry } from "../../commands/skills/skills-remove.entry.js";
 import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js";
 import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
+import { syncEntry } from "../../commands/sync/sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
 import { syncIssuesEntry } from "../../commands/sync-issues/sync-issues.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
@@ -128,7 +128,7 @@ const registry = createCommandRegistry(
 		npmBumpVersionsEntry,
 		moveTagEntry,
 		publishEntry,
-		repoSyncEntry,
+		syncEntry,
 		repoCleanupBranchesEntry,
 		runCiEntry,
 		syncGithubEntry,

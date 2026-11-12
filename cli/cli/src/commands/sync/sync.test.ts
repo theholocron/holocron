@@ -1976,7 +1976,7 @@ describe("runSync", () => {
 			);
 			expect(content).toContain("AUTO-GENERATED");
 			// the same line `repo setup` writes: the two commands leave a workflow as they found it
-			expect(content).toContain("# Tool:    holocron repo sync\n");
+			expect(content).toContain("# Tool:    holocron sync\n");
 			expect(content).toContain("sourceQuality.staticAnalysis.yml@main");
 		});
 

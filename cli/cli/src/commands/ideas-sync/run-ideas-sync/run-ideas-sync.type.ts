@@ -25,7 +25,7 @@ export interface RunIdeasSyncInput {
 	print?: (line: string) => void;
 }
 
-/** How an `ideas sync` run went. */
+/** How an `sync ideas` run went. */
 export interface IdeasSyncReport {
 	/** `fail` if a row failed, `cancelled` when the person said no, otherwise `ok`. */
 	status: "ok" | "fail" | "cancelled";

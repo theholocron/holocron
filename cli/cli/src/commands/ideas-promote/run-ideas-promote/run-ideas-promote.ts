@@ -3,8 +3,8 @@
  *
  * It reads the issue through the repo's `issues` provider (`Issues.get`, which parses the key in the tracker's own
  * syntax) and writes `.notes/<name>.spec.md`: draft frontmatter with the `issue:`, the title, and a `Problem` section
- * with the issue's text, less the `Filed from idea:` line and the hidden marker `ideas sync` added. It writes no `id`
- * (`specs sync` numbers the spec once it is on the default branch). It refuses to overwrite a file, and it never edits
+ * with the issue's text, less the `Filed from idea:` line and the hidden marker `sync ideas` added. It writes no `id`
+ * (`sync specs` numbers the spec once it is on the default branch). It refuses to overwrite a file, and it never edits
  * or closes the issue and never touches the vault, whose note was trashed when the idea was filed. Any issue can be
  * promoted; the row says whether it carried the idea marker. It writes, so it asks first unless `--dry-run` or
  * `--yes` (without a terminal it refuses instead).

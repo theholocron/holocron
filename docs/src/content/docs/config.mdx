@@ -48,7 +48,7 @@ export default defineConfig({
   // Project name. Derived from package.json#name when absent.
   name: "my-project",
 
-  // Short description. Written to package.json#description and the GitHub repo by `holocron repo sync`.
+  // Short description. Written to package.json#description and the GitHub repo by `holocron sync`.
   description: "Short description",
 
   // Project homepage. Synced to package.json#homepage and the GitHub repo's website field.
@@ -76,15 +76,15 @@ export default defineConfig({
     // GitHub repository topics.
     topics: ["typescript", "node", "cli"],
     // GitHub Actions variables (workflows read them as `vars.NAME`): literal values, or `sync` names the vault
-    // environment `holocron secrets sync` fills them from (names only; one source per name).
+    // environment `holocron sync secrets` fills them from (names only; one source per name).
     variables: {
       org: { TURBO_TEAM: "my-team" },
       sync: [{ environment: "Vars", scope: "org=my-org", keys: ["CLOUDFLARE_ACCOUNT_ID"] }],
     },
     // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
-    // `sync` names the vault environments `holocron secrets sync` fills secrets from, and where (no `keys` = every key).
+    // `sync` names the vault environments `holocron sync secrets` fills secrets from, and where (no `keys` = every key).
     // An `org=` scope must name its readers: `repos` (visibility "selected"), never every repository.
-    // `deploy` names what a deployment or Worker may receive from `secrets sync` (a `prefix` and/or `keys`; required).
+    // `deploy` names what a deployment or Worker may receive from `sync secrets` (a `prefix` and/or `keys`; required).
     secrets: {
       repo: ["TURBO_TOKEN"],
       org: ["NPM_TOKEN"],
@@ -130,7 +130,7 @@ export default defineConfig({
   // per-package contexts neither scale nor reliably appear.
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
-  // `holocron repo sync` reconciles package.json#scripts (merge, never clobber): the
+  // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
   // `holocron` entry + a script per runnable task: `turbo run <task>` in a workspace,
   // `holocron run <task>` in a single package.
   // `syncScripts: false` disables it; `holocronScript` sets the `holocron`
@@ -256,7 +256,7 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `check-preview`                      | checks against a preview deployment's URL                         | no local equivalent — CI only; runs from the preview's `deployment_status` event                     |
 | `measure:bundle`                     | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                        |
 | `measure:docs`                       | `holocron probe docs coverage`                                    | upload to Codecov as the `documentation` flag                                                        |
-| `sync-repo`                          | `holocron repo sync`                                              | keeps generated files current                                                                        |
+| `sync-repo`                          | `holocron sync`                                                   | keeps generated files current                                                                        |
 | `sync-templates`                     | `holocron sync github`                                            | holocron's own repo only: opens sync pull requests in `theholocron/.github` and the consumer repos   |
 | `check-notify`                       | `holocron notifications` end-to-end check                         | no local equivalent — a workflow run by hand; never part of `holocron run ci`                        |
 | `lint:commits`                       | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI    |

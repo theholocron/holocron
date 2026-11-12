@@ -798,19 +798,19 @@ describe("export tokens — the private file", () => {
 		expect(statSync(join(dir, ".holocron", ".private")).mode & 0o777).toBe(0o700);
 	});
 
-	it("tells a repo without the ignore rule to run repo sync, and writes nothing", async () => {
+	it("tells a repo without the ignore rule to run sync, and writes nothing", async () => {
 		const { here, file } = fresh();
 		const { result, err } = run({ ...base, loaded: here, isIgnored: () => "tracked" });
 		expect((await result).status).toBe("fail");
 		expect(existsSync(file)).toBe(false);
-		expect(err.join("\n")).toContain("run `holocron repo sync`");
+		expect(err.join("\n")).toContain("run `holocron sync`");
 	});
 
 	it("keeps the old advice for a --file that git does not ignore", async () => {
 		const { here } = fresh();
 		const { result, err } = run({ ...base, loaded: here, file: "x.env", isIgnored: () => "tracked" });
 		expect((await result).status).toBe("fail");
-		expect(err.join("\n")).not.toContain("repo sync");
+		expect(err.join("\n")).not.toContain("sync");
 	});
 
 	it("writes the file when asked even if stdout is a pipe, at a path given relative to the config", async () => {

@@ -125,7 +125,7 @@ doesn't make sense.
 | `write`             | `POST /v3/secrets/raw/{name}` (create); falls back to `PATCH` on "already exists" body for upsert semantics.         |
 | `list`              | `GET /v3/secrets/raw` at the default `workspace + environment + secretPath=/`.                                       |
 | `environments`      | `GET /v1/workspace/{workspaceId}`, returns each environment's `slug`.                                                |
-| `readEnvironment`   | `GET /v3/secrets/raw?workspaceId&environment=<id>` — bulk KEY=VALUE dump for `holocron secrets sync`.                |
+| `readEnvironment`   | `GET /v3/secrets/raw?workspaceId&environment=<id>` — bulk KEY=VALUE dump for `holocron sync secrets`.                |
 | `ensureProject`     | `POST /v2/workspace` with `{ projectName, slug }`. Treats 400/409/422 "already exists" as idempotent no-op.          |
 | `ensureEnvironment` | `POST /v1/workspace/{project}/environments` with `{ environmentName, environmentSlug }`. Same idempotency semantics. |
 

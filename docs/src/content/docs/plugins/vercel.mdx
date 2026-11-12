@@ -51,11 +51,11 @@ Generate a token at [vercel.com/account/tokens](https://vercel.com/account/token
 holocron deploy main --project-id prj_xxx --target production
 ```
 
-## Example: secrets sync to Vercel
+## Example: sync secrets to Vercel
 
 ```bash
 # Pull from Doppler "production" config → push to GitHub secrets + Vercel production + preview
-holocron secrets sync production --project-id prj_xxx
+holocron sync secrets production --project-id prj_xxx
 ```
 
 The full [API reference](/holocron/plugins/holocron-plugin-vercel/api/readme/) is generated from the package's TSDoc comments.

@@ -85,7 +85,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
 	// Stamped into every workflow thin caller written below, same marker
-	// `holocron repo sync` uses (holocron#1026) and checked the same way
+	// `holocron sync` uses (holocron#1026) and checked the same way
 	// via assertNoPackageCollision -- before writing, read the file back
 	// through the loaded Source capability and compare its marker (holocron#1068;
 	// previously setup could only stamp its own marker for a LATER sync
@@ -173,7 +173,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 	// ── source: the files generated from the config ─────────────────────
 	// Thin-caller workflows, config files, git hooks, codecov.yml and turbo.json come from `generateRepoFiles`, which
-	// needs no provider; this only writes what it returns through the source. `repo sync` writes the same files.
+	// needs no provider; this only writes what it returns through the source. `sync` writes the same files.
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
 		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));

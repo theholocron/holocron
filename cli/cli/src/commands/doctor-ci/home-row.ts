@@ -33,10 +33,6 @@ export function homeRow(callers: readonly ParsedCaller[], gateShut: boolean): Ch
 	}
 	const [home] = [...homes.keys()] as [CallerHome];
 	const gate =
-		home === "legacy"
-			? gateShut
-				? "; repo sync still writes these names"
-				: "; repo sync now writes flat names"
-			: "";
+		home === "legacy" ? (gateShut ? "; sync still writes these names" : "; sync now writes flat names") : "";
 	return { id, title, status: "ok", detail: `${SAYS[home]}${gate}`, problems: [] };
 }

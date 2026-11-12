@@ -263,13 +263,13 @@ describe("homeRow", () => {
 		expect(homeRow([], true).status).toBe("skip");
 	});
 
-	it("says the legacy home is frozen, and whether repo sync still writes its names", () => {
+	it("says the legacy home is frozen, and whether sync still writes its names", () => {
 		const callers = [at("a.yml", `${LEGACY_HOME}/a.yml@main`)];
 		expect(homeRow(callers, true)).toMatchObject({
 			status: "ok",
-			detail: "theholocron/.github (frozen copies, legacy names); repo sync still writes these names",
+			detail: "theholocron/.github (frozen copies, legacy names); sync still writes these names",
 		});
-		expect(homeRow(callers, false).detail).toContain("repo sync now writes flat names");
+		expect(homeRow(callers, false).detail).toContain("sync now writes flat names");
 	});
 
 	it("passes for ci-v1, for this repo's own reusables and for somewhere else", () => {

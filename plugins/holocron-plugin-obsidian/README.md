@@ -1,7 +1,7 @@
 # `@theholocron/holocron-plugin-obsidian`
 
 Obsidian plugin for [Holocron](../../cli/cli). Implements the `ideas` capability over a vault of Markdown notes, so
-`holocron ideas sync` can read ideas without knowing where they are kept. It reads and writes files only: there is no
+`holocron sync ideas` can read ideas without knowing where they are kept. It reads and writes files only: there is no
 token and no network.
 
 ## Install

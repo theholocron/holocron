@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 
 import type { IdeasIo } from "./ideas-io.type.js";
 
-/** The `ideas sync` inputs from the real filesystem. */
+/** The `sync ideas` inputs from the real filesystem. */
 export function realIdeasIo(): IdeasIo {
 	/* v8 ignore start -- reads the real filesystem; the command is tested with an injected io */
 	return {

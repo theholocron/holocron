@@ -12,10 +12,10 @@ vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({ resolveOrg: (_a: unknown, c: { org?: string }) => c.org }));
 
-import { ideasCommand } from "../ideas/index.js";
 import { runCommand } from "../run-command.testing.js";
+import { syncCommand } from "../sync/sync.command.js";
 
-const go = (...args: string[]) => runCommand(ideasCommand, ["ideas", "sync", ...args]);
+const go = (...args: string[]) => runCommand(syncCommand, ["sync", "ideas", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("ideas sync", () => {
+describe("sync ideas", () => {
 	it("passes the config, the context and --yes", async () => {
 		await go("--yes");
 		expect(runIdeasSync).toHaveBeenCalledWith(

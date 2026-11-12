@@ -26,7 +26,7 @@
  *     makes), then runs `holocron check monitor` against that PR's
  *     own preview URL instead of production — see the `monitoring`
  *     provider comment below for why this exists. Both tasks flow
- *     through the normal `holocron repo sync`-generated workflow path
+ *     through the normal `holocron sync`-generated workflow path
  *     (holocron#1014's monorepo-subpackage write-location bug, fixed) —
  *     no hand-maintained workflow file for either.
  *
@@ -37,7 +37,7 @@
  *
  * `vault`: the 1Password Environment `Sentinel` (holocron#1671; it was
  * Doppler's `sentinel`/`prd` before, holocron#781). The 5 runtime secrets
- * and the role-sync settings live there; `holocron secrets sync Sentinel`
+ * and the role-sync settings live there; `holocron sync secrets Sentinel`
  * fans them out. The Environment is made by hand — `op` cannot create one.
  *
  * `secrets`: GitHub — only ONE of the 5 runtime keys has a GH Actions
@@ -69,7 +69,7 @@
  * from the repo root's `.holocron/org.ts` (the org area is shared with this config, #1829), unlike Vercel's `teamId`, which
  * is in the `.holocron/org.ts` beside this file; the API token is vault-sourced like
  * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
- * `holocron secrets sync` the same way `vault` already handles the
+ * `holocron sync secrets` the same way `vault` already handles the
  * other 5 keys. `locations: ["us-east-1"]` is required on both —
  * confirmed live via `POST /checks/api` returning 400 "You have to
  * set at least one `location` or `privateLocation`" on this (trial)
@@ -129,7 +129,7 @@ export default defineConfig({
 		// without it the CLI would load this repo's own root
 		// holocron.config.ts (no monitoring/deployment provider there)
 		// instead of this file. Fixed properly (holocron#1014) — both tasks
-		// now flow through the normal `holocron repo sync` path, no
+		// now flow through the normal `holocron sync` path, no
 		// hand-maintained workflow file needed for either.
 		{
 			name: "check-preview",
@@ -172,7 +172,7 @@ export default defineConfig({
 	},
 	repo: {
 		secrets: {
-			// What the Vercel deployment may receive from a `secrets sync` (#2061): the `SENTINEL_` names, and the three
+			// What the Vercel deployment may receive from a `sync secrets` (#2061): the `SENTINEL_` names, and the three
 			// `HOLOCRON_` names the app reads for role sync and log shipping (apps/sentinel/src reads no others).
 			// Anything else the Environment holds stays in it. With no entry the sync stops with a ConfigError.
 			deploy: [
@@ -230,7 +230,7 @@ export default defineConfig({
 			},
 		],
 		secrets: "github",
-		// The production values of Sentinel, in the `prod` layer (#2069): `holocron secrets sync prod`.
+		// The production values of Sentinel, in the `prod` layer (#2069): `holocron sync secrets prod`.
 		vault: ["1password", { layer: "prod" }],
 		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use, and CLOUDFLARE_ACCOUNT_ID) come from the
 		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.

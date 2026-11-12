@@ -9,7 +9,7 @@ import { splitDeployKeys } from "../secrets-sync/split-deploy-keys/index.js";
 
 /**
  * One row per vault environment `repo.secrets.deploy` names: the key names a deployment or Worker would receive from
- * a `secrets sync`, and how many the filter keeps back, so a token that should not go out is visible before the
+ * a `sync secrets`, and how many the filter keeps back, so a token that should not go out is visible before the
  * sync. Names only: the values the vault returns are dropped at once. An environment that cannot be listed (no vault,
  * no token, an error) is a skipped row with the reason, never a failure.
  *

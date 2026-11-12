@@ -116,7 +116,7 @@ export function comlinkProbes(deps: ComlinkProbeDeps): PluginProbes {
 					[relayWebhookBinding(source), "run `holocron notifications setup`"],
 					[
 						relaySecretBinding(source),
-						"add it to the vault and run `holocron secrets sync`, or `notifications setup`",
+						"add it to the vault and run `holocron sync secrets`, or `notifications setup`",
 					],
 				];
 				for (const [name, fix] of need) {

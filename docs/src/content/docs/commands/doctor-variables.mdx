@@ -22,7 +22,7 @@ It is the check for [`repo setup`](/holocron/commands/repo-setup/), which writes
 
 ## Variables filled from a vault
 
-An entry of `repo.variables.sync` (see [secrets sync](/holocron/commands/secrets-sync/)) adds one row, `<scope> variables from <environment> exist`. The values are in the vault and the doctor does not read it, so the row only checks that each listed name exists at the scope (case-insensitively) and, for an organization entry, that its visibility is the one declared (`all` by default). It never prints a value, and a variable that exists but is not listed is not a problem.
+An entry of `repo.variables.sync` (see [sync secrets](/holocron/commands/sync-secrets/)) adds one row, `<scope> variables from <environment> exist`. The values are in the vault and the doctor does not read it, so the row only checks that each listed name exists at the scope (case-insensitively) and, for an organization entry, that its visibility is the one declared (`all` by default). It never prints a value, and a variable that exists but is not listed is not a problem.
 
 ```text
   ✗ theholocron organization variables from theholocron/holocron - ci exist  1 problem(s)

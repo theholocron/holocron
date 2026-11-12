@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const specsSyncEntry: MenuEntry = {
-	name: "specs sync",
+	name: "sync specs",
 	description: "Keep each ADR and spec in step with a post in a forum channel",
 	positionals: [],
 	options: [

@@ -1,10 +1,10 @@
 ---
-title: "notifications sync-roles"
+title: "sync roles"
 description: Make who holds a server role match a team, through the file that links each member to their GitHub account.
 ---
 
 ```bash
-holocron notifications sync-roles [--provider <name>] [--keep] [--dry-run]
+holocron sync roles [--provider <name>] [--keep] [--dry-run]
 ```
 
 For every role in the layout that declares a `team`, compares the members of that team with the people who hold the role on the server, and gives or takes the role so they match.

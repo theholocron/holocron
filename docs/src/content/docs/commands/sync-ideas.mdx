@@ -1,13 +1,13 @@
 ---
-title: "ideas sync"
+title: "sync ideas"
 description: File the idea notes that are ready as issues, and record the issue in each note.
 ---
 
 ```bash
-holocron ideas sync [--dry-run] [--yes]
+holocron sync ideas [--dry-run] [--yes]
 ```
 
-An idea starts as a note in a folder of Markdown files (an Obsidian vault). `ideas sync` is the step that turns an idea into an issue: it reads the ideas through the repo's `ideas` provider, creates an issue through its `issues` provider for each one that is ready, and records the issue on the idea, so it is never filed twice. The command knows nothing about Obsidian: where the ideas are kept is the provider's, so a second place to keep them is a provider entry and a plugin, not a change here. The design is [SPEC-0072](https://github.com/theholocron/holocron/issues/1994).
+An idea starts as a note in a folder of Markdown files (an Obsidian vault). `sync ideas` is the step that turns an idea into an issue: it reads the ideas through the repo's `ideas` provider, creates an issue through its `issues` provider for each one that is ready, and records the issue on the idea, so it is never filed twice. The command knows nothing about Obsidian: where the ideas are kept is the provider's, so a second place to keep them is a provider entry and a plugin, not a change here. The design is [SPEC-0072](https://github.com/theholocron/holocron/issues/1994).
 
 ## Configuration
 

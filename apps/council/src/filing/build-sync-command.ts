@@ -20,7 +20,7 @@ export function shellQuote(word: string): string {
 }
 
 /**
- * Step (c): the line that files the notes. `holocron ideas sync --yes` runs in the Holocron checkout, with the vault's
+ * Step (c): the line that files the notes. `holocron sync ideas --yes` runs in the Holocron checkout, with the vault's
  * folder in `HOLOCRON_IDEAS_DIR` (the path differs per machine, so it is not in the config). No token is passed: the
  * CLI reads its own through its chain. A leading `~` in the repo path or a command word is the home folder, expanded
  * here because nothing else would. With `useLoginShell` the command runs inside `<shell> -ilc`, so `node` and `pnpm`

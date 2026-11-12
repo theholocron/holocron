@@ -6,7 +6,7 @@ import type { FileIdeaDeps } from "./filing.type.js";
 import { tailOutput } from "./tail-output.js";
 
 /**
- * File this idea. The order is the safety property: the state is set first, `ideas sync` runs, and the note is
+ * File this idea. The order is the safety property: the state is set first, `sync ideas` runs, and the note is
  * trashed only when it is read back with an `issue:`. A command that exits non-zero, cannot start or leaves no
  * `issue:` keeps the note, and nothing is restored. On mobile there is no shell, so it only sets the state.
  */

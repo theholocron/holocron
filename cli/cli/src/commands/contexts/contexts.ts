@@ -47,13 +47,13 @@ export const COMMAND_CONTEXTS = {
 	"deploy stage": "repo-aware",
 	"config show": "repo-aware",
 	// Writes README + package.json metadata from config; never loads a plugin.
-	"repo sync readme": "repo-aware",
+	"sync readme": "repo-aware",
 
 	doctor: "workspace",
 	"repo setup": "workspace",
 	"list secrets": "workspace",
 	"new secret": "workspace",
-	"secrets sync": "workspace",
+	"sync secrets": "workspace",
 	// `new tunnel` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
 	"new tunnel": "workspace",
 	// `project` subcommands call the `projects` provider, so its package must be resolvable.
@@ -69,11 +69,11 @@ export const COMMAND_CONTEXTS = {
 	"notifications setup": "workspace",
 	"notifications link": "workspace",
 	"new server": "workspace",
-	"notifications sync-roles": "workspace",
+	"sync roles": "workspace",
 	// Loads the notifications provider to list and delete the extra posts of a forum.
 	"notifications dedupe": "workspace",
 	// Loads the notifications provider to keep a discussion post per ADR and spec.
-	"specs sync": "workspace",
+	"sync specs": "workspace",
 	// Reads a board's items and sets statuses through the `projects` provider.
 	"project reconcile": "workspace",
 	"doctor all": "workspace",
@@ -116,7 +116,7 @@ export const COMMAND_CONTEXTS = {
 	// holocron.config.ts, no plugins at all (holocron#1030/#1032's
 	// delivery.previewCheck split).
 	"check resolved": "global",
-	"repo sync": "workspace",
+	sync: "workspace",
 	"repo cleanup branches": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.
@@ -124,7 +124,7 @@ export const COMMAND_CONTEXTS = {
 	// Loads the source and target `issues` providers, so their packages must be resolvable.
 	"sync issues": "workspace",
 	// Reads ideas through the `ideas` provider and files each ready one through `issues`, so both packages must be resolvable.
-	"ideas sync": "workspace",
+	"sync ideas": "workspace",
 	// Reads the issue through the `issues` provider, so its package must be resolvable.
 	"new spec": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
@@ -137,7 +137,7 @@ export const COMMAND_CONTEXTS = {
 export function contextForCommand(name: string): ExecutionContext | undefined {
 	const map = COMMAND_CONTEXTS as Record<string, ExecutionContext>;
 	const tokens = name.split(" ").filter(Boolean);
-	// Longest prefix wins: `repo sync labels` → `repo sync`, `run lint commit-msg` stays exact.
+	// Longest prefix wins: `sync labels` → `sync`, `run lint commit-msg` stays exact.
 	for (let n = tokens.length; n > 0; n--) {
 		const ctx = map[tokens.slice(0, n).join(" ")];
 		if (ctx) return ctx;

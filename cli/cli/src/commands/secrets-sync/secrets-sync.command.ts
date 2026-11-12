@@ -13,7 +13,7 @@ import { parseScope } from "./parse-scope/index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 
 export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
-	command: "sync [environmentId]",
+	command: "secrets [environmentId]",
 	describe: "Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 	builder: secretsSyncArgs,
 	handler: async (argv) => {
@@ -21,7 +21,7 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 		if (!tokens) return;
 		// Only a scope given on the command line counts as naming a destination (#2104).
 		const githubSecretScope = argv.githubSecretScope ? parseScope(argv.githubSecretScope as string) : undefined;
-		const [environmentId] = await promptForPositionals(getEntry("secrets sync"), argv as Record<string, unknown>);
+		const [environmentId] = await promptForPositionals(getEntry("sync secrets"), argv as Record<string, unknown>);
 		// `local` and `dev` are read by this machine and never synced, whatever else is given (#2104).
 		await assertSyncableLayer(environmentId!, { repoRoot: argv.cwd });
 		const loaded = await loadConfig(argv.cwd);

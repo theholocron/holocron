@@ -4,8 +4,6 @@ const loadConfig = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const reportError = vi.hoisted(() => vi.fn());
 const runSetup = vi.hoisted(() => vi.fn());
-const runSync = vi.hoisted(() => vi.fn());
-const runSyncReadme = vi.hoisted(() => vi.fn());
 const runUpgradeNode = vi.hoisted(() => vi.fn());
 const runUpgradeDeps = vi.hoisted(() => vi.fn());
 const readFileSync = vi.hoisted(() => vi.fn());
@@ -13,8 +11,6 @@ const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("node:fs", async (importActual) => ({ ...(await importActual<typeof import("node:fs")>()), readFileSync }));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../setup/index.js", () => ({ runSetup }));
-vi.mock("../sync/index.js", () => ({ runSync }));
-vi.mock("../sync-readme/index.js", () => ({ runSyncReadme }));
 vi.mock("../upgrade-node/index.js", () => ({ runUpgradeNode }));
 vi.mock("../upgrade-deps/index.js", () => ({ runUpgradeDeps }));
 vi.mock("../../observability/logger/index.js", async (importActual) => ({
@@ -50,8 +46,6 @@ beforeEach(() => {
 	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
 	tokenContext.mockReturnValue({ cliToken: "t" });
 	runSetup.mockResolvedValue(summary(0));
-	runSync.mockResolvedValue(summary(0));
-	runSyncReadme.mockResolvedValue({ status: "ok" });
 	runUpgradeNode.mockResolvedValue({ status: "ok" });
 	runUpgradeDeps.mockResolvedValue({ status: "ok" });
 	readFileSync.mockImplementation(() => {
@@ -80,45 +74,6 @@ describe("repo setup", () => {
 		runSetup.mockClear();
 		await go(["setup"]);
 		expect(runSetup).not.toHaveBeenCalled();
-	});
-});
-
-describe("repo sync", () => {
-	it("syncs the named steps, or all of them, for --repo", async () => {
-		await go(["sync", "labels", "topics", "--repo", "acme/widgets"]);
-		expect(runSync.mock.calls[0]![0]).toMatchObject({
-			steps: ["labels", "topics"],
-			context: { repo: "acme/widgets", cliToken: "t", org: "acme" },
-		});
-		await go(["sync"]);
-		const bare = runSync.mock.calls[1]![0];
-		expect("steps" in bare || "repo" in bare.context).toBe(false);
-	});
-
-	it("exits 1 when a step failed, and stops when --token cannot be parsed", async () => {
-		runSync.mockResolvedValue(summary(1));
-		await go(["sync"]);
-		expect(process.exitCode).toBe(1);
-		tokenContext.mockReturnValue(null);
-		runSync.mockClear();
-		await go(["sync"]);
-		expect(runSync).not.toHaveBeenCalled();
-	});
-
-	it("`sync readme` updates the README, and reports why when it failed", async () => {
-		await go(["sync", "readme", "--dry-run"]);
-		expect(runSyncReadme).toHaveBeenCalledWith({
-			loaded: { resolved: { org: "acme" }, filepath: "/x" },
-			context: { repoRoot: "/repo", dryRun: true },
-		});
-		runSyncReadme.mockResolvedValue({ status: "fail", message: "no package.json" });
-		await go(["sync", "readme"]);
-		expect(reportError).toHaveBeenCalledWith("repo sync readme: no package.json");
-		expect(process.exitCode).toBe(1);
-		reportError.mockClear();
-		runSyncReadme.mockResolvedValue({ status: "fail" });
-		await go(["sync", "readme"]);
-		expect(reportError).not.toHaveBeenCalled();
 	});
 });
 

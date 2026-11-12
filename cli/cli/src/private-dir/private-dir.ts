@@ -8,7 +8,7 @@ export const PRIVATE_CREDENTIALS_FILE = `${PRIVATE_DIR}/.credentials`;
 export const PRIVATE_KEEP_FILE = `${PRIVATE_DIR}/.gitkeep`;
 
 /**
- * The managed block `repo setup` and `repo sync` keep in `.gitignore`: everything in the private directory is ignored
+ * The managed block `repo setup` and `sync` keep in `.gitignore`: everything in the private directory is ignored
  * except the `.gitkeep`. The start marker must not be a substring of the end marker.
  */
 export const PRIVATE_IGNORE_BLOCK = {

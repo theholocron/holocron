@@ -51,7 +51,7 @@ Deploying it is `holocron notifications setup`'s job, through the `workers` capa
 ```bash
 # once, by hand (`op` cannot create an Environment): make the Environment `<org>/<repo> - prod` (if it does not exist) and add
 # COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to it, then:
-holocron secrets sync prod --cwd apps/comlink --worker comlink
+holocron sync secrets prod --cwd apps/comlink --worker comlink
 ```
 
 Only the `COMLINK_` names of the Environment reach the Worker: `repo.secrets.deploy` in this config says so, and `--worker` with no entry stops with a `ConfigError` (#2061). Any other key stays in the Environment.
@@ -60,6 +60,6 @@ With `relay.errors` in the root `holocron.config.ts`, `holocron notifications se
 
 `holocron probe comlink deliver` reads the signing secret from this config's vault (so from the `prod` layer Environment above, signed in with `op`), unless `COMLINK_SENTRY_SECRET` is set in the environment.
 
-`COMLINK_<SOURCE>_WEBHOOK` is not kept in the Environment: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `secrets sync`, since a secret can only be set on a Worker that exists.
+`COMLINK_<SOURCE>_WEBHOOK` is not kept in the Environment: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `sync secrets`, since a secret can only be set on a Worker that exists.
 
 The Environment holds only the signing secrets the Worker verifies with. Do not add `HOLOCRON_SENTRY_COMLINK_TOKEN` to it: that is a broad Sentry API token the CLI uses to set up the integration (see the tokens page), and it must never reach the Worker.

@@ -13,17 +13,17 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 
 ### Always (no capability required)
 
-| Action                              | Output                                                                                                                                                                 |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Write `.editorconfig`               | Canonical editor settings (tab indent, LF line endings, etc.)                                                                                                          |
-| Write `.alexrc.json`                | Shared inclusive-language allow-list                                                                                                                                   |
-| Write `commitlint.config.ts`        | CommitLint config extending `@theholocron/commitlint-config`                                                                                                           |
-| Write `.husky/pre-push`             | When hooks are enabled — runs `holocron run ci` before every push (see below)                                                                                          |
-| Update `codecov.yml`                | Syncs `individual_components` to match the workspace packages                                                                                                          |
-| Write `turbo.json`                  | Generated from the fan-out-eligible tasks in `tasks[]` — skipped when none are eligible                                                                                |
-| Write `.holocron/.private/.gitkeep` | Keeps the private directory in the checkout; with the `.gitignore` block that ignores everything else in it (see [`repo sync`](/holocron/commands/repo-sync/#private)) |
-| Install CI workflows                | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                                                                                  |
-| Install agent skills                | Downloads and installs each skill from `skills[]` into `.agents/skills/` with agent-specific symlinks                                                                  |
+| Action                              | Output                                                                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Write `.editorconfig`               | Canonical editor settings (tab indent, LF line endings, etc.)                                                                                                |
+| Write `.alexrc.json`                | Shared inclusive-language allow-list                                                                                                                         |
+| Write `commitlint.config.ts`        | CommitLint config extending `@theholocron/commitlint-config`                                                                                                 |
+| Write `.husky/pre-push`             | When hooks are enabled — runs `holocron run ci` before every push (see below)                                                                                |
+| Update `codecov.yml`                | Syncs `individual_components` to match the workspace packages                                                                                                |
+| Write `turbo.json`                  | Generated from the fan-out-eligible tasks in `tasks[]` — skipped when none are eligible                                                                      |
+| Write `.holocron/.private/.gitkeep` | Keeps the private directory in the checkout; with the `.gitignore` block that ignores everything else in it (see [`sync`](/holocron/commands/sync/#private)) |
+| Install CI workflows                | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                                                                        |
+| Install agent skills                | Downloads and installs each skill from `skills[]` into `.agents/skills/` with agent-specific symlinks                                                        |
 
 ### `source` capability (GitHub plugin)
 
@@ -60,7 +60,7 @@ aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DC
 caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
-**The `ci` aggregate.** `repo setup` and `repo sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
+**The `ci` aggregate.** `repo setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
 beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
 commit until every expected id has a check run named `<id> / ...` and all of them completed, and every `codecov/*`
 status reached `success`, or 30 minutes pass. An id that never posted fails as "never posted"; `success`, `skipped` and

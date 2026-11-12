@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/preview.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
@@ -144,10 +144,10 @@ jobs:
         run: npm install -g wrangler@4
 
       - name: Warn when the Cloudflare account id is missing
-        # The deploy below needs it. It is an organization variable that `holocron secrets sync` writes from
+        # The deploy below needs it. It is an organization variable that `holocron sync secrets` writes from
         # the 1Password Environment named by `repo.variables.sync` in .holocron/repo.ts.
         if: ${{ (inputs.cloudflare-project != '' || (vars.HOLOCRON_CLOUDFLARE_PAGES_PROJECT || vars.CLOUDFLARE_PAGES_PROJECT) != '') && (vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID) == '' }}
-        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The Pages deploy needs it. Add it to the 1Password Environment behind repo.variables.sync and run holocron secrets sync."
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The Pages deploy needs it. Add it to the 1Password Environment behind repo.variables.sync and run holocron sync secrets."
 
       - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         id: deploy
@@ -193,7 +193,7 @@ jobs:
       - name: Warn when the Cloudflare account id is missing
         # Without it the request below cannot find the preview deployments, so closing the PR leaves them behind.
         if: ${{ (inputs.cloudflare-project != '' || (vars.HOLOCRON_CLOUDFLARE_PAGES_PROJECT || vars.CLOUDFLARE_PAGES_PROJECT) != '') && (vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID) == '' }}
-        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The preview deployments cannot be deleted without it. Add it to the 1Password Environment behind repo.variables.sync and run holocron secrets sync."
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The preview deployments cannot be deleted without it. Add it to the 1Password Environment behind repo.variables.sync and run holocron sync secrets."
 
       - name: Delete Cloudflare Pages deployments for branch
         if: ${{ inputs.cloudflare-project != '' || (vars.HOLOCRON_CLOUDFLARE_PAGES_PROJECT || vars.CLOUDFLARE_PAGES_PROJECT) != '' }}

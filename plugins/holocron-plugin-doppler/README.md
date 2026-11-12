@@ -91,7 +91,7 @@ reference doesn't make sense.
 | `write`             | `POST /v3/configs/config/secrets` with `{ project, config, secrets: {name: value} }`. Doppler's native upsert — no probe. |
 | `list`              | `GET /v3/configs/config/secrets` on the default project + config.                                                         |
 | `environments`      | `GET /v3/environments?project`. Returns environment slugs (`dev`/`stg`/`prd`).                                            |
-| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron secrets sync`.                  |
+| `readEnvironment`   | `GET /v3/configs/config/secrets/download?format=json` — bulk KEY=VALUE dump for `holocron sync secrets`.                  |
 | `ensureProject`     | `POST /v3/projects`, treats 409/422 "already exists" as idempotent no-op.                                                 |
 | `ensureEnvironment` | `POST /v3/environments`, same idempotency semantics.                                                                      |
 

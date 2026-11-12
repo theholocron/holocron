@@ -1,12 +1,12 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/sync-specs.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
 #
 # Keeps a forum post in #ideas for every ADR and spec, in step with the files (#1535, spec
-# `tech-specs-discussion-threads`). It runs `holocron specs sync`, which makes the posts (titled with the document's own title, tagged
+# `tech-specs-discussion-threads`). It runs `holocron sync specs`, which makes the posts (titled with the document's own title, tagged
 # with the status), writes each post's address into its file as `discussion.url`, and, when a gatekeeper changed a post's
 # tag, changes the file's `status:` line. It also links the id that opens a post to its file once the file is on `alpha` (#1663), which edits the post only. Those are edits to the working tree only: this workflow commits them to the
 # branch `chore/specs-sync` and opens one pull request. The pull request merges itself (auto-merge, once its checks pass)
@@ -90,9 +90,9 @@ jobs:
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
         run: |
           if [ "$DRY_RUN" = "true" ]; then
-            node cli/cli/dist/cli.mjs specs sync --dry-run
+            node cli/cli/dist/cli.mjs sync specs --dry-run
           else
-            node cli/cli/dist/cli.mjs specs sync
+            node cli/cli/dist/cli.mjs sync specs
           fi
 
       # The command changes the files and never commits. What it changed goes to one branch, force-updated each run, so
@@ -125,7 +125,7 @@ jobs:
             exit 0
           fi
           cat > "$RUNNER_TEMP/body.md" <<'EOF'
-          Edits `holocron specs sync` made to the working tree: the address of each spec or ADR discussion post as `discussion.url`, and the `status:` of a document whose post a gatekeeper retagged.
+          Edits `holocron sync specs` made to the working tree: the address of each spec or ADR discussion post as `discussion.url`, and the `status:` of a document whose post a gatekeeper retagged.
 
           A pull request that only links posts merges itself once its checks pass. One that changes a `status:` waits for a review: the change was asked for by changing the tag on the post in Discord. Merge it to accept the change, or close it and change the tag back. The post is not marked as in step until this merges.
 

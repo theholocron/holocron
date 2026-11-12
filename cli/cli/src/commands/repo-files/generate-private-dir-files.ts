@@ -10,7 +10,7 @@ import type { GeneratedRepoFile, RepoFilesInput } from "./repo-files.type.js";
  * The private directory for files that hold secrets (`.holocron/.private/`): an empty tracked `.gitkeep` that keeps it
  * in the checkout, and the managed block in `.gitignore` that ignores everything else in it. The block is merged into
  * the `.gitignore` already on disk, so the rest of the file (and the skills blocks `repo setup` keeps) is untouched.
- * `repo setup` and `repo sync` both write what this returns, so the bytes are the same from either.
+ * `repo setup` and `sync` both write what this returns, so the bytes are the same from either.
  */
 export async function generatePrivateDirFiles(input: RepoFilesInput): Promise<GeneratedRepoFile[]> {
 	const existing = await readFile(join(input.repoRoot, ".gitignore"), "utf8").catch(() => "");

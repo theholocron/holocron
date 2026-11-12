@@ -138,7 +138,7 @@ export interface RepoVariables {
 	 */
 	org?: Record<string, string | { value: string; visibility?: "all" | "private" }>;
 	/**
-	 * The vault environments `holocron secrets sync` fills variables from, so one 1Password Environment is the only
+	 * The vault environments `holocron sync secrets` fills variables from, so one 1Password Environment is the only
 	 * place they are edited. Names only. A name here must not also be a literal value in `repo` or `org`, and `prune`
 	 * cannot be combined with it; either is a config error.
 	 */
@@ -148,11 +148,11 @@ export interface RepoVariables {
 }
 
 /**
- * One vault environment that `holocron secrets sync` pushes into GitHub Actions variables. Not secrets: a variable is
+ * One vault environment that `holocron sync secrets` pushes into GitHub Actions variables. Not secrets: a variable is
  * readable in GitHub afterwards, so keep it in an environment of its own, apart from the one that fills secrets.
  */
 export interface RepoVariablesSync {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -169,7 +169,7 @@ export interface RepoVariablesSync {
 
 /**
  * The names of the secrets that must exist for this repository's workflows to work, so `holocron doctor secrets`
- * can say which are missing. Only names go here, never values; `holocron new secret` and `secrets sync` write
+ * can say which are missing. Only names go here, never values; `holocron new secret` and `sync secrets` write
  * them. The secrets the config already implies (the notification layout's webhooks and roles, a Chromatic project
  * token) are expected without being listed again. A secret that exists but is not listed is never a problem.
  */
@@ -181,12 +181,12 @@ export interface RepoSecrets {
 	/** Environment secrets, by environment name. */
 	environments?: Record<string, string[]>;
 	/**
-	 * The vault environments `holocron secrets sync` fills secrets from. `holocron doctor secrets` expects the
+	 * The vault environments `holocron sync secrets` fills secrets from. `holocron doctor secrets` expects the
 	 * keys each one holds (or lists) at its scope. Names only; the doctor never reads or prints a value.
 	 */
 	sync?: RepoSecretsSync[];
 	/**
-	 * The names `holocron secrets sync` may send to a deployment (`--project-id`) or a Worker (`--worker`), per vault
+	 * The names `holocron sync secrets` may send to a deployment (`--project-id`) or a Worker (`--worker`), per vault
 	 * environment. Required for such a sync: an environment with no entry sends nothing and the command stops with a
 	 * `ConfigError`. Names and prefixes only (spec `tech-deployment-key-allowlist`, #2061).
 	 */
@@ -199,7 +199,7 @@ export interface RepoSecrets {
  * `ConfigError`: there is no "all keys".
  */
 export interface RepoSecretsDeploy {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -212,9 +212,9 @@ export interface RepoSecretsDeploy {
 	prefix?: string;
 }
 
-/** One vault environment that `holocron secrets sync` pushes into GitHub secrets, declared so the doctor can check them. */
+/** One vault environment that `holocron sync secrets` pushes into GitHub secrets, declared so the doctor can check them. */
 export interface RepoSecretsSync {
-	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -612,7 +612,7 @@ export interface HolocronConfig {
 	name?: string;
 	/** A one-line description of the project. */
 	description?: string;
-	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron repo sync`. */
+	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron sync`. */
 	homepage?: string;
 	/**
 	 * Active org name for namespaced keyring lookup. When set, token resolution
@@ -726,7 +726,7 @@ export interface HolocronConfig {
 	 */
 	tasks?: Array<string | TaskEntryConfig>;
 	/**
-	 * Opt out of `holocron repo sync`'s `package.json` script writes. Default `true`.
+	 * Opt out of `holocron sync`'s `package.json` script writes. Default `true`.
 	 */
 	syncScripts?: boolean;
 	/**
@@ -817,7 +817,7 @@ export interface HolocronConfig {
 	 */
 	githubApps?: GitHubAppConfig[];
 	/**
-	 * The state that files an idea as an issue, for `holocron ideas sync`. Where the ideas are kept is
+	 * The state that files an idea as an issue, for `holocron sync ideas`. Where the ideas are kept is
 	 * `providers.ideas`; the older `ideas.dir` is deprecated and still read when `providers.ideas` is absent.
 	 *
 	 * @example

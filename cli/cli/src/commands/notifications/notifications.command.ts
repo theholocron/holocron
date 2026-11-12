@@ -5,7 +5,6 @@ import { groupMenu } from "../group-menu/index.js";
 import { notificationsDedupeCommand } from "../notifications-dedupe/notifications-dedupe.command.js";
 import { notificationsLinkCommand } from "../notifications-link/notifications-link.command.js";
 import { notificationsSetupCommand } from "../notifications-setup/notifications-setup.command.js";
-import { notificationsSyncRolesCommand } from "../notifications-sync-roles/notifications-sync-roles.command.js";
 
 export const notificationsCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "notifications",
@@ -14,7 +13,6 @@ export const notificationsCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 		y
 			.command(notificationsSetupCommand as never)
 			.command(notificationsLinkCommand as never)
-			.command(notificationsSyncRolesCommand as never)
 			.command(notificationsDedupeCommand as never)
 			.command(groupMenu("notifications") as never),
 	handler: () => {},
