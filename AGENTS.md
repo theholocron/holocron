@@ -276,19 +276,19 @@ coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `m
     (`HOLOCRON_<KEY_IN_SCREAMING_SNAKE_CASE>`), never argv — `ps` and shell
     history both expose a child's argv, never its env.
     For a command whose options have a real either/or relationship instead
-    of independent flags — `package publish`'s steady-state publish /
+    of independent flags — `publish package`'s steady-state publish /
     `--initial` bootstrap / `--sync-trust` maintenance mode, which `when`
     alone could only approximate by silently dropping a contingent pick
     after the fact — declare `modes` instead of `options`: the user picks
     one workflow first ("What would you like to do?"), and only that
     mode's own options are ever shown, so nothing contingent on a different
-    mode is ever offered in the first place. `package publish` is the
+    mode is ever offered in the first place. `publish package` is the
     first (and, so far, only) command that needs `modes`; every other
     command with options declares plain `options`. `promptForOptions`
     returns a `ResolvedOptions` (`{ options, answers, deferred }`) either
     way — `buildChildArgv`/`secretEnv` render both shapes identically,
     with no need to know which kind of command produced it. An option
-    marked `askLast: true` (e.g. `package publish`'s `--otp`) is left out
+    marked `askLast: true` (e.g. `publish package`'s `--otp`) is left out
     of `answers` and listed in `deferred` instead — its value isn't
     collected until `promptForDeferredOptions` is called right before the
     real (non-dry-run) spawn, never any earlier: a dry-run preview and a
@@ -299,7 +299,7 @@ coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `m
     `askLast` compose independently: `required` only decides whether an
     option sits behind the checkbox (always included vs. opt-in);
     `askLast` only decides when its value is collected (upfront vs.
-    deferred). `package publish`'s `--otp` is `askLast: true` always,
+    deferred). `publish package`'s `--otp` is `askLast: true` always,
     and its `required` is computed once at module load from
     `HOLOCRON_NPM_ENFORCE_2FA` — an operator whose own npm account always
     enforces 2FA sets that env var in their own shell profile (never
@@ -587,12 +587,12 @@ check` (`pnpm exec holocron probe generated check`, the required check `validate
   Repo: theholocron/holocron, Workflow: ci.release.yml). npm checks the
   _calling_ workflow's filename, so it is `ci.release.yml`, the entry that
   calls the reusable `release.yml`; registering the reusable fails with
-  `ENEEDAUTH`. A renamed entry needs `holocron package publish --sync-trust`.
-- **First publish for a new package** uses `holocron package publish --initial`
+  `ENEEDAUTH`. A renamed entry needs `holocron publish package --sync-trust`.
+- **First publish for a new package** uses `holocron publish package --initial`
   (chicken-and-egg: trusted publishing needs the package to exist
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
-  → `pnpm --filter @theholocron/cli run start:source package publish --initial --otp <code>`. `start:source` runs
+  → `pnpm --filter @theholocron/cli run start:source publish package --initial --otp <code>`. `start:source` runs
   the CLI from source through `tsx`, with `src/source-run/register.ts` preloaded so the source can import `.holocron/org.md`
   (the build inlines it with `transformTemplate`; the hook reuses that plugin; Node 22.15+). It is used because a fresh
   clone has neither `tsx` nor a `holocron` bin at the root until a second `pnpm install` after the build.

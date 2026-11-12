@@ -215,10 +215,10 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 		expect(await promptForPositionals(getEntry("new plugin"), {})).toEqual(["my-slug", "MyVendor"]);
 	});
 
-	it("uses `cliArg` in the non-TTY hint for package bump-versions", async () => {
+	it("uses `cliArg` in the non-TTY hint for publish bump-versions", async () => {
 		setTTY(false);
-		const err = await promptForPositionals(getEntry("package bump-versions"), {}).catch((e: unknown) => e);
-		expect((err as Error).message).toMatch(/holocron package bump-versions <new-version>/);
+		const err = await promptForPositionals(getEntry("publish bump-versions"), {}).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/holocron publish bump-versions <new-version>/);
 	});
 });
 
@@ -227,14 +227,14 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 // to see each state; env.get() itself re-reads process.env on every call,
 // but that one-time computation already baked a boolean into the object by
 // the time any later read would happen (holocron#1052 follow-up).
-describe("package publish's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#1052 follow-up)", () => {
+describe("publish package's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#1052 follow-up)", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.resetModules();
 	});
 
 	function otpOption(registry: typeof COMMAND_REGISTRY) {
-		const publish = registry.find((e) => e.name === "package publish")!;
+		const publish = registry.find((e) => e.name === "publish package")!;
 		const steady = publish.modes!.find((m) => m.key === "steady")!;
 		return steady.options!.find((o) => o.key === "otp")!;
 	}

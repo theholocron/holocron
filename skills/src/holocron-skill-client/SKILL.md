@@ -110,7 +110,7 @@ so neither file needs editing. Tests live beside the module they cover
 
 - **`version`**: read it from any sibling (`clients/http-client/package.json`);
   the whole `clients/` folder is one version group (tags `clients-vX.Y.Z`, one
-  `clients/CHANGELOG.md`). `holocron package bump-versions --group clients`
+  `clients/CHANGELOG.md`). `holocron publish bump-versions --group clients`
   moves every package in the group together at release.
 - **License is MIT** (ADR-0016). No `releases` or `wiki` fields.
 - `homepage` uses the slug **without** `-client` (`.../clients/axiom/`),
@@ -274,5 +274,5 @@ Installation (`pnpm add @theholocron/<slug>-client`), Usage, API tables, License
 - [ ] CI green before requesting review
 
 After merge, the first publish of a brand-new package needs
-`holocron package publish --initial --group clients` run by a maintainer
+`holocron publish package --initial --group clients` run by a maintainer
 (npm Trusted Publishing needs the package to exist first); do not run it yourself.
