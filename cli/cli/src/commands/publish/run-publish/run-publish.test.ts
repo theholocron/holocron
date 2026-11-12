@@ -491,7 +491,7 @@ describe("runPublish", () => {
 		const joined = lines.join("\n");
 		expect(joined).toContain("--otp <code>");
 		expect(joined).toContain("--otp <6-digit-code>");
-		expect(joined).toContain("run start:source package publish --initial");
+		expect(joined).toContain("run start:source publish package --initial");
 	});
 
 	it("does not print the --otp hint on non-EOTP failures", async () => {

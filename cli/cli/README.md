@@ -38,7 +38,7 @@ $ holocron
 ? Target Node.js major version: › 24
 ```
 
-For a command that declares options (so far: `package publish` — more are
+For a command that declares options (so far: `publish package` — more are
 rolled out one command group at a time), it also offers those: any required
 option is prompted like a positional, and everything else goes through one
 "Set any options?" checkbox, prompting only what you picked:
@@ -48,7 +48,7 @@ option is prompted like a positional, and everything else goes through one
 ? npm dist-tag (blank = latest): › beta
 ```
 
-`package publish` specifically has three workflows that don't mix — a
+`publish package` specifically has three workflows that don't mix — a
 steady-state publish, a one-shot `--initial` bootstrap, and a `--sync-trust`
 maintenance run — so it asks which one first, then only offers that
 workflow's own options; nothing from a different workflow is ever shown:
@@ -75,7 +75,7 @@ since a dry run never checks it anyway and a code typed any earlier risks
 going stale while something else is still being answered.
 
 Whether an option is _checkbox-optional vs. always included_ and _collected
-upfront vs. collected last_ are independent choices. `package publish`'s
+upfront vs. collected last_ are independent choices. `publish package`'s
 `--otp` is always collected last, but whether it's checkbox-optional depends
 on `HOLOCRON_NPM_ENFORCE_2FA`: unset (the default), it's opt-in like any other
 checkbox pick; set in your own shell profile (never checked into the repo),
@@ -929,8 +929,8 @@ the local override exists to exempt.
   `astromech.reusableTemplates()` (written in `ci/`) to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`,
-  `check monitor`, `list secrets`, `new secret`, `sync secrets`, `package publish`,
-  `package bump-versions`, `package move-tag`, `sync github`, `upgrade node`,
+  `check monitor`, `list secrets`, `new secret`, `sync secrets`, `publish package`,
+  `publish bump-versions`, `publish tag`, `sync github`, `upgrade node`,
   `upgrade deps`, `new plugin`, `check token`, `export tokens`, `setup notifications`,
   `new channel`, `notifications link`,
   `sync roles`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor project`, `doctor repo`, `doctor secrets`, `doctor shared-values`, `doctor tokens`, `doctor variable-owners`, `doctor variables`
@@ -947,7 +947,7 @@ the local override exists to exempt.
 - `src/plugin/probes/connection-probe/` — the `connectionProbe` a plugin offers, kyber's `connectionProbe` (`@theholocron/kyber/checks`)
   typed as the plugin system's `Probe` with `verify` returning `VerifyTokenResult`; `check monitor` runs its checks
   with kyber's `runCheckAgainstUrl`.
-- `src/commands/move-tag/` — the `package move-tag` yargs command, the registry entry and `runMoveTag`, which adds the
+- `src/commands/move-tag/` — the `publish tag` yargs command, the registry entry and `runMoveTag`, which adds the
   command-bound logger to kyber's `moveMajorTag` (`@theholocron/kyber/git`).
 
 ## Status

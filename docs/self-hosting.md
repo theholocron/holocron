@@ -26,7 +26,7 @@ Trusted Publishing for it. So the actual flow for any new
 After step 3, no operator action is needed for that package again.
 
 The initial v2 bootstrap ran this for all 7 packages together (via
-`holocron package publish --initial`, which does step 1 in a single
+`holocron publish package --initial`, which does step 1 in a single
 invocation across the workspace — a monorepo `pnpm -r --filter=./<workspace glob>`
 publish, or a plain `pnpm publish` for a single-package repo like a
 scaffolded plugin/template). Any new plugin added later needs to walk
@@ -50,7 +50,7 @@ pnpm build
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm --filter @theholocron/cli run start:source package publish --initial --otp 123456
+pnpm --filter @theholocron/cli run start:source publish package --initial --otp 123456
 
 ```
 

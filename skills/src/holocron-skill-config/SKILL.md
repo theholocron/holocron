@@ -99,7 +99,7 @@ already covers the new folder.
 
 - **`version`**: copy it from any sibling (`configs/prettier-config/package.json`).
   The `configs/` folder is a version group (tags `configs-vX.Y.Z`);
-  `holocron package bump-versions --group configs` moves every package together.
+  `holocron publish bump-versions --group configs` moves every package together.
 - **License is MIT** (ADR-0016). No `releases` or `wiki` fields.
 - Packages inside the group reference each other as `workspace:*`; third-party
   dev tooling is `catalog:`. Never pin exact versions for those.
@@ -243,4 +243,4 @@ Keep it short; link to official docs rather than duplicating them.
 7. Open a PR with a `feat(configs):` commit, signed with `-s` — semantic-release
    computes the next `configs-v*` version and publishes the group in lockstep.
    The first publish of a brand-new package needs
-   `holocron package publish --initial --group configs` run by a maintainer.
+   `holocron publish package --initial --group configs` run by a maintainer.

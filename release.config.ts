@@ -33,8 +33,8 @@ export default group && tagOnly.has(group)
 			paths: ciPaths,
 			branches: ["main"],
 			exec: {
-				prepareCmd: `${holocron} package bump-versions \${nextRelease.version} --group ${group} --include-private`,
-				publishCmd: `${holocron} package move-tag ${group} \${nextRelease.version}`,
+				prepareCmd: `${holocron} publish bump-versions \${nextRelease.version} --group ${group} --include-private`,
+				publishCmd: `${holocron} publish tag ${group} \${nextRelease.version}`,
 			},
 		})
 	: group
@@ -42,8 +42,8 @@ export default group && tagOnly.has(group)
 				group,
 				branches,
 				exec: {
-					prepareCmd: `${holocron} package bump-versions \${nextRelease.version} --group ${group}`,
-					publishCmd: `${holocron} package publish --group ${group} --skip-already-published --tag ${tag}`,
+					prepareCmd: `${holocron} publish bump-versions \${nextRelease.version} --group ${group}`,
+					publishCmd: `${holocron} publish package --group ${group} --skip-already-published --tag ${tag}`,
 				},
 			})
 		: ungroupedReleaseConfig({
@@ -54,7 +54,7 @@ export default group && tagOnly.has(group)
 				// stages them all, or the versions on disk stay behind the ones on npm.
 				assets: ["CHANGELOG.md", "package.json", "cli/*/package.json", "plugins/*/package.json"],
 				exec: {
-					prepareCmd: `${holocron} package bump-versions \${nextRelease.version}${exclude}`,
-					publishCmd: `${holocron} package publish --skip-already-published${exclude} --tag ${tag}`,
+					prepareCmd: `${holocron} publish bump-versions \${nextRelease.version}${exclude}`,
+					publishCmd: `${holocron} publish package --skip-already-published${exclude} --tag ${tag}`,
 				},
 			});
