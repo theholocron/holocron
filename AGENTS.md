@@ -160,6 +160,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   names; the frozen copies in `theholocron/.github` keep the old ones, so a caller of another repo is written with
   `legacyFile()` (and `localize` goes back with `flatFile()`) until `CI_HOME` moves to `ci-v1`. The caller files, workflow
   names and check names did not change.
+  This repo's own copy of a reusable runs the `codecov-upload` composite action from its checkout (`./ci/actions/codecov-upload`, `localizeActions()` in `hostedReusableFile()`), because the action in `theholocron/.github` is a frozen copy that `holocron sync github` no longer updates: a change to the action takes effect on the PR that makes it. The other actions are still the frozen copies until `CI_HOME` moves to `ci-v1`.
   Root `package.json` scripts and `turbo.json` come from one function, `scriptsFor()` (spec `ci-flat-task-vocabulary`,
   #1616): in a pnpm workspace each script calls turbo directly (`"test": "turbo run test"`, because the `holocron` bin is
   built from this repo and does not exist on a fresh clone), a repo-scoped leaf holds its tool's own command, a suite

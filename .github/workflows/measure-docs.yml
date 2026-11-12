@@ -56,6 +56,6 @@ jobs:
         if: >-
           ${{ !cancelled() && hashFiles('coverage/docs.lcov') != '' &&
           (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: theholocron/.github/.github/actions/codecov-upload@main
+        uses: ./ci/actions/codecov-upload
         with:
           uploads: '[{"flag":"documentation","files":"coverage/docs.lcov"}]'

@@ -31,6 +31,7 @@ export {
 	HOLOCRON_REPO,
 	legacyGate,
 	localize,
+	localizeActions,
 	TEMPLATE_HOME,
 } from "./generators/ci-ref/index.js";
 export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";

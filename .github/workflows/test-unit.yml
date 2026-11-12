@@ -110,7 +110,7 @@ jobs:
       - id: flags
         name: Upload coverage to Codecov, one flag per group
         if: ${{ inputs.uploads != '' }}
-        uses: theholocron/.github/.github/actions/codecov-upload@main
+        uses: ./ci/actions/codecov-upload
         with:
           uploads: ${{ inputs.uploads }}
           allow-empty: ${{ inputs.affected }}
