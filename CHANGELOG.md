@@ -1,3 +1,16 @@
+## [5.0.0-alpha.420](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.419...v5.0.0-alpha.420) (2026-11-12)
+
+### Features
+
+* **doctor:** doctor shared-values finds secrets sharing a value between layers ([#2093](https://github.com/theholocron/holocron/issues/2093)) ([683456a](https://github.com/theholocron/holocron/commit/683456a7c6a421ccf04d6bb1edbdb2dd51c62632)), closes [#2089](https://github.com/theholocron/holocron/issues/2089)
+
+### Chores
+
+* **deps:** bump @sentry/node from 10.75.2 to 11.11.0 ([#2099](https://github.com/theholocron/holocron/issues/2099)) ([573b27d](https://github.com/theholocron/holocron/commit/573b27d3065664555b35d3998d18d4fe605576f3))
+* **deps:** bump posthog-node ([#2098](https://github.com/theholocron/holocron/issues/2098)) ([18afc04](https://github.com/theholocron/holocron/commit/18afc04ae34669b8d698ded95d99c2808dff904d))
+* **specs:** 🔧 🔄 sync spec discussions ([#2102](https://github.com/theholocron/holocron/issues/2102)) ([318962d](https://github.com/theholocron/holocron/commit/318962d81306d5476c4edd98939e634001d18306))
+* **specs:** 🔧 🔄 sync spec discussions ([#2107](https://github.com/theholocron/holocron/issues/2107)) ([ba6380a](https://github.com/theholocron/holocron/commit/ba6380a26f45bb433647187f22e00e36a0ee1acb))
+
 ## [5.0.0-alpha.419](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.418...v5.0.0-alpha.419) (2026-11-11)
 
 ### Features
