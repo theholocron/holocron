@@ -324,9 +324,21 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(action).toMatch(/uploaded" -eq 0 \] && \[ "\$ALLOW_EMPTY" != "true"/);
 	});
 
+	it("codecov-upload asks for a new OIDC token before every upload, because one token does not last a whole run", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		// the request lives in one function, not inline once at the top
+		expect(action.match(/ACTIONS_ID_TOKEN_REQUEST_URL&audience=https:\/\/codecov\.io/g)).toHaveLength(1);
+		expect(action).toMatch(/fetch_token\(\) \{/);
+		// the first token is for create-commit and create-report; each upload attempt then takes its own
+		expect(action.indexOf("fetch_token || exit 1")).toBeLessThan(action.indexOf("create-commit"));
+		expect(action.indexOf("until fetch_token")).toBeGreaterThan(action.indexOf("create-report"));
+		// a failed request fails the step instead of uploading with a stale or empty token
+		expect(action).toMatch(/Could not get an OIDC token\."\n\s+return 1/);
+	});
+
 	it("codecov-upload tries each flag's upload up to four times before it fails the job", () => {
 		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
-		expect(action).toMatch(/until "\$CODECOV_CLI" do-upload [^\n]*--fail-on-error/);
+		expect(action).toMatch(/until fetch_token && "\$CODECOV_CLI" do-upload [^\n]*--fail-on-error/);
 		expect(action).toContain('if [ "$attempt" -ge 4 ]');
 		// the failure that ends the retries still fails the step
 		expect(action).toMatch(/Codecov rejected the \$flag upload[^\n]*\n\s+exit 1/);

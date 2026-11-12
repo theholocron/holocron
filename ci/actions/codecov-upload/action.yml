@@ -60,14 +60,19 @@ runs:
           echo "::error::uploads must be a JSON list of {\"flag\", \"files\"} with both set."
           exit 1
         fi
-        # The token codecov-action asks for with `use_oidc: true`.
-        token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://codecov.io" | jq -r .value)"
-        if [ -z "$token" ] || [ "$token" = null ]; then
-          echo "::error::Could not get an OIDC token."
-          exit 1
-        fi
-        echo "::add-mask::$token"
+        # The token codecov-action asks for with `use_oidc: true`. It is short-lived (about five minutes), and
+        # about eighty uploads take longer than that, so it is fetched again before every upload: a token reused
+        # past its life is answered with "Repository not found".
+        fetch_token() {
+          token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://codecov.io" | jq -r .value)"
+          if [ -z "$token" ] || [ "$token" = null ]; then
+            echo "::error::Could not get an OIDC token."
+            return 1
+          fi
+          echo "::add-mask::$token"
+        }
+        fetch_token || exit 1
         # What codecov-action does before it uploads: tell Codecov about the commit and open the report that
         # the per-flag uploads attach to. Uploading alone leaves the report unprocessed and posts no status.
         "$CODECOV_CLI" create-commit -t "$token" --fail-on-error --git-service github
@@ -85,10 +90,9 @@ runs:
           args=()
           for f in "${files[@]}"; do args+=(--file "$f"); done
           echo "→ $flag: ${#files[@]} file(s)"
-          # Codecov's API now and then answers a valid upload with "Repository not found" or a 5xx, and about
-          # eighty uploads a run make one such answer likely. Each flag gets a few tries before it fails the job.
+          # A fresh token for each try, then a few tries: Codecov also answers an upload with a 5xx now and then.
           attempt=1
-          until "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"; do
+          until fetch_token && "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"; do
             if [ "$attempt" -ge 4 ]; then
               echo "::error::Codecov rejected the $flag upload $attempt times."
               exit 1
