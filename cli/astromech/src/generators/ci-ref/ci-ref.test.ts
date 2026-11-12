@@ -15,6 +15,7 @@ import {
 	HOLOCRON_REPO,
 	legacyGate,
 	localize,
+	localizeActions,
 	rehome,
 	rehomeAll,
 	reusableWorkflowRef,
@@ -117,6 +118,39 @@ describe("rehome", () => {
 	it("builds a reusable workflow reference", () => {
 		expect(reusableWorkflowRef("preview.yml", MOVED)).toBe("acme/central/.github/workflows/preview.yml@ci-v1");
 		expect(reusableWorkflowRef("preview.yml")).toBe("theholocron/.github/.github/workflows/preview.yml@main");
+	});
+});
+
+describe("localizeActions", () => {
+	it("points a named action at its folder in the same checkout", () => {
+		const text = "        uses: theholocron/.github/.github/actions/codecov-upload@main\n";
+		expect(localizeActions(text, ["codecov-upload"])).toBe("        uses: ./ci/actions/codecov-upload\n");
+	});
+
+	it("rewrites every use of it and leaves the actions it is not asked about on their full ref", () => {
+		const text = [
+			"- uses: theholocron/.github/.github/actions/setup@main",
+			"- uses: theholocron/.github/.github/actions/codecov-upload@main",
+			"- uses: theholocron/.github/.github/actions/codecov-upload@main",
+		].join("\n");
+		expect(localizeActions(text, ["codecov-upload"])).toBe(
+			[
+				"- uses: theholocron/.github/.github/actions/setup@main",
+				"- uses: ./ci/actions/codecov-upload",
+				"- uses: ./ci/actions/codecov-upload",
+			].join("\n")
+		);
+	});
+
+	it("reads the reference at the home it is given, so it still works once the files move", () => {
+		const text = "uses: acme/central/ci/actions/codecov-upload@ci-v1";
+		expect(localizeActions(text, ["codecov-upload"], MOVED)).toBe("uses: ./ci/actions/codecov-upload");
+		expect(localizeActions(text, ["codecov-upload"])).toBe(text);
+	});
+
+	it("changes nothing without a name", () => {
+		const text = "uses: theholocron/.github/.github/actions/codecov-upload@main";
+		expect(localizeActions(text, [])).toBe(text);
 	});
 });
 

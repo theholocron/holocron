@@ -107,3 +107,16 @@ export function localize(text: string, home: CiHome = CI_HOME): string {
 	const reference = new RegExp(`${escaped(home.workflows)}/([\\w.-]+)@${escaped(home.ref)}`, "g");
 	return text.replace(reference, (_all, name: string) => `./.github/workflows/${flatFile(name)}`);
 }
+
+/**
+ * `text` with each reference to a hosted composite action in `names` at `home` rewritten to its folder in the same
+ * checkout (`./ci/actions/<name>`). For the written copy of a reusable in the repo that hosts it, which only that
+ * repo's own callers run: a change to the action then takes effect at the PR's own commit, instead of waiting for
+ * the frozen copy in `theholocron/.github` that `home` still names. An action not in `names` keeps its full ref.
+ */
+export function localizeActions(text: string, names: readonly string[], home: CiHome = CI_HOME): string {
+	return names.reduce(
+		(result, name) => result.replaceAll(`${home.actions}/${name}@${home.ref}`, `./ci/actions/${name}`),
+		text
+	);
+}
