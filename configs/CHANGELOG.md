@@ -1,3 +1,9 @@
+## [8.9.0-alpha.17](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.16...configs-v8.9.0-alpha.17) (2026-11-12)
+
+### Refactoring
+
+* **cli:** ♻️ add setup, upgrade, cleanup and apply ([#2119](https://github.com/theholocron/holocron/issues/2119)) ([b2d3e38](https://github.com/theholocron/holocron/commit/b2d3e381494b5c5a4a6e83068040c01b101da58a)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
 ## [8.9.0-alpha.16](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.15...configs-v8.9.0-alpha.16) (2026-11-10)
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/devmoji-config",
-  "version": "8.9.0-alpha.16",
+  "version": "8.9.0-alpha.17",
   "description": "Shared devmoji configuration for conventional commit emojis.",
   "keywords": [
     "devmoji",
