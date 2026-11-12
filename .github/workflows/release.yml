@@ -104,8 +104,8 @@ on: # yamllint disable-line rule:truthy
           Generic GitHub token fallback for `gh` CLI calls. Used when
           HOLOCRON_READ_TOKEN is not set.
         required: false
-      HOLOCRON_SENTRY_AUTH_TOKEN:
-        description: The Sentry auth token. Read first; the SENTRY_AUTH_TOKEN secret is the fallback.
+      HOLOCRON_SENTRY_RELEASE_TOKEN:
+        description: The Sentry release token (sourcemaps and release creation). Read first; the SENTRY_AUTH_TOKEN secret is the fallback.
         required: false
       SENTRY_AUTH_TOKEN:
         description: >
@@ -277,7 +277,7 @@ jobs:
         if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' && inputs.dry-run != true }}
         uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.HOLOCRON_SENTRY_AUTH_TOKEN || secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.HOLOCRON_SENTRY_RELEASE_TOKEN || secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.HOLOCRON_SENTRY_ORG || vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
         with:
