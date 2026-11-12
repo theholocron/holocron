@@ -1,3 +1,9 @@
+## [1.12.1-alpha.4](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.3...skills-v1.12.1-alpha.4) (2026-11-12)
+
+### Bug Fixes
+
+* **skills:** name the current install command in holocron-skill-skill ([#2128](https://github.com/theholocron/holocron/issues/2128)) ([5311cc2](https://github.com/theholocron/holocron/commit/5311cc2927503a42bb399bf294e13830be07cd16))
+
 ## [1.12.1-alpha.3](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.2...skills-v1.12.1-alpha.3) (2026-11-12)
 
 ### Refactoring
