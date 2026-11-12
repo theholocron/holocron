@@ -1,6 +1,6 @@
 ---
 id: SPEC-0082
-status: draft
+status: accepted
 issue: theholocron/holocron#2089
 blocked-by: []
 related:
