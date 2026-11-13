@@ -20,7 +20,7 @@ Logs reach Axiom only when a token and a dataset name are both present, so a typ
 | `organization`         | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`, is set. It is an organization variable, so an unset one here is a skip, not a failure                           |
 | `retention of <name>`  | information only (counted as skipped): the retention in days Axiom reports for each existing dataset                                                    |
 
-A dataset name is resolved the way its service resolves it, so the check sees what the service would. The CLI's is the logger's own chain: the process environment (`HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`), then the repo's `log.axiom.dataset`, then the [`credentials`](/holocron/commands/doctor-credentials/) providers. Sentinel's, and any other service's, is its own variable from the environment and then the `credentials` providers. A name that does not resolve here is a skip with the variable named; it is not a failure, because another machine may hold it.
+A dataset name is resolved the way its service resolves it, so the check sees what the service would. The CLI's is the logger's own chain: the process environment (`HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`), then the repo's `log.axiom.dataset`, then the `credentials` providers. Sentinel's, and any other service's, is its own variable from the environment and then the `credentials` providers. A name that does not resolve here is a skip with the variable named; it is not a failure, because another machine may hold it.
 
 ## Retention
 

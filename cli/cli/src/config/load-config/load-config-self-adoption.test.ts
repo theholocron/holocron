@@ -257,7 +257,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect(vault.tuple.options).toEqual({ environment: "Holocron - GitHub Actions" });
 		vault.tuple.options = { environment: `${SLUG} - ci` };
 
-		// And (#2041): the names `doctor variable-owners` does not report because two places hold them on purpose.
+		// And (#2041): the names `doctor secrets --shared` does not report because two places hold them on purpose.
 		const doctorBefore = (expected as unknown as { doctor: { sharedVariables?: string[] } }).doctor;
 		expect(doctorBefore.sharedVariables).toBeUndefined();
 		doctorBefore.sharedVariables = [

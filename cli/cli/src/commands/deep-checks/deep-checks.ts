@@ -8,7 +8,6 @@ import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-no
 import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
-import { doctorVariableOwnersCommand, runDoctorVariableOwners } from "../doctor-variable-owners/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -92,20 +91,6 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorSecretsCommand as never,
 		async run(input) {
 			const report = await runDoctorSecrets(input);
-			return {
-				status: report.status,
-				summary: report.summary,
-				...(report.reason ? { reason: report.reason } : {}),
-			};
-		},
-	},
-	{
-		name: "variable-owners",
-		// It compares names across the 1Password Environments (`credentials`) and GitHub (`secrets`, `source`).
-		capability: "credentials",
-		command: doctorVariableOwnersCommand as never,
-		async run(input) {
-			const report = await runDoctorVariableOwners(input);
 			return {
 				status: report.status,
 				summary: report.summary,

@@ -127,9 +127,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   (`cli/cli/src/commands/deep-checks/`) and prints through the shared pieces in `@theholocron/kyber/ui` (`printCheckRows`,
   `printCheckSummary`, `summariseChecks`, `declaredVsActual`), so a new one is a list of comparisons, not a renderer. A new entry also
   needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries; `deep-checks.test.ts` fails without them. Checks that write
-  and read back are probes, not doctor. `doctor variable-owners` (#2041, spec `tech-doctor-variable-owners`) reports a
-  variable name held by two places (1Password Environments, Actions secrets and variables), names only (the Environments are listed by a `readCredentials: false` loader, the GitHub reads by a second loader that has the credential chain for the token); the `repo.*.sync`
-  fan-out, `doctor.sharedVariables` and the `githubApps` instances are not findings. `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
+  and read back are probes, not doctor. `doctor variable-owners` (#2041, spec `tech-doctor-variable-owners`) was removed in layer 6 of #2136: with the layer layout the same name legitimately lives in `dev`, `ci` and GitHub, so its role is now the `--name` lookup and the `extra` cells of `doctor secrets` (the `repo.*.sync` fan-out, `doctor.sharedVariables` and `doctor.manualSecrets` are not findings, and the `githubApps` instances are not read). `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
   vocabulary (deprecated aliases in `tasks:`, caller file/workflow/job names, the `ci` aggregate's `expected`, the
   callers' home), reading `.github/workflows` through an injected `CiIo`; the ruleset stays `doctor repo`'s.
   `doctor logs` compares the Axiom datasets the setup ships logs to with Axiom (`datasetTargets()`: the CLI's through the
