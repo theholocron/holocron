@@ -48,6 +48,14 @@ export interface PluginToken {
 	 * Default `false`.
 	 */
 	optional?: boolean;
+	/**
+	 * What this token must and must not be able to do in each layer that holds it (`local`, `dev`, `ci`, `prod`; a layer
+	 * left out has no declared expectations). The permission names are the plugin's own and `required` or `absent` is the
+	 * rule: a laptop token might need all of a provider's permissions, while `ci` needs one and must not have the rest.
+	 * A token probe (`holocron probe <provider> token --environment <layer>`) judges the token against it, and the
+	 * permission table in `docs/src/content/docs/tokens.mdx` says the same in prose.
+	 */
+	expect?: Readonly<Record<string, Readonly<Partial<Record<string, "required" | "absent">>>>>;
 }
 
 export interface AuthPluginModule {

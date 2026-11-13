@@ -4,6 +4,7 @@ import { commandFailureMessage, statusRow } from "@theholocron/kyber/ui";
 
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
+import { ownerEnvironments } from "../doctor-variable-owners/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
@@ -96,6 +97,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 					provider: input.provider,
 					environment: chosen.environment,
 					repoRoot: context.repoRoot,
+					configured: ownerEnvironments(input.loaded.resolved).names,
 					vault: loader.has("vault") ? loader.get("vault") : undefined,
 					tokens: await (input.providerTokens ?? defaultProviderTokens(input.loaded))(input.provider),
 				});

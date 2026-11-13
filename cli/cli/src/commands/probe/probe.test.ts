@@ -222,6 +222,8 @@ describe("runProbeCommand", () => {
 			{ envName: "HOLOCRON_DEMO_TOKEN", vendorEnvName: "DEMO_TOKEN", keyringKey: "demo" },
 		];
 		const base = () => ({
+			// The config names one Environment, `Sentinel` (as `dev.environment`); a layer word is always this repo's own.
+			loaded: { resolved: { providers: {}, dev: { environment: "Sentinel" } } } as unknown as LoadedConfig,
 			provider: "demo",
 			probe: "check",
 			providerTokens,
@@ -256,6 +258,14 @@ describe("runProbeCommand", () => {
 			await run({ ...base(), environment: "Sentinel" }).promise;
 			await run({ ...base(), chooseToken: async () => ({ token: "pasted" }) }).promise;
 			expect(argsSeen).toEqual([[], []]);
+		});
+
+		it("refuses an Environment the config does not name, and runs nothing", async () => {
+			argsSeen.length = 0;
+			const { promise, text } = run({ ...base(), environment: "Elsewhere" });
+			expect((await promise).status).toBe("fail");
+			expect(text()).toContain("Elsewhere is not an Environment this repo's config names");
+			expect(argsSeen).toEqual([]);
 		});
 
 		it("builds the loader again with the Environment's token as the provider's", async () => {

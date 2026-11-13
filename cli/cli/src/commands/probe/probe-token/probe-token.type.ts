@@ -1,3 +1,5 @@
+import type { GitExec } from "@theholocron/git-utils";
+
 import type { Vault } from "../../../plugin/index.js";
 import type { PluginToken } from "../../auth/index.js";
 
@@ -18,6 +20,10 @@ export interface EnvironmentTokenInput {
 	/** A layer word (`ci`) or an Environment name, as `sync secrets` takes it. */
 	environment: string;
 	repoRoot: string;
+	/** Reads the remote a layer word is resolved from; tests inject one. */
+	gitExec?: GitExec;
+	/** The Environments the config names (anything but a layer word must be one of these). */
+	configured: readonly string[];
 	/** The configured vault; it must be able to read a whole Environment. */
 	vault: Vault | undefined;
 	/** The tokens the provider's plugin lists, whose variable names are looked for in the Environment. */
