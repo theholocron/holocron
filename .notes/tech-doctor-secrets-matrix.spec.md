@@ -1,5 +1,5 @@
 ---
-status: draft
+status: proposed
 issue: theholocron/holocron#2136
 blocked-by: []
 related:
@@ -61,7 +61,9 @@ config, not a fixed list, and are grouped by what stores them:
 - **Deploy:** each Vercel project or Worker that `repo.secrets.deploy` feeds.
 - **Another vault:** a group per vault provider the config uses (Doppler, Infisical).
 
-Names only; no value, hash or length ever reaches the output. A cell is one of:
+The matrix has two blocks with a heading each, **Secrets** and then **Variables**, so a visible value is never mistaken
+for a concealed one. `--only-secrets` and `--only-variables` show one block; the default shows both. Names only; no value,
+hash or length ever reaches the output. A cell is one of:
 
 ```text
 ok       present where it should be
@@ -96,7 +98,7 @@ Both are opt-in, because each changes what the command touches.
 
 ### `variable-owners` becomes a lookup
 
-`holocron doctor secrets <name>` (or `--name <name>`) prints the row for one name and why each place is in the state it is,
+`holocron doctor secrets --name <name>` prints the row for one name and why each place is in the state it is,
 for example `in ci, synced to repository secrets by the third entry` or `in GitHub only, no entry feeds it`. It is
 informational and exits 0. The old "same name in two places" failure goes: with layers it is the normal case.
 
@@ -125,13 +127,13 @@ Focused pull requests, in this order; each leaves the CLI working.
 5. `--shared`; remove `doctor shared-values`.
 6. Remove `doctor variable-owners`.
 
-## Open questions
+## Resolved questions
 
-1. Variables: `doctor variables` compares `repo.variables.sync` with GitHub's variables. This spec treats variables as rows
-   of the same matrix (a kind on the row) and folds that command in at step 2 or 3. Confirm.
-2. The lookup's shape: a positional `<name>` or `--name`. A positional could be mistaken for an environment now that `--env` is the flag.
-3. Whether the matrix should fail (not just report) a `MISSING` cell, or leave failures to the existing rows. Today a missing secret is a failure; keep that.
-4. What `--env prod` shows for a destination the token cannot read (a Vercel project): a skipped row, as elsewhere.
+1. **Variables** are rows of the same matrix, in their own block after the secrets, with `--only-secrets` and
+   `--only-variables` to show one. `doctor variables` folds in at step 2 or 3 and is removed with no alias.
+2. **The lookup** is `--name <name>`, not a positional, so a name is never mistaken for an environment.
+3. **`MISSING`** is a failure, as a missing secret is today. Only `extra` is advisory.
+4. **An unreadable prod destination** (a Vercel project the token cannot read) is a skipped row that names why, as elsewhere.
 
 ## Not in scope
 
