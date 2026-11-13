@@ -237,7 +237,8 @@ describe("runProbeCommand", () => {
 			expect((await promise).status).toBe("ok");
 			// The first loader has no token of its own; the one built again for the probe has the Environment's.
 			expect(seen).toEqual([undefined, "env-token-value"]);
-			expect(text()).toContain("read DEMO_TOKEN from Sentinel");
+			// Where the token came from is in `holocron probe --help`, not repeated in the run.
+			expect(text()).not.toContain("DEMO_TOKEN");
 			expect(text()).not.toContain("env-token-value");
 			expect(text()).toContain("checked");
 		});
