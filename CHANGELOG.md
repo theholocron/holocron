@@ -1,3 +1,9 @@
+## [5.0.0-alpha.425](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.424...v5.0.0-alpha.425) (2026-11-13)
+
+### Features
+
+* **cli:** ✨ add new issue to file an issue from the CLI ([#2135](https://github.com/theholocron/holocron/issues/2135)) ([2a5ca40](https://github.com/theholocron/holocron/commit/2a5ca40f112d9ae236a8f2ba1a496022855a8059)), closes [#2134](https://github.com/theholocron/holocron/issues/2134) [#2082](https://github.com/theholocron/holocron/issues/2082) [#2134](https://github.com/theholocron/holocron/issues/2134)
+
 ## [5.0.0-alpha.424](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.423...v5.0.0-alpha.424) (2026-11-12)
 
 ### Bug Fixes
