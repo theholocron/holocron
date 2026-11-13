@@ -1,8 +1,19 @@
 export * from "./auth/index.js";
-export type { PluginToken, VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
+export type {
+	PermissionRule,
+	PluginToken,
+	TokenExpectation,
+	VerifyTokenFailure,
+	VerifyTokenResult,
+	VerifyTokenSuccess,
+} from "./commands/auth/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
 export * from "./commands/setup/derived-properties/index.js";
 export { CANONICAL_LABELS } from "./commands/setup/labels.js";
+export type { EnvironmentLayer } from "./credentials-environments/index.js";
+// `tokenExpectations()` is the one reader of what a plugin's tokens declare (`PluginToken.expect`), for the token
+// probes, the doctor and the docs check (#2149).
+export * from "./commands/token-expectations/index.js";
 // The 1Password plugin's `export-environment` probe resolves a layer word and decides where secrets may be written
 // with the same pieces `sync secrets` and `export tokens` use.
 export type { AuthExportOutKind } from "./commands/auth-export/auth-export.type.js";

@@ -1,6 +1,6 @@
 import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
-import { EXPECTED_BY_LAYER } from "./probes/token/expectations.js";
+import { EXPECTED } from "./probes/token/expectations.js";
 
 export { AuthError };
 export type { ResolveTokenInput };
@@ -16,4 +16,4 @@ export const resolveToken = createResolveToken({
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`, with what each layer's token must and must not be able to do. */
-export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED_BY_LAYER }];
+export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED }];
