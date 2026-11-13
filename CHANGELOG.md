@@ -1,3 +1,9 @@
+## [5.0.0-alpha.427](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.426...v5.0.0-alpha.427) (2026-11-13)
+
+### Features
+
+* **cli:** ✨ group the cloudflare token probe by what a layer should and should not have ([#2148](https://github.com/theholocron/holocron/issues/2148)) ([0b98730](https://github.com/theholocron/holocron/commit/0b98730f3cad5b6516e0344b98e2188a4b906ddc)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [5.0.0-alpha.426](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.425...v5.0.0-alpha.426) (2026-11-13)
 
 ### Features

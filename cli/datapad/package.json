@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/datapad",
-  "version": "5.0.0-alpha.426",
+  "version": "5.0.0-alpha.427",
   "description": "Generic config-file loading for Holocron — discover, load (JSON/JS/TS/ESM/CJS), and merge <name>.config.* files with a typed defineConfig.",
   "keywords": [
     "config",
