@@ -260,6 +260,25 @@ describe("runProbeCommand", () => {
 			expect(argsSeen).toEqual([[], []]);
 		});
 
+		it("builds its own loader when none is injected, and keeps the probe it already has if the rebuilt loader lacks it", async () => {
+			const built: Array<Record<string, string> | undefined> = [];
+			const empty = (context: { cliTokens?: Record<string, string> }) => {
+				built.push(context.cliTokens);
+				return { ...tokenLoader(context), probes: () => new Map() } as unknown as PluginLoader;
+			};
+			const { promise } = run({
+				...base(),
+				loader: undefined,
+				makeLoader: (context: { cliTokens?: Record<string, string> }) =>
+					built.length === 0
+						? (built.push(undefined), tokenLoader(context, { DEMO_TOKEN: "env-token-value" }))
+						: empty(context),
+				environment: "Sentinel",
+			});
+			expect((await promise).status).toBe("ok");
+			expect(built).toHaveLength(2);
+		});
+
 		it("refuses an Environment the config does not name, and runs nothing", async () => {
 			argsSeen.length = 0;
 			const { promise, text } = run({ ...base(), environment: "Elsewhere" });

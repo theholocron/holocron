@@ -59,6 +59,16 @@ describe("probe command", () => {
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ provider: "sentry", probe: "rules", yes: true });
 	});
 
+	it("hands --environment to the probe, and offers the question only on a terminal", async () => {
+		await run({ provider: "cloudflare", probe: "token", environment: "ci" });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ environment: "ci" });
+		expect(runProbeCommand.mock.calls[0]![0]).not.toHaveProperty("chooseToken");
+		stdin(true);
+		await run({ provider: "cloudflare", probe: "token" });
+		expect(runProbeCommand.mock.calls[1]![0]).not.toHaveProperty("environment");
+		expect(runProbeCommand.mock.calls[1]![0]).toHaveProperty("chooseToken");
+	});
+
 	it("stops without loading anything when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
 		await run();

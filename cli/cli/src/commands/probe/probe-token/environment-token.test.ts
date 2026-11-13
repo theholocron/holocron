@@ -39,6 +39,16 @@ describe("environmentToken", () => {
 		});
 	});
 
+	it("looks only for the plugin's own variable when the token has no vendor name", async () => {
+		const own = [{ envName: "HOLOCRON_DEMO_TOKEN", keyringKey: "demo" }];
+		expect(await environmentToken(input(vaultOf({ HOLOCRON_DEMO_TOKEN: "own" }), { tokens: own }))).toMatchObject({
+			token: "own",
+		});
+		await expect(environmentToken(input(vaultOf({}), { tokens: own }))).rejects.toThrow(
+			"Sentinel holds none of HOLOCRON_DEMO_TOKEN"
+		);
+	});
+
 	it("falls back to the vendor's variable, skipping a blank one", async () => {
 		const vault = vaultOf({ HOLOCRON_CLOUDFLARE_TOKEN: "", CLOUDFLARE_API_TOKEN: "vendor" });
 		expect(await environmentToken(input(vault))).toMatchObject({

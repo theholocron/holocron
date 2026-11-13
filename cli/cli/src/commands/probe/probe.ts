@@ -99,6 +99,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 					repoRoot: context.repoRoot,
 					configured: ownerEnvironments(input.loaded.resolved).names,
 					vault: loader.has("vault") ? loader.get("vault") : undefined,
+					/* v8 ignore next -- the real importer reads installed plugin packages, which tests replace with `providerTokens` */
 					tokens: await (input.providerTokens ?? defaultProviderTokens(input.loaded))(input.provider),
 				});
 				override = found.token;

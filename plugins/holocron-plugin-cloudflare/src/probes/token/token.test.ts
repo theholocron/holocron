@@ -22,7 +22,7 @@ async function check(responses: Parameters<typeof stubFetch>[0], over: { account
 		token: () => "cf-tok",
 	});
 	await probe.run({
-		args: over.args ?? [],
+		...(over.args ? { args: over.args } : {}),
 		dryRun: false,
 		say: (r) => void rows.push(r),
 		secret: (v) => void secrets.push(v),
@@ -88,6 +88,26 @@ describe("token probe", () => {
 			args: ["example.dev"],
 		});
 		expect(calls[1]?.url).toContain("name=example.dev");
+	});
+
+	it("shortens a long list of zones and reads DNS and routes for only the first five", async () => {
+		const many = Array.from({ length: 7 }, (_, i) => ({ id: `z${i}`, name: `d${i}.dev`, status: "active" }));
+		const { rows, calls } = await check([
+			denied,
+			cfOk(many),
+			...Array(10).fill(cfOk([])),
+			cfOk([]),
+			cfOk([]),
+			cfOk([]),
+		]);
+		expect(row(rows, "Zone: Read")?.detail).toBe("7 zones: d0.dev, d1.dev, d2.dev, d3.dev, d4.dev (+2 more)");
+		expect(rows.filter((r) => r.label.startsWith("DNS: Edit"))).toHaveLength(5);
+		expect(calls.filter((c) => c.url.includes("/dns_records"))).toHaveLength(5);
+	});
+
+	it("counts items that carry no name", async () => {
+		const { rows } = await check([denied, cfOk([]), cfOk([]), cfOk([]), cfOk([{ id: "t" }])]);
+		expect(row(rows, "Cloudflare Tunnel: Edit")).toMatchObject({ status: "ok", detail: "1 tunnels" });
 	});
 
 	it("fails a row for an error that is not about access", async () => {
