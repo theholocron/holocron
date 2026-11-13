@@ -5,6 +5,7 @@ import { githubAppCreateCommand } from "../github-app-create/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
 import { groupMenu } from "../group-menu/index.js";
 import { ideasPromoteCommand } from "../ideas-promote/index.js";
+import { issueCreateCommand } from "../issue-create/index.js";
 import { notificationsChannelAddCommand } from "../notifications-channel-add/notifications-channel-add.command.js";
 import { notificationsCreateServerCommand } from "../notifications-create-server/notifications-create-server.command.js";
 import { pluginCreateCommand } from "../plugin-create/plugin-create.command.js";
@@ -15,7 +16,7 @@ import { newRepoCommand } from "./new-repo.command.js";
 
 export const newCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "new",
-	describe: "Create a repo, plugin, channel, server, secret, token, tunnel, GitHub App, project or spec",
+	describe: "Create a repo, plugin, channel, server, secret, token, tunnel, GitHub App, project, spec or issue",
 	builder: (y: Argv<GlobalArgs>) =>
 		y
 			.command(newRepoCommand as never)
@@ -26,6 +27,7 @@ export const newCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 			.command(secretSetCommand as never)
 			.command(notificationsCreateServerCommand as never)
 			.command(ideasPromoteCommand as never)
+			.command(issueCreateCommand as never)
 			.command(authSetCommand as never)
 			.command(tunnelUpCommand as never)
 			.command(groupMenu("new") as never),

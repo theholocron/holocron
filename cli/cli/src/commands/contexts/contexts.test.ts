@@ -87,6 +87,7 @@ const EVERY_COMMAND = [
 	"sync issues",
 	"sync ideas",
 	"new spec",
+	"new issue",
 ];
 
 describe("COMMAND_CONTEXTS", () => {

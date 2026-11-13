@@ -127,6 +127,8 @@ export const COMMAND_CONTEXTS = {
 	"sync ideas": "workspace",
 	// Reads the issue through the `issues` provider, so its package must be resolvable.
 	"new spec": "workspace",
+	// Files the issue through the `issues` provider, so its package must be resolvable.
+	"new issue": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**

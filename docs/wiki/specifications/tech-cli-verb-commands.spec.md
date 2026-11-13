@@ -69,6 +69,7 @@ Alphabetical by top-level verb. Rows marked `=` keep their name.
 | `move issues <from> <to>`                                                        | `project move <from> <to>`                               | workspace  |
 | `new channel [name]`                                                             | `notifications channel add`                              | workspace  |
 | `new github-app`                                                                 | `github-app create`                                      | global     |
+| `new issue <title>`                                                              | (new)                                                    | workspace  |
 | `new plugin \| repo`                                                             | =                                                        | global     |
 | `new project [template]`                                                         | `project create`                                         | workspace  |
 | `new secret [name] [value]`                                                      | `secrets set`                                            | workspace  |
@@ -106,7 +107,7 @@ Groups that disappear: `auth`, `skills`, `project`, `package`, `repo`, `specs`, 
 
 ### Decisions worth recording
 
-- **`new spec <issue>`, not `new issue` or `export issue`.** The command reads an issue and writes a
+- **`new spec <issue>`, not `export issue`.** (`new issue` is a different command: it files an issue.) The command reads an issue and writes a
   `status: draft` spec file from it, never overwriting. `export issue` would read as the `Issues.export` records
   that `migrate` and `sync issues` use.
 - **`move issues`, not `migrate project`.** `migrate project` copies a board's issues from one tracker to another;
@@ -188,10 +189,14 @@ test-only follow-ups):
 ## Out of scope
 
 - Deprecated aliases (decided against).
-- New behaviour, except `list skills`, `export tokens [names..]` and `remove skill --all`.
+- New behaviour, except `list skills`, `export tokens [names..]`, `remove skill --all` and `new issue`.
 - `doctor`, `probe` and `provider`.
 
 ## Open questions
 
-- Should `check token` check every stored token when no provider is given (`check tokens [providers..]`)?
-- Should a later `new issue` file an issue from the CLI?
+None open. Decided later:
+
+- `check token` with no provider asks which stored token to check (it already prompts; it is not `check tokens`).
+- `new issue <title> [--body] [--label ...] [--milestone] [--yes]` files an issue through the `issues` provider
+  (`Issues.create`, so GitHub or Linear), asks first unless `--dry-run` or `--yes` (#2134). The repo's own rule is to use
+  the Holocron command wherever one exists, so issues are filed with it and not with a tracker's CLI.

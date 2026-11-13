@@ -1,0 +1,38 @@
+---
+title: "new issue"
+description: File an issue in the repo's tracker from the command line.
+---
+
+```bash
+holocron new issue <title> [--body <text>] [--label <name>]... [--milestone <number|title>] [--dry-run] [--yes]
+```
+
+Files an issue through the repo's `issues` provider (`Issues.create`), so it lands in GitHub or Linear, whichever the config names, and the command knows nothing about a tracker. It prints the new issue's key in that tracker's syntax (`#2134`, `RANDO-7`).
+
+```bash
+holocron new issue "Fix the retry in codecov-upload" --label bug --body "It gives up after one attempt."
+```
+
+## Behavior
+
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
+- **`--dry-run`** prints the title, the first lines of the text and the labels and milestone, and files nothing.
+- **No duplicate check.** Filing the same title twice makes two issues.
+- **A failure is a row.** If the provider is missing, is not available or refuses the request, the row says why and the exit code is 1.
+- Rows print like every [`doctor <capability>`](/holocron/commands/doctor/), then `N ok, N fail, N skipped`.
+
+## Options
+
+| Option                | Default | Description                                                |
+| --------------------- | ------- | ---------------------------------------------------------- |
+| `--body <text>`       | none    | The issue's text                                           |
+| `--label <name>`      | none    | A label to put on it; repeat the option for more           |
+| `--milestone <value>` | none    | The milestone, by number or exact title (case-insensitive) |
+| `--dry-run`           | `false` | Show what would be filed, without filing it                |
+| `--yes`               | `false` | File without asking (required without a terminal)          |
+
+Run without a title and the [interactive menu](/holocron/cli/) asks for the title and the text.
+
+## Tokens
+
+The `issues` provider reads its token through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs the `issues` provider's plugin package to resolve, as every command that calls a provider does.
