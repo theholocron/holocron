@@ -104,7 +104,6 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 				});
 				override = found.token;
 				if (isEnvironmentLayer(chosen.environment)) layer = chosen.environment;
-				print(statusRow("skip", ["token", `read ${found.variable} from ${found.environment}`]));
 			} else if (chosen?.token) {
 				override = chosen.token;
 			}

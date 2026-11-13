@@ -69,6 +69,23 @@ describe("probe command", () => {
 		expect(runProbeCommand.mock.calls[1]![0]).toHaveProperty("chooseToken");
 	});
 
+	it("explains in --help how a probe about a token picks its token", async () => {
+		const out: string[] = [];
+		const log = vi.spyOn(console, "log").mockImplementation((line: unknown) => void out.push(String(line)));
+		await yargs(["probe", "--help"])
+			.option("cwd", { type: "string" })
+			.option("dry-run", { type: "boolean", default: false })
+			.command(probeCommand as never)
+			.exitProcess(false)
+			.parseAsync()
+			.catch(() => {});
+		log.mockRestore();
+		const help = out.join("\n");
+		expect(help).toContain("--environment");
+		expect(help).toContain("Probes about a token");
+		expect(help).toContain("never printed");
+	});
+
 	it("stops without loading anything when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
 		await run();

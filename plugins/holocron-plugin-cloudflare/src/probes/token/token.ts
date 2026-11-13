@@ -1,4 +1,4 @@
-import type { Probe, ProbeContext } from "@theholocron/cli";
+import type { Probe, ProbeRow } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { CfZone } from "@theholocron/cloudflare-client";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -22,6 +22,13 @@ function summarise(names: readonly string[]): string {
 
 /** What one read came back with: the token reaches some, reaches none (no access, or none exist), or the read broke. */
 type Outcome = { kind: "has" | "none" | "error"; detail: string };
+
+/** One permission tried: its row label, which permission it is, and what the read came back with. */
+interface Tried {
+	label: string;
+	permission: Permission;
+	outcome: Outcome;
+}
 
 /**
  * Reads one list and says what came back. Cloudflare answers a token without the permission in one of two ways (a 401 or
@@ -48,33 +55,22 @@ async function reach(read: () => Promise<readonly { name?: string }[]>, noun: st
 }
 
 /**
- * Reports an outcome. With no rule it only describes (`ok` for access, `info` for none). With the layer's rule it judges:
- * a required permission that is missing fails, and a permission the layer must not have fails when the token has it.
+ * One row for what was tried. With no rule it only describes (`ok` for access, `info` for none). Under a layer's rule it
+ * judges: a required permission the token lacks fails, and one the layer must not have fails when the token has it; a
+ * permission that is rightly absent is a bare `ok`.
  */
-function report(
-	probe: ProbeContext,
-	label: string,
-	outcome: Outcome,
-	rule: Rule | undefined,
-	layer: string | undefined
-): void {
-	if (outcome.kind === "error") return probe.say({ status: "fail", label, detail: outcome.detail });
+function rowFor({ label, outcome }: Tried, rule: Rule | undefined): ProbeRow {
+	if (outcome.kind === "error") return { status: "fail", label, detail: outcome.detail };
 	const has = outcome.kind === "has";
 	if (rule === "required") {
-		return probe.say(
-			has
-				? { status: "ok", label, detail: outcome.detail }
-				: { status: "fail", label, detail: `${outcome.detail}; the ${layer} token needs it` }
-		);
+		return has
+			? { status: "ok", label, detail: outcome.detail }
+			: { status: "fail", label, detail: outcome.detail };
 	}
 	if (rule === "absent") {
-		return probe.say(
-			has
-				? { status: "fail", label, detail: `${outcome.detail}; the ${layer} token must not have it` }
-				: { status: "ok", label, detail: `not present, as the ${layer} token should be` }
-		);
+		return has ? { status: "fail", label, detail: outcome.detail } : { status: "ok", label };
 	}
-	probe.say({ status: has ? "ok" : "info", label, detail: outcome.detail });
+	return { status: has ? "ok" : "info", label, detail: outcome.detail };
 }
 
 /**
@@ -83,8 +79,9 @@ function report(
  * `--token cloudflare=<token>` or `--environment <layer>` checks another one; the account id is the plugin's own.
  *
  * A token with no layer is only described. When the CLI passes `--layer` (because `--environment` named `ci`, `dev` or
- * `local`), the same results are judged against what that layer's token is meant to carry (`EXPECTED_BY_LAYER`), and a
- * missing or extra permission fails. The other words limit the zone checks to those zones; otherwise up to five are read.
+ * `local`), the results are judged against what that layer's token is meant to carry (`EXPECTED_BY_LAYER`) and shown in
+ * two groups, what it should have and what it should not, where a missing or extra permission fails. The other words
+ * limit the zone checks to those zones; otherwise up to five are read. How the token is chosen is in `holocron probe --help`.
  */
 export function tokenProbe(ctx: TokenProbeContext): Probe {
 	return {
@@ -99,30 +96,24 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 
 			const { layer, zones: wanted } = parseTokenArgs(probe.args ?? []);
 			const rules = layer ? EXPECTED_BY_LAYER[layer] : undefined;
-			const ruleFor = (permission: Permission): Rule | undefined => rules?.[permission];
-			if (layer) {
+			if (layer && !rules) {
 				probe.say({
 					status: "info",
 					label: layer,
-					detail: rules
-						? `checking against what the ${layer} token should carry (docs: tokens, what each Cloudflare token needs)`
-						: `no expectations are declared for ${layer}, so the token is only described`,
+					detail: "no expectations are declared for it, so the token is only described",
 				});
 			}
 
 			// /user/tokens/verify answers only for a token with User: API Tokens Read; an account or zone token gets a 401
-			// there even when it works, so that is a fact to report and the permissions below say what it can do.
+			// there even when it works, so only a token that passes is worth a row.
 			try {
 				const verified = await client.tokens.verify();
 				probe.say({ status: "ok", label: "token", detail: `${verified.id} (${verified.status})` });
 			} catch {
-				probe.say({
-					status: "info",
-					label: "token",
-					detail: "not a user-level token, so it is judged by what it can reach below",
-				});
+				// Judged by what it can reach, below.
 			}
 
+			const tried: Tried[] = [];
 			let zones: CfZone[] = [];
 			const zoneOutcome = await reach(async () => {
 				zones =
@@ -131,62 +122,67 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 						: await client.zones.list({ per_page: MAX_ZONES });
 				return zones.map((z) => ({ name: z.name }));
 			}, "zones");
-			report(probe, "Zone: Read", zoneOutcome, ruleFor("zone"), layer);
-			if (zoneOutcome.kind === "error") return;
+			tried.push({ label: "Zone: Read", permission: "zone", outcome: zoneOutcome });
 
-			for (const zone of zones.slice(0, MAX_ZONES)) {
-				report(
-					probe,
-					`DNS: Edit (${zone.name})`,
-					await reach(() => client.dns.list(zone.id), "records"),
-					ruleFor("dns"),
-					layer
-				);
-				report(
-					probe,
-					`Workers Routes: Edit (${zone.name})`,
-					await reach(
-						async () => (await client.workers.listRoutes(zone.id)).map((r) => ({ name: r.pattern })),
-						"routes"
-					),
-					ruleFor("routes"),
-					layer
-				);
+			if (zoneOutcome.kind !== "error") {
+				for (const zone of zones.slice(0, MAX_ZONES)) {
+					tried.push({
+						label: `DNS: Edit (${zone.name})`,
+						permission: "dns",
+						outcome: await reach(() => client.dns.list(zone.id), "records"),
+					});
+					tried.push({
+						label: `Workers Routes: Edit (${zone.name})`,
+						permission: "routes",
+						outcome: await reach(
+							async () => (await client.workers.listRoutes(zone.id)).map((r) => ({ name: r.pattern })),
+							"routes"
+						),
+					});
+				}
+				const account = ctx.options.accountId;
+				if (account) {
+					tried.push({
+						label: "Workers Scripts: Edit",
+						permission: "scripts",
+						outcome: await reach(
+							async () => (await client.workers.listScripts(account)).map((s) => ({ name: s.id })),
+							"scripts"
+						),
+					});
+					tried.push({
+						label: "Pages: Edit",
+						permission: "pages",
+						outcome: await reach(() => client.pages.listProjects(account), "projects"),
+					});
+					tried.push({
+						label: "Cloudflare Tunnel: Edit",
+						permission: "tunnels",
+						outcome: await reach(() => client.tunnels.list(account), "tunnels"),
+					});
+				} else {
+					probe.say({
+						status: rules ? "fail" : "info",
+						label: "account permissions",
+						detail: "no account id: set HOLOCRON_CLOUDFLARE_ACCOUNT_ID or the plugin's accountId option to check them",
+					});
+				}
 			}
 
-			const account = ctx.options.accountId;
-			if (!account) {
-				probe.say({
-					status: layer && rules ? "fail" : "info",
-					label: "account permissions",
-					detail: "no account id: set HOLOCRON_CLOUDFLARE_ACCOUNT_ID or the plugin's accountId option to check them",
-				});
+			if (!rules) {
+				for (const t of tried) probe.say(rowFor(t, undefined));
 				return;
 			}
-			report(
-				probe,
-				"Workers Scripts: Edit",
-				await reach(
-					async () => (await client.workers.listScripts(account)).map((s) => ({ name: s.id })),
-					"scripts"
-				),
-				ruleFor("scripts"),
-				layer
-			);
-			report(
-				probe,
-				"Pages: Edit",
-				await reach(() => client.pages.listProjects(account), "projects"),
-				ruleFor("pages"),
-				layer
-			);
-			report(
-				probe,
-				"Cloudflare Tunnel: Edit",
-				await reach(() => client.tunnels.list(account), "tunnels"),
-				ruleFor("tunnels"),
-				layer
-			);
+			const groups: Array<[string, Rule]> = [
+				["Should have", "required"],
+				["Should not have", "absent"],
+			];
+			for (const [heading, rule] of groups) {
+				const inGroup = tried.filter((t) => rules[t.permission] === rule);
+				if (inGroup.length === 0) continue;
+				probe.say({ status: "heading", label: heading });
+				for (const t of inGroup) probe.say(rowFor(t, rule));
+			}
 		},
 	};
 }

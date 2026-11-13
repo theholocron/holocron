@@ -15,6 +15,22 @@ export interface ProbeArgs extends GlobalArgs {
 	yes: boolean;
 }
 
+/**
+ * Shown in `holocron probe --help`: how a probe about a token (`cloudflare token`) picks the token it checks, so the
+ * run itself prints only the result.
+ */
+export const TOKEN_PROBE_HELP = [
+	"Probes about a token (for example `holocron probe cloudflare token`) check one token. The first of these that applies picks it:",
+	[
+		"- --token <provider>=<value>: that token (a bare --token <value> goes to every provider).",
+		"- --environment <layer or name>: the provider's token, read from that vault Environment.",
+		"- On a terminal, with neither: a question, which asks for the configured token, an Environment or a pasted token.",
+		"- Otherwise: the token the provider normally resolves.",
+	].join("\n"),
+	"--environment takes a layer (local, dev, ci or prod, which is this repo's `<org/repo> - <layer>`) or an Environment the config already names; anything else is refused. `local` is read over `dev`, as the CLI reads it.",
+	"A token read from a layer is checked against what that layer's token should carry (the permission table in the tokens docs): what it should have must be there and what it should not have must not be. Any other token is only described. The token is never printed.",
+].join("\n\n");
+
 export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 	y
 		.positional("provider", {
@@ -62,4 +78,5 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 			type: "boolean",
 			default: false,
 			describe: "Run a probe that changes things without asking first (required without a terminal)",
-		});
+		})
+		.epilogue(TOKEN_PROBE_HELP);

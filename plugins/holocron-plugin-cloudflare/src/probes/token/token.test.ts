@@ -75,7 +75,8 @@ describe("token probe", () => {
 			cfOk([{ name: "site" }]), // pages
 			denied, // tunnels
 		]);
-		expect(row(rows, "token")?.status).toBe("info");
+		// A token the verify endpoint rejects gets no row of its own; what it can reach is the answer.
+		expect(row(rows, "token")).toBeUndefined();
 		expect(row(rows, "Zone: Read")).toMatchObject({ status: "info" });
 		expect(row(rows, "Workers Scripts: Edit")).toMatchObject({ status: "info" });
 		expect(row(rows, "Pages: Edit")).toMatchObject({ status: "ok", detail: "1 projects: site" });
@@ -126,11 +127,9 @@ describe("token probe", () => {
 
 		it("passes a ci token that has Pages and nothing else", async () => {
 			const { rows, calls } = await check([denied, cfOk([]), cfOk([]), cfOk([{ name: "site" }]), cfOk([])], ci);
-			expect(row(rows, "Zone: Read")).toMatchObject({
-				status: "ok",
-				detail: expect.stringContaining("should be"),
-			});
-			expect(row(rows, "Workers Scripts: Edit")?.status).toBe("ok");
+			// What is rightly absent is a bare ok; what is present says what it found.
+			expect(row(rows, "Zone: Read")).toEqual({ status: "ok", label: "Zone: Read" });
+			expect(row(rows, "Workers Scripts: Edit")).toEqual({ status: "ok", label: "Workers Scripts: Edit" });
 			expect(row(rows, "Pages: Edit")).toMatchObject({ status: "ok", detail: "1 projects: site" });
 			expect(row(rows, "Cloudflare Tunnel: Edit")?.status).toBe("ok");
 			expect(rows.some((r) => r.status === "fail")).toBe(false);
@@ -143,20 +142,32 @@ describe("token probe", () => {
 				[denied, cfOk([]), cfOk([{ id: "s1" }]), cfOk([{ name: "site" }]), cfOk([{ id: "t", name: "dev" }])],
 				ci
 			);
-			expect(row(rows, "Workers Scripts: Edit")).toMatchObject({
-				status: "fail",
-				detail: expect.stringContaining("must not"),
-			});
+			expect(row(rows, "Workers Scripts: Edit")).toMatchObject({ status: "fail", detail: "1 scripts: s1" });
 			expect(row(rows, "Cloudflare Tunnel: Edit")?.status).toBe("fail");
 			expect(row(rows, "Pages: Edit")?.status).toBe("ok");
 		});
 
 		it("fails a ci token that cannot reach Pages", async () => {
 			const { rows } = await check([denied, cfOk([]), cfOk([]), denied, cfOk([])], ci);
-			expect(row(rows, "Pages: Edit")).toMatchObject({
-				status: "fail",
-				detail: expect.stringContaining("needs it"),
-			});
+			expect(row(rows, "Pages: Edit")).toMatchObject({ status: "fail", detail: "no access (403)" });
+		});
+
+		it("shows what the layer needs first and what it must not have after, each under its own heading", async () => {
+			const { rows } = await check([denied, cfOk([]), cfOk([]), cfOk([{ name: "site" }]), cfOk([])], ci);
+			expect(rows.map((r) => `${r.status}:${r.label}`)).toEqual([
+				"heading:Should have",
+				"ok:Pages: Edit",
+				"heading:Should not have",
+				"ok:Zone: Read",
+				"ok:Workers Scripts: Edit",
+				"ok:Cloudflare Tunnel: Edit",
+			]);
+		});
+
+		it("says nothing before the results about where the token came from or what it is checked against", async () => {
+			const { rows } = await check([denied, cfOk([]), cfOk([]), cfOk([{ name: "site" }]), cfOk([])], ci);
+			expect(rows.filter((r) => r.status === "info")).toEqual([]);
+			expect(rows[0]).toMatchObject({ status: "heading" });
 		});
 
 		it("fails a dev token that lacks any of the six, and passes one that has them", async () => {
