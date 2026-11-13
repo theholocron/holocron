@@ -27,7 +27,7 @@ holocron export tokens --file --only ENVIRONMENT=prod                        # a
 
 A name that no plugin configured in this directory lists is written empty with `--blank`, even when the keyring has a value under it: run it from a directory whose `holocron.config` has the plugins (the repo root has most).
 
-The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor credentials`). Each value comes from the OS keyring. A name listed by two plugins is written once.
+The names are the ones the plugins list for `doctor tokens` and `doctor secrets`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor secrets`). Each value comes from the OS keyring. A name listed by two plugins is written once.
 
 ```text
 exported 16 of 18:
@@ -99,4 +99,4 @@ The plugins are resolved from the directory of the config that was loaded, so `-
 
 `0` when at least one token was written or none was found, `1` when it refused or could not write (a redirect to a file, Windows, git does not ignore the file or could not say, the file exists, the clipboard did not work, the keyring cannot be reached) or could not delete the file afterwards. It needs a `holocron.config` to know which plugins to ask, so run it in the repo.
 
-Related: [`list tokens`](/holocron/commands/list-tokens/), [`doctor credentials`](/holocron/commands/doctor-credentials/), [`new token`](/holocron/commands/new-token/).
+Related: [`list tokens`](/holocron/commands/list-tokens/), [`doctor secrets`](/holocron/commands/doctor-secrets/), [`new token`](/holocron/commands/new-token/).

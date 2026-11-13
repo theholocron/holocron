@@ -287,7 +287,7 @@ describe("doctor secrets — --env", () => {
 	const DEPLOY = "unread:secret:deploy:prod";
 	const ids = (r: { report: { rows: Array<{ id: string }> } }) => r.report.rows.map((row) => row.id);
 
-	it("runs ci and prod and lists nothing else when --env is not given", async () => {
+	it("runs every environment that has rows when --env is not given, and stays quiet about local and dev with no credentials provider", async () => {
 		expect(ids(await withEnv(undefined)())).toEqual(["repo-secrets", "deploy-prod", DEPLOY]);
 	});
 
@@ -316,7 +316,7 @@ describe("doctor secrets — --env", () => {
 		expect(report.rows.map((r) => [r.id, r.detail])).toEqual([["secrets", "none declared"]]);
 	});
 
-	it("skips local, dev and test with a row that names the environment and why, and reads nothing", async () => {
+	it("skips test with a row that names the environment and why, and reads nothing", async () => {
 		const loader = { load: vi.fn() } as unknown as PluginLoader;
 		const loaded = loadedWith(repo);
 		const report = await runDoctorSecrets({
@@ -325,19 +325,27 @@ describe("doctor secrets — --env", () => {
 			loader,
 			print: () => undefined,
 			logger: fakeLogger(),
-			environments: ["local", "dev", "test"],
+			environments: ["test"],
 		});
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
-			["env-local", "skip", "local: not checked here yet, run doctor credentials"],
-			["env-dev", "skip", "dev: not checked here yet, run doctor credentials"],
 			["env-test", "skip", "test: has no layer (tests use fakes and read none)"],
 		]);
 		expect(report.status).toBe("skip");
 		expect(loader.load).not.toHaveBeenCalled();
 	});
 
+	it("says there is no credentials provider when local or dev is asked for and none is configured", async () => {
+		const asked = await withEnv(["local"])();
+		expect(asked.report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
+			["credentials", "skip", "no `credentials` provider is configured"],
+		]);
+		expect(asked.listSecrets).not.toHaveBeenCalled();
+		// With no --env it stays quiet: the columns are simply not there.
+		expect(ids(await withEnv(undefined)())).not.toContain("credentials");
+	});
+
 	it("lists the environments in the order local, dev, ci, test, prod", async () => {
 		const result = await withEnv(["local", "dev", "ci", "test", "prod"])();
-		expect(ids(result)).toEqual(["env-local", "env-dev", "repo-secrets", "env-test", "deploy-prod", DEPLOY]);
+		expect(ids(result)).toEqual(["credentials", "repo-secrets", "env-test", "deploy-prod", DEPLOY]);
 	});
 });

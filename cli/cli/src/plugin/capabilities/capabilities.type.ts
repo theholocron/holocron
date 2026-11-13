@@ -2852,7 +2852,7 @@ export interface Credentials extends ProviderIdentity {
 	read(environment: string): Promise<Record<string, string>>;
 	/**
 	 * Which environment `environment` really is and the names of its variables, without reading any value. Used by
-	 * `holocron doctor credentials`. Optional: a provider that cannot list names without values leaves it out and
+	 * `holocron doctor secrets`. Optional: a provider that cannot list names without values leaves it out and
 	 * the check is skipped for it. Rejects when the environment cannot be found.
 	 */
 	inspect?(environment: string): Promise<CredentialsInspection>;

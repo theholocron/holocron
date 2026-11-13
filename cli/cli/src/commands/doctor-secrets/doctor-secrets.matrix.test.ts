@@ -17,6 +17,8 @@ interface Fakes {
 	vault?: Record<string, Record<string, string> | string> | null;
 	/** The vault provider's name. Defaults to 1password. */
 	provider?: string;
+	/** The names each credentials Environment holds, by Environment name; the plugins take HOLOCRON_ORG_TOKEN and HOLOCRON_ADMIN. */
+	credentials?: Record<string, string[]>;
 	/** The vault provider cannot read an Environment. */
 	cannotRead?: boolean;
 	/** The run knows no organization. */
@@ -42,7 +44,12 @@ async function run(
 ) {
 	const resolved = resolveConfig({
 		name: "demo",
-		providers: { secrets: "github", source: "github", ...(fakes.vault === null ? {} : { vault: "1password" }) },
+		providers: {
+			secrets: "github",
+			source: "github",
+			...(fakes.vault === null ? {} : { vault: "1password" }),
+			...(fakes.credentials ? { credentials: ["1password"] } : {}),
+		},
 		...config,
 	} as unknown as Raw);
 	const readEnvironment = vi.fn(async (id: string) => {
@@ -75,6 +82,15 @@ async function run(
 				createPlugin: () => ({
 					name: "op",
 					capabilities: {
+						credentials: () => ({
+							key: "credentials",
+							providerName: "1password",
+							inspect: async (environment: string) => {
+								const names = fakes.credentials?.[environment];
+								if (!names) throw Object.assign(new Error("not found"), { status: 404 });
+								return { environment, names };
+							},
+						}),
 						vault: () => ({
 							providerName: fakes.provider ?? "1password",
 							...(fakes.cannotRead ? {} : { readEnvironment }),
@@ -91,6 +107,14 @@ async function run(
 		loaded,
 		context: { repoRoot: "/tmp/test", ...(fakes.noOrg ? {} : { org: "acme" }) },
 		loader: new PluginLoader(resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter),
+		credentialsLoader: new PluginLoader(
+			resolved,
+			{ repoRoot: "/tmp/test" },
+			importer as unknown as PluginImporter,
+			{ readCredentials: false }
+		),
+		importer: async (pkg) => (pkg.endsWith("github") ? { tokens: TOKENS } : {}),
+		gitExec: async () => "git@github.com:acme/demo.git\n",
 		print: (l) => lines.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
 		width: 200,
@@ -99,6 +123,10 @@ async function run(
 	return { report, lines, readEnvironment };
 }
 
+const TOKENS = [
+	{ envName: "HOLOCRON_ORG_TOKEN", keyringKey: "github.org" },
+	{ envName: "HOLOCRON_ADMIN", keyringKey: "github.admin" },
+];
 const CI = "acme/demo - ci";
 const PROD = "acme/demo - prod";
 const repo = {
@@ -263,7 +291,7 @@ describe("doctor secrets — --name", () => {
 	});
 
 	it("says when no environment was read", async () => {
-		const { lines } = await run({ repo }, {}, { name: "X", environments: ["local"] });
+		const { lines } = await run({ repo }, {}, { name: "X", environments: ["test"] });
 		expect(lines).toEqual(["X: no environment was read"]);
 	});
 });
@@ -279,5 +307,49 @@ describe("doctor secrets — environments in the matrix", () => {
 		const prod = await run({ repo }, { vault }, { environments: ["prod"] });
 		expect(prod.lines.join("\n")).not.toMatch(/GitHub/);
 		expect(prod.lines.join("\n")).toMatch(/1Password prod\s+Deploy prod/);
+	});
+});
+
+describe("doctor secrets — the local and dev columns", () => {
+	const credentials = {
+		"acme/demo - local": ["HOLOCRON_ORG_TOKEN"],
+		"acme/demo - dev": ["HOLOCRON_ORG_TOKEN", "HOLOCRON_ADMIN", "SOMETHING_ELSE"],
+	};
+
+	it("shows the tokens the plugins take in a column for each credentials Environment, in the default run", async () => {
+		const { lines, report } = await run({ repo }, { vault, credentials });
+		const text = lines.join("\n");
+		expect(text).toMatch(/name\s+1Password local\s+1Password dev\s+1Password ci/);
+		expect(text).toMatch(/HOLOCRON_ORG_TOKEN\s+ok\s+ok/);
+		expect(text).toMatch(/HOLOCRON_ADMIN\s+n\/a\s+ok/);
+		expect(text).toMatch(/SOMETHING_ELSE\s+n\/a\s+extra/);
+		expect(report.rows.find((r) => r.id === "1password:tokens")).toMatchObject({ status: "ok" });
+		expect(report.rows.find((r) => r.id === "extra:secret:vault:acme/demo - dev")).toMatchObject({
+			status: "skip",
+		});
+	});
+
+	it("fails a token neither Environment holds, once, in the row the credentials check has always made", async () => {
+		const { report } = await run({ repo }, { vault, credentials: { "acme/demo - dev": ["HOLOCRON_ORG_TOKEN"] } });
+		expect(
+			report.rows.filter((r) => r.status === "fail" && r.id.startsWith("1password")).map((r) => [r.id, r.detail])
+		).toEqual([["1password:HOLOCRON_ADMIN", 'missing from "acme/demo - dev"']]);
+	});
+
+	it("is limited by --env: local and dev leave the other columns out, ci leaves them out of the matrix", async () => {
+		const only = await run({ repo }, { vault, credentials }, { environments: ["dev"] });
+		expect(only.lines.find((l) => l.startsWith("name"))).toBe("name                1Password dev");
+		const ci = await run({ repo }, { vault, credentials }, { environments: ["ci"] });
+		expect(ci.lines.join("\n")).not.toMatch(/1Password (local|dev)/);
+	});
+
+	it("is not run for --only-variables", async () => {
+		const { lines } = await run({ repo }, { vault, credentials }, { only: "variables" });
+		expect(lines.join("\n")).not.toMatch(/1Password (local|dev)/);
+	});
+
+	it("shows a missing dev Environment as ? with the reason", async () => {
+		const { lines } = await run({ repo }, { vault, credentials: { "acme/demo - local": ["HOLOCRON_ORG_TOKEN"] } });
+		expect(lines.join("\n")).toMatch(/HOLOCRON_ORG_TOKEN\s+ok\s+\?/);
 	});
 });

@@ -93,7 +93,6 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"monitoring",
 			"notifications",
 			"environments",
-			"credentials",
 			"project",
 			"github-app",
 			"logs",

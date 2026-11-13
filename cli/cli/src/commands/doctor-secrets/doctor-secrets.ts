@@ -16,8 +16,15 @@ import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Vault } from "../../plugin/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { ciRows } from "./ci-rows.js";
+import { credentialsRows } from "./credentials-rows.js";
 import { deployKeyRows } from "./deploy-key-rows.js";
-import type { DoctorEnvironment, DoctorSecretsReport, Matrix, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
+import type {
+	DoctorEnvironment,
+	DoctorSecretsReport,
+	Matrix,
+	MatrixPlace,
+	RunDoctorSecretsInput,
+} from "./doctor-secrets.type.js";
 import { environmentSkipRow } from "./environment-skip-row.js";
 import { buildMatrix } from "./matrix-build.js";
 import { explainName } from "./matrix-explain.js";
@@ -39,11 +46,36 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		return row ? [row] : [];
 	};
 
-	const rows: CheckRow[] = [...skipRow("local"), ...skipRow("dev")];
+	const rows: CheckRow[] = [];
+	const places: MatrixPlace[] = [];
 	const config = input.loaded.resolved;
 	const manual = config.doctor.manualSecrets ?? [];
-	let matrix: Matrix | undefined;
+	const withSecrets = input.only !== "variables";
+	const withVariables = input.only !== "secrets";
+	let ran = false;
+
+	// `local` and `dev`: what the machine's credentials Environments hold against the tokens the plugins take.
+	if ((wants("local") || wants("dev")) && withSecrets) {
+		ran = true;
+		const credentialsLoader =
+			input.credentialsLoader ?? new PluginLoader(config, input.context, undefined, { readCredentials: false });
+		await credentialsLoader.load();
+		assertPluginsResolvable(credentialsLoader, "doctor secrets");
+		const credentials = await credentialsRows({
+			loaded: input.loaded,
+			context: input.context,
+			loader: credentialsLoader,
+			...(input.importer ? { importer: input.importer } : {}),
+			...(input.gitExec ? { gitExec: input.gitExec } : {}),
+			wants,
+			asked: only !== undefined,
+		});
+		rows.push(...credentials.rows);
+		places.push(...credentials.places);
+	}
+
 	if (wants("ci") || wants("prod")) {
+		ran = true;
 		const loader = input.loader ?? new PluginLoader(config, input.context);
 		await loader.load();
 		assertPluginsResolvable(loader, "doctor secrets");
@@ -53,8 +85,6 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		// Each Environment is read once, however many rows and columns ask about it.
 		const vault = "why" in provider ? provider : memoVault(provider);
 		const org = input.context.org ?? (input.context.repo ?? config.repo?.name ?? "").split("/")[0];
-		const withSecrets = input.only !== "variables";
-		const withVariables = input.only !== "secrets";
 
 		const none = { declared: false, rows: [] as CheckRow[], observations: [] };
 		const ci = wants("ci") && withSecrets ? await ciRows(loader, config, vault, org) : none;
@@ -66,23 +96,29 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 			rows.push({ id: "secrets", title: "secrets", status: "ok", detail: "none declared", problems: [] });
 		}
 		rows.push(...ci.rows, ...variables.rows, ...skipRow("test"), ...deployRows);
-
-		const places = (
-			await matrixPlaces({
+		places.push(
+			...(await matrixPlaces({
 				config,
 				vault,
 				secrets: ci.observations,
 				variables: variables.observations,
 				org,
 				wants,
-			})
-		).filter(
-			(place) => input.only === undefined || place.kind === (input.only === "secrets" ? "secret" : "variable")
+			}))
 		);
-		matrix = buildMatrix(places, manual);
-		if (input.name === undefined) rows.push(...matrixRows(matrix, manual, input.strict === true));
 	} else {
 		rows.push(...skipRow("test"));
+	}
+
+	let matrix: Matrix | undefined;
+	if (ran) {
+		matrix = buildMatrix(
+			places.filter(
+				(place) => input.only === undefined || place.kind === (input.only === "secrets" ? "secret" : "variable")
+			),
+			manual
+		);
+		if (input.name === undefined) rows.push(...matrixRows(matrix, manual, input.strict === true));
 	}
 
 	// `--name` is a lookup: it says how each place stands for one name and changes the exit status for nothing.

@@ -13,7 +13,6 @@ import { deployOnReleaseEntry } from "../../commands/deploy/deploy-on-release.en
 import { doctorEntry } from "../../commands/doctor/doctor.entry.js";
 import { doctorAllEntry } from "../../commands/doctor/doctor-all.entry.js";
 import { doctorCiEntry } from "../../commands/doctor-ci/doctor-ci.entry.js";
-import { doctorCredentialsEntry } from "../../commands/doctor-credentials/doctor-credentials.entry.js";
 import { doctorDnsEntry } from "../../commands/doctor-dns/doctor-dns.entry.js";
 import { doctorEnvironmentsEntry } from "../../commands/doctor-environments/doctor-environments.entry.js";
 import { doctorGitHubAppEntry } from "../../commands/doctor-github-app/doctor-github-app.entry.js";
@@ -98,7 +97,6 @@ const registry = createCommandRegistry(
 		doctorMonitoringEntry,
 		doctorNotificationsEntry,
 		doctorEnvironmentsEntry,
-		doctorCredentialsEntry,
 		doctorProjectEntry,
 		doctorGitHubAppEntry,
 		doctorLogsEntry,

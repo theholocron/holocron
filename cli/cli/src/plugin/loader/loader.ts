@@ -88,7 +88,7 @@ const system = createPluginSystem<
 					}
 					const impl = (await api.loadOne("credentials", tuple)) as Credentials;
 					impls.push(impl);
-					// `readCredentials: false` loads the providers without asking them for a single value (`doctor credentials`).
+					// `readCredentials: false` loads the providers without asking them for a single value (`doctor secrets`).
 					if (options?.readCredentials === false) continue;
 					// An explicit name is the one Environment; otherwise the layer's names, local over dev on a machine (#2063).
 					const candidates = await resolveEnvironments(tuple.provider, explicit, {

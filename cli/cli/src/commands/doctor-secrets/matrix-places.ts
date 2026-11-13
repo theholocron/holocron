@@ -13,6 +13,7 @@ import type {
 	SecretObservation,
 	VariableObservation,
 } from "./doctor-secrets.type.js";
+import { labelOf, type Layer, layerOf, providerGroup } from "./matrix-names.js";
 
 /** What `matrixPlaces()` is built from. */
 export interface MatrixPlacesInput {
@@ -30,22 +31,8 @@ export interface MatrixPlacesInput {
 	wants: (env: DoctorEnvironment) => boolean;
 }
 
-type Layer = "local" | "dev" | "ci" | "prod";
-const LAYER = /^.+ - (local|dev|ci|prod)$/;
-
-/** The layer an Environment name ends in (`<org/repo> - ci`), or `fallback` for a name that is not a layer's. */
-function layerOf(environment: string, fallback: Layer): Layer {
-	return (LAYER.exec(environment)?.[1] as Layer | undefined) ?? fallback;
-}
-
-/** The short label of an Environment in a column heading: its layer word, else the whole name. */
-function labelOf(environment: string): string {
-	return LAYER.exec(environment)?.[1] ?? environment;
-}
-
 function vaultGroup(vault: Vault | { why: string }): string {
-	if ("why" in vault) return "Vault";
-	return vault.providerName === "1password" ? "1Password" : `Vault ${vault.providerName}`;
+	return providerGroup("why" in vault ? undefined : vault.providerName);
 }
 
 /** The keys of a vault Environment, by name only, or why they could not be read. */

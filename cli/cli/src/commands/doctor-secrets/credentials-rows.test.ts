@@ -1,13 +1,13 @@
 import { stripVTControlCharacters } from "node:util";
 
 import { clearCredentials, getCredential } from "@theholocron/kyber/secrets";
-import { fakeLogger } from "@theholocron/observability/testing";
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type CredentialsInspection, type PluginImporter, PluginLoader } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
-import { runDoctorCredentials } from "./doctor-credentials.js";
+import { credentialsRows } from "./credentials-rows.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
 
@@ -57,6 +57,44 @@ const tokensImporter: AuthImporter = async (pkg) => {
 	return found;
 };
 
+/** The old `doctor credentials` report, built from the rows and places `credentialsRows()` gives. */
+async function runDoctorCredentials(input: {
+	loaded: LoadedConfig;
+	context: { repoRoot: string };
+	loader?: PluginLoader;
+	importer?: AuthImporter;
+	env?: Record<string, string | undefined>;
+	gitExec?: () => Promise<string>;
+	print?: (l: string) => void;
+	logger?: unknown;
+}) {
+	const loader =
+		input.loader ?? new PluginLoader(input.loaded.resolved, input.context, undefined, { readCredentials: false });
+	await loader.load();
+	const result = await credentialsRows({
+		loaded: input.loaded,
+		context: input.context,
+		loader,
+		...(input.importer ? { importer: input.importer } : {}),
+		...(input.gitExec ? { gitExec: input.gitExec as never } : {}),
+		wants: () => true,
+		asked: true,
+	});
+	const rows: CheckRow[] = result.rows;
+	const print = input.print ?? ((l: string) => console.log(l));
+	printCheckRows(rows, print);
+	const summary = summariseChecks(rows);
+	printCheckSummary(summary, print);
+	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
+	return {
+		status,
+		rows,
+		places: result.places,
+		summary,
+		reason: status === "skip" ? [...new Set(rows.map((r) => r.detail))].join("; ") : undefined,
+	};
+}
+
 async function run(loaded: LoadedConfig, impl: Impl | null, importer = tokensImporter) {
 	const lines: string[] = [];
 	const report = await runDoctorCredentials({
@@ -65,7 +103,6 @@ async function run(loaded: LoadedConfig, impl: Impl | null, importer = tokensImp
 		loader: loaderWith(loaded, impl),
 		importer,
 		print: (l) => lines.push(stripVTControlCharacters(l)),
-		logger: fakeLogger(),
 	});
 	return { report, lines };
 }
@@ -74,20 +111,18 @@ const inspecting = (environment: string, ...names: string[]) => ({
 	inspect: vi.fn(async () => ({ environment, names })),
 });
 
-describe("doctor credentials", () => {
-	it("prints one ok row per variable the plugins take, in code-unit order, and counts the variables", async () => {
+describe("credentials rows", () => {
+	it("prints one ok row that counts the tokens the plugins take, and ignores names they do not", async () => {
 		const impl = inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN", "EXTRA");
 		const { report, lines } = await run(loadedWith(), impl);
 		expect(report.status).toBe("ok");
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
-			["1password:HOLOCRON_CLOUDFLARE_TOKEN", "ok", 'present in "Demo"'],
-			["1password:HOLOCRON_ORG_TOKEN", "ok", 'present in "Demo"'],
+			["1password:tokens", "ok", '2 of 2 tokens present in "Demo"'],
 		]);
 		expect(lines).toEqual([
-			'  ✓ 1password: HOLOCRON_CLOUDFLARE_TOKEN  present in "Demo"',
-			'  ✓ 1password: HOLOCRON_ORG_TOKEN         present in "Demo"',
+			'  ✓ 1password: tokens  2 of 2 tokens present in "Demo"',
 			"",
-			"2 ok, 0 fail, 0 skipped",
+			"1 ok, 0 fail, 0 skipped",
 		]);
 	});
 
@@ -122,13 +157,13 @@ describe("doctor credentials", () => {
 				withOptional
 			);
 			expect(report.status).toBe("ok");
-			expect(report.summary).toEqual({ ok: 2, fail: 0, skip: 1 });
-			expect(report.rows[1]).toMatchObject({
+			expect(report.summary).toEqual({ ok: 1, fail: 0, skip: 1 });
+			expect(report.rows[0]).toMatchObject({
 				id: "1password:HOLOCRON_FALLBACK_WEBHOOK",
 				status: "skip",
 				detail: 'optional, not set in "Demo"',
 			});
-			expect(lines.at(-1)).toBe("2 ok, 0 fail, 1 skipped");
+			expect(lines.at(-1)).toBe("1 ok, 0 fail, 1 skipped");
 		});
 
 		it("is an ok row when the environment has it", async () => {
@@ -137,7 +172,8 @@ describe("doctor credentials", () => {
 				inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK", "HOLOCRON_CLOUDFLARE_TOKEN"),
 				withOptional
 			);
-			expect(report.summary).toEqual({ ok: 3, fail: 0, skip: 0 });
+			expect(report.summary).toEqual({ ok: 1, fail: 0, skip: 0 });
+			expect(report.rows[0]?.detail).toBe('3 of 3 tokens present in "Demo"');
 		});
 
 		it("is expected after all when another plugin lists the same name as needed", async () => {
@@ -161,6 +197,7 @@ describe("doctor credentials", () => {
 		expect(report.status).toBe("fail");
 		expect(report.summary).toEqual({ ok: 1, fail: 1, skip: 0 });
 		expect(lines[0]).toBe('  ✗ 1password: HOLOCRON_CLOUDFLARE_TOKEN  missing from "Demo"');
+		expect(report.rows[1]).toMatchObject({ id: "1password:tokens", detail: '1 of 2 tokens present in "Demo"' });
 	});
 
 	it("says which spelling matched when it is not the one the config writes", async () => {
@@ -168,7 +205,7 @@ describe("doctor credentials", () => {
 			loadedWith({ credentials: { environment: "demo" } }),
 			inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN")
 		);
-		expect(report.rows[0]?.detail).toBe('present in "Demo" (the config writes "demo")');
+		expect(report.rows[0]?.detail).toBe('2 of 2 tokens present in "Demo" (the config writes "demo")');
 	});
 
 	it("fails once when the provider cannot find the environment", async () => {
@@ -241,7 +278,6 @@ describe("doctor credentials", () => {
 			loader,
 			importer: tokensImporter,
 			print: (l) => lines.push(l),
-			logger: fakeLogger(),
 		});
 		expect(report.status).toBe("skip");
 		expect(report.reason).toBe("no `environment` option and `credentials.environment` is not set");
@@ -321,7 +357,6 @@ describe("doctor credentials", () => {
 				env,
 				gitExec,
 				print: (l) => lines.push(stripVTControlCharacters(l)),
-				logger: fakeLogger(),
 			});
 			return report;
 		}
@@ -334,22 +369,47 @@ describe("doctor credentials", () => {
 			});
 			expect(report.status).toBe("ok");
 			expect(report.rows.map((r) => r.detail)).toEqual([
-				`present in "${SLUG} - dev"`,
-				`present in "${SLUG} - local"`,
+				`2 of 2 tokens present in "${SLUG} - local", "${SLUG} - dev"`,
 			]);
 		});
 
 		it("says nothing about a missing local", async () => {
 			const report = await runDerived({ [`${SLUG} - dev`]: BOTH });
 			expect(report.status).toBe("ok");
-			expect(report.rows).toHaveLength(2);
+			expect(report.rows).toHaveLength(1);
 		});
 
-		it("fails by name for a missing dev, ci or prod and does not fall back", async () => {
-			const report = await runDerived({ [`${SLUG} - dev`]: BOTH }, { CI: "true" });
+		it("reads the same two Environments whatever layer the process is in", async () => {
+			const report = await runDerived({ [`${SLUG} - dev`]: BOTH }, { CI: "true", HOLOCRON_ENVIRONMENT: "ci" });
+			expect(report.status).toBe("ok");
+		});
+
+		it("gives the matrix a place for each Environment found: what is held is expected, and a token neither holds is missing in dev", async () => {
+			const report = await runDerived({
+				[`${SLUG} - local`]: ["HOLOCRON_ORG_TOKEN", "LOCAL_ONLY"],
+				[`${SLUG} - dev`]: ["HOLOCRON_ORG_TOKEN", "STRAY"],
+			});
 			expect(report.status).toBe("fail");
-			expect(report.rows).toHaveLength(1);
-			expect(report.rows[0]?.detail).toBe(`1password has no Environment named "${SLUG} - ci"`);
+			const [local, dev] = report.places;
+			expect(local).toMatchObject({
+				column: { id: `vault:${SLUG} - local`, label: "local", env: "local" },
+				needed: ["HOLOCRON_ORG_TOKEN"],
+				present: ["HOLOCRON_ORG_TOKEN", "LOCAL_ONLY"],
+			});
+			expect(dev).toMatchObject({
+				column: { label: "dev", env: "dev" },
+				needed: ["HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"],
+				present: ["HOLOCRON_ORG_TOKEN", "STRAY"],
+			});
+		});
+
+		it("gives the matrix an unreadable place for a missing dev, and none for a missing local", async () => {
+			const report = await runDerived({});
+			expect(report.places).toHaveLength(1);
+			expect(report.places[0]).toMatchObject({
+				column: { label: "dev", env: "dev" },
+				unread: `1password has no Environment named "${SLUG} - dev"`,
+			});
 		});
 
 		it("reports a missing dev by name and reads nothing else", async () => {
@@ -363,7 +423,6 @@ describe("doctor credentials", () => {
 				env: {},
 				gitExec,
 				print: () => {},
-				logger: fakeLogger(),
 			});
 			expect(report.status).toBe("fail");
 			expect(report.rows.map((r) => r.detail)).toEqual([`1password has no Environment named "${SLUG} - dev"`]);
@@ -380,15 +439,9 @@ describe("doctor credentials", () => {
 				env: {},
 				gitExec: async () => "/not/a/remote",
 				print: () => {},
-				logger: fakeLogger(),
 			});
 			expect(report.rows[0]).toMatchObject({ status: "fail" });
 			expect(report.rows[0]?.detail).toMatch(/`environment` option/);
-		});
-
-		it("skips in the test layer", async () => {
-			const report = await runDerived({}, { HOLOCRON_ENVIRONMENT: "test" });
-			expect(report.status).toBe("skip");
 		});
 	});
 });

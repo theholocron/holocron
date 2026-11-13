@@ -64,7 +64,7 @@ export type PluginImporter = KyberPluginImporter;
 export interface PluginLoaderOptions {
 	/**
 	 * When `false`, the `credentials` providers are loaded but not asked for their variables, so no value is read
-	 * into the process. `holocron doctor credentials` uses it: it only needs the providers' `inspect`. Default `true`.
+	 * into the process. `holocron doctor secrets` uses it: it only needs the providers' `inspect`. Default `true`.
 	 */
 	readCredentials?: boolean;
 	/** The process environment `detectEnvironment()` reads to pick the layer of a derived Environment name. Defaults to `process.env`. */
