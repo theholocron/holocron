@@ -2,7 +2,7 @@
  * `holocron export tokens` — print the tokens a configured plugin takes as `NAME=value` lines, to move them into a
  * credentials environment (`op` cannot write to a 1Password Environment, so the last step is the app's import).
  *
- * The names come from the plugins' `tokens` (the list `doctor tokens` and `doctor secrets` use) and each value from
+ * The names come from the plugins' `tokens` (the list `doctor secrets --verify` and `doctor secrets --verify` use) and each value from
  * the OS keyring, or, with `--from-env`, from the environment first. Nothing but the lines ever carries a value: the
  * names, counts and what was not found go to stderr and the log gets counts only.
  *

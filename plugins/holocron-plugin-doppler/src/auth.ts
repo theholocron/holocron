@@ -13,5 +13,5 @@ export const resolveToken = createResolveToken({
 		"or run: holocron new token doppler $(doppler configure get token --plain)",
 });
 
-/** Every token this plugin takes, for `holocron doctor tokens`. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`. */
 export const tokens: PluginToken[] = [resolveToken.token];

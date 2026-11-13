@@ -13,6 +13,13 @@ export const doctorSecretsEntry: MenuEntry = {
 			message: "Environments to check (local, dev, ci, test, prod; comma-separated):",
 		},
 		{
+			key: "verify",
+			flag: "--verify",
+			type: "confirm",
+			default: false,
+			message: "Also ask each vendor whether the tokens are still accepted (goes online)?",
+		},
+		{
 			key: "strict",
 			flag: "--strict",
 			type: "confirm",

@@ -15,5 +15,5 @@ export const resolveToken = createResolveToken({
 		"or run: holocron new token cloudflare <TOKEN>",
 });
 
-/** Every token this plugin takes, for `holocron doctor tokens`, with what each layer's token must and must not be able to do. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`, with what each layer's token must and must not be able to do. */
 export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED }];

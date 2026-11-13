@@ -1,13 +1,12 @@
 import { stripVTControlCharacters } from "node:util";
 
 import { clearCredentials, setCredentials } from "@theholocron/kyber/secrets";
-import { fakeLogger } from "@theholocron/observability/testing";
+import { printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { AuthImporter, AuthPluginModule } from "../auth/index.js";
-import { runDoctorTokens } from "./doctor-tokens.js";
-import type { RunDoctorTokensInput } from "./doctor-tokens.type.js";
+import { verifyRows, type VerifyRowsInput } from "./verify-rows.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
 
@@ -34,6 +33,39 @@ const quietLoader = { load: async () => undefined, loadFailures: () => [] };
 
 afterEach(clearCredentials);
 
+/** The old `doctor tokens` report, built from the rows `verifyRows()` gives. */
+async function runDoctorTokens(input: {
+	loaded: LoadedConfig;
+	context: { repoRoot: string };
+	loader?: VerifyRowsInput["loader"];
+	importer?: AuthImporter;
+	env?: NodeJS.ProcessEnv;
+	keyring?: (key: string) => string | null;
+	now?: () => Date;
+	print?: (l: string) => void;
+	logger?: unknown;
+}) {
+	const rows = await verifyRows({
+		loaded: input.loaded,
+		loader: input.loader ?? quietLoader,
+		...(input.importer ? { importer: input.importer } : {}),
+		...(input.env ? { env: input.env } : {}),
+		...(input.keyring ? { keyring: input.keyring } : {}),
+		...(input.now ? { now: input.now } : {}),
+	});
+	const print = input.print ?? ((l: string) => console.log(l));
+	printCheckRows(rows, print);
+	const summary = summariseChecks(rows);
+	printCheckSummary(summary, print);
+	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
+	return {
+		status,
+		rows,
+		summary,
+		reason: status === "skip" ? [...new Set(rows.map((r) => r.detail))].join("; ") : undefined,
+	};
+}
+
 async function run(
 	config: LoadedConfig,
 	modules: Record<string, AuthPluginModule | Error>,
@@ -41,7 +73,7 @@ async function run(
 		env?: NodeJS.ProcessEnv;
 		keyring?: Record<string, string>;
 		now?: Date;
-		loader?: RunDoctorTokensInput["loader"];
+		loader?: VerifyRowsInput["loader"];
 	} = {}
 ) {
 	const lines: string[] = [];
@@ -54,7 +86,6 @@ async function run(
 		now: () => opts.now ?? NOW,
 		keyring: (key) => opts.keyring?.[key] ?? null,
 		print: (l) => lines.push(stripVTControlCharacters(l)),
-		logger: fakeLogger(),
 	});
 	return { report, lines };
 }
@@ -63,7 +94,7 @@ const github = { source: "github" };
 const NOW = new Date("2026-11-01T00:00:00Z");
 const expiringIn = (days: number) => new Date(NOW.getTime() + days * 86_400_000).toISOString();
 
-describe("doctor tokens: the credential store", () => {
+describe("verify rows: the credential store", () => {
 	const verifyToken = () => vi.fn(async () => ({ ok: true as const, subject: "user @ cnewton" }));
 
 	it("finds a token the credentials providers returned, ahead of the keyring, and names the source", async () => {
@@ -139,7 +170,7 @@ describe("doctor tokens: the credential store", () => {
 
 		expect(report.status).toBe("fail");
 		expect(report.rows[0]).toMatchObject({
-			id: "credentials 1password",
+			id: "verify:credentials 1password",
 			status: "fail",
 			detail: "could not be read: op: not signed in",
 		});
@@ -156,27 +187,14 @@ describe("doctor tokens: the credential store", () => {
 		const { report } = await run(loaded(github), { [GITHUB]: { tokens: [ADMIN] } }, { loader });
 
 		expect(report.rows[0]).toMatchObject({
-			id: "credentials",
+			id: "verify:credentials",
 			status: "skip",
 			detail: "could not load the credentials providers: config exploded",
 		});
 	});
-
-	it("builds its own loader over the config when none is given", async () => {
-		const lines: string[] = [];
-		const report = await runDoctorTokens({
-			loaded: loaded({}),
-			context: { repoRoot: "/tmp/test-no-env-here" },
-			env: {},
-			print: (l) => lines.push(l),
-			logger: fakeLogger(),
-		});
-
-		expect(report.status).toBe("skip");
-	});
 });
 
-describe("doctor tokens", () => {
+describe("verify rows", () => {
 	it("verifies a token found in the environment, and says where it came from and whose it is", async () => {
 		const verifyToken = vi.fn(async () => ({ ok: true as const, subject: "user @ cnewton" }));
 		const { report, lines } = await run(
@@ -188,8 +206,8 @@ describe("doctor tokens", () => {
 		expect(report.status).toBe("ok");
 		expect(report.rows).toEqual([
 			{
-				id: "github.admin",
-				title: "github.admin",
+				id: "verify:github.admin",
+				title: "verify github.admin",
 				status: "ok",
 				detail: "user @ cnewton (HOLOCRON_ADMIN_TOKEN)",
 				problems: [],
@@ -329,7 +347,7 @@ describe("doctor tokens", () => {
 		const { report } = await run(loaded({ source: "github", vault: "doppler" }), {
 			"@theholocron/holocron-plugin-doppler": { verifyToken: async () => ({ ok: true, subject: "x" }) },
 		});
-		expect(report.rows.map((r) => [r.id, r.status])).toEqual([[GITHUB, "skip"]]);
+		expect(report.rows.map((r) => [r.id, r.status])).toEqual([[`verify:${GITHUB}`, "skip"]]);
 		expect(report.rows[0]!.detail).toMatch(/^cannot load the plugin: MODULE_NOT_FOUND/);
 	});
 
@@ -342,7 +360,6 @@ describe("doctor tokens", () => {
 			env: {},
 			keyring: () => null,
 			print: () => {},
-			logger: fakeLogger(),
 		});
 		expect(importer).toHaveBeenCalledTimes(1);
 	});
@@ -351,8 +368,8 @@ describe("doctor tokens", () => {
 		const { report, lines } = await run(loaded({ source: "github" }), { [GITHUB]: {} });
 		expect(report.rows).toEqual([
 			{
-				id: "tokens",
-				title: "tokens",
+				id: "verify:tokens",
+				title: "verify tokens",
 				status: "skip",
 				detail: "no configured plugin lists the tokens it takes",
 				problems: [],
@@ -434,7 +451,6 @@ describe("doctor tokens", () => {
 			}),
 			env: { HOLOCRON_ADMIN_TOKEN: "t" },
 			print: (l) => lines.push(l),
-			logger: fakeLogger(),
 		});
 		expect(report.status).toBe("fail");
 	});

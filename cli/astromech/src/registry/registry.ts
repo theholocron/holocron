@@ -165,10 +165,10 @@ export const TASKS: Record<string, TaskDef> = {
 		linterGroup: ["gitleaks"],
 	},
 	"scan:code": { group: "Security", scope: "repo", suite: "scan", local: null },
-	// Runs `holocron doctor tokens`: fails on a token that is rejected or has 7 days or fewer left. Scheduled daily by
+	// Runs `holocron doctor secrets --verify`: fails on a token that is rejected or has 7 days or fewer left. Scheduled daily by
 	// its workflow; never part of `holocron run ci`'s gate (it needs the org's token secrets, and a token about to
 	// expire is not a reason to block a merge). Not a `scan` leaf: it is an operations signal that needs secrets.
-	"check-tokens": { group: "Security", scope: "repo", local: { command: "doctor tokens" } },
+	"check-tokens": { group: "Security", scope: "repo", local: { command: "doctor secrets --verify" } },
 
 	// ── Delivery — shipping software (npm packages, deployed apps) ────────
 	build: {

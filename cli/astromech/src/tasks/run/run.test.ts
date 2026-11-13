@@ -400,10 +400,12 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "sync", "github"], { cwd: CWD });
 	});
 
-	it("runs `holocron doctor tokens` for check-tokens, as two argv entries", () => {
+	it("runs `holocron doctor secrets --verify` for check-tokens, as three argv entries", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
 		call("check-tokens");
-		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "tokens"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "secrets", "--verify"], {
+			cwd: CWD,
+		});
 	});
 
 	it("runs `holocron reconcile project` for reconcile-projects, as two argv entries", () => {

@@ -11,9 +11,10 @@
  */
 
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Vault } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader, type Vault, WorkspaceContextError } from "../../plugin/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { ciRows } from "./ci-rows.js";
 import { credentialsRows } from "./credentials-rows.js";
@@ -33,6 +34,7 @@ import { renderMatrix } from "./matrix-render.js";
 import { matrixRows } from "./matrix-rows.js";
 import { memoVault } from "./memo-vault.js";
 import { variableRows } from "./variable-rows.js";
+import { verifyRows } from "./verify-rows.js";
 
 export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<DoctorSecretsReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -53,6 +55,15 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	const withSecrets = input.only !== "variables";
 	const withVariables = input.only !== "secrets";
 	let ran = false;
+	// The plugins are loaded once, the first time a part needs them (this also fills the credential store).
+	let loading: Promise<PluginLoader> | undefined;
+	const getLoader = () =>
+		(loading ??= (async () => {
+			const loader = input.loader ?? new PluginLoader(config, input.context);
+			await loader.load();
+			assertPluginsResolvable(loader, "doctor secrets");
+			return loader;
+		})());
 
 	// `local` and `dev`: what the machine's credentials Environments hold against the tokens the plugins take.
 	if ((wants("local") || wants("dev")) && withSecrets) {
@@ -76,9 +87,7 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 
 	if (wants("ci") || wants("prod")) {
 		ran = true;
-		const loader = input.loader ?? new PluginLoader(config, input.context);
-		await loader.load();
-		assertPluginsResolvable(loader, "doctor secrets");
+		const loader = await getLoader();
 		const provider: Vault | { why: string } = loader.has("vault")
 			? (loader.get("vault") as Vault)
 			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") };
@@ -108,6 +117,33 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		);
 	} else {
 		rows.push(...skipRow("test"));
+	}
+
+	// `--verify`: ask each vendor whether the tokens the plugins take are still accepted. The only part that goes online.
+	if (input.verify) {
+		ran = true;
+		try {
+			const loader = await getLoader();
+			rows.push(
+				...(await verifyRows({
+					loaded: input.loaded,
+					loader: { load: async () => undefined, loadFailures: () => loader.loadFailures() },
+					...(input.importer ? { importer: input.importer } : {}),
+					...(input.processEnv ? { env: input.processEnv } : {}),
+					...(input.keyring ? { keyring: input.keyring } : {}),
+					...(input.now ? { now: input.now } : {}),
+				}))
+			);
+		} catch (err) {
+			if (err instanceof WorkspaceContextError) throw err;
+			rows.push({
+				id: "verify:credentials",
+				title: "verify credentials",
+				status: "skip",
+				detail: `could not load the credentials providers: ${errorMessage(err)}`,
+				problems: [],
+			});
+		}
 	}
 
 	let matrix: Matrix | undefined;

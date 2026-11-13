@@ -53,6 +53,9 @@ describe("doctor secrets command", () => {
 		expect(runDoctorSecrets.mock.calls[1]![0]).toMatchObject({ only: "variables", environments: ["ci", "prod"] });
 		await runCommand(doctorSecretsCommand, ["secrets"]);
 		expect("only" in runDoctorSecrets.mock.calls[2]![0]).toBe(false);
+		expect("verify" in runDoctorSecrets.mock.calls[2]![0]).toBe(false);
+		await runCommand(doctorSecretsCommand, ["secrets", "--verify"]);
+		expect(runDoctorSecrets.mock.calls[3]![0]).toMatchObject({ verify: true });
 		expect("name" in runDoctorSecrets.mock.calls[2]![0]).toBe(false);
 	});
 

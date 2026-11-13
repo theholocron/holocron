@@ -1,6 +1,6 @@
 name: Token Expiry
 
-# Runs `holocron doctor tokens` on a schedule, so a token that has been rejected or is about to expire (7 days or
+# Runs `holocron doctor secrets --verify` on a schedule, so a token that has been rejected or is about to expire (7 days or
 # fewer left) fails this job and GitHub's failed-workflow notification reaches the team before an operation breaks.
 #
 # Daily, not weekly: the warning window is 7 days, so a weekly run could land just outside it and the next one just
@@ -43,7 +43,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   token-expiry:
-    name: Run holocron doctor tokens
+    name: Run holocron doctor secrets --verify
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -66,6 +66,6 @@ jobs:
         name: Setup
 
       - uses: theholocron/.github/.github/actions/holocron@main
-        name: Run holocron doctor tokens
+        name: Run holocron doctor secrets --verify
         with:
           task: check-tokens
