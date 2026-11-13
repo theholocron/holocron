@@ -208,6 +208,20 @@ Limit Zone, DNS and Workers Routes to the domains Holocron manages (Zone Resourc
 - **Check a token** with `holocron probe cloudflare token`: it tries each permission above with the account id from your config and reports which the token has. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and checks it against the bullets below, failing on a missing or extra permission. `--token cloudflare=<token>`, or a token you paste when it asks, only reports what that token can reach. See [`probe`](/holocron/commands/probe/#cloudflare).
 - **`holocron dev` alone** needs Cloudflare Tunnel: Edit, DNS: Edit and Zone: Read on the zone of the tunnel's hostname. The plugin takes one token per provider, so a token with only those three works for `dev` and for nothing else; keep the full one for `setup` and pass it with `--token cloudflare=<token>` when you need it.
 
+### Fern, Vercel, Turbo and Codecov
+
+None of these four can say what a token is allowed to do, so Holocron declares only the layers that hold each one, and the probes say that permissions are not checked rather than guess. The layers are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-fern/src/probes/token/expectations.ts`, `plugins/holocron-plugin-vercel/src/probes/token/expectations.ts`).
+
+| Token   | Layers that hold it  | What the probe checks                                            | What it cannot check                                                      |
+| ------- | -------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Fern    | `ci`                 | that a token is set; it makes no request                         | everything else: Fern has no endpoint that reports a token                |
+| Vercel  | `local`, `dev`, `ci` | who the token belongs to (`/v2/user`) and that it lists projects | its scope (Full Account or a team): Vercel does not report it             |
+| Turbo   | `ci`                 | nothing: there is no Turbo plugin, so no `probe turbo token`     | the remote-cache token is a Vercel token and has no permission list       |
+| Codecov | `ci`                 | nothing: there is no Codecov plugin, so no `probe codecov token` | an upload token is bound to one repository and Codecov does not report it |
+
+- **Check one** with `holocron probe fern token` or `holocron probe vercel token`. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and says whether the layer is one that should hold it; `--token <provider>=<value>` only describes the token. A layer outside the table is described, never failed.
+- **Turbo and Codecov** are `HOLOCRON_TURBO_TOKEN` and `HOLOCRON_CODECOV_TOKEN`, held in the `ci` Environment and synced to organization secrets. No plugin reads them, so there is nowhere to declare them and nothing for a probe to run in; that needs a plugin first. Rotating them is done in the Vercel and Codecov dashboards.
+
 ### Sentry
 
 Three tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) provisions projects and their DSNs and is kept in the `dev` layer. CI has its own, `HOLOCRON_SENTRY_RELEASE_TOKEN` in the `ci` layer, which only `release.yml` reads (sentry-cli creates the release and uploads sourcemaps): use an organization token (`org:ci`), not the general one, and no plugin declares it. The Comlink relay has its own, because creating an integration and an alert rule need far more:

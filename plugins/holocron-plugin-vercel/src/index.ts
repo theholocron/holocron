@@ -10,6 +10,7 @@ import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { VercelDeployment } from "./capabilities/deployment.js";
+import { tokenProbe } from "./probes/token/token.js";
 import { createVercelClient, type VercelClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -62,7 +63,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	return new VercelDeployment(ctx.client, opts);
 }
 
-/** Creates the Vercel plugin: a `connection` probe and the `deployment` capability. */
+/** Creates the Vercel plugin: `connection` and `token` probes and the `deployment` capability. */
 export function createPlugin(options: VercelPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -72,6 +73,11 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 				provider: "Vercel",
 				url: options.baseUrl ?? "https://api.vercel.com",
 				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+			token: tokenProbe({
+				client: ctx.client,
 				token: () => resolveToken(options),
 				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
 			}),

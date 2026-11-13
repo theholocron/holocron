@@ -4,6 +4,13 @@ import { tokens } from "./index.js";
 
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up", () => {
-		expect(tokens).toEqual([{ envName: "HOLOCRON_FERN_TOKEN", vendorEnvName: "FERN_TOKEN", keyringKey: "fern" }]);
+		expect(tokens).toEqual([
+			{
+				envName: "HOLOCRON_FERN_TOKEN",
+				vendorEnvName: "FERN_TOKEN",
+				keyringKey: "fern",
+				expect: { layers: ["ci"] },
+			},
+		]);
 	});
 });
