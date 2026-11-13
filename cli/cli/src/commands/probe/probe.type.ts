@@ -1,6 +1,8 @@
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, PluginProbes, ProbeRow, RuntimeContext } from "../../plugin/index.js";
+import type { PluginToken } from "../auth/index.js";
 import type { MeasureDocsCoverageInput } from "./docs-coverage/index.js";
+import type { ChooseToken } from "./probe-token/index.js";
 
 export type ProbePrintLine = (line: string) => void;
 
@@ -46,6 +48,14 @@ export interface RunProbeCommandInput {
 	yes?: boolean;
 	/** Lets tests inject a loader with mock plugins. */
 	loader?: PluginLoader;
+	/** Builds the loader again for a context with another token in it; tests inject one that returns their mock plugins. */
+	makeLoader?: (context: RuntimeContext) => PluginLoader;
+	/** `--environment`: a layer word or Environment name to read the provider's token from, for a probe that accepts a token. */
+	environment?: string;
+	/** Asks which token to check; given only on a terminal, and used when neither `--token` nor `--environment` was. */
+	chooseToken?: ChooseToken;
+	/** The tokens a provider's plugin lists (their variable names); the real one imports the plugin package. */
+	providerTokens?: (provider: string) => Promise<readonly PluginToken[]>;
 	/** Replaces the repo's TypeDoc for the `docs` probes. */
 	typedoc?: MeasureDocsCoverageInput["typedoc"];
 	print?: ProbePrintLine;

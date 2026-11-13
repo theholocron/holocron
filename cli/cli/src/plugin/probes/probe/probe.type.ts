@@ -43,6 +43,12 @@ export interface Probe {
 	 * for a pipe) sets `stderr`, so the rows never mix with it.
 	 */
 	reportsTo?: "stderr";
+	/**
+	 * Whether the probe is about a token, so `holocron probe` may point it at a different one: `--token <provider>=<value>`,
+	 * `--environment <layer or name>` (the provider's token from that vault Environment), or, on a terminal with neither,
+	 * a question that asks which. Unset, the probe uses the token the provider normally resolves.
+	 */
+	acceptsToken?: boolean;
 	/** Runs the probe, reporting and changing things only through `ctx`. */
 	run(ctx: ProbeContext): Promise<void>;
 }

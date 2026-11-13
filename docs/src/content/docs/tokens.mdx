@@ -204,6 +204,7 @@ Limit Zone, DNS and Workers Routes to the domains Holocron manages (Zone Resourc
 
 - **The `dev` Environment** (a laptop runs everything): all six.
 - **The `ci` Environment** (`preview` and `deploy-preview` only): Cloudflare Pages: Edit. Add Workers Scripts: Edit only if a workflow deploys a Worker. Leave the rest off, so a leak from CI cannot change DNS or a tunnel.
+- **Check a token** with `holocron probe cloudflare token`: it tries each permission above with the account id from your config and reports which the token has. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and checks it against the bullets below, failing on a missing or extra permission. `--token cloudflare=<token>`, or a token you paste when it asks, only reports what that token can reach. See [`probe`](/holocron/commands/probe/#cloudflare).
 - **`holocron dev` alone** needs Cloudflare Tunnel: Edit, DNS: Edit and Zone: Read on the zone of the tunnel's hostname. The plugin takes one token per provider, so a token with only those three works for `dev` and for nothing else; keep the full one for `setup` and pass it with `--token cloudflare=<token>` when you need it.
 
 ### Sentry

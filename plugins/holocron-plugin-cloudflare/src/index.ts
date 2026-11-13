@@ -7,6 +7,7 @@ import { CloudflareDeployment } from "./capabilities/deployment.js";
 import { CloudflareDns } from "./capabilities/dns.js";
 import { CloudflareTunnels } from "./capabilities/tunnels.js";
 import { CloudflareWorkers } from "./capabilities/workers.js";
+import { tokenProbe } from "./probes/token/token.js";
 import { type CloudflareClient, createCloudflareClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -89,12 +90,13 @@ export function tunnelsCapability(ctx: PluginContext): Tunnels {
 	return new CloudflareTunnels(ctx.client, ctx.options.accountId);
 }
 
-/** Creates the Cloudflare plugin: `dns` always, plus `deployment`, `workers` and `tunnels` when an account id is set, and a `connection` probe. */
+/** Creates the Cloudflare plugin: `dns` always, plus `deployment`, `workers` and `tunnels` when an account id is set, and the `connection` and `token` probes. */
 export function createPlugin(options: CloudflarePluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-cloudflare",
 		probes: {
+			token: tokenProbe(ctx),
 			connection: connectionProbe({
 				provider: "Cloudflare",
 				url: options.baseUrl ?? "https://api.cloudflare.com",

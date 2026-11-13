@@ -72,6 +72,10 @@ export CLOUDFLARE_ACCOUNT_ID=<ACCOUNT_ID>
 
 Or keep it in the 1Password Environment a `providers.credentials` entry names, and it is found the same way the token is, with no copy in the process environment. The order is the `accountId` option, the environment, then the credentials providers.
 
+## Checking a token
+
+`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
+
 ## What `dns` provides
 
 - `listRecords(domain)` — list all DNS records for the zone (zone resolved automatically from domain)

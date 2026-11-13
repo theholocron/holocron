@@ -1,0 +1,192 @@
+import type { Probe, ProbeContext } from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
+import type { CfZone } from "@theholocron/cloudflare-client";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { EXPECTED_BY_LAYER, type Permission, type Rule } from "./expectations.js";
+import { parseTokenArgs } from "./parse-token-args.js";
+import type { TokenProbeContext } from "./token.type.js";
+
+/** The most zones whose DNS and Workers routes are read, so a token that sees many does not make many requests. */
+const MAX_ZONES = 5;
+
+/** How many names to show before "(+N more)". */
+const SHOWN = 5;
+
+/** `a, b, c (+2 more)`. */
+function summarise(names: readonly string[]): string {
+	return names.length <= SHOWN
+		? names.join(", ")
+		: `${names.slice(0, SHOWN).join(", ")} (+${names.length - SHOWN} more)`;
+}
+
+/** What one read came back with: the token reaches some, reaches none (no access, or none exist), or the read broke. */
+type Outcome = { kind: "has" | "none" | "error"; detail: string };
+
+/**
+ * Reads one list and says what came back. Cloudflare answers a token without the permission in one of two ways (a 401 or
+ * 403, or an empty list), so an empty list is `none`: the token cannot see any, or there are none. A request that fails
+ * for another reason (the network, a 5xx) is an `error`.
+ */
+async function reach(read: () => Promise<readonly { name?: string }[]>, noun: string): Promise<Outcome> {
+	try {
+		const items = await read();
+		if (items.length === 0) {
+			return { kind: "none", detail: `no ${noun} visible (none exist, or the token cannot see them)` };
+		}
+		const names = items.map((i) => i.name).filter((n): n is string => typeof n === "string");
+		return {
+			kind: "has",
+			detail: names.length > 0 ? `${items.length} ${noun}: ${summarise(names)}` : `${items.length} ${noun}`,
+		};
+	} catch (err) {
+		if (err instanceof ProviderApiError && (err.status === 401 || err.status === 403)) {
+			return { kind: "none", detail: `no access (${err.status})` };
+		}
+		return { kind: "error", detail: errorMessage(err) };
+	}
+}
+
+/**
+ * Reports an outcome. With no rule it only describes (`ok` for access, `info` for none). With the layer's rule it judges:
+ * a required permission that is missing fails, and a permission the layer must not have fails when the token has it.
+ */
+function report(
+	probe: ProbeContext,
+	label: string,
+	outcome: Outcome,
+	rule: Rule | undefined,
+	layer: string | undefined
+): void {
+	if (outcome.kind === "error") return probe.say({ status: "fail", label, detail: outcome.detail });
+	const has = outcome.kind === "has";
+	if (rule === "required") {
+		return probe.say(
+			has
+				? { status: "ok", label, detail: outcome.detail }
+				: { status: "fail", label, detail: `${outcome.detail}; the ${layer} token needs it` }
+		);
+	}
+	if (rule === "absent") {
+		return probe.say(
+			has
+				? { status: "fail", label, detail: `${outcome.detail}; the ${layer} token must not have it` }
+				: { status: "ok", label, detail: `not present, as the ${layer} token should be` }
+		);
+	}
+	probe.say({ status: has ? "ok" : "info", label, detail: outcome.detail });
+}
+
+/**
+ * The `token` probe: tries each permission Holocron uses with the Cloudflare API token and reports which ones the token
+ * has. It only reads (a list per permission), so it changes nothing. The token is the one the plugin resolves, so
+ * `--token cloudflare=<token>` or `--environment <layer>` checks another one; the account id is the plugin's own.
+ *
+ * A token with no layer is only described. When the CLI passes `--layer` (because `--environment` named `ci`, `dev` or
+ * `local`), the same results are judged against what that layer's token is meant to carry (`EXPECTED_BY_LAYER`), and a
+ * missing or extra permission fails. The other words limit the zone checks to those zones; otherwise up to five are read.
+ */
+export function tokenProbe(ctx: TokenProbeContext): Probe {
+	return {
+		summary:
+			"Try each Cloudflare permission Holocron uses (zones, DNS, Workers routes and scripts, Pages, tunnels) with a token and report which it has; for a ci or dev Environment, check it against what that layer should carry. Read-only.",
+		writes: false,
+		acceptsToken: true,
+		async run(probe) {
+			const token = ctx.token();
+			probe.secret(token);
+			const client = ctx.client();
+
+			const { layer, zones: wanted } = parseTokenArgs(probe.args ?? []);
+			const rules = layer ? EXPECTED_BY_LAYER[layer] : undefined;
+			const ruleFor = (permission: Permission): Rule | undefined => rules?.[permission];
+			if (layer) {
+				probe.say({
+					status: "info",
+					label: layer,
+					detail: rules
+						? `checking against what the ${layer} token should carry (docs: tokens, what each Cloudflare token needs)`
+						: `no expectations are declared for ${layer}, so the token is only described`,
+				});
+			}
+
+			// /user/tokens/verify answers only for a token with User: API Tokens Read; an account or zone token gets a 401
+			// there even when it works, so that is a fact to report and the permissions below say what it can do.
+			try {
+				const verified = await client.tokens.verify();
+				probe.say({ status: "ok", label: "token", detail: `${verified.id} (${verified.status})` });
+			} catch {
+				probe.say({
+					status: "info",
+					label: "token",
+					detail: "not a user-level token, so it is judged by what it can reach below",
+				});
+			}
+
+			let zones: CfZone[] = [];
+			const zoneOutcome = await reach(async () => {
+				zones =
+					wanted.length > 0
+						? (await Promise.all(wanted.map((name) => client.zones.list({ name })))).flat()
+						: await client.zones.list({ per_page: MAX_ZONES });
+				return zones.map((z) => ({ name: z.name }));
+			}, "zones");
+			report(probe, "Zone: Read", zoneOutcome, ruleFor("zone"), layer);
+			if (zoneOutcome.kind === "error") return;
+
+			for (const zone of zones.slice(0, MAX_ZONES)) {
+				report(
+					probe,
+					`DNS: Edit (${zone.name})`,
+					await reach(() => client.dns.list(zone.id), "records"),
+					ruleFor("dns"),
+					layer
+				);
+				report(
+					probe,
+					`Workers Routes: Edit (${zone.name})`,
+					await reach(
+						async () => (await client.workers.listRoutes(zone.id)).map((r) => ({ name: r.pattern })),
+						"routes"
+					),
+					ruleFor("routes"),
+					layer
+				);
+			}
+
+			const account = ctx.options.accountId;
+			if (!account) {
+				probe.say({
+					status: layer && rules ? "fail" : "info",
+					label: "account permissions",
+					detail: "no account id: set HOLOCRON_CLOUDFLARE_ACCOUNT_ID or the plugin's accountId option to check them",
+				});
+				return;
+			}
+			report(
+				probe,
+				"Workers Scripts: Edit",
+				await reach(
+					async () => (await client.workers.listScripts(account)).map((s) => ({ name: s.id })),
+					"scripts"
+				),
+				ruleFor("scripts"),
+				layer
+			);
+			report(
+				probe,
+				"Pages: Edit",
+				await reach(() => client.pages.listProjects(account), "projects"),
+				ruleFor("pages"),
+				layer
+			);
+			report(
+				probe,
+				"Cloudflare Tunnel: Edit",
+				await reach(() => client.tunnels.list(account), "tunnels"),
+				ruleFor("tunnels"),
+				layer
+			);
+		},
+	};
+}

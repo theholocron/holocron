@@ -186,6 +186,142 @@ describe("runProbeCommand", () => {
 		expect(text()).toContain("give apps/comlink/holocron.config a vault");
 	});
 
+	describe("a probe that accepts a token", () => {
+		const seen: Array<string | undefined> = [];
+		const tokenProbes: PluginProbes = {
+			check: {
+				summary: "Check a token.",
+				writes: false,
+				acceptsToken: true,
+				run: async (ctx) => {
+					argsSeen.push(ctx.args);
+					ctx.say({ status: "ok", label: "checked" });
+				},
+			},
+		};
+		const argsSeen: Array<readonly string[] | undefined> = [];
+		const vault = (values: Record<string, string>) => ({
+			providerName: "1password",
+			readEnvironment: async () => values,
+		});
+		function tokenLoader(
+			context: { cliTokens?: Record<string, string> } = {},
+			values: Record<string, string> = {}
+		) {
+			seen.push(context.cliTokens?.demo);
+			return {
+				load: async () => {},
+				probes: () => new Map([["demo", tokenProbes]]),
+				loadedKeys: () => [],
+				loadFailures: () => [],
+				has: (k: string) => k === "vault",
+				get: () => vault(values),
+			} as unknown as PluginLoader;
+		}
+		const providerTokens = async () => [
+			{ envName: "HOLOCRON_DEMO_TOKEN", vendorEnvName: "DEMO_TOKEN", keyringKey: "demo" },
+		];
+		const base = () => ({
+			provider: "demo",
+			probe: "check",
+			providerTokens,
+			loader: tokenLoader({}, { DEMO_TOKEN: "env-token-value" }),
+			makeLoader: (context: { cliTokens?: Record<string, string> }) => tokenLoader(context),
+		});
+
+		it("reads the provider's token from --environment and runs the probe with it, never printing it", async () => {
+			seen.length = 0;
+			const { promise, text } = run({ ...base(), environment: "Sentinel" });
+			expect((await promise).status).toBe("ok");
+			// The first loader has no token of its own; the one built again for the probe has the Environment's.
+			expect(seen).toEqual([undefined, "env-token-value"]);
+			expect(text()).toContain("read DEMO_TOKEN from Sentinel");
+			expect(text()).not.toContain("env-token-value");
+			expect(text()).toContain("checked");
+		});
+
+		it("tells the probe the layer when --environment is a layer word, so it can check against that layer", async () => {
+			argsSeen.length = 0;
+			await run({
+				...base(),
+				environment: "ci",
+				args: ["a.dev"],
+				context: { repoRoot: process.cwd() },
+			}).promise;
+			expect(argsSeen).toEqual([["a.dev", "--layer", "ci"]]);
+		});
+
+		it("passes no layer for an Environment named literally, or for a token given another way", async () => {
+			argsSeen.length = 0;
+			await run({ ...base(), environment: "Sentinel" }).promise;
+			await run({ ...base(), chooseToken: async () => ({ token: "pasted" }) }).promise;
+			expect(argsSeen).toEqual([[], []]);
+		});
+
+		it("builds the loader again with the Environment's token as the provider's", async () => {
+			const contexts: Array<Record<string, string> | undefined> = [];
+			await run({
+				...base(),
+				environment: "Sentinel",
+				makeLoader: (context: { cliTokens?: Record<string, string> }) => {
+					contexts.push(context.cliTokens);
+					return tokenLoader(context);
+				},
+			}).promise;
+			expect(contexts).toEqual([{ demo: "env-token-value" }]);
+		});
+
+		it("fails with the reason when the Environment cannot be read or holds no token", async () => {
+			const none = run({ ...base(), environment: "Sentinel", loader: tokenLoader({}, { OTHER: "x" }) });
+			expect((await none.promise).status).toBe("fail");
+			expect(none.text()).toContain("holds none of HOLOCRON_DEMO_TOKEN, DEMO_TOKEN");
+			const noVault = run({
+				...base(),
+				environment: "Sentinel",
+				loader: { ...tokenLoader(), has: () => false } as unknown as PluginLoader,
+			});
+			expect((await noVault.promise).status).toBe("fail");
+			expect(noVault.text()).toContain("needs a vault provider");
+		});
+
+		it("asks which token on a terminal when none was given, and uses a pasted one", async () => {
+			const contexts: Array<Record<string, string> | undefined> = [];
+			const chooseToken = vi.fn(async () => ({ token: "pasted-token" }));
+			const { promise } = run({
+				...base(),
+				chooseToken,
+				makeLoader: (context: { cliTokens?: Record<string, string> }) => {
+					contexts.push(context.cliTokens);
+					return tokenLoader(context);
+				},
+			});
+			expect((await promise).status).toBe("ok");
+			expect(chooseToken).toHaveBeenCalledWith("demo");
+			expect(contexts).toEqual([{ demo: "pasted-token" }]);
+		});
+
+		it("keeps the configured token when the answer is that one", async () => {
+			const makeLoader = vi.fn(tokenLoader);
+			const { promise } = run({ ...base(), chooseToken: async () => undefined, makeLoader });
+			expect((await promise).status).toBe("ok");
+			expect(makeLoader).not.toHaveBeenCalled();
+		});
+
+		it("does not ask when a token was given with --token", async () => {
+			const chooseToken = vi.fn(async () => undefined);
+			await run({ ...base(), chooseToken, context: { repoRoot: "/tmp", cliTokens: { demo: "given" } } }).promise;
+			await run({ ...base(), chooseToken, context: { repoRoot: "/tmp", cliToken: "given" } }).promise;
+			expect(chooseToken).not.toHaveBeenCalled();
+		});
+
+		it("leaves a probe that does not take a token alone", async () => {
+			const chooseToken = vi.fn(async () => ({ token: "x" }));
+			const { promise } = run({ provider: "demo", probe: "look", chooseToken, environment: "Sentinel" });
+			expect((await promise).status).toBe("ok");
+			expect(chooseToken).not.toHaveBeenCalled();
+		});
+	});
+
 	describe("core providers", () => {
 		it("shows what loaded, what failed and why, and who offers probes", async () => {
 			const { promise, text } = run({
