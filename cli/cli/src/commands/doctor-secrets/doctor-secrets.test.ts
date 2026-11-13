@@ -91,8 +91,9 @@ describe("doctor secrets — repository and environments", () => {
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
 			["repo-secrets", "ok", "2 of 2 exist"],
 			["env-secrets-production", "ok", "1 of 1 exist"],
+			["extra:secret:github:repo", "skip", "info: 1 extra in GitHub repo, nothing feeds it: EXTRA"],
 		]);
-		expect(lines[0]).toContain("repository secrets exist");
+		expect(lines.some((l) => l.includes("repository secrets exist"))).toBe(true);
 		expect(listSecrets).toHaveBeenCalledWith({ kind: "environment", name: "production" });
 	});
 
@@ -282,10 +283,12 @@ describe("doctor secrets — --env", () => {
 		});
 		return { report, lines, listSecrets };
 	};
+	// The deploy destination is named when you sync, not in the config, so its column is always a skipped row.
+	const DEPLOY = "unread:secret:deploy:prod";
 	const ids = (r: { report: { rows: Array<{ id: string }> } }) => r.report.rows.map((row) => row.id);
 
 	it("runs ci and prod and lists nothing else when --env is not given", async () => {
-		expect(ids(await withEnv(undefined)())).toEqual(["repo-secrets", "deploy-prod"]);
+		expect(ids(await withEnv(undefined)())).toEqual(["repo-secrets", "deploy-prod", DEPLOY]);
 	});
 
 	it("checks only the GitHub side for ci", async () => {
@@ -296,7 +299,7 @@ describe("doctor secrets — --env", () => {
 
 	it("checks only the deploy destinations for prod, and reads no GitHub secret", async () => {
 		const result = await withEnv(["prod"])();
-		expect(ids(result)).toEqual(["deploy-prod"]);
+		expect(ids(result)).toEqual(["deploy-prod", DEPLOY]);
 		expect(result.listSecrets).not.toHaveBeenCalled();
 	});
 
@@ -335,6 +338,6 @@ describe("doctor secrets — --env", () => {
 
 	it("lists the environments in the order local, dev, ci, test, prod", async () => {
 		const result = await withEnv(["local", "dev", "ci", "test", "prod"])();
-		expect(ids(result)).toEqual(["env-local", "env-dev", "repo-secrets", "env-test", "deploy-prod"]);
+		expect(ids(result)).toEqual(["env-local", "env-dev", "repo-secrets", "env-test", "deploy-prod", DEPLOY]);
 	});
 });

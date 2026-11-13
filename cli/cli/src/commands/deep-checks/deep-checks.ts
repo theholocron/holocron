@@ -12,7 +12,6 @@ import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.
 import { doctorSharedValuesCommand, runDoctorSharedValues } from "../doctor-shared-values/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
 import { doctorVariableOwnersCommand, runDoctorVariableOwners } from "../doctor-variable-owners/index.js";
-import { doctorVariablesCommand, runDoctorVariables } from "../doctor-variables/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -122,19 +121,6 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorTokensCommand as never,
 		async run(input) {
 			const report = await runDoctorTokens(input);
-			return {
-				status: report.status,
-				summary: report.summary,
-				...(report.reason ? { reason: report.reason } : {}),
-			};
-		},
-	},
-	{
-		name: "variables",
-		capability: "source",
-		command: doctorVariablesCommand as never,
-		async run(input) {
-			const report = await runDoctorVariables(input);
 			return {
 				status: report.status,
 				summary: report.summary,

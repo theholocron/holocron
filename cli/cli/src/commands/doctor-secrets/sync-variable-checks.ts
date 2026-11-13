@@ -1,7 +1,7 @@
 import { declaredVsActual } from "@theholocron/kyber/ui";
 
 import type { RepoVariablesSync } from "../../config/index.js";
-import type { VariableScopeCheck } from "./doctor-variables.type.js";
+import type { VariableScopeCheck } from "./doctor-secrets.type.js";
 
 /** Re-keys what GitHub holds by the spelling the config declares, since GitHub treats names as case-insensitive. */
 function bySpelling<T>(declared: string[], have: Record<string, T>): Map<string, T> {
@@ -10,7 +10,7 @@ function bySpelling<T>(declared: string[], have: Record<string, T>): Map<string,
 }
 
 /**
- * The checks `repo.variables.sync` adds to `holocron doctor variables`: one per entry, that every key it lists exists
+ * The checks `repo.variables.sync` adds to `holocron doctor secrets`: one per entry, that every key it lists exists
  * at its scope. The values live in the vault, which the doctor does not read, so only names (and, for an organization
  * entry, the visibility it writes) are compared and a value is never shown. A scope that is not `repo` or `org=<name>`
  * is rejected when the config loads, so it is not handled here.
@@ -23,6 +23,7 @@ export function syncVariableChecks(entries: RepoVariablesSync[] | undefined): Va
 		const org = scope.startsWith("org=") ? scope.slice("org=".length) : undefined;
 		return {
 			id: `sync-${entry.environment}-${scope}`,
+			scope: org === undefined ? "repo" : "org",
 			title: `${org === undefined ? "repository" : `${org} organization`} variables from ${entry.environment} exist`,
 			async run(source) {
 				const checked = entry.keys.length;
@@ -34,7 +35,7 @@ export function syncVariableChecks(entries: RepoVariablesSync[] | undefined): Va
 						new Map([...have.keys()].map((name) => [name, true])),
 						{ noun: "variable", flagExtra: false }
 					);
-					return { problems, checked };
+					return { problems, checked, have: [...have.keys()] };
 				}
 				if (!source.listOrgVariables) return { skip: "provider does not implement listOrgVariables" };
 				const have = bySpelling(entry.keys, await source.listOrgVariables(org));
@@ -47,7 +48,7 @@ export function syncVariableChecks(entries: RepoVariablesSync[] | undefined): Va
 						show: (visibility) => `visibility ${visibility}`,
 					}
 				);
-				return { problems, checked };
+				return { problems, checked, have: [...have.keys()] };
 			},
 		};
 	});

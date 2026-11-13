@@ -357,6 +357,11 @@ export interface DoctorConfig {
 	 * `holocron doctor shared-values` leaves out the same names: a secret two layers hold the same value of on purpose.
 	 */
 	sharedVariables?: string[];
+	/**
+	 * Secret names that are set by hand on purpose (a repository that runs Lighthouse stores `HOLOCRON_LIGHTHOUSE_TOKEN`
+	 * at repository scope). `holocron doctor secrets` never reports one as `extra`. Names only, beside `sharedVariables`.
+	 */
+	manualSecrets?: string[];
 }
 
 /** The `credentials` block: which environment the `credentials` providers read this machine's tokens from. */

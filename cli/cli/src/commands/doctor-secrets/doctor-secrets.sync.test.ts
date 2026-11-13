@@ -106,6 +106,8 @@ describe("doctor secrets — repo.secrets.sync", () => {
 			["org-secret-access-other", "skip"],
 			["org-secret-access-third", "skip"],
 			["org-secret-shadowed", "ok"],
+			// The production environment holds names no entry feeds there: advisory, shown as skipped.
+			["extra:secret:github:environment:production", "skip"],
 		]);
 		expect(report.rows[2]!.detail).toBe("2 of 2 exist");
 	});

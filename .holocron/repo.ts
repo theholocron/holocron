@@ -12,7 +12,7 @@ export default {
 	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron sync secrets --env ci`. Names only; a key blank or
 	// missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
-	// (no `prune`). `doctor variables` expects every key listed here at its scope.
+	// (no `prune`). `doctor secrets` expects every key listed here at its scope.
 	// HOLOCRON_CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the
 	// name the generated callers pass as `cloudflare-project`); a repo that needs a different project passes the
 	// `cloudflare-project` input, which wins over the variable. HOLOCRON_POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;

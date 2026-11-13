@@ -1,5 +1,6 @@
 /**
- * `holocron doctor variables` — do the Actions variables `repo.variables` declares exist, with those values?
+ * The Actions-variable side of `holocron doctor secrets`: do the variables `repo.variables` declares exist, with those
+ * values?
  *
  * Read-only. One row for the repository's variables and one for the organization's, each only when the config
  * declares that scope, and one per `repo.variables.sync` entry that checks its names exist (the values are in the
@@ -8,26 +9,20 @@
  * provider cannot list variables, or the token is missing is a skip with the reason, not a failure.
  */
 
-import {
-	type CheckRow,
-	declaredVsActual,
-	printCheckRows,
-	printCheckSummary,
-	summariseChecks,
-} from "@theholocron/kyber/ui";
+import { type CheckRow, declaredVsActual } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
+import type { ResolvedHolocronConfig } from "../../config/index.js";
+import type { PluginLoader, Source } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type {
-	DoctorVariablesReport,
-	RunDoctorVariablesInput,
+	VariableObservation,
+	VariableRowsResult,
 	VariableScopeCheck,
 	VariableScopeResult,
-} from "./doctor-variables.type.js";
-import { syncVariableChecks } from "./sync-checks.js";
+} from "./doctor-secrets.type.js";
+import { syncVariableChecks } from "./sync-variable-checks.js";
 
 const REPO_TITLE = "repository variables match";
 const ORG_TITLE = "organization variables match";
@@ -38,14 +33,19 @@ type OrgVariable = { value: string; visibility: Visibility };
 type Result = VariableScopeResult;
 type ScopeCheck = VariableScopeCheck;
 
-export async function runDoctorVariables(input: RunDoctorVariablesInput): Promise<DoctorVariablesReport> {
-	const print = input.print ?? ((line: string) => console.log(line));
-	const logger = input.logger ?? getLogger();
-	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
-	assertPluginsResolvable(loader, "doctor variables");
-
-	const config = input.loaded.resolved;
+/**
+ * Runs the variable checks and returns their rows, and what each scope held (names only) so the matrix can show it.
+ *
+ * @param loader - The loaded plugins.
+ * @param config - The resolved config.
+ * @param org - The organization the organization variables live in, when it is known.
+ * @returns Whether the config declares any variable, the rows, and one observation per scope read.
+ */
+export async function variableRows(
+	loader: PluginLoader,
+	config: ResolvedHolocronConfig,
+	org: string | undefined
+): Promise<VariableRowsResult> {
 	const variables = config.repo?.variables;
 	const prune = variables?.prune === true;
 	// A scope declared empty still matters with `prune`: anything in it is then unexpected.
@@ -57,11 +57,13 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 		checks.push({
 			id: "repo-variables",
 			title: REPO_TITLE,
+			scope: "repo",
 			async run(source) {
 				if (!source.listVariables) return { skip: "provider does not implement listVariables" };
 				const declared = variables!.repo!;
-				const problems = compareRepo(declared, await source.listVariables(), prune);
-				return { problems, checked: Object.keys(declared).length };
+				const have = await source.listVariables();
+				const problems = compareRepo(declared, have, prune);
+				return { problems, checked: Object.keys(declared).length, have: Object.keys(have) };
 			},
 		});
 	}
@@ -69,9 +71,9 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 		checks.push({
 			id: "org-variables",
 			title: ORG_TITLE,
+			scope: "org",
 			async run(source) {
 				if (!source.listOrgVariables) return { skip: "provider does not implement listOrgVariables" };
-				const org = input.context.org ?? (input.context.repo ?? config.repo?.name ?? "").split("/")[0];
 				if (!org) {
 					return {
 						problems: ["no organization: set `org` in the config or run inside a repository"],
@@ -79,8 +81,9 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 					};
 				}
 				const declared = variables!.org!;
-				const problems = compareOrg(declared, await source.listOrgVariables(org), prune);
-				return { problems, checked: Object.keys(declared).length };
+				const have = await source.listOrgVariables(org);
+				const problems = compareOrg(declared, have, prune);
+				return { problems, checked: Object.keys(declared).length, have: Object.keys(have) };
 			},
 		});
 	}
@@ -89,20 +92,31 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 	checks.push(...syncVariableChecks(variables?.sync));
 
 	const rows: CheckRow[] = [];
-	if (checks.length === 0) {
-		rows.push({ id: "variables", title: "variables", status: "ok", detail: "none declared", problems: [] });
-	} else if (!loader.has("source")) {
+	const observations: VariableObservation[] = [];
+	if (checks.length === 0) return { declared: false, rows, observations };
+	if (!loader.has("source")) {
 		const why = whyMissing(loader, "source", "no `source` provider to read them with");
-		for (const check of checks) rows.push(row(check, { skip: why }));
+		for (const check of checks) {
+			rows.push(row(check, { skip: why }));
+			observations.push({ scope: check.scope, unread: why });
+		}
 	} else {
 		const source = loader.get("source") as Source;
 		for (const check of checks) {
 			try {
-				rows.push(row(check, await check.run(source)));
+				const result = await check.run(source);
+				rows.push(row(check, result));
+				observations.push(
+					"skip" in result
+						? { scope: check.scope, unread: result.skip }
+						: { scope: check.scope, ...(result.have ? { have: result.have } : {}) }
+				);
 			} catch (err) {
 				const noToken = missingTokenReason(err);
-				if (noToken !== undefined) rows.push(row(check, { skip: noToken }));
-				else
+				if (noToken !== undefined) {
+					rows.push(row(check, { skip: noToken }));
+					observations.push({ scope: check.scope, unread: noToken });
+				} else {
 					rows.push({
 						id: check.id,
 						title: check.title,
@@ -110,22 +124,12 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 						detail: errorMessage(err),
 						problems: [],
 					});
+					observations.push({ scope: check.scope, unread: errorMessage(err) });
+				}
 			}
 		}
 	}
-
-	printCheckRows(rows, print);
-	const summary = summariseChecks(rows);
-	printCheckSummary(summary, print);
-
-	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
-	logger.info({ ...summary, status }, "doctor variables");
-	return {
-		status,
-		rows,
-		summary,
-		...(status === "skip" ? { reason: rows.map((r) => r.detail).join("; ") } : {}),
-	};
+	return { declared: true, rows, observations };
 }
 
 // ── helpers ──────────────────────────────────────────────────────────

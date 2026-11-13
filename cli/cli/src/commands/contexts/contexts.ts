@@ -98,7 +98,6 @@ export const COMMAND_CONTEXTS = {
 	"doctor secrets": "workspace",
 	"doctor tokens": "workspace",
 	"doctor monitoring": "workspace",
-	"doctor variables": "workspace",
 	"doctor variable-owners": "workspace",
 	// Reads each layer's Environment through the `vault` provider, in memory.
 	"doctor shared-values": "workspace",

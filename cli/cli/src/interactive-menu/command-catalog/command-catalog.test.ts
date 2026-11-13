@@ -101,7 +101,6 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"repo",
 			"secrets",
 			"tokens",
-			"variables",
 			"variable-owners",
 			"shared-values",
 			"ci",
