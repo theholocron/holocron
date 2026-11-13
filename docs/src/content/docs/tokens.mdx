@@ -375,6 +375,26 @@ Discord has three separate credentials, each used by a different step, so a leak
 
 The bot token and the client secret look alike and are not interchangeable.
 
+#### What the `HOLOCRON_DISCORD_BOT_TOKEN` token needs per layer
+
+It is one bot, so every layer that holds the token (`local`, `dev`, `ci`, `prod`) needs the same: membership of the server in `guildId` and these permissions, the list `setup`'s invite link uses. Permissions only a layout asks for (Pin Messages, Manage Threads, Add Reactions) are added by `holocron probe discord token` from the layout.
+
+| Permission               | Id                      | `local`    | `dev`      | `ci`       | `prod`     | Needed by                                   |
+| ------------------------ | ----------------------- | ---------- | ---------- | ---------- | ---------- | ------------------------------------------- |
+| Server membership        | `guild`                 | `required` | `required` | `required` | `required` | the bot is a member of the `guildId` server |
+| View Channels            | `ViewChannel`           | `required` | `required` | `required` | `required` | every step                                  |
+| Send Messages            | `SendMessages`          | `required` | `required` | `required` | `required` | posts the bot makes                         |
+| Read Message History     | `ReadMessageHistory`    | `required` | `required` | `required` | `required` | reading a channel's messages                |
+| Manage Channels          | `ManageChannels`        | `required` | `required` | `required` | `required` | `setup` (categories, channels)              |
+| Manage Roles             | `ManageRoles`           | `required` | `required` | `required` | `required` | `setup`, `sync roles`                       |
+| Manage Webhooks          | `ManageWebhooks`        | `required` | `required` | `required` | `required` | `setup` (a channel's webhook)               |
+| Manage Server            | `ManageGuild`           | `required` | `required` | `required` | `required` | `setup` (server settings)                   |
+| Create Public Threads    | `CreatePublicThreads`   | `required` | `required` | `required` | `required` | forum posts                                 |
+| Create Private Threads   | `CreatePrivateThreads`  | `required` | `required` | `required` | `required` | forum posts                                 |
+| Send Messages in Threads | `SendMessagesInThreads` | `required` | `required` | `required` | `required` | forum posts                                 |
+
+The layer columns are what `holocron probe docs tokens` compares with the plugin's declaration (`plugins/holocron-plugin-discord/src/probes/token/expectations.ts`, built from the same `BOT_NEEDS` list); a new permission is one change to that list and one row here. Check a token with `holocron probe discord token`: with `--environment <layer>` it reads that layer's token from 1Password and fails on a missing permission or on membership. See [`probe`](/holocron/commands/probe/#discord).
+
 **What the bot needs in the server.** `setup` and `create-server` need View Channels, Send Messages, Read Message History, Manage Channels, Manage Roles, Manage Webhooks, Manage Server, Create Public Threads, Create Private Threads and Send Messages in Threads, plus Pin Messages when the layout pins messages. When one is missing, the command prints an invite link that asks for exactly these and updates the bot's role in place. A server the bot creates itself needs none of this while it owns the server.
 
 **What the application needs in the developer portal.** The **Server Members Intent** (switched on by `application.intents.members` in the layout) for `sync roles`, and the redirect `http://localhost:53682/callback` under OAuth2 → Redirects for `link account`. Making the bot public, and the verification review, stay manual.

@@ -1,6 +1,9 @@
+import { tokenExpectations } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
+import { BOT_NEEDS } from "./bot-needs.js";
 import { tokens } from "./index.js";
+import { EXPECTED } from "./probes/token/expectations.js";
 
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up", () => {
@@ -16,6 +19,7 @@ describe("the plugin's tokens export", () => {
 				vendorEnvName: "DISCORD_BOT_TOKEN",
 				keyringKey: "discord.holonet",
 				verify: expect.any(Function),
+				expect: EXPECTED,
 			},
 			{
 				envName: "HOLOCRON_DISCORD_CLIENT_SECRET",
@@ -39,5 +43,14 @@ describe("the plugin's tokens export", () => {
 		const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
 		expect(url).toContain("/applications/@me");
 		expect(JSON.stringify(init.headers)).toContain("Bot bot-token");
+	});
+
+	it("declares the same membership and permissions for every layer that holds the bot token, from the one needs list", () => {
+		const found = tokenExpectations(tokens);
+		expect(found.map((e) => e.layer)).toEqual(["local", "dev", "ci", "prod"]);
+		for (const e of found) {
+			expect(e.required).toEqual(["guild", ...BOT_NEEDS]);
+			expect(e.absent).toEqual([]);
+		}
 	});
 });

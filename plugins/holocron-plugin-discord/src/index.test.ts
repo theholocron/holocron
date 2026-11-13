@@ -214,3 +214,55 @@ describe("sign-in (link account)", () => {
 		).rejects.toThrow(/no Discord OAuth client configured/);
 	});
 });
+
+describe("the token probe", () => {
+	function stubbed(urls: string[]) {
+		return (async (url: string, init?: RequestInit) => {
+			urls.push(`${url} ${(init?.headers as Record<string, string> | undefined)?.authorization}`);
+			return new Response(
+				JSON.stringify({ id: "7", name: "Holonet", username: "holonet", owner_id: "7", roles: [] }),
+				{ status: 200 }
+			);
+		}) as unknown as typeof fetch;
+	}
+	const run = async (plugin: ReturnType<typeof createPlugin>) => {
+		const rows: Array<{ status: string; label?: string }> = [];
+		await plugin.probes.token.run({
+			dryRun: false,
+			say: (r) => void rows.push(r),
+			secret: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+		});
+		return rows;
+	};
+
+	it("checks the bot token from the environment against the configured server", async () => {
+		const urls: string[] = [];
+		const rows = await run(
+			createPlugin({
+				guildId: "555",
+				env: { HOLOCRON_DISCORD_BOT_TOKEN: "env-bot" },
+				baseUrl: "https://discord.test/api/v10",
+				unsafeBotBaseUrl: true,
+				fetch: stubbed(urls),
+			})
+		);
+		expect(rows[0]).toMatchObject({ status: "ok", label: "token" });
+		expect(urls[0]).toBe("https://discord.test/api/v10/applications/@me Bot env-bot");
+		expect(urls.some((u) => u.includes("/guilds/555 "))).toBe(true);
+	});
+
+	it("checks a token handed to it (`--token discord=...`) instead, on the default API when the base URL is not trusted", async () => {
+		const urls: string[] = [];
+		await run(
+			createPlugin({
+				cliToken: "given-bot",
+				guildId: "555",
+				baseUrl: "https://discord.test/api/v10",
+				fetch: stubbed(urls),
+			})
+		);
+		expect(urls[0]).toBe("https://discord.com/api/v10/applications/@me Bot given-bot");
+	});
+});

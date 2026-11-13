@@ -25,14 +25,14 @@ Probes come from the plugins your config names (a plugin offers them next to its
 
 ## Options
 
-| Option          | Default | Description                                                                                                                                                                        |
-| --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                                   |
-| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                                 |
-| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                                     |
-| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                                           |
-| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                                 |
-| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`, `github token`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name |
+| Option          | Default | Description                                                                                                                                                                                         |
+| --------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                                                    |
+| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                                                  |
+| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                                                      |
+| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                                                            |
+| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                                                  |
+| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`, `github token`, `discord token`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name |
 
 ## Connection, for every provider
 
@@ -98,6 +98,18 @@ A token with no layer is described: a row is `ok` when the token may do it and `
 holocron probe axiom token --environment ci     # the ci layer's token
 holocron probe axiom token --environment dev holocron-sentinel
 ````
+
+## Discord
+
+| Probe                          | Changes things | What it does                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe discord token` | no             | Checks the bot token: that Discord accepts it (the bot's own application), that the bot is a member of the `guildId` server, and which of the permissions Holocron needs its roles give it, the list `setup`'s invite link and `doctor notifications` use. The reads are the ones `doctor notifications` makes; nothing is changed. |
+
+The token is the bot token (`HOLOCRON_DISCORD_BOT_TOKEN`), never the webhook URL: a webhook URL given as the token is refused. **A token you pass in** (`--token discord=<token>`, one you paste, or the configured one) is described: `ok` for each thing it has, and `info` for each it lacks. **`--environment local`, `dev`, `ci` or `prod`** runs the probe for each declared token the Environment holds; the webhook and the client secret get one `info` row saying the probe does not check them, and the bot token is checked against what that layer should carry, the same as [the Discord permission table](/holocron/tokens/#what-the-holocron_discord_bot_token-token-needs-per-layer): it is one bot, so every layer needs membership of the server and every permission. The result is **Should have**, with a `fail` for each the token lacks; permissions only your layout asks for (Pin Messages, Manage Threads, Add Reactions) are added to the list, as `doctor notifications` does. Channel overwrites are not looked at; `doctor notifications` checks them per forum. The expectations are the `expect` of the bot token in the plugin's `tokens` export.
+
+```bash
+holocron probe discord token --environment ci
+```
 
 ## 1Password
 
