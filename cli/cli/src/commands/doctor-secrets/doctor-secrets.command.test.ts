@@ -17,7 +17,8 @@ vi.mock("../resolve-org/index.js", () => ({
 
 import { doctorSecretsCommand } from "./doctor-secrets.command.js";
 
-const run = () => (doctorSecretsCommand.handler as (a: never) => Promise<void>)({ cwd: "/repo" } as never);
+const run = (extra: Record<string, unknown> = {}) =>
+	(doctorSecretsCommand.handler as (a: never) => Promise<void>)({ cwd: "/repo", ...extra } as never);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -34,7 +35,20 @@ describe("doctor secrets command", () => {
 			loaded: { resolved: { org: "acme" }, filepath: "/x" },
 			context: { repoRoot: "/repo", org: "acme" },
 		});
+		expect("environments" in runDoctorSecrets.mock.calls[0]![0]).toBe(false);
 		expect(process.exitCode).toBeUndefined();
+	});
+
+	it("passes the environments of --env, a list and repeated values alike, in the canonical order", async () => {
+		await run({ env: ["prod,local", "prod"] });
+		expect(runDoctorSecrets.mock.calls[0]![0].environments).toEqual(["local", "prod"]);
+	});
+
+	it("rejects an unknown --env name before it reads anything", async () => {
+		const err = await run({ env: ["staging"] }).catch((e: unknown) => e);
+		expect((err as Error).message).toContain("local, dev, ci, test, prod");
+		expect(loadConfig).not.toHaveBeenCalled();
+		expect(runDoctorSecrets).not.toHaveBeenCalled();
 	});
 
 	it("exits 1 on a failure, but not on a skip", async () => {

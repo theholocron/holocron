@@ -37,7 +37,7 @@
  *
  * `vault`: the 1Password Environment `Sentinel` (holocron#1671; it was
  * Doppler's `sentinel`/`prd` before, holocron#781). The 5 runtime secrets
- * and the role-sync settings live there; `holocron sync secrets Sentinel`
+ * and the role-sync settings live there; `holocron sync secrets --env Sentinel`
  * fans them out. The Environment is made by hand — `op` cannot create one.
  *
  * `secrets`: GitHub — only ONE of the 5 runtime keys has a GH Actions
@@ -230,7 +230,7 @@ export default defineConfig({
 			},
 		],
 		secrets: "github",
-		// The production values of Sentinel, in the `prod` layer (#2069): `holocron sync secrets prod`.
+		// The production values of Sentinel, in the `prod` layer (#2069): `holocron sync secrets --env prod`.
 		vault: ["1password", { layer: "prod" }],
 		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use, and CLOUDFLARE_ACCOUNT_ID) come from the
 		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.

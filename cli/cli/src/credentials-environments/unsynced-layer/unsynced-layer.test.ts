@@ -31,7 +31,7 @@ describe("assertSyncableLayer", () => {
 	it.each(["local", "dev"])("refuses the layer word %s", async (word) => {
 		const err = await assertSyncableLayer(word, { repoRoot: "/r", gitExec }).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
-		expect((err as Error).message).toContain(`sync secrets ${word}`);
+		expect((err as Error).message).toContain(`sync secrets --env ${word}`);
 	});
 
 	it.each(["local", "dev"])("refuses the derived Environment name of the %s layer", async (layer) => {

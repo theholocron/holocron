@@ -152,7 +152,7 @@ export interface RepoVariables {
  * readable in GitHub afterwards, so keep it in an environment of its own, apart from the one that fills secrets.
  */
 export interface RepoVariablesSync {
-	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets --env <environment>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -199,7 +199,7 @@ export interface RepoSecrets {
  * `ConfigError`: there is no "all keys".
  */
 export interface RepoSecretsDeploy {
-	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets --env <environment>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
@@ -214,7 +214,7 @@ export interface RepoSecretsDeploy {
 
 /** One vault environment that `holocron sync secrets` pushes into GitHub secrets, declared so the doctor can check them. */
 export interface RepoSecretsSync {
-	/** The vault environment id, as given to `holocron sync secrets <environmentId>`. */
+	/** The vault environment id, as given to `holocron sync secrets --env <environment>`. */
 	environment?: string;
 	/**
 	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's

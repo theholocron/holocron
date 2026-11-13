@@ -20,7 +20,7 @@ export function isUnsyncedLayer(layer: unknown): layer is EnvironmentLayer {
 /**
  * The text of the error for an Environment of an unsynced layer, shared by the command and the config checks.
  *
- * @param what - What names the layer, e.g. "`sync secrets dev`" or "a `repo.secrets.sync` entry".
+ * @param what - What names the layer, e.g. "`sync secrets --env dev`" or "a `repo.secrets.sync` entry".
  * @param layer - The unsynced layer.
  */
 export function unsyncedLayerMessage(what: string, layer: EnvironmentLayer): string {
@@ -41,7 +41,7 @@ export function unsyncedLayerMessage(what: string, layer: EnvironmentLayer): str
  */
 export async function assertSyncableLayer(id: string, input: { repoRoot: string; gitExec?: GitExec }): Promise<void> {
 	if (isEnvironmentLayer(id)) {
-		if (isUnsyncedLayer(id)) throw new ConfigError(unsyncedLayerMessage(`\`sync secrets ${id}\``, id));
+		if (isUnsyncedLayer(id)) throw new ConfigError(unsyncedLayerMessage(`\`sync secrets --env ${id}\``, id));
 		return;
 	}
 	// `repoSlug()` throws only a ConfigError (no usable remote); then there is no derived name to match.
@@ -49,7 +49,7 @@ export async function assertSyncableLayer(id: string, input: { repoRoot: string;
 	if (slug === undefined) return;
 	for (const layer of UNSYNCED_LAYERS) {
 		if (id === layerEnvironment(slug, layer)) {
-			throw new ConfigError(unsyncedLayerMessage(`\`sync secrets\` for ${JSON.stringify(id)}`, layer));
+			throw new ConfigError(unsyncedLayerMessage(`\`sync secrets --env\` for ${JSON.stringify(id)}`, layer));
 		}
 	}
 }

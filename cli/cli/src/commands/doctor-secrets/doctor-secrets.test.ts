@@ -263,3 +263,78 @@ describe("doctor secrets — defaults", () => {
 		expect(report.status).toBe("ok");
 	});
 });
+
+describe("doctor secrets — --env", () => {
+	const repo = {
+		secrets: { repo: ["TURBO_TOKEN"], deploy: [{ environment: "prod", prefix: "S_" }] },
+	};
+	const withEnv = (environments: Array<"local" | "dev" | "ci" | "test" | "prod"> | undefined) => async () => {
+		const listSecrets = vi.fn(async () => ["TURBO_TOKEN"]);
+		const lines: string[] = [];
+		const loaded = loadedWith(repo);
+		const report = await runDoctorSecrets({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: loaderWith(loaded, { listSecrets }),
+			print: (l) => lines.push(stripVTControlCharacters(l)),
+			logger: fakeLogger(),
+			...(environments ? { environments } : {}),
+		});
+		return { report, lines, listSecrets };
+	};
+	const ids = (r: { report: { rows: Array<{ id: string }> } }) => r.report.rows.map((row) => row.id);
+
+	it("runs ci and prod and lists nothing else when --env is not given", async () => {
+		expect(ids(await withEnv(undefined)())).toEqual(["repo-secrets", "deploy-prod"]);
+	});
+
+	it("checks only the GitHub side for ci", async () => {
+		const result = await withEnv(["ci"])();
+		expect(ids(result)).toEqual(["repo-secrets"]);
+		expect(result.listSecrets).toHaveBeenCalled();
+	});
+
+	it("checks only the deploy destinations for prod, and reads no GitHub secret", async () => {
+		const result = await withEnv(["prod"])();
+		expect(ids(result)).toEqual(["deploy-prod"]);
+		expect(result.listSecrets).not.toHaveBeenCalled();
+	});
+
+	it("says none declared when prod is asked for and no deploy destination is declared", async () => {
+		const loaded = loadedWith({ secrets: { repo: ["TURBO_TOKEN"] } });
+		const report = await runDoctorSecrets({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: loaderWith(loaded, { listSecrets: async () => [] }),
+			print: () => undefined,
+			logger: fakeLogger(),
+			environments: ["prod"],
+		});
+		expect(report.rows.map((r) => [r.id, r.detail])).toEqual([["secrets", "none declared"]]);
+	});
+
+	it("skips local, dev and test with a row that names the environment and why, and reads nothing", async () => {
+		const loader = { load: vi.fn() } as unknown as PluginLoader;
+		const loaded = loadedWith(repo);
+		const report = await runDoctorSecrets({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => undefined,
+			logger: fakeLogger(),
+			environments: ["local", "dev", "test"],
+		});
+		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
+			["env-local", "skip", "local: not checked here yet, run doctor credentials"],
+			["env-dev", "skip", "dev: not checked here yet, run doctor credentials"],
+			["env-test", "skip", "test: has no layer (tests use fakes and read none)"],
+		]);
+		expect(report.status).toBe("skip");
+		expect(loader.load).not.toHaveBeenCalled();
+	});
+
+	it("lists the environments in the order local, dev, ci, test, prod", async () => {
+		const result = await withEnv(["local", "dev", "ci", "test", "prod"])();
+		expect(ids(result)).toEqual(["env-local", "env-dev", "repo-secrets", "env-test", "deploy-prod"]);
+	});
+});
