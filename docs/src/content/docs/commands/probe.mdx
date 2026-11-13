@@ -6,7 +6,7 @@ description: Poke a live provider on purpose, to inspect it or to prove somethin
 ```bash
 holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
 holocron probe <provider>               # list one provider's probes
-holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>] [--only <name>...] [--copy]
+holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>] [--only <name>...] [--copy] [--environment <layer|name>]
 ```
 
 A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
@@ -25,13 +25,14 @@ Probes come from the plugins your config names (a plugin offers them next to its
 
 ## Options
 
-| Option      | Default | Description                                                                                                    |
-| ----------- | ------- | -------------------------------------------------------------------------------------------------------------- |
-| `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                                               |
-| `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal)                             |
-| `--lcov`    | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root |
-| `--only`    | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                       |
-| `--copy`    | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file             |
+| Option          | Default | Description                                                                                                                                                 |
+| --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                            |
+| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                          |
+| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                              |
+| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                    |
+| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                          |
+| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`): check the provider's token held in this vault Environment, a layer (`ci`, `dev`) or a name |
 
 ## Connection, for every provider
 
@@ -45,6 +46,32 @@ Every provider offers `connection` (for example `holocron probe github connectio
 | `accepted`     | The provider accepts the token, and who it belongs to. Not tried when an earlier step did not pass, so one cause is reported once.                                                                                                                               |
 
 1Password has no API hostname of its own (`op` signs in by itself), so it checks that `op` is installed and signed in. Fern has no way to check a token, so it only checks that one is set.
+
+## Checking a token
+
+A probe about a token (it declares `acceptsToken`) tries what the token can do and can be pointed at any token, not only the one the provider resolves for this repo. Which token is checked, in this order:
+
+1. `--token <provider>=<value>` (or a bare `--token <value>`), as for any command.
+2. `--environment <layer or name>`: the provider's token read in memory from that vault Environment. A layer word (`local`, `dev`, `ci`, `prod`) is this repo's `<org/repo> - <layer>`; any other text must be an Environment the config already names (a `credentials` provider, `githubApps`, `dev`, `repo.secrets.sync` or `repo.variables.sync`), and anything else is refused with the list of what is allowed, so a probe cannot be pointed at an Environment the repo has nothing to do with. `local` is read the way the CLI reads it, `- local` over `- dev`, and `- local` may be absent. The variables looked for are the ones the provider's plugin lists (`HOLOCRON_CLOUDFLARE_TOKEN`, then `CLOUDFLARE_API_TOKEN`). It needs a vault provider that can read an Environment (1Password).
+3. On a terminal with neither, a question: the token this repo is configured to use, one from an Environment, or one you type or paste (hidden as you type).
+4. Without a terminal, the token the provider normally resolves.
+
+The token is never printed.
+
+## Cloudflare
+
+| Probe                                         | Changes things | What it does                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe cloudflare token [<zone>...]` | no             | Tries each permission Holocron uses and reports it: Zone: Read, then DNS: Edit and Workers Routes: Edit on each zone (up to five, or only the zones named), then Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account (the plugin's own account id, so you do not type one). One read per permission; nothing is changed. |
+
+**A token you pass in** (`--token`, one you paste, or the configured one) is described: a row is `ok` when the list came back with items, `skip` when the token has no access (a 401 or 403) or the list is empty (Cloudflare often answers a token without the permission with an empty list, so an empty list means "none exist, or the token cannot see them"), and `fail` only for an error that is not about access. Cloudflare will not list a token's permissions without a further permission (API Tokens Read) that these tokens should not carry, so the probe tries each one instead.
+
+**A token read with `--environment ci`, `dev` or `local`** is also checked against what that layer should carry, the same as [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs): `dev` and `local` need all six permissions, and `ci` needs Cloudflare Pages: Edit and none of the others. A permission the layer needs and the token lacks fails; one the layer must not have and the token does have fails; the rest are `ok`. An Environment named literally, and `prod`, have no declared expectations and are only described. The expectations are the `expect` of the token in the plugin's `tokens` export (`EXPECTED_BY_LAYER`), which is where any plugin declares what each layer's token must and must not carry; change it and that table together.
+
+```bash
+holocron probe cloudflare token --environment ci     # the ci layer's token
+holocron probe cloudflare token --environment dev theholocron.dev
+```
 
 ## 1Password
 

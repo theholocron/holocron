@@ -11,6 +11,7 @@ export interface ProbeArgs extends GlobalArgs {
 	files?: boolean;
 	only?: string[];
 	copy?: boolean;
+	environment?: string;
 	yes: boolean;
 }
 
@@ -51,6 +52,11 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 		.option("copy", {
 			type: "boolean",
 			describe: "`1password export-environment`: put the variables on the clipboard instead of a file",
+		})
+		.option("environment", {
+			type: "string",
+			describe:
+				"A probe about a token (`cloudflare token`): check the provider's token held in this vault Environment (a layer such as `ci` or `dev`, or a name)",
 		})
 		.option("yes", {
 			type: "boolean",

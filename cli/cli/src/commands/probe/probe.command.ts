@@ -8,6 +8,7 @@ import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { type ProbeArgs, probeArgs } from "./probe.args.js";
 import { runProbeCommand } from "./probe.js";
+import { chooseToken } from "./probe-token/index.js";
 
 export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 	command: "probe [provider] [probe] [args..]",
@@ -40,6 +41,9 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			...(argv.lcov ? { lcov: argv.lcov } : {}),
 			dryRun: argv.dryRun,
 			yes: argv.yes,
+			...(argv.environment ? { environment: argv.environment } : {}),
+			// On a terminal, a probe about a token asks which one when neither `--token` nor `--environment` says.
+			...(process.stdin.isTTY ? { chooseToken } : {}),
 			// On a terminal, `holocron probe` opens a menu of every provider and probe instead of printing them.
 			...(process.stdin.isTTY
 				? {

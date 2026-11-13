@@ -1,8 +1,10 @@
 import { join } from "node:path";
 
-import { statusRow } from "@theholocron/kyber/ui";
+import { commandFailureMessage, statusRow } from "@theholocron/kyber/ui";
 
+import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
+import { ownerEnvironments } from "../doctor-variable-owners/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
@@ -11,6 +13,7 @@ import { DOCS_PROVIDER, docsCoverageProbes } from "./docs-coverage/index.js";
 import { GENERATED_PROVIDER, generatedProbes } from "./generated/index.js";
 import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
+import { defaultProviderTokens, environmentToken } from "./probe-token/index.js";
 import { CI_PROVIDER, ciProbes } from "./references/index.js";
 import { runProbe } from "./run-probe.js";
 import { realSpecsIo, SPECS_PROVIDER, specsProbes } from "./specs/index.js";
@@ -23,7 +26,8 @@ import { realTasksIo, TASKS_PROVIDER, tasksProbes } from "./tasks/index.js";
 export async function runProbeCommand(input: RunProbeCommandInput): Promise<ProbeCommandReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
-	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+	const makeLoader = input.makeLoader ?? ((context) => new PluginLoader(input.loaded.resolved, context));
+	const loader = input.loader ?? makeLoader(input.context);
 	await loader.load();
 
 	const groups = new Map<string, PluginProbes>(loader.probes());
@@ -65,7 +69,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		for (const line of listProbes(new Map([[input.provider, probes]]))) print(line);
 		return { status: "listed" };
 	}
-	const probe = probes[input.probe];
+	let probe = probes[input.probe];
 	if (!probe) {
 		print(
 			statusRow("fail", [
@@ -76,14 +80,54 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		return { status: "fail" };
 	}
 
-	const tokens = [input.context.cliToken, ...Object.values(input.context.cliTokens ?? {})].filter(
+	let context = input.context;
+	// A token read from a layer's Environment is checked against what that layer should carry; any other token is only described.
+	let layer: string | undefined;
+	if (probe.acceptsToken) {
+		const given = context.cliTokens?.[input.provider] ?? context.cliToken;
+		const chosen = input.environment
+			? { environment: input.environment }
+			: given === undefined
+				? await input.chooseToken?.(input.provider)
+				: undefined;
+		let override: string | undefined;
+		try {
+			if (chosen?.environment) {
+				const found = await environmentToken({
+					provider: input.provider,
+					environment: chosen.environment,
+					repoRoot: context.repoRoot,
+					configured: ownerEnvironments(input.loaded.resolved).names,
+					vault: loader.has("vault") ? loader.get("vault") : undefined,
+					/* v8 ignore next -- the real importer reads installed plugin packages, which tests replace with `providerTokens` */
+					tokens: await (input.providerTokens ?? defaultProviderTokens(input.loaded))(input.provider),
+				});
+				override = found.token;
+				if (isEnvironmentLayer(chosen.environment)) layer = chosen.environment;
+				print(statusRow("skip", ["token", `read ${found.variable} from ${found.environment}`]));
+			} else if (chosen?.token) {
+				override = chosen.token;
+			}
+		} catch (err) {
+			print(statusRow("fail", [`\`${input.provider} ${input.probe}\``, commandFailureMessage(err)]));
+			return { status: "fail" };
+		}
+		if (override !== undefined) {
+			context = { ...context, cliTokens: { ...context.cliTokens, [input.provider]: override } };
+			const reloaded = makeLoader(context);
+			await reloaded.load();
+			probe = reloaded.probes().get(input.provider)?.[input.probe] ?? probe;
+		}
+	}
+
+	const tokens = [context.cliToken, ...Object.values(context.cliTokens ?? {})].filter(
 		(t): t is string => typeof t === "string"
 	);
 	const report = await runProbe({
 		name: `${input.provider} ${input.probe}`,
 		provider: input.provider,
 		probeName: input.probe,
-		args: input.args ?? [],
+		args: [...(input.args ?? []), ...(layer ? ["--layer", layer] : [])],
 		...(input.lcov ? { lcov: input.lcov } : {}),
 		probe,
 		dryRun: input.dryRun ?? false,
