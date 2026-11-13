@@ -85,6 +85,15 @@ describe("buildMatrix", () => {
 		const two = buildMatrix([place(col("g:2", "GitHub", "org")), place(col("g:1", "GitHub", "repo"))]);
 		expect(two.columns.secret.map((c) => c.id)).toEqual(["g:2", "g:1"]);
 	});
+
+	it("shows a column once when two places of one kind share it", () => {
+		const shared = col("vault:ci", "1Password", "ci");
+		const both = buildMatrix([
+			place(shared, { needed: ["A"], present: ["A"] }),
+			place(shared, { needed: ["B"], present: ["B"] }),
+		]);
+		expect(both.columns.secret.map((c) => c.id)).toEqual(["vault:ci"]);
+	});
 });
 
 describe("renderMatrix", () => {
