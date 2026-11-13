@@ -12,6 +12,7 @@ import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
+import { tokenProbe } from "./probes/token/token.js";
 import { type AxiomClient, createAxiomClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -59,12 +60,17 @@ export function logs(ctx: PluginContext): Logs {
 	return new AxiomLogs(ctx.client, { dataset: ctx.options.dataset });
 }
 
-/** Creates the Axiom plugin: a `connection` probe and the `logs` capability. */
+/** Creates the Axiom plugin: the `connection` and `token` probes and the `logs` capability. */
 export function createPlugin(options: AxiomPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-axiom",
 		probes: {
+			token: tokenProbe({
+				options: ctx.options,
+				client: ctx.client,
+				token: () => resolveToken(options),
+			}),
 			connection: connectionProbe({
 				provider: "Axiom",
 				url: options.baseUrl ?? "https://api.axiom.co",

@@ -25,12 +25,36 @@ export interface CreateAxiomDatasetInput {
 	description?: string;
 }
 
+/** What a query of a dataset is sent with. */
+export interface AxiomQueryInput {
+	/** The APL query. */
+	apl: string;
+	/** The start of the time range, an RFC 3339 time. */
+	startTime?: string;
+	/** The end of the time range, an RFC 3339 time. */
+	endTime?: string;
+}
+
 const PATH = "/v2/datasets";
 
 export function datasets(rest: RestClient) {
 	return {
 		/** Get one dataset by name (`GET /v2/datasets/{name}`); the name is URL-encoded. */
 		get: (name: string): Promise<AxiomDataset> => rest.request<AxiomDataset>(`${PATH}/${encodeURIComponent(name)}`),
+
+		/** List the datasets the token can see (`GET /v2/datasets`). */
+		list: (): Promise<AxiomDataset[]> => rest.request<AxiomDataset[]>(PATH),
+
+		/**
+		 * Send events to a dataset (`POST /v1/datasets/{name}/ingest`). An empty list ingests nothing, which is how a token's
+		 * right to ingest is tried without writing an event.
+		 */
+		ingest: (name: string, events: readonly Record<string, unknown>[]): Promise<unknown> =>
+			rest.request<unknown>(`/v1/datasets/${encodeURIComponent(name)}/ingest`, { method: "POST", body: events }),
+
+		/** Run an APL query (`POST /v1/datasets/_apl?format=tabular`); the dataset is named in the query. */
+		query: (input: AxiomQueryInput): Promise<unknown> =>
+			rest.request<unknown>("/v1/datasets/_apl", { method: "POST", body: input, query: { format: "tabular" } }),
 
 		/** Create a dataset (`POST /v2/datasets`). */
 		create: (input: CreateAxiomDatasetInput): Promise<AxiomDataset> =>
