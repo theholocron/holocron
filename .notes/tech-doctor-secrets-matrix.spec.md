@@ -1,4 +1,5 @@
 ---
+id: SPEC-0083
 status: proposed
 issue: theholocron/holocron#2136
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2058
   - theholocron/holocron#2041
   - theholocron/holocron#2089
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1570605144113160414
 ---
 
 # `doctor secrets`: one command, `--env`, and a matrix of where every secret lives
