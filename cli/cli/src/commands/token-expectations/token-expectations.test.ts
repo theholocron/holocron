@@ -28,6 +28,7 @@ describe("tokenExpectations", () => {
 				rules: { pages: "required", dns: "required" },
 				required: ["pages", "dns"],
 				absent: [],
+				rotation: { maxAgeDays: 90, warnDays: 14 },
 			},
 			{
 				envName: "A_TOKEN",
@@ -35,9 +36,24 @@ describe("tokenExpectations", () => {
 				rules: { pages: "required", dns: "absent" },
 				required: ["pages"],
 				absent: ["dns"],
+				rotation: { maxAgeDays: 90, warnDays: 14 },
 			},
-			{ envName: "B_TOKEN", layer: "ci", rules: {}, required: [], absent: [] },
-			{ envName: "B_TOKEN", layer: "prod", rules: {}, required: [], absent: [] },
+			{
+				envName: "B_TOKEN",
+				layer: "ci",
+				rules: {},
+				required: [],
+				absent: [],
+				rotation: { maxAgeDays: 90, warnDays: 14 },
+			},
+			{
+				envName: "B_TOKEN",
+				layer: "prod",
+				rules: {},
+				required: [],
+				absent: [],
+				rotation: { maxAgeDays: 90, warnDays: 14 },
+			},
 		]);
 	});
 
@@ -50,6 +66,13 @@ describe("tokenExpectations", () => {
 	it("narrows to a token", () => {
 		expect(tokenExpectations(tokens, { envName: "B_TOKEN" }).map((e) => e.layer)).toEqual(["ci", "prod"]);
 		expect(tokenExpectations(tokens, { envName: "C_TOKEN" })).toEqual([]);
+	});
+
+	it("lets a token override the default rotation, one field at a time", () => {
+		const [entry] = tokenExpectations([
+			{ ...base, envName: "E", expect: { layers: ["ci"], rotation: { maxAgeDays: 30 } } },
+		]);
+		expect(entry?.rotation).toEqual({ maxAgeDays: 30, warnDays: 14 });
 	});
 
 	it("is empty for no tokens", () => {

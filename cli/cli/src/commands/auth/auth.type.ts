@@ -29,6 +29,17 @@ export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 export type PermissionRule = "required" | "absent";
 
 /**
+ * When a token is due for rotation (#2157). `maxAgeDays` is the longest a token may go unrotated; `warnDays` is how
+ * many days before an expiry the check starts to fail. Both default to `DEFAULT_TOKEN_ROTATION`.
+ */
+export interface TokenRotation {
+	/** The most days old a token may be, counted from when the provider says it was made (or became valid). */
+	maxAgeDays?: number;
+	/** Fail this many days before the token's own expiry, so it is rotated before it stops working. */
+	warnDays?: number;
+}
+
+/**
  * What a token must carry, declared once next to the plugin's `tokens` list. The permission names are the plugin's own
  * (Cloudflare: `pages`, `dns`); a layer's rules say which are `required` and which `absent`, so a laptop token might
  * need everything while `ci` needs one permission and must have none of the rest.
@@ -41,6 +52,8 @@ export interface TokenExpectation {
 	layers?: readonly EnvironmentLayer[];
 	/** Per layer, each permission's rule. A layer named here holds the token. */
 	permissions?: Readonly<Partial<Record<EnvironmentLayer, Readonly<Record<string, PermissionRule>>>>>;
+	/** When the token is due for rotation, in every layer that holds it. Default: `DEFAULT_TOKEN_ROTATION`. */
+	rotation?: TokenRotation;
 }
 
 /** One token a plugin takes, and where it is looked up. */

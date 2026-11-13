@@ -1,5 +1,6 @@
 import { ENVIRONMENT_LAYERS } from "../../credentials-environments/index.js";
 import type { PluginToken } from "../auth/index.js";
+import { DEFAULT_TOKEN_ROTATION } from "../token-rotation/index.js";
 import type { LayerTokenExpectation, TokenExpectationFilter } from "./token-expectations.type.js";
 
 /**
@@ -26,6 +27,7 @@ export function tokenExpectations(
 				rules: rules ?? {},
 				required: entries.filter(([, rule]) => rule === "required").map(([name]) => name),
 				absent: entries.filter(([, rule]) => rule === "absent").map(([name]) => name),
+				rotation: { ...DEFAULT_TOKEN_ROTATION, ...token.expect.rotation },
 			});
 		}
 	}

@@ -8,4 +8,6 @@ export interface TokenProbeContext {
 	client: () => CloudflareClient;
 	/** The resolved API token, marked secret so it is never printed. Throws an `AuthError` when none is set. */
 	token: () => string;
+	/** The current time, for the rotation rows. Default: now. Tests set it. */
+	now?: () => Date;
 }

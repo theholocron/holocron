@@ -3,6 +3,7 @@ export type {
 	PermissionRule,
 	PluginToken,
 	TokenExpectation,
+	TokenRotation,
 	VerifyTokenFailure,
 	VerifyTokenResult,
 	VerifyTokenSuccess,
@@ -14,6 +15,8 @@ export type { EnvironmentLayer } from "./credentials-environments/index.js";
 // `tokenExpectations()` is the one reader of what a plugin's tokens declare (`PluginToken.expect`), for the token
 // probes, the doctor and the docs check (#2149).
 export * from "./commands/token-expectations/index.js";
+// How old or how near expiry a token is, as probe rows, for any provider's token probe (#2157).
+export * from "./commands/token-rotation/index.js";
 // The 1Password plugin's `export-environment` probe resolves a layer word and decides where secrets may be written
 // with the same pieces `sync secrets` and `export tokens` use.
 export type { AuthExportOutKind } from "./commands/auth-export/auth-export.type.js";
