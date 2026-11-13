@@ -25,14 +25,14 @@ Probes come from the plugins your config names (a plugin offers them next to its
 
 ## Options
 
-| Option          | Default | Description                                                                                                                                                        |
-| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                   |
-| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                 |
-| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                     |
-| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                           |
-| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                 |
-| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name |
+| Option          | Default | Description                                                                                                                                                                        |
+| --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                                   |
+| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                                 |
+| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                                     |
+| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                                           |
+| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                                 |
+| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`, `github token`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name |
 
 ## Connection, for every provider
 
@@ -71,6 +71,20 @@ The token is never printed.
 ```bash
 holocron probe cloudflare token --environment ci     # the ci layer's token
 holocron probe cloudflare token --environment dev theholocron.dev
+```
+
+## GitHub
+
+| Probe                         | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe github token` | no             | Tries a GitHub token with one read per permission (contents, actions, issues, pull requests, administration, secrets, environments, variables, custom properties, pages and the organization ones) and reports which it reaches. A classic token's scopes are shown; a fine-grained token has no list, so the permissions are found by the reads. The first row says which kind was read. |
+
+The plugin holds nine tokens. With `--environment ci`, `dev` or `local` the probe runs once for **each** GitHub token that Environment holds, each under a heading with its variable name (`HOLOCRON_ADMIN_TOKEN`), and the result is two groups, **Should have** and **Should not have**, judged against that token's declaration, the same as [Check a GitHub token](/holocron/tokens/#check-a-github-token). Without `--environment` it checks the token the plugin resolves, `HOLOCRON_READ_TOKEN`, or the one `--token-name <VAR>` names, and only describes it. A read shows a token can see an area, not that it can write there, and on a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token.
+
+```bash
+holocron probe github token --environment dev   # every GitHub token the dev layer holds
+holocron probe github token --environment ci    # and the ci layer's
+holocron probe github token --token-name HOLOCRON_ADMIN_TOKEN   # the admin token this machine resolves
 ```
 
 ## 1Password

@@ -116,6 +116,10 @@ organization permission. Items are keyed `#N` in the configured `repo` and `owne
 - Automation rules cannot be created or switched on through the API, nor can a view's grouping; `ensure` returns them
   as `todos`
 
+## Checking a token
+
+`holocron probe github token` tries a token with a read per permission, says whether it is classic or fine-grained, and under `--environment <layer>` checks every GitHub token that layer's Environment holds against the permissions that token should and should not have in that layer. See [Check a GitHub token](/holocron/tokens/#check-a-github-token) and [`probe`](/holocron/commands/probe/#github).
+
 ## Webhook events
 
 The plugin exports a `parseWebhook` function for normalizing GitHub webhook payloads into `AuthEvent` shapes (for repos using GitHub as a lightweight auth event source):

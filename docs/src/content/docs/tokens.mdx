@@ -133,15 +133,118 @@ holocron setup --org client-co
 | -------------------------- | ------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `HOLOCRON_READ_TOKEN`      | `github.read`      | Fine-grained       | `clone` (lists the org's repos, so the resource owner is the org), `sync-wiki`, CI run listing                                                             | `contents: read`, `actions: read`, `metadata: read`                                                                                                                                                                                                                                  |
 | `HOLOCRON_ISSUES_TOKEN`    | `github.issues`    | Fine-grained       | `issues` capability (create, transition, comment)                                                                                                          | `issues: read/write`, `metadata: read`                                                                                                                                                                                                                                               |
-| `HOLOCRON_SYNC_TOKEN`      | `github.sync`      | Fine-grained       | `sync github` — push workflow templates, open PRs; the release workflow's dispatch of `sync-dispatch.yml` on `.github`                                     | `actions: read/write`, `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                                                                                                                                                                  |
-| `HOLOCRON_RELEASE_TOKEN`   | `github.release`   | Fine-grained       | semantic-release: tags, releases, changelogs (CI only: `doctor secrets` treats it as optional, so a `dev` Environment need not hold it)                    | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                                                                                                                                                                                            |
-| `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — repo settings, topics, branch protection, rulesets, security toggles, labels, custom property values, environments, repo and environment secrets | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `issues: read/write` (labels), `custom_properties: write` (property values), `actions_variables: read/write` (Actions variables), `pull_requests: read` (only `cleanup-preview`, on a private repo) |
+| `HOLOCRON_SYNC_TOKEN`      | `github.sync`      | Fine-grained       | `sync github` — push workflow templates, open PRs; the release workflow's dispatch of `sync-dispatch.yml` on `.github`                                     | `actions: read/write`, `contents: read/write`, `pull-requests: read/write`, `workflows: read/write`                                                                                                                                                                                  |
+| `HOLOCRON_RELEASE_TOKEN`   | `github.release`   | Fine-grained       | semantic-release: tags, releases, changelogs (CI only: `doctor secrets` treats it as optional, so a `dev` Environment need not hold it)                    | `contents: read/write`, `issues: read/write`, `pull-requests: read/write`                                                                                                                                                                                                            |
+| `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — repo settings, topics, branch protection, rulesets, security toggles, labels, custom property values, environments, repo and environment secrets | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `issues: read/write` (labels), `custom-properties: write` (property values), `actions-variables: read/write` (Actions variables), `pull-requests: read` (only `cleanup-preview`, on a private repo) |
 | `HOLOCRON_SECRETS_TOKEN`   | `github.secrets`   | Fine-grained (org) | the `secrets` capability — **organization**-scoped secret writes (repo and environment scopes prefer `github.admin`)                                       | Resource owner: org · Organization `secrets: read/write`                                                                                                                                                                                                                             |
 | `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`    | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                                                                                  | `pages: read/write`, `administration: read/write` (GitHub refuses the Pages settings calls without it), `metadata: read`                                                                                                                                                             |
 | `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync, organization Actions variables; `sync roles` — read a team's members                                                                  | Resource owner: org · `administration: write` · `members: read` · organization `variables: read/write`                                                                                                                                                                               |
 | `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `link account` and `sync roles` — read and write the files that link GitHub accounts to members of other services                                          | Resource owner: org · Repository: **only** `.github-private` · `contents: read/write`                                                                                                                                                                                                |
 
 A fine-grained token expires on the date you chose when you created it. [`holocron doctor secrets --verify`](/holocron/commands/doctor-secrets/) reads that date from GitHub and fails a token with 7 days or fewer left, and the `check-tokens` task runs it daily in CI with these tokens (as the organization secrets of the same names) so the errored run reaches you before an operation breaks.
+
+### Check a GitHub token
+
+`holocron probe github token` tries a token with one read per permission and reports which it reaches. GitHub lists scopes only for a **classic** token (the `X-OAuth-Scopes` header, shown on the first row); a **fine-grained** token has no list, so each permission is found by a read, and the first row says which kind was read. A read proves a token can _see_ an area, not that it can write there, so the write half of a `read/write` row in the table above is not checked. On a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token, so those can show a permission is present but not that it is absent; Administration, Secrets, Environments and the organization permissions can prove both.
+
+| Permission (declaration name)                                       | The read that needs it                                                                      |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `contents`                                                          | `GET /repos/{repo}/contents`                                                                |
+| `actions`                                                           | `GET /repos/{repo}/actions/runs`                                                            |
+| `issues`, `pull-requests`                                           | `GET /repos/{repo}/issues`, `/pulls`                                                        |
+| `administration`                                                    | `GET /repos/{repo}/actions/permissions`                                                     |
+| `secrets`, `environments`, `actions-variables`                      | `GET /repos/{repo}/actions/secrets`, `/environments`, `/actions/variables`                  |
+| `custom-properties`, `pages`                                        | `GET /repos/{repo}/properties/values`, `/pages`                                             |
+| `org-administration`, `org-members`, `org-variables`, `org-secrets` | `GET /orgs/{org}/actions/permissions`, `/members`, `/actions/variables`, `/actions/secrets` |
+| `user-sync-contents`                                                | `GET /repos/{org}/.github-private/contents`                                                 |
+
+With `--environment ci` (or `dev`, `local`) the probe checks **every** GitHub token that layer's 1Password Environment holds, one after another, each under a heading with its variable name and judged against its own declaration: required permissions must be reached and the absent ones must not. Without `--environment` it checks the token the plugin resolves (`HOLOCRON_READ_TOKEN`), or the one `--token-name <VAR>` names (for example `--token-name HOLOCRON_ADMIN_TOKEN`), and only describes it.
+
+**Declared once:** the rules are the `expect` of each token in the plugin's `tokens` export (`plugins/holocron-plugin-github/src/probes/token/expectations.ts`), read through `tokenExpectations()`, and the tables below say the same ([`holocron probe docs tokens`](/holocron/commands/probe/#documentation) compares them). Every token has the same rules in `local`, `dev` and `ci`, except `HOLOCRON_RELEASE_TOKEN`, which only `ci` holds: the `sync-repo`, `sync-secrets`, `reconcile-projects` and `check-tokens` workflows read each of the others, so no split is declared (#2059). What the declaration does add is least privilege, which the probe now proves: a narrow token (`read`, `issues`, `sync`, `release`, `user-sync`) must not reach Administration or Secrets, the admin token must not reach organization secrets, and the secrets token must not reach Administration. A new permission is one change in the declaration, one row in these tables and one read in `permissions.ts`.
+
+#### `HOLOCRON_READ_TOKEN`
+
+| Permission     | Id               | `local`    | `dev`      | `ci`       |
+| -------------- | ---------------- | ---------- | ---------- | ---------- |
+| Contents       | `contents`       | `required` | `required` | `required` |
+| Actions        | `actions`        | `required` | `required` | `required` |
+| Administration | `administration` | `absent`   | `absent`   | `absent`   |
+| Secrets        | `secrets`        | `absent`   | `absent`   | `absent`   |
+| Environments   | `environments`   | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_ISSUES_TOKEN`
+
+| Permission     | Id               | `local`    | `dev`      | `ci`       |
+| -------------- | ---------------- | ---------- | ---------- | ---------- |
+| Issues         | `issues`         | `required` | `required` | `required` |
+| Administration | `administration` | `absent`   | `absent`   | `absent`   |
+| Secrets        | `secrets`        | `absent`   | `absent`   | `absent`   |
+| Environments   | `environments`   | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_SYNC_TOKEN`
+
+| Permission     | Id               | `local`    | `dev`      | `ci`       |
+| -------------- | ---------------- | ---------- | ---------- | ---------- |
+| Actions        | `actions`        | `required` | `required` | `required` |
+| Contents       | `contents`       | `required` | `required` | `required` |
+| Pull requests  | `pull-requests`  | `required` | `required` | `required` |
+| Administration | `administration` | `absent`   | `absent`   | `absent`   |
+| Secrets        | `secrets`        | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_RELEASE_TOKEN`
+
+| Permission     | Id               | `local` | `dev` | `ci`       |
+| -------------- | ---------------- | ------- | ----- | ---------- |
+| Contents       | `contents`       | -       | -     | `required` |
+| Issues         | `issues`         | -       | -     | `required` |
+| Pull requests  | `pull-requests`  | -       | -     | `required` |
+| Administration | `administration` | -       | -     | `absent`   |
+| Secrets        | `secrets`        | -       | -     | `absent`   |
+
+#### `HOLOCRON_ADMIN_TOKEN`
+
+| Permission            | Id                  | `local`    | `dev`      | `ci`       |
+| --------------------- | ------------------- | ---------- | ---------- | ---------- |
+| Administration        | `administration`    | `required` | `required` | `required` |
+| Secrets               | `secrets`           | `required` | `required` | `required` |
+| Environments          | `environments`      | `required` | `required` | `required` |
+| Issues                | `issues`            | `required` | `required` | `required` |
+| Custom properties     | `custom-properties` | `required` | `required` | `required` |
+| Variables             | `actions-variables` | `required` | `required` | `required` |
+| Organization: Secrets | `org-secrets`       | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_SECRETS_TOKEN`
+
+| Permission            | Id               | `local`    | `dev`      | `ci`       |
+| --------------------- | ---------------- | ---------- | ---------- | ---------- |
+| Organization: Secrets | `org-secrets`    | `required` | `required` | `required` |
+| Administration        | `administration` | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_DEPLOY_TOKEN`
+
+| Permission            | Id               | `local`    | `dev`      | `ci`       |
+| --------------------- | ---------------- | ---------- | ---------- | ---------- |
+| Pages                 | `pages`          | `required` | `required` | `required` |
+| Administration        | `administration` | `required` | `required` | `required` |
+| Secrets               | `secrets`        | `absent`   | `absent`   | `absent`   |
+| Organization: Secrets | `org-secrets`    | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_USER_SYNC_TOKEN`
+
+| Permission                 | Id                   | `local`    | `dev`      | `ci`       |
+| -------------------------- | -------------------- | ---------- | ---------- | ---------- |
+| Contents (.github-private) | `user-sync-contents` | `required` | `required` | `required` |
+| Administration             | `administration`     | `absent`   | `absent`   | `absent`   |
+| Secrets                    | `secrets`            | `absent`   | `absent`   | `absent`   |
+
+#### `HOLOCRON_ORG_TOKEN`
+
+| Permission                   | Id                   | `local`    | `dev`      | `ci`       |
+| ---------------------------- | -------------------- | ---------- | ---------- | ---------- |
+| Organization: Administration | `org-administration` | `required` | `required` | `required` |
+| Organization: Members        | `org-members`        | `required` | `required` | `required` |
+| Organization: Variables      | `org-variables`      | `required` | `required` | `required` |
+| Organization: Secrets        | `org-secrets`        | `absent`   | `absent`   | `absent`   |
 
 Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `link account` and `sync roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
 
