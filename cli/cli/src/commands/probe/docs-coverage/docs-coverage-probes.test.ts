@@ -230,12 +230,12 @@ describe("docs patch and repoValidation.docsCoverage", () => {
 			diffOf: () => "",
 			readPackage: () => undefined,
 		};
-		const tokensIo = { page: () => "", authFiles: () => [], setupSource: () => "" };
+		const tokensIo = { page: () => "", authFiles: () => [], declarations: async () => [], setupSource: () => "" };
 		const probes = docsCoverageProbes(repo(), vi.fn(TYPEDOC), () => "", "required", presenceIo, tokensIo);
 		const { ctx, rows } = context();
 		await probes["validate"]!.run(ctx);
 		const headings = rows.filter((row) => row.status === "heading").map((row) => row.label);
-		expect(headings).toEqual(["Docs presence", "Documented tokens"]);
+		expect(headings).toEqual(["Docs presence", "Documented tokens", "Documented permissions"]);
 		expect(rows.some((row) => row.status === "fail")).toBe(true);
 		expect(probes["tokens"]).toBeDefined();
 	});

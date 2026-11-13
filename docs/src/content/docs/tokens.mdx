@@ -191,20 +191,22 @@ Whether a narrower, read-only token would do for Checkly and Cloudflare has not 
 
 Cloudflare has far more permissions than Holocron calls. The plugin and client call only the endpoints below, so a token needs nothing else: not Access (apps or policies), not account API tokens, not billing. Checking the token (`/user/tokens/verify`) needs no permission.
 
-| Permission              | Resource    | Called by                                                                   |
-| ----------------------- | ----------- | --------------------------------------------------------------------------- |
-| Zone: Read              | the domains | every zone lookup                                                           |
-| DNS: Edit               | the domains | `setup` (records), `new tunnel` and `dev` (the tunnel's `CNAME`)            |
-| Workers Routes: Edit    | the domains | `setup notifications` (the relay's route)                                   |
-| Workers Scripts: Edit   | the account | `setup notifications` (the Worker and its secrets), `sync secrets --worker` |
-| Cloudflare Pages: Edit  | the account | `deploy-preview`, `preview` (CI), `deploy`                                  |
-| Cloudflare Tunnel: Edit | the account | `new tunnel`, `dev` (the tunnel and its hostname rules)                     |
+| Permission              | Id        | Resource    | `local`    | `dev`      | `ci`       | Called by                                                                   |
+| ----------------------- | --------- | ----------- | ---------- | ---------- | ---------- | --------------------------------------------------------------------------- |
+| Zone: Read              | `zone`    | the domains | `required` | `required` | `absent`   | every zone lookup                                                           |
+| DNS: Edit               | `dns`     | the domains | `required` | `required` | `absent`   | `setup` (records), `new tunnel` and `dev` (the tunnel's `CNAME`)            |
+| Workers Routes: Edit    | `routes`  | the domains | `required` | `required` | `absent`   | `setup notifications` (the relay's route)                                   |
+| Workers Scripts: Edit   | `scripts` | the account | `required` | `required` | `absent`   | `setup notifications` (the Worker and its secrets), `sync secrets --worker` |
+| Cloudflare Pages: Edit  | `pages`   | the account | `required` | `required` | `required` | `deploy-preview`, `preview` (CI), `deploy`                                  |
+| Cloudflare Tunnel: Edit | `tunnels` | the account | `required` | `required` | `absent`   | `new tunnel`, `dev` (the tunnel and its hostname rules)                     |
+
+The layer columns are what `holocron probe docs tokens` compares with the plugin's declaration: it fails, naming the token, layer and permission, when a cell here and the `expect` of the token differ. Add a permission as a row with its `Id`, and a layer as a column named for it.
 
 Limit Zone, DNS and Workers Routes to the domains Holocron manages (Zone Resources: specific zones). The account permissions cannot be narrowed to one project or tunnel.
 
 - **The `dev` Environment** (a laptop runs everything): all six.
 - **The `ci` Environment** (`preview` and `deploy-preview` only): Cloudflare Pages: Edit. Add Workers Scripts: Edit only if a workflow deploys a Worker. Leave the rest off, so a leak from CI cannot change DNS or a tunnel.
-- **Declared once.** The layers and permissions in these bullets are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-cloudflare/src/probes/token/expectations.ts`); a new permission is one change there, one row in the table above and one probe check.
+- **Declared once.** The layers and permissions in these bullets are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-cloudflare/src/probes/token/expectations.ts`); a new permission is one change there, one row in the table above (`probe docs tokens` fails until they agree) and one probe check.
 - **Check a token** with `holocron probe cloudflare token`: it tries each permission above with the account id from your config and reports which the token has. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and checks it against the bullets below, failing on a missing or extra permission. `--token cloudflare=<token>`, or a token you paste when it asks, only reports what that token can reach. See [`probe`](/holocron/commands/probe/#cloudflare).
 - **`holocron dev` alone** needs Cloudflare Tunnel: Edit, DNS: Edit and Zone: Read on the zone of the tunnel's hostname. The plugin takes one token per provider, so a token with only those three works for `dev` and for nothing else; keep the full one for `setup` and pass it with `--token cloudflare=<token>` when you need it.
 
