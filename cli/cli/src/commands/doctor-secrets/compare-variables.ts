@@ -1,4 +1,4 @@
-import type { LayerSecrets, VariableDrift } from "./doctor-shared-values.type.js";
+import type { LayerSecrets, VariableDrift } from "./doctor-secrets.type.js";
 
 /**
  * Compares the variables (the entries a vault holds visible) of `ci` with those of `dev`. The organization's constants

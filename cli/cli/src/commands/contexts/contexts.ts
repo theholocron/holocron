@@ -98,7 +98,6 @@ export const COMMAND_CONTEXTS = {
 	"doctor monitoring": "workspace",
 	"doctor variable-owners": "workspace",
 	// Reads each layer's Environment through the `vault` provider, in memory.
-	"doctor shared-values": "workspace",
 	// Reads `./holocron.config` and `.github/workflows`, no plugins.
 	"doctor ci": "repo-aware",
 	// Loads the configured plugins and runs the probes they offer.

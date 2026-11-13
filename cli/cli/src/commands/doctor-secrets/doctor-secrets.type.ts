@@ -3,7 +3,8 @@ import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui"
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { PluginLoader, RuntimeContext, SecretScope, Source } from "../../plugin/index.js";
+import type { EnvironmentLayer } from "../../credentials-environments/index.js";
+import type { EnvironmentEntry, PluginLoader, RuntimeContext, SecretScope, Source } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
 
 /** An environment `doctor secrets --env` can be asked about. */
@@ -35,9 +36,13 @@ export interface RunDoctorSecretsInput {
 	keyring?: (key: string) => string | null;
 	/** The current time, for how long a token has left. Defaults to the clock; tests pass a fixed one. */
 	now?: () => Date;
+	/** Compare the layers named by `environments` for a secret that holds the same value in two of them (`--shared`). */
+	shared?: boolean;
+	/** Names shared on purpose, besides `doctor.sharedVariables` (`--allow`). Only `--shared` reads them. */
+	allow?: string[];
 	/** Show only the secrets block (`--only-secrets`) or only the variables block (`--only-variables`). Both when omitted. */
 	only?: "secrets" | "variables";
-	/** An `extra` name is a failure instead of an `info` row (`--strict`). */
+	/** An `extra` name, or a secret two layers share, is a failure instead of an `info` row (`--strict`). */
 	strict?: boolean;
 	/** Print how each place stands for this one name and exit 0 (`--name`). */
 	name?: string;
@@ -192,4 +197,35 @@ export interface CredentialsRowsResult {
 	rows: CheckRow[];
 	/** One place per credentials Environment that was read or could not be found. */
 	places: MatrixPlace[];
+}
+
+/** The entries one layer's Environment holds, secrets and variables. In memory only; never printed. */
+export interface LayerSecrets {
+	layer: EnvironmentLayer;
+	environment: string;
+	entries: EnvironmentEntry[];
+}
+
+/** What reading the layers gave: the ones that could be read, and a skipped row for each that could not. */
+export interface LayerReads {
+	layers: LayerSecrets[];
+	rows: CheckRow[];
+}
+
+/** The variables `ci` has that `dev` lacks or holds differently, by name only. */
+export interface VariableDrift {
+	/** In `ci`, absent from `dev`. */
+	missing: string[];
+	/** In both, with different values. */
+	differs: string[];
+}
+
+/** The secrets two layers share, by name only. */
+export interface SharedPair {
+	/** The later layer in `local, dev, ci, prod` order. */
+	layer: EnvironmentLayer;
+	/** The earlier one. */
+	other: EnvironmentLayer;
+	/** Names that hold the same value in both: `NAME`, or `LATER_NAME = EARLIER_NAME` when the names differ. */
+	names: string[];
 }
