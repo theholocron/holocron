@@ -20,3 +20,32 @@ describe("createPlugin", () => {
 		expect(cap.providerName).toBe("sentry");
 	});
 });
+
+describe("the token probe", () => {
+	it("is registered, read-only, and takes another token", () => {
+		const probe = createPlugin({ cliToken: "sntryu_tok", org: "my-org" }).probes.token;
+		expect(probe.writes).toBe(false);
+		expect(probe.acceptsToken).toBe(true);
+	});
+
+	it("reads with the token it was handed", async () => {
+		const calls: string[] = [];
+		const fetch = (async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+			calls.push(`${String(url)} ${new Headers(init?.headers).get("authorization") ?? ""}`);
+			return new Response("[]", { status: 200, headers: { "content-type": "application/json" } });
+		}) as typeof globalThis.fetch;
+		for (const args of [[], ["--layer", "dev", "--token-name", "HOLOCRON_SENTRY_TOKEN"]]) {
+			const plugin = createPlugin({ cliToken: "sntryu_tok", org: "my-org", fetch });
+			await plugin.probes.token.run({
+				args,
+				dryRun: false,
+				say: () => {},
+				secret: () => {},
+				write: async () => undefined,
+				cleanup: () => {},
+			});
+		}
+		expect(calls.some((c) => c.includes("/organizations/my-org/projects/"))).toBe(true);
+		expect(calls.some((c) => c.includes("sntryu_tok"))).toBe(true);
+	});
+});

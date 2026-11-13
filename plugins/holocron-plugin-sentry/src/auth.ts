@@ -6,6 +6,8 @@ import {
 	type ResolveTokenInput,
 } from "@theholocron/cli";
 
+import { COMLINK, GENERAL, RELEASE } from "./probes/token/expectations.js";
+
 export { AuthError };
 export type { ResolveTokenInput };
 
@@ -42,5 +44,26 @@ export function resolveRelayToken(input: ResolveTokenInput = {}): string {
 	}
 }
 
-/** Every token this plugin takes, for `holocron doctor secrets --verify`: the general one and the Comlink relay's own. */
-export const tokens: PluginToken[] = [resolveToken.token, resolveComlinkToken.token];
+/**
+ * The token only `release.yml` reads (sentry-cli makes the release and uploads sourcemaps): an organization token with
+ * `org:ci` held in the `ci` layer. The plugin never resolves it, so it is `optional` and `verifiable: false` (the
+ * plugin's `verifyToken` lists organizations, which this token must not be able to do); it is declared so the probe and
+ * `holocron probe sentry token --environment ci` can find it and check that it reaches nothing else.
+ */
+const releaseToken: PluginToken = {
+	envName: "HOLOCRON_SENTRY_RELEASE_TOKEN",
+	keyringKey: "sentry.release",
+	optional: true,
+	verifiable: false,
+	expect: RELEASE,
+};
+
+/**
+ * Every token this plugin takes, for `holocron doctor secrets --verify`, each with what its layer's token must and must not be
+ * able to do: the general one, the Comlink relay's own and the CI release token.
+ */
+export const tokens: PluginToken[] = [
+	{ ...resolveToken.token, expect: GENERAL },
+	{ ...resolveComlinkToken.token, expect: COMLINK },
+	releaseToken,
+];

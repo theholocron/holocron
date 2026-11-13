@@ -4,6 +4,7 @@ import { connectionProbe } from "@theholocron/cli";
 import { resolveRelayToken, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { SentryErrors, type SentryErrorsOptions } from "./capabilities/errors.js";
 import { sentryProbes } from "./probes/index.js";
+import { tokenProbe } from "./probes/token/token.js";
 import { createSentryClient, type SentryClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -64,6 +65,11 @@ export function createPlugin(options: SentryPluginOptions) {
 		name: "@theholocron/holocron-plugin-sentry",
 		probes: {
 			...sentryProbes({ org: options.org, client: ctx.relayClient, fetch: options.fetch }),
+			token: tokenProbe({
+				org: options.org,
+				client: ctx.client,
+				token: () => resolveToken(options),
+			}),
 			connection: connectionProbe({
 				provider: "Sentry",
 				url: options.baseUrl ?? "https://sentry.io",

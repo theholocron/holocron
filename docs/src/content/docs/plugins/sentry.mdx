@@ -73,6 +73,8 @@ export HOLOCRON_SENTRY_TOKEN=<TOKEN>
 export SENTRY_AUTH_TOKEN=<TOKEN>
 ```
 
+Check what a token can read with `holocron probe sentry token` (organizations, projects, alert rules); `--environment ci` or `dev` also judges it against [what each Sentry token needs](/holocron/tokens/#what-each-sentry-token-needs), for each declared token the Environment holds. See [`probe`](/holocron/commands/probe/#sentry).
+
 ## What `errors` provides
 
 - `describe()` — returns the provider name, the env var keys always needed (`envKeys`: `SENTRY_DSN`) and, per framework, the extra keys needed only there (`frameworkEnvKeys`: `next` adds `NEXT_PUBLIC_SENTRY_DSN`)
