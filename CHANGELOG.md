@@ -1,3 +1,17 @@
+## [5.0.0-alpha.426](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.425...v5.0.0-alpha.426) (2026-11-13)
+
+### Features
+
+* **cli:** ✨ add probe cloudflare token and say what each Cloudflare token needs ([#2140](https://github.com/theholocron/holocron/issues/2140)) ([d414475](https://github.com/theholocron/holocron/commit/d414475314c13cea19cc1f25c3c4c832a049702f)), closes [#2059](https://github.com/theholocron/holocron/issues/2059) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Documentation
+
+* **specs:** 📝 draft the doctor secrets matrix and --env spec ([#2137](https://github.com/theholocron/holocron/issues/2137)) ([db336cc](https://github.com/theholocron/holocron/commit/db336cccd4d9a4ec0e103a7213e577ec92242f93)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2138](https://github.com/theholocron/holocron/issues/2138)) ([e9778a9](https://github.com/theholocron/holocron/commit/e9778a91c23e3cb2ad431e2ce0046d1468c352c2))
+
 ## [5.0.0-alpha.425](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.424...v5.0.0-alpha.425) (2026-11-13)
 
 ### Features
