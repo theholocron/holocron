@@ -1,6 +1,6 @@
 ---
 id: SPEC-0083
-status: proposed
+status: accepted
 issue: theholocron/holocron#2136
 blocked-by: []
 related:
