@@ -1,3 +1,9 @@
+## [5.0.0-alpha.439](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.438...v5.0.0-alpha.439) (2026-11-14)
+
+### Features
+
+* **postman:** ✨ export the request collections as collection schema 3.0 YAML ([#2197](https://github.com/theholocron/holocron/issues/2197)) ([f366963](https://github.com/theholocron/holocron/commit/f366963b2ae4a56457d74d9a6dc28d44bcd5a3bc)), closes [#2189](https://github.com/theholocron/holocron/issues/2189)
+
 ## [5.0.0-alpha.438](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.437...v5.0.0-alpha.438) (2026-11-14)
 
 ### Features
