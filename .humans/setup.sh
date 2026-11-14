@@ -96,6 +96,19 @@ else
 	bad "gh extension install github/gh-stack failed"
 fi
 
+step "Postman CLI"
+# `holocron export requests --to postman` runs `postman collection migrate`, so it needs the Postman CLI. It is a Homebrew
+# cask, installed here (not in the Brewfile) so that a machine that never exports the collections is not asked for it.
+if have postman; then
+	ok "postman"
+elif [ "$CHECK" -eq 1 ]; then
+	bad "postman is not installed (run ./.humans/setup.sh to install it)"
+elif [ "$(uname -s)" = "Darwin" ] && have brew; then
+	if brew install --cask postman-cli; then ok "installed postman"; else bad "brew install --cask postman-cli failed"; fi
+else
+	todo "Install the Postman CLI: https://learning.postman.com/docs/postman-cli/postman-cli-installation/ (macOS: brew install --cask postman-cli)"
+fi
+
 step "Node and pnpm"
 need="$(node_minimum)"
 if ! have node; then
