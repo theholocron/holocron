@@ -148,17 +148,14 @@ describe("matrixRows", () => {
 	];
 	const matrix = buildMatrix(places);
 
-	it("fails a MISSING name where no other check reports it, and skips the extras as info", () => {
+	it("fails a MISSING name where no other check reports it, and makes no row for an extra", () => {
 		const rows = matrixRows(matrix, [], false);
 		expect(rows.map((r) => [r.id, r.status])).toEqual([
 			["missing:secret:vault:ci", "fail"],
-			["extra:secret:vault:ci", "skip"],
-			["extra:secret:github:repo", "skip"],
 			["unread:secret:deploy:prod", "skip"],
 		]);
 		expect(rows[0]!.problems).toEqual(["missing secret GONE"]);
-		expect(rows[1]!.detail).toBe("info: 1 extra in 1Password ci, nothing feeds it: STRAY");
-		expect(rows[3]!.detail).toBe("could not read Deploy prod: named at sync");
+		expect(rows[1]!.detail).toBe("could not read Deploy prod: named at sync");
 	});
 
 	it("makes an extra name a failure with strict, and never reports a name set by hand", () => {
@@ -177,7 +174,7 @@ describe("matrixRows", () => {
 
 	it("says them or it by how many are extra", () => {
 		const two = buildMatrix([place(col("v", "1Password", "ci"), { present: ["X", "Y"] })]);
-		expect(matrixRows(two, [], false)[0]!.detail).toBe("info: 2 extra in 1Password ci, nothing feeds them: X, Y");
+		expect(matrixRows(two, [], true)[0]!.detail).toBe("2 extra in 1Password ci, nothing feeds them: X, Y");
 	});
 });
 

@@ -81,24 +81,33 @@ describe("OpCredentials.read", () => {
 });
 
 describe("OpCredentials.inspect", () => {
-	const CONCEALED = "HOLOCRON_ORG_TOKEN=<concealed by 1Password>\nexport B=<concealed by 1Password>\n# a note\n";
+	const LISTING = JSON.stringify([
+		{ name: "HOLOCRON_ORG_TOKEN", value: "<concealed by 1Password>", concealed: true },
+		{ name: "HOLOCRON_TURBO_TEAM", value: "<concealed by 1Password>", concealed: false },
+	]);
 
-	it("lists the variable names without --reveal and without reading a value", async () => {
-		const { credentials, calls } = makeCredentials([{ status: 0, stdout: CONCEALED }]);
+	it("lists the names and which are visible without --reveal and without keeping a value", async () => {
+		const { credentials, calls } = makeCredentials([{ status: 0, stdout: LISTING }]);
 		expect(await credentials.inspect("Holocron")).toEqual({
 			environment: "Holocron",
-			names: ["HOLOCRON_ORG_TOKEN", "B"],
+			names: ["HOLOCRON_ORG_TOKEN", "HOLOCRON_TURBO_TEAM"],
+			visible: ["HOLOCRON_TURBO_TEAM"],
 		});
-		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "Holocron", "--format=dotenv"]);
+		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "Holocron", "--format=json"]);
+	});
+
+	it("takes an entry that does not say it is visible to be a secret", async () => {
+		const { credentials } = makeCredentials([{ status: 0, stdout: JSON.stringify([{ name: "A", value: "x" }]) }]);
+		expect(await credentials.inspect("Holocron")).toMatchObject({ names: ["A"], visible: [] });
 	});
 
 	it("says which spelling matched", async () => {
-		const { credentials } = makeCredentials([NOT_FOUND, { status: 0, stdout: "T=<concealed by 1Password>" }]);
-		expect(await credentials.inspect("holocron")).toEqual({ environment: "Holocron", names: ["T"] });
+		const { credentials } = makeCredentials([NOT_FOUND, { status: 0, stdout: "[]" }]);
+		expect(await credentials.inspect("holocron")).toEqual({ environment: "Holocron", names: [], visible: [] });
 	});
 
 	it("has no names for an empty environment", async () => {
-		const { credentials } = makeCredentials([{ status: 0, stdout: "" }]);
+		const { credentials } = makeCredentials([{ status: 0, stdout: "[]" }]);
 		expect((await credentials.inspect("Holocron")).names).toEqual([]);
 	});
 

@@ -9,6 +9,7 @@ import type { Credentials, CredentialsInspection } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import { parseDotenv } from "../parse-dotenv.js";
+import { parseEnvironmentJson } from "../parse-environment-json.js";
 import type { OpShell } from "../shell.js";
 
 /** How long to wait for `op` (a Touch ID prompt included) before giving up on the environment. */
@@ -44,18 +45,28 @@ export class OpCredentials implements Credentials {
 	}
 
 	/**
-	 * The Environment as `op` spells it and the names of its variables, asked without `--reveal` so no value is
-	 * printed or kept: `op` shows a placeholder for each value, which is not read. Tries the same spellings as `read`.
+	 * The Environment as `op` spells it, the names of its variables and which of them are visible, asked without
+	 * `--reveal` so no value is printed or kept: `op` shows a placeholder for each value, which is not read, and the
+	 * `concealed` flag that says secret from variable. Tries the same spellings as `read`.
 	 */
 	async inspect(environment: string): Promise<CredentialsInspection> {
-		const { name, stdout } = await this.list(environment, []);
-		return { environment: name, names: variableNames(stdout) };
+		const { name, stdout } = await this.list(environment, [], "json");
+		const entries = parseEnvironmentJson(stdout);
+		return {
+			environment: name,
+			names: entries.map((e) => e.name),
+			visible: entries.filter((e) => !e.concealed).map((e) => e.name),
+		};
 	}
 
-	private async list(environment: string, flags: string[]): Promise<{ name: string; stdout: string }> {
+	private async list(
+		environment: string,
+		flags: string[],
+		format: "dotenv" | "json" = "dotenv"
+	): Promise<{ name: string; stdout: string }> {
 		const tried = spellings(environment);
 		for (const name of tried) {
-			const result = this.shell.run(["environment", "secret", "list", name, ...flags, "--format=dotenv"], {
+			const result = this.shell.run(["environment", "secret", "list", name, ...flags, `--format=${format}`], {
 				timeoutMs: READ_TIMEOUT_MS,
 			});
 			if (result.ok) return { name, stdout: result.stdout };
@@ -74,12 +85,4 @@ export class OpCredentials implements Credentials {
 			undefined
 		);
 	}
-}
-
-/** The variable names in dotenv text, taken from the start of each line so a value is never looked at. */
-function variableNames(text: string): string[] {
-	return text
-		.split(/\r?\n/)
-		.map((line) => /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=/.exec(line)?.[1])
-		.filter((name): name is string => name !== undefined);
 }

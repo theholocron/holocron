@@ -91,7 +91,6 @@ describe("doctor secrets — repository and environments", () => {
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
 			["repo-secrets", "ok", "2 of 2 exist"],
 			["env-secrets-production", "ok", "1 of 1 exist"],
-			["extra:secret:github:repo", "skip", "info: 1 extra in GitHub repo, nothing feeds it: EXTRA"],
 		]);
 		expect(lines.some((l) => l.includes("repository secrets exist"))).toBe(true);
 		expect(listSecrets).toHaveBeenCalledWith({ kind: "environment", name: "production" });

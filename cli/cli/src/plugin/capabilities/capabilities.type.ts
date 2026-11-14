@@ -2864,6 +2864,11 @@ export interface CredentialsInspection {
 	environment: string;
 	/** The names of its variables, never their values. */
 	names: string[];
+	/**
+	 * Which of `names` the provider holds visible (a variable) rather than concealed (a secret). Absent when it cannot
+	 * say, in which case every name is taken to be a secret.
+	 */
+	visible?: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────
