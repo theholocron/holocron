@@ -1,3 +1,9 @@
+## [5.0.0-alpha.431](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.430...v5.0.0-alpha.431) (2026-11-14)
+
+### Refactoring
+
+* **postman:** 🏷️ name the plugin's token HOLOCRON_POSTMAN_TOKEN ([#2176](https://github.com/theholocron/holocron/issues/2176)) ([dde8478](https://github.com/theholocron/holocron/commit/dde847813c82ac79ebe4f5d17b06ad7dd49f07b0)), closes [#2175](https://github.com/theholocron/holocron/issues/2175)
+
 ## [5.0.0-alpha.430](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.429...v5.0.0-alpha.430) (2026-11-14)
 
 ### Features
