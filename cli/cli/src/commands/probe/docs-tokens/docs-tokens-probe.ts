@@ -1,5 +1,7 @@
 import type { Probe, ProbeContext } from "../../../plugin/index.js";
+import { comparePermissions } from "./compare-permissions/index.js";
 import type { DocsTokensIo } from "./docs-tokens.type.js";
+import { permissionTables } from "./permission-tables/index.js";
 
 const KEYS = ["envName", "vendorEnvName", "keyringService", "keyringKey"] as const;
 
@@ -21,7 +23,10 @@ function declared(text: string, keys: readonly string[]): string[] {
  * `keyringKey` in `plugins/<name>/src/auth.ts`) that `docs/src/content/docs/tokens.mdx` does not document. The Discord
  * and GitHub plugins have their own tables, so any row of the page counts; every other plugin has one row in the
  * provider table and its names must be in that row. A plugin that resolves nothing (1Password uses the `op` CLI's own
- * auth) needs no row. The one resolver the setup command builds itself is checked against the whole page. It runs in
+ * auth) needs no row. The one resolver the setup command builds itself is checked against the whole page. A token that
+ * declares permissions per layer (`PluginToken.expect`, #2150) is also compared with its permission table, a table with
+ * an `Id` column and a column per layer (`required` or `absent`): a permission, layer or rule that differs fails, naming
+ * the token, layer and permission. A plugin whose declaration cannot be loaded (not built) is an `info` row. It runs in
  * the `validate:docs` task, through `docs validate`.
  */
 export function docsTokensProbe(io: DocsTokensIo): Probe {
@@ -64,6 +69,23 @@ export function docsTokensProbe(io: DocsTokensIo): Probe {
 				ctx.say({ status: "fail", label: "setup", detail: `not in tokens.mdx: ${setupMissing.join(", ")}` });
 			} else {
 				ctx.say({ status: "ok", label: "setup", detail: `${setupNames.length} documented` });
+			}
+
+			ctx.say({ status: "heading", label: "Documented permissions" });
+			const tables = permissionTables(page);
+			for (const { plugin, tokens, error } of await io.declarations()) {
+				if (error !== undefined) {
+					ctx.say({ status: "info", label: plugin, detail: `declaration not loaded: ${error}` });
+					continue;
+				}
+				const problems = comparePermissions(tokens, tables, plugin.replace("holocron-plugin-", ""));
+				for (const { envName, layer, permission, detail } of problems) {
+					const where = [envName, layer, permission].filter((part) => part !== "").join(" ");
+					ctx.say({ status: "fail", label: where, detail });
+				}
+				if (problems.length === 0 && tokens.some((token) => token.expect?.permissions)) {
+					ctx.say({ status: "ok", label: plugin, detail: "permissions match tokens.mdx" });
+				}
 			}
 		},
 	};
