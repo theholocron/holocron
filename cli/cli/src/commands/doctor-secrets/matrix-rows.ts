@@ -17,7 +17,7 @@ function namesWith(place: MatrixPlace, cell: MatrixCell, manual: ReadonlySet<str
 /**
  * The rows the matrix adds to `doctor secrets`, from the places it was built from:
  *
- * - `extra` names are advisory, one row per place: an `info` row (shown as skipped, exit 0), or a failure with `strict`.
+ * - `extra` names are in the matrix and make no row, except with `strict`, where each place that has some fails.
  * - `MISSING` names fail, one row per place, except in a place another check already reports on (GitHub).
  * - A place that could not be read is a skipped row that names it and why, again except where another check says so.
  *
@@ -53,14 +53,14 @@ export function matrixRows(matrix: Matrix, manual: readonly string[], strict: bo
 				problems: missing.map((name) => `missing ${place.kind} ${name}`),
 			});
 		}
-		const extra = namesWith(place, "extra", skip);
+		// The matrix already shows an `extra` name; it is a row only with `--strict`, where it fails the run.
+		const extra = strict ? namesWith(place, "extra", skip) : [];
 		if (extra.length > 0) {
-			const what = `${extra.length} extra in ${where(place)}, nothing feeds ${extra.length === 1 ? "it" : "them"}: ${extra.join(", ")}`;
 			rows.push({
 				id: `extra:${id}`,
 				title,
-				status: strict ? "fail" : "skip",
-				detail: strict ? what : `info: ${what}`,
+				status: "fail",
+				detail: `${extra.length} extra in ${where(place)}, nothing feeds ${extra.length === 1 ? "it" : "them"}: ${extra.join(", ")}`,
 				problems: [],
 			});
 		}

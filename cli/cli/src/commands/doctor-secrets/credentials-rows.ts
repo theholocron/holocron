@@ -101,7 +101,7 @@ export async function credentialsRows(input: CredentialsRowsInput): Promise<Cred
 				env: { HOLOCRON_ENVIRONMENT: "local" },
 				...(input.gitExec ? { gitExec: input.gitExec } : {}),
 			});
-			const checked = await checkProvider(impl, candidates, expected);
+			const checked = await checkProvider(impl, candidates, expected, variableKeys(resolved));
 			rows.push(...checked.rows);
 			places.push(...checked.places);
 		} catch (err) {
@@ -119,7 +119,8 @@ export async function credentialsRows(input: CredentialsRowsInput): Promise<Cred
 async function checkProvider(
 	impl: Credentials,
 	candidates: EnvironmentCandidate[],
-	expected: ExpectedToken[]
+	expected: ExpectedToken[],
+	synced: string[]
 ): Promise<CredentialsRowsResult> {
 	const provider = impl.providerName;
 	if (!impl.inspect) {
@@ -166,26 +167,31 @@ async function checkProvider(
 		}
 
 		// The last Environment found is the one a machine must have, so a required token neither holds is missing there.
+		// A provider that says which names are visible has its variables in a block of their own; one that cannot says
+		// nothing, so every name is a secret.
 		const names = new Set(expected.map((e) => e.name));
 		const places: MatrixPlace[] = [];
 		const missingRequired = expected.filter((e) => !e.optional && !have(e.name)).map((e) => e.name);
 		found.forEach(({ name, result }, index) => {
+			const column = {
+				id: `vault:${name}`,
+				group,
+				label: labelOf(name),
+				env: layerFor(name),
+				reportedElsewhere: true,
+				unreadReported: true,
+			};
+			const visible = result.visible === undefined ? undefined : new Set(result.visible);
+			const secretNames = visible ? result.names.filter((n) => !visible.has(n)) : result.names;
 			places.push({
-				column: {
-					id: `vault:${name}`,
-					group,
-					label: labelOf(name),
-					env: layerFor(name),
-					reportedElsewhere: true,
-					unreadReported: true,
-				},
+				column,
 				kind: "secret",
 				// A token held here is expected here; the Environment a machine must have also expects what is missing.
 				needed: [
-					...result.names.filter((n) => names.has(n)),
+					...secretNames.filter((n) => names.has(n)),
 					...(index === found.length - 1 ? missingRequired : []),
 				],
-				present: result.names,
+				present: secretNames,
 				reasons: Object.fromEntries(
 					expected.map((e) => [
 						e.name.toUpperCase(),
@@ -193,6 +199,22 @@ async function checkProvider(
 					])
 				),
 			});
+			if (visible) {
+				// Nothing syncs `dev`, so it holds its own copy of each variable the repo writes to GitHub (#2058).
+				const wanted = column.env === "dev" ? synced : [];
+				places.push({
+					column,
+					kind: "variable",
+					needed: wanted,
+					present: result.names.filter((n) => visible.has(n)),
+					reasons: Object.fromEntries(
+						wanted.map((n) => [
+							n.toUpperCase(),
+							"a variable repo.variables.sync writes to GitHub; dev holds its own copy",
+						])
+					),
+				});
+			}
 		});
 		return { rows, places: [...places, ...unreadPlaces] };
 	} catch (err) {
@@ -203,4 +225,9 @@ async function checkProvider(
 /** The layer a credentials Environment belongs to: `local` for `- local` or a name that is not a layer's, else `dev`. */
 function layerFor(name: string): "local" | "dev" {
 	return layerOf(name, "local") === "dev" ? "dev" : "local";
+}
+
+/** The names `repo.variables.sync` writes as variables, in any scope, without repeats. */
+function variableKeys(resolved: RunDoctorSecretsInput["loaded"]["resolved"]): string[] {
+	return [...new Set((resolved.repo?.variables?.sync ?? []).flatMap((entry) => entry.keys))];
 }

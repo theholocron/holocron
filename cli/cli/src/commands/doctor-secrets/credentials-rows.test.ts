@@ -403,6 +403,58 @@ describe("credentials rows", () => {
 			});
 		});
 
+		describe("when the provider says which names are visible", () => {
+			const synced = {
+				repo: { variables: { sync: [{ environment: `${SLUG} - ci`, keys: ["TURBO_TEAM", "SENTRY_ORG"] }] } },
+			};
+			const listing = (held: Record<string, { secrets: string[]; variables: string[] }>) => ({
+				inspect: vi.fn(async (environment: string) => {
+					const found = held[environment];
+					if (!found) throw absent;
+					return { environment, names: [...found.secrets, ...found.variables], visible: found.variables };
+				}),
+			});
+			async function runListing(held: Parameters<typeof listing>[0]) {
+				const loaded = loadedWith({ credentials: undefined, ...synced });
+				return runDoctorCredentials({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					loader: loaderWith(loaded, listing(held)),
+					importer: tokensImporter,
+					gitExec,
+				});
+			}
+
+			it("gives each Environment a place for its secrets and one for its variables, so neither block holds the other's names", async () => {
+				const report = await runListing({
+					[`${SLUG} - dev`]: { secrets: BOTH, variables: ["TURBO_TEAM", "SENTRY_ORG", "STRAY_VAR"] },
+				});
+				const secret = report.places.find((p) => p.kind === "secret")!;
+				const variable = report.places.find((p) => p.kind === "variable")!;
+				expect(secret.present).toEqual(BOTH);
+				expect(variable.present).toEqual(["TURBO_TEAM", "SENTRY_ORG", "STRAY_VAR"]);
+				expect(variable.column.id).toBe(secret.column.id);
+			});
+
+			it("expects dev to hold its own copy of each variable repo.variables.sync writes, and local to expect none", async () => {
+				const report = await runListing({
+					[`${SLUG} - local`]: { secrets: [], variables: ["LOCAL_VAR"] },
+					[`${SLUG} - dev`]: { secrets: BOTH, variables: ["TURBO_TEAM"] },
+				});
+				const [local, dev] = report.places.filter((p) => p.kind === "variable");
+				expect(local).toMatchObject({ needed: [], present: ["LOCAL_VAR"] });
+				expect(dev).toMatchObject({ needed: ["TURBO_TEAM", "SENTRY_ORG"], present: ["TURBO_TEAM"] });
+				expect(dev!.reasons?.SENTRY_ORG).toContain("repo.variables.sync");
+			});
+
+			it("counts a visible token as present, since it is there", async () => {
+				const report = await runListing({
+					[`${SLUG} - dev`]: { secrets: ["HOLOCRON_ORG_TOKEN"], variables: ["HOLOCRON_CLOUDFLARE_TOKEN"] },
+				});
+				expect(report.status).toBe("ok");
+			});
+		});
+
 		it("gives the matrix an unreadable place for a missing dev, and none for a missing local", async () => {
 			const report = await runDerived({});
 			expect(report.places).toHaveLength(1);

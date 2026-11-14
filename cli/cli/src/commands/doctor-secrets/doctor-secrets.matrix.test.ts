@@ -154,9 +154,9 @@ describe("doctor secrets — the matrix", () => {
 		expect(text).toMatch(/ADMIN\s+n\/a\s+extra/);
 		expect(text).toContain("MISSING  needed here, not found");
 		expect(text).not.toMatch(/"x"|"y"|"z"/);
-		// The failing row is the existing GitHub one; the matrix adds the advisory extras as skipped rows.
+		// The failing row is the existing GitHub one; an extra name is in the matrix and makes no row.
 		expect(report.rows.find((r) => r.id === "repo-secrets")).toMatchObject({ status: "fail" });
-		expect(report.rows.filter((r) => r.id.startsWith("extra:")).every((r) => r.status === "skip")).toBe(true);
+		expect(report.rows.some((r) => r.id.startsWith("extra:"))).toBe(false);
 		expect(report.status).toBe("fail");
 	});
 
@@ -166,16 +166,18 @@ describe("doctor secrets — the matrix", () => {
 		expect(lines.some((l) => /\d+ ok, \d+ fail, \d+ skipped/.test(l))).toBe(false);
 	});
 
-	it("shows an extra GitHub name as info and exits ok, and a failure with --strict", async () => {
+	it("shows an extra GitHub name in the matrix only and exits ok, and a failing row with --strict", async () => {
 		const held = { repo: ["TOKEN_A", "TOKEN_B", "HAND_SET", "STRAY"] };
 		const soft = await run({ repo }, { vault, held });
 		expect(soft.report.status).toBe("ok");
-		expect(soft.report.rows.find((r) => r.id === "extra:secret:github:repo")).toMatchObject({
-			status: "skip",
-			detail: "info: 1 extra in GitHub repo, nothing feeds it: STRAY",
-		});
+		expect(soft.lines.join("\n")).toMatch(/STRAY\s+n\/a\s+n\/a\s+extra/);
+		expect(soft.report.rows.some((r) => r.id === "extra:secret:github:repo")).toBe(false);
 		const strict = await run({ repo }, { vault, held }, { strict: true });
 		expect(strict.report.status).toBe("fail");
+		expect(strict.report.rows.find((r) => r.id === "extra:secret:github:repo")).toMatchObject({
+			status: "fail",
+			detail: "1 extra in GitHub repo, nothing feeds it: STRAY",
+		});
 	});
 
 	it("never reports a name in doctor.manualSecrets as extra", async () => {
@@ -330,9 +332,7 @@ describe("doctor secrets — the local and dev columns", () => {
 		expect(text).toMatch(/HOLOCRON_ADMIN\s+n\/a\s+ok/);
 		expect(text).toMatch(/SOMETHING_ELSE\s+n\/a\s+extra/);
 		expect(report.rows.find((r) => r.id === "1password:tokens")).toMatchObject({ status: "ok" });
-		expect(report.rows.find((r) => r.id === "extra:secret:vault:acme/demo - dev")).toMatchObject({
-			status: "skip",
-		});
+		expect(report.rows.some((r) => r.id.startsWith("extra:"))).toBe(false);
 	});
 
 	it("fails a token neither Environment holds, once, in the row the credentials check has always made", async () => {
