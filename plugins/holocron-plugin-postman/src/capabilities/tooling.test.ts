@@ -67,6 +67,13 @@ describe("PostmanTooling.getMyself", () => {
 	});
 });
 
+describe("PostmanTooling.getMyself without a user", () => {
+	it("returns an empty user when /me has none", async () => {
+		const { tooling } = makeTooling([{ status: 200, body: {} }]);
+		expect(await tooling.getMyself()).toEqual({});
+	});
+});
+
 describe("PostmanTooling.listWorkspaces", () => {
 	it("GETs /workspaces and maps results", async () => {
 		const { tooling, calls } = makeTooling([
@@ -356,6 +363,21 @@ describe("PostmanTooling.sync", () => {
 		expect((calls[1]?.body as { name: string }).name).toBe("Inferred Name");
 	});
 
+	it("names the spec after its file when it has no info.title", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0" });
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { specs: [] } },
+				{ status: 200, body: { id: "s_new", name: "openapi.json", type: "OPENAPI:3.0" } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "openapi.json" }] } },
+			],
+			{ specFile: specPath, repoRoot }
+		);
+		await tooling.sync();
+		expect((calls[1]?.body as { name: string }).name).toBe("openapi.json");
+	});
+
 	it("syncs env files when configured (create + update mix)", async () => {
 		const specPath = await writeSpec({ openapi: "3.0.0", info: { title: "API" } });
 		const stagingPath = "apps/api/env-staging.json";
@@ -482,6 +504,54 @@ describe("PostmanTooling.sync", () => {
 	});
 });
 
+describe("PostmanTooling.sync environment files", () => {
+	let repoRoot: string;
+
+	beforeEach(async () => {
+		repoRoot = await mkdtemp(join(tmpdir(), "holocron-postman-env-"));
+	});
+	afterEach(async () => {
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	it("rejects an environment file with no name", async () => {
+		await writeFile(join(repoRoot, "e.json"), JSON.stringify({ values: [] }));
+		const { tooling } = makeTooling([], { envFiles: ["e.json"], repoRoot });
+		await expect(tooling.sync()).rejects.toThrow(/missing a "name"/);
+	});
+
+	it("updates an environment with no variables without reading it back", async () => {
+		await writeFile(join(repoRoot, "e.json"), JSON.stringify({ name: "Bare" }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Bare" }] } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Bare" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls.map((c) => c.method)).toEqual(["GET", "PUT"]);
+	});
+
+	it("sends an empty secret as it is when the environment holds no variables", async () => {
+		await writeFile(
+			join(repoRoot, "e.json"),
+			JSON.stringify({ name: "Fresh", values: [{ key: "s", value: "", type: "secret" }] })
+		);
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Fresh" }] } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Fresh" } } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Fresh" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		const sent = calls[2]?.body as { environment: { values: { key: string; value: string }[] } };
+		expect(sent.environment.values).toEqual([{ key: "s", value: "", type: "secret" }]);
+	});
+});
+
 describe("keepSecrets", () => {
 	it("fills only an empty secret from the existing variable of the same key", () => {
 		const result = keepSecrets(
@@ -542,6 +612,19 @@ describe("PostmanTooling.doctor", () => {
 		expect(report.ok).toBe(true);
 		expect(report.message).toContain("does not exist yet");
 		expect(calls).toHaveLength(2);
+	});
+
+	it("finds a workspace by name", async () => {
+		const { tooling } = makeTooling(
+			[
+				{ status: 200, body: { user: { id: 1, username: "newton" } } },
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Holocron", type: "personal" }] } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron" }
+		);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(true);
+		expect(report.message).toContain("Holocron (personal) accessible");
 	});
 
 	it("returns ok:false with the error message when /me fails", async () => {

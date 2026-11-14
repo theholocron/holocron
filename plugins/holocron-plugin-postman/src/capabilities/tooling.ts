@@ -154,12 +154,9 @@ export class PostmanTooling implements Tooling {
 			await this.createEnvironment({ workspaceId, environment: envObj });
 			return;
 		}
-		const emptySecret = (envObj.values ?? []).some((v) => v.type === "secret" && !v.value);
-		const environment = emptySecret
-			? {
-					...envObj,
-					values: keepSecrets(envObj.values ?? [], (await this.getEnvironment(existing.uid)).values ?? []),
-				}
+		const values = envObj.values ?? [];
+		const environment = values.some((v) => v.type === "secret" && !v.value)
+			? { ...envObj, values: keepSecrets(values, (await this.getEnvironment(existing.uid)).values ?? []) }
 			: envObj;
 		await this.updateEnvironment({ uid: existing.uid, environment });
 	}
