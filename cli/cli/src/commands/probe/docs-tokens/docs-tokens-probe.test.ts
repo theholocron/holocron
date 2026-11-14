@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ProbeContext, ProbeRow } from "../../../plugin/index.js";
+import type { PluginToken } from "../../auth/index.js";
 import type { DocsTokensIo, PluginAuthSource } from "./docs-tokens.type.js";
 import { docsTokensProbe } from "./docs-tokens-probe.js";
 
@@ -17,6 +18,7 @@ function makeIo(overrides: Partial<DocsTokensIo> = {}): DocsTokensIo {
 	return {
 		page: () => rows.join("\n"),
 		authFiles: () => files,
+		declarations: async () => [],
 		setupSource: () => "",
 		...overrides,
 	};
@@ -97,5 +99,101 @@ describe("docsTokensProbe", () => {
 		]);
 		const page = `${rows.join("\n")}\n\`HOLOCRON_SETUP\` \`setup-key\``;
 		expect(fails(await run(makeIo({ setupSource, page: () => page })))).toEqual([]);
+	});
+
+	describe("permissions", () => {
+		const table = [
+			"### What each Acme token needs",
+			"",
+			"| Permission | Id | `local` | `ci` |",
+			"| --- | --- | --- | --- |",
+			"| Read | `read` | `required` | `absent` |",
+			"| Write | `write` | `required` | - |",
+		].join("\n");
+		const token = (permissions: PluginToken["expect"]): PluginToken => ({
+			envName: "HOLOCRON_ACME_TOKEN",
+			keyringKey: "acme",
+			expect: permissions,
+		});
+		const declared = token({
+			permissions: { local: { read: "required", write: "required" }, ci: { read: "absent" } },
+		});
+		const withTokens = (tokens: PluginToken[], page = table): DocsTokensIo =>
+			makeIo({
+				page: () => `${rows.join("\n")}\n${page}`,
+				declarations: async () => [{ plugin: "holocron-plugin-acme", tokens }],
+			});
+
+		it("passes when the table and the declaration agree", async () => {
+			const out = await run(withTokens([declared]));
+			expect(fails(out)).toEqual([]);
+			expect(out).toContainEqual({
+				status: "ok",
+				label: "holocron-plugin-acme",
+				detail: "permissions match tokens.mdx",
+			});
+		});
+
+		it("says nothing for a token with no permissions", async () => {
+			const out = await run(withTokens([token(undefined), token({ layers: ["ci"] })]));
+			expect(out.filter((row) => row.label === "holocron-plugin-acme")).toEqual([]);
+		});
+
+		it("fails naming the token, layer and permission that differ", async () => {
+			const changed = token({
+				permissions: { local: { read: "absent", write: "required" }, ci: { read: "absent" } },
+			});
+			expect(fails(await run(withTokens([changed])))).toEqual([
+				{
+					status: "fail",
+					label: "HOLOCRON_ACME_TOKEN local read",
+					detail: "declared absent, tokens.mdx says required",
+				},
+			]);
+		});
+
+		it("fails for a declared permission the table lacks", async () => {
+			const more = token({ permissions: { local: { read: "required", write: "required", admin: "required" } } });
+			expect(fails(await run(withTokens([more])))).toContainEqual({
+				status: "fail",
+				label: "HOLOCRON_ACME_TOKEN local admin",
+				detail: "not in the tokens.mdx table",
+			});
+		});
+
+		it("fails for a table row the declaration lacks, and for a layer rule it does not declare", async () => {
+			const fewer = token({ permissions: { local: { read: "required" } } });
+			expect(fails(await run(withTokens([fewer])))).toEqual([
+				{
+					status: "fail",
+					label: "HOLOCRON_ACME_TOKEN ci read",
+					detail: "tokens.mdx says absent, nothing declared",
+				},
+				{
+					status: "fail",
+					label: "HOLOCRON_ACME_TOKEN any write",
+					detail: "in the tokens.mdx table, not declared",
+				},
+			]);
+		});
+
+		it("fails for a token with permissions and no table", async () => {
+			expect(fails(await run(withTokens([declared], "nothing here")))).toEqual([
+				{ status: "fail", label: "HOLOCRON_ACME_TOKEN any", detail: "no permission table in tokens.mdx" },
+			]);
+		});
+
+		it("reports a declaration that could not be loaded without failing", async () => {
+			const io = makeIo({
+				declarations: async () => [{ plugin: "holocron-plugin-acme", tokens: [], error: "no dist" }],
+			});
+			const out = await run(io);
+			expect(fails(out)).toEqual([]);
+			expect(out).toContainEqual({
+				status: "info",
+				label: "holocron-plugin-acme",
+				detail: "declaration not loaded: no dist",
+			});
+		});
 	});
 });
