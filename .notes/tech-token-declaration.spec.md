@@ -1,7 +1,10 @@
 ---
+id: SPEC-0084
 status: proposed
 issue: theholocron/holocron#2149
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1570940201059229829
 ---
 
 # Token declaration
