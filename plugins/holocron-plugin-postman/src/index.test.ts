@@ -21,6 +21,21 @@ describe("createPlugin", () => {
 		expect(plugin.capabilities.tooling()).toBeInstanceOf(PostmanTooling);
 	});
 
+	it("hands its spawn to the capability, which runs the Postman CLI through it", async () => {
+		const spawn = (() => ({ status: 1, stdout: "", stderr: "no such collection" })) as never;
+		const tooling = createPlugin({ workspaceId: "ws-id", cliToken: "pmak-test", spawn }).capabilities.tooling();
+		const err = await tooling
+			.export?.({
+				collectionFiles: ["c.json"],
+				envFiles: [],
+				outDir: "/nonexistent-out",
+				repoRoot: "/r",
+				dryRun: true,
+			})
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toContain("no such collection");
+	});
+
 	it("wires the tooling capability", () => {
 		const plugin = createPlugin({ workspaceId: "ws-id", cliToken: "pmak-test" });
 		expect(plugin.name).toBe("@theholocron/holocron-plugin-postman");

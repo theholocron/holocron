@@ -60,6 +60,7 @@ export function tooling(ctx: PluginContext): Tooling {
 	if (ctx.options.collectionName !== undefined) opts.collectionName = ctx.options.collectionName;
 	if (ctx.options.envFiles !== undefined) opts.envFiles = ctx.options.envFiles;
 	if (ctx.options.repoRoot !== undefined) opts.repoRoot = ctx.options.repoRoot;
+	if (ctx.options.spawn !== undefined) opts.spawn = ctx.options.spawn;
 	return new PostmanTooling(ctx.client, opts);
 }
 
