@@ -33,8 +33,8 @@ export interface PluginContext {
 
 /** Builds the plugin context from its options; throws when `workspaceId` is missing. */
 export function createContext(options: PostmanPluginOptions): PluginContext {
-	if (!options.workspaceId) {
-		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` in options");
+	if (!options.workspaceId && !options.workspace) {
+		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` or `workspace` in options");
 	}
 	let client: PostmanClient | undefined;
 	return {
@@ -50,7 +50,11 @@ export function createContext(options: PostmanPluginOptions): PluginContext {
 
 /** Builds the `tooling` capability for a context, passing only the options that are set. */
 export function tooling(ctx: PluginContext): Tooling {
-	const opts: PostmanToolingOptions = { workspaceId: ctx.options.workspaceId };
+	const opts: PostmanToolingOptions = {};
+	if (ctx.options.workspaceId !== undefined) opts.workspaceId = ctx.options.workspaceId;
+	if (ctx.options.workspace !== undefined) opts.workspace = ctx.options.workspace;
+	if (ctx.options.workspaceType !== undefined) opts.workspaceType = ctx.options.workspaceType;
+	if (ctx.options.collectionFiles !== undefined) opts.collectionFiles = ctx.options.collectionFiles;
 	if (ctx.options.specFile !== undefined) opts.specFile = ctx.options.specFile;
 	if (ctx.options.specName !== undefined) opts.specName = ctx.options.specName;
 	if (ctx.options.collectionName !== undefined) opts.collectionName = ctx.options.collectionName;

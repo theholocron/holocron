@@ -29,6 +29,16 @@ const { collections } = await postman.collections.list("workspace-id");
 // Delete a collection
 await postman.collections.delete("collection-uid");
 
+// Create or replace a collection from a Postman collection document
+await postman.collections.create("workspace-id", collection);
+await postman.collections.update("collection-uid", collection);
+
+// Make a workspace
+await postman.workspaces.create({ name: "Holocron", type: "personal" });
+
+// Read one environment with its variables
+const { environment } = await postman.environments.get("environment-uid");
+
 // Import an OpenAPI spec as a collection
 const { collections: imported } = await postman.import.openapi("workspace-id", spec);
 

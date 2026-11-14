@@ -16,8 +16,30 @@ export interface PostmanWorkspacesResponse {
 	workspaces: PostmanWorkspace[];
 }
 
+/** What `workspaces.create` takes. */
+export interface PostmanCreateWorkspaceInput {
+	/** The workspace's name. */
+	name: string;
+	/** The workspace's type: `personal` or `team`. */
+	type: "personal" | "team";
+	/** A description shown in Postman. */
+	description?: string;
+}
+
+/** The response of creating one workspace. */
+export interface PostmanWorkspaceResponse {
+	/** The workspace made. */
+	workspace: Pick<PostmanWorkspace, "id" | "name">;
+}
+
 export function workspaces(rest: RestClient) {
 	return {
 		list: (): Promise<PostmanWorkspacesResponse> => rest.request<PostmanWorkspacesResponse>("/workspaces"),
+
+		create: (input: PostmanCreateWorkspaceInput): Promise<PostmanWorkspaceResponse> =>
+			rest.request<PostmanWorkspaceResponse>("/workspaces", {
+				method: "POST",
+				body: { workspace: input },
+			}),
 	};
 }

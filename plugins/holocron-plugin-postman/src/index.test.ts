@@ -12,9 +12,13 @@ describe("createPlugin", () => {
 		expect(report.message).toMatch(/token/i);
 	});
 
-	it("throws when workspaceId is missing", () => {
-		// @ts-expect-error — deliberately missing required field
-		expect(() => createPlugin({ cliToken: "t" })).toThrow(/workspaceId/);
+	it("throws when neither workspaceId nor workspace is given", () => {
+		expect(() => createPlugin({ cliToken: "t" })).toThrow(/workspaceId.*workspace/);
+	});
+
+	it("takes a workspace name instead of an id", () => {
+		const plugin = createPlugin({ workspace: "Holocron", cliToken: "pmak-test" });
+		expect(plugin.capabilities.tooling()).toBeInstanceOf(PostmanTooling);
 	});
 
 	it("wires the tooling capability", () => {

@@ -18,7 +18,9 @@ import { getPlugins } from "../../../lib/registry.ts";
 providers: {
   // Single Postman sync
   tooling: ["postman", {
-    workspaceId: "abc123-...",
+    workspace: "Holocron",
+    collectionFiles: ["postman/app.postman_collection.json"],
+    envFiles: ["postman/app.postman_environment.json"],
   }],
 
   // Or alongside other tooling providers (multi)
@@ -30,9 +32,20 @@ providers: {
 
 ### Options
 
-| Option        | Required | Description                       |
-| ------------- | -------- | --------------------------------- |
-| `workspaceId` | Yes      | Postman workspace id to sync into |
+| Option            | Required | Description                                                                                                                |
+| ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `workspace`       | One of   | Workspace name. `sync` finds the workspace with this name, and makes it when there is none                                 |
+| `workspaceId`     | One of   | Postman workspace id. Wins over `workspace`, so a workspace that already exists under another name can be named explicitly |
+| `workspaceType`   | No       | `personal` (default) or `team`: the type of a workspace `sync` makes                                                       |
+| `specFile`        | No       | Path to an OpenAPI JSON file, uploaded to Spec Hub and imported as a collection                                            |
+| `specName`        | No       | Spec Hub name; defaults to the spec's `info.title`                                                                         |
+| `collectionName`  | No       | Name of the collection imported from `specFile`; defaults to `specName`                                                    |
+| `collectionFiles` | No       | Paths to hand-written Postman collection JSON files; each is matched to a collection of the workspace by its `info.name`   |
+| `envFiles`        | No       | Paths to Postman environment JSON files, matched to environments of the workspace by `name`                                |
+
+`sync` needs at least one of `specFile`, `collectionFiles` and `envFiles`. Paths are relative to the repository root.
+
+One workspace holds every app of the organization: each app is a collection in it (with its own environment), and the folders inside a collection group that app's requests. Give each app's `holocron.config.ts` the same `workspace` name and its own `collectionFiles` and `envFiles`.
 
 ## Authentication
 
@@ -52,7 +65,7 @@ export HOLOCRON_POSTMAN_TOKEN=PMAK-xxx
 
 ## What `tooling` provides
 
-- `sync()` — pulls the workspace's authoritative state and reconciles it with the repo's API definitions (OpenAPI specs, collection files)
-- `doctor()` — returns `{ ok, message }` indicating whether the workspace is reachable and the API key is valid
+- `sync()` — reconciles the workspace with the repo's API definitions: finds or makes the workspace, upserts the Spec Hub spec and replaces its imported collection (`specFile`), replaces or creates each hand-written collection in place (`collectionFiles`, so its uid and links stay), and finds or creates each environment (`envFiles`). A secret an environment file leaves empty keeps the value the environment already holds, so a sync never blanks a secret set in Postman. That read-back is not yet confirmed against the live API: Postman may mask a secret in its response.
+- `doctor()` — returns `{ ok, message }` indicating whether the key is valid and the workspace is reachable; a `workspace` name that does not exist yet is reported as one `sync` will make, never made by `doctor`
 
 The full [API reference](/holocron/plugins/holocron-plugin-postman/api/readme/) is generated from the package's TSDoc comments.

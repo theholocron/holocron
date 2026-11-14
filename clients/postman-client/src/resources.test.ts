@@ -203,3 +203,58 @@ describe("import.openapi", () => {
 		expect(calls[0]?.body).toMatchObject({ input: raw });
 	});
 });
+
+describe("workspaces.create", () => {
+	it("POST /workspaces with the workspace wrapped", async () => {
+		const { client, calls } = makeClient([{ status: 200, body: { workspace: { id: "ws9", name: "Holocron" } } }]);
+		const result = await client.workspaces.create({ name: "Holocron", type: "personal" });
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toMatch(/\/workspaces$/);
+		expect(calls[0]?.body).toEqual({ workspace: { name: "Holocron", type: "personal" } });
+		expect(result.workspace.id).toBe("ws9");
+	});
+});
+
+describe("collections.create", () => {
+	it("POST /collections?workspace={id} with the collection wrapped", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: { collection: { id: "c3", uid: "c3-uid", name: "Sentinel" } } },
+		]);
+		const collection = { info: { name: "Sentinel" }, item: [] };
+		const result = await client.collections.create("ws1", collection);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("workspace=ws1");
+		expect(calls[0]?.body).toEqual({ collection });
+		expect(result.collection.uid).toBe("c3-uid");
+	});
+});
+
+describe("collections.update", () => {
+	it("PUT /collections/{uid} with the collection wrapped", async () => {
+		const { client, calls } = makeClient([
+			{ status: 200, body: { collection: { id: "c3", uid: "c3-uid", name: "Sentinel" } } },
+		]);
+		const collection = { info: { name: "Sentinel" }, item: [] };
+		await client.collections.update("c3-uid", collection);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain("/collections/c3-uid");
+		expect(calls[0]?.body).toEqual({ collection });
+	});
+});
+
+describe("environments.get", () => {
+	it("GET /environments/{uid} returns the variables", async () => {
+		const { client, calls } = makeClient([
+			{
+				status: 200,
+				body: {
+					environment: { id: "e1", uid: "e1-uid", name: "Sentinel", values: [{ key: "s", value: "x" }] },
+				},
+			},
+		]);
+		const result = await client.environments.get("e1-uid");
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/environments/e1-uid");
+		expect(result.environment.values?.[0]?.key).toBe("s");
+	});
+});
