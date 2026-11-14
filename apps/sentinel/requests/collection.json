@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "Sentinel webhook",
+    "description": "Requests for Sentinel's webhook receiver (`/api/webhook`). Point `baseUrl` at a development instance, never production. The folders run from harmless to acting: a request in `Signed, acts on GitHub` runs the real checks against the pull request named by the environment, with the App's credentials. Sentinel answers 405 to anything but a POST, 401 to a missing or wrong signature, and `{ handled: false }` to an event it does not read.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Rejected",
+      "description": "Not signed, or signed wrongly. Sentinel verifies before it reads anything, so none of these run a check.",
+      "item": [
+        {
+          "name": "GET is not a webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 405\", () => pm.response.to.have.status(405));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "description": "Only POST is accepted.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "POST with no signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 401\", () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "No `X-Hub-Signature-256`: 401.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "ping"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"zen\":\"Keep it logically awesome.\",\"hook_id\":1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "POST with a wrong signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 401\", () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "A signature that is not this body's under the secret: 401.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "ping"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "X-Hub-Signature-256",
+                "value": "sha256=0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"zen\":\"Keep it logically awesome.\",\"hook_id\":1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signed, no effect",
+      "description": "Valid deliveries Sentinel reads and then ignores or only acknowledges: no check, comment or post is made.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.",
+              "const secret = pm.variables.get(\"webhookSecret\");",
+              "if (!secret) throw new Error(\"Set webhookSecret in the environment (the dev App's webhook secret).\");",
+              "const body = pm.variables.replaceIn(pm.request.body.raw);",
+              "const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+              "pm.request.headers.upsert({ key: \"X-Hub-Signature-256\", value: \"sha256=\" + digest });"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "ping",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 200\", () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Not one of Sentinel's event categories: `{ handled: false }`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "ping"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"zen\":\"Keep it logically awesome.\",\"hook_id\":1}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "push to a non-default branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 200\", () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Not the default branch: `{ handled: false }`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "push"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ref\":\"refs/heads/feature\",\"repository\":{\"full_name\":\"{{repo}}\",\"default_branch\":\"alpha\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        },
+        {
+          "name": "installation created",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 200\", () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Acknowledged before any GitHub call: `{ handled: true, type: installation.created }`.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "installation"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"created\",\"installation\":{\"id\":{{installationId}}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signed, acts on GitHub",
+      "description": "These make the real checks run. The handler reads the pull request named here from the GitHub API with the App's installation token, then posts check runs, comments and the #prs feed on it. Use a sandbox repository the dev App is installed on.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.",
+              "const secret = pm.variables.get(\"webhookSecret\");",
+              "if (!secret) throw new Error(\"Set webhookSecret in the environment (the dev App's webhook secret).\");",
+              "const body = pm.variables.replaceIn(pm.request.body.raw);",
+              "const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+              "pm.request.headers.upsert({ key: \"X-Hub-Signature-256\", value: \"sha256=\" + digest });"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "pull_request opened: runs every check on the pull request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 200\", () => pm.response.to.have.status(200));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Needs `repo`, `pullNumber` and `installationId` to name a real pull request the App can see. A pull request that does not exist makes the reads fail instead.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-GitHub-Event",
+                "value": "pull_request"
+              },
+              {
+                "key": "X-GitHub-Delivery",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"opened\",\"number\":{{pullNumber}},\"pull_request\":{\"number\":{{pullNumber}}},\"repository\":{\"full_name\":\"{{repo}}\",\"default_branch\":\"alpha\"},\"installation\":{\"id\":{{installationId}}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhook"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000"
+    },
+    {
+      "key": "repo",
+      "value": "theholocron/sandbox"
+    },
+    {
+      "key": "pullNumber",
+      "value": "1"
+    },
+    {
+      "key": "installationId",
+      "value": "1"
+    }
+  ]
+}

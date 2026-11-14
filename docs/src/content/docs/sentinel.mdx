@@ -85,6 +85,20 @@ Registering the App is a one-time, manual web-UI flow, done under the org. Deplo
 
 The package README on [GitHub](https://github.com/theholocron/holocron/tree/alpha/apps/sentinel) has the full permission rationale and the registration walkthrough. The design is in the `tech-sentinel-v1` and `tech-sentinel-ci-runner` wiki specs.
 
+## Sending a delivery by hand
+
+`apps/sentinel/requests/` holds a collection of requests and an environment for a development instance. A pre-request script signs each body with `webhookSecret` (an empty secret-type variable in the environment) as `X-Hub-Signature-256`. The requests run from harmless to acting:
+
+| Folder                   | What it sends                                                     | What Sentinel does                                                              |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `Rejected`               | a GET, a POST with no signature, a POST with a wrong one          | 405, 401, 401; nothing is read                                                  |
+| `Signed, no effect`      | `ping`, a push to a non-default branch, `installation` `created`  | answers without a GitHub call, a check or a comment                             |
+| `Signed, acts on GitHub` | a `pull_request` `opened` for the `repo` and `pullNumber` you set | runs every check on that pull request with the App's token and posts the result |
+
+Point `baseUrl` at a development instance (see the package README), never production, and use a sandbox repository for the last folder.
+
+`holocron setup --cwd apps/sentinel` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `webhookSecret` you set there. Add `--dry-run` to see the steps first.
+
 ## Related
 
 - [Server as Code](/holocron/server-as-code/): the other half of org-level setup, which the CLI applies and checks from the same config

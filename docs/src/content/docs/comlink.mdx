@@ -60,6 +60,20 @@ See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications
 
 A source is one file under `src/sources/<id>/` implementing `Source` (`verify` and `format`), plus one entry in the list in `src/worker.ts`. Nothing else changes.
 
+## Sending a delivery by hand
+
+`apps/comlink/requests/` holds a collection of requests and an environment for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
+
+| Folder                     | What it sends                                                               | What the relay does                   |
+| -------------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
+| `Rejected`                 | a GET, an unknown source, a POST with no signature, a POST with a wrong one | 405, 404, 401, 401; nothing is posted |
+| `Signed, nothing posted`   | a resource the source does not carry, an `event_alert` with no event        | 202, 422                              |
+| `Signed, posts to Discord` | an `event_alert`                                                            | posts an embed, pings off             |
+
+`holocron probe comlink deliver` sends the signed delivery from the command line.
+
+`holocron setup --cwd apps/comlink` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the steps first.
+
 ## Build and deploy
 
 ```bash
