@@ -120,6 +120,8 @@ export const COMMAND_CONTEXTS = {
 	"sync issues": "workspace",
 	// Reads ideas through the `ideas` provider and files each ready one through `issues`, so both packages must be resolvable.
 	"sync ideas": "workspace",
+	// Calls each `tooling` provider's `sync()`, so those packages (and a `credentials` one for their tokens) must be resolvable.
+	"sync tooling": "workspace",
 	// Reads the issue through the `issues` provider, so its package must be resolvable.
 	"new spec": "workspace",
 	// Files the issue through the `issues` provider, so its package must be resolvable.

@@ -97,7 +97,7 @@ The package README on [GitHub](https://github.com/theholocron/holocron/tree/alph
 
 Point `baseUrl` at a development instance (see the package README), never production, and use a sandbox repository for the last folder.
 
-`holocron setup --cwd apps/sentinel` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `webhookSecret` you set there. Add `--dry-run` to see the steps first.
+[`holocron sync tooling --cwd apps/sentinel`](/holocron/commands/sync-tooling/) pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `webhookSecret` you set there. Add `--dry-run` to see the step first.
 
 ## Related
 

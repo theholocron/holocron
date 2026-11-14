@@ -115,6 +115,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"github",
 			"issues",
 			"ideas",
+			"tooling",
 			"readme",
 		]);
 		expect(valueOf("ci", ["run"])).toBe("run ci");

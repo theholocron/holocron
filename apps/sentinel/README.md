@@ -730,10 +730,10 @@ The folders go from harmless to acting:
 `src/requests/requests.test.ts` runs the collection's signing script against `parseWebhookEvent()`, so the two cannot
 drift apart.
 
-`holocron setup --cwd apps/sentinel` pushes both files through the `tooling` provider (`providers.tooling` in
+`holocron sync tooling --cwd apps/sentinel` pushes both files through the `tooling` provider (`providers.tooling` in
 `holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
-is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the steps first; `setup` also runs the
-other steps this config declares (the Vercel domain, DNS), each of which is a no-op when it is already right.
+is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the step first. It runs nothing else this
+config declares (`holocron setup` would also run the Vercel domain and DNS steps).
 
 ## Development
 
