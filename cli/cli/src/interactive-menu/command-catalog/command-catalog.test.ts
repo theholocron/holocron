@@ -99,6 +99,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"dns",
 			"repo",
 			"secrets",
+			"tokens",
 			"ci",
 		]);
 		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Vault } from "../../../plugin/index.js";
 import { environmentTokens } from "./environment-tokens.js";
+import { HoldsNoTokenError } from "./holds-no-token-error.js";
 
 const tokens = [
 	{ envName: "HOLOCRON_CLOUDFLARE_TOKEN", vendorEnvName: "CLOUDFLARE_API_TOKEN", keyringKey: "cloudflare" },
@@ -75,6 +76,7 @@ describe("environmentTokens", () => {
 
 	it("names the variables it looked for when the Environment holds none, and never a value", async () => {
 		const err = await environmentTokens(input(vaultOf({ OTHER: "secret-value" }))).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(HoldsNoTokenError);
 		expect((err as Error).message).toBe("Sentinel holds none of HOLOCRON_CLOUDFLARE_TOKEN, CLOUDFLARE_API_TOKEN");
 	});
 

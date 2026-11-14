@@ -108,6 +108,37 @@ vi.mock("../doctor-logs/index.js", async (importActual) => ({
 	runDoctorLogs,
 }));
 
+const runDoctorTokens = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-tokens/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-tokens/index.js")>()),
+	runDoctorTokens,
+}));
+
+describe("the tokens entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const tokens = DEEP_CHECKS.find((c) => c.name === "tokens")!;
+
+	it("reads the Environments through the vault and reports the run's status and counts", async () => {
+		expect(tokens.capability).toBe("vault");
+		runDoctorTokens.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 3, fail: 1, skip: 2 } });
+		expect(await tokens.run(input)).toEqual({ status: "fail", summary: { ok: 3, fail: 1, skip: 2 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorTokens.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no plugin declares a token layer",
+		});
+		expect(await tokens.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no plugin declares a token layer",
+		});
+	});
+});
+
 describe("the logs entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const logs = DEEP_CHECKS.find((c) => c.name === "logs")!;

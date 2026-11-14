@@ -8,6 +8,7 @@ import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-no
 import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
+import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -91,6 +92,20 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorSecretsCommand as never,
 		async run(input) {
 			const report = await runDoctorSecrets(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "tokens",
+		// The tokens are read from the layers' Environments through the vault, and each is probed at its own provider.
+		capability: "vault",
+		command: doctorTokensCommand as never,
+		async run(input) {
+			const report = await runDoctorTokens(input);
 			return {
 				status: report.status,
 				summary: report.summary,
