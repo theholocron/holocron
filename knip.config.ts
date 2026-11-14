@@ -193,6 +193,7 @@ const config: KnipConfig = {
 		// Loaded at runtime by the CLI plugin loader — not statically imported
 		"@theholocron/holocron-plugin-1password",
 		"@theholocron/holocron-plugin-axiom",
+		"@theholocron/holocron-plugin-bruno",
 		"@theholocron/holocron-plugin-checkly",
 		"@theholocron/holocron-plugin-clerk",
 		"@theholocron/holocron-plugin-cloudflare",

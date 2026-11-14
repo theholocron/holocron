@@ -62,6 +62,7 @@ coverage:
           - vitest-config
           - holocron-plugin-1password
           - holocron-plugin-axiom
+          - holocron-plugin-bruno
           - holocron-plugin-checkly
           - holocron-plugin-clerk
           - holocron-plugin-cloudflare
@@ -158,6 +159,7 @@ coverage:
           - vitest-config
           - holocron-plugin-1password
           - holocron-plugin-axiom
+          - holocron-plugin-bruno
           - holocron-plugin-checkly
           - holocron-plugin-clerk
           - holocron-plugin-cloudflare
@@ -258,6 +260,7 @@ flag_management:
     - name: vitest-config
     - name: holocron-plugin-1password
     - name: holocron-plugin-axiom
+    - name: holocron-plugin-bruno
     - name: holocron-plugin-checkly
     - name: holocron-plugin-clerk
     - name: holocron-plugin-cloudflare
@@ -562,6 +565,11 @@ component_management:
       name: "holocron-plugin-axiom"
       paths:
         - plugins/holocron-plugin-axiom/**
+
+    - component_id: holocron-plugin-bruno
+      name: "holocron-plugin-bruno"
+      paths:
+        - plugins/holocron-plugin-bruno/**
 
     - component_id: holocron-plugin-checkly
       name: "holocron-plugin-checkly"

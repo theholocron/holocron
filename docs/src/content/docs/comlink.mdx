@@ -74,6 +74,8 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 `holocron setup --cwd apps/comlink` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the steps first.
 
+The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/comlink` generates it (OpenCollection YAML, into the git-ignored `requests/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/).
+
 ## Build and deploy
 
 ```bash

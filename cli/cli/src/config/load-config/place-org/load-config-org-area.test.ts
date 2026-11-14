@@ -102,6 +102,15 @@ describe("the org area in this repo (#1820)", () => {
 						envFiles: ["requests/environment.json"],
 					},
 				},
+				// And the same files for Bruno, which reads them as OpenCollection YAML once `export requests` writes it.
+				{
+					provider: "bruno",
+					packageName: "@theholocron/holocron-plugin-bruno",
+					options: {
+						collectionFiles: ["requests/collection.json"],
+						envFiles: ["requests/environment.json"],
+					},
+				},
 			],
 		});
 		delete providers.tooling;

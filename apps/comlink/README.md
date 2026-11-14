@@ -57,6 +57,10 @@ script against the real relay (`src/requests/requests.test.ts`).
 `holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
 is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the steps first.
 
+The two JSON files are the one source. A tool that reads another format gets it generated:
+`holocron export requests --to bruno --cwd apps/comlink` writes OpenCollection YAML into the git-ignored
+`requests/.export/bruno/` (`--dry-run` converts and lists without writing).
+
 ## Build
 
 `pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is

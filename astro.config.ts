@@ -68,6 +68,7 @@ const CONFIGS_WITHOUT_API: readonly string[] = ["browserslist-config", "tsconfig
 const PLUGINS = [
 	["1password", "1Password"],
 	["axiom", "Axiom"],
+	["bruno", "Bruno"],
 	["checkly", "Checkly"],
 	["clerk", "Clerk"],
 	["cloudflare", "Cloudflare"],

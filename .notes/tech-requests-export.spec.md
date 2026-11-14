@@ -34,7 +34,19 @@ generated from it, so no tool's file is edited by hand and none drifts.
    with the next one.
 3. **Bruno plugin** (`@theholocron/holocron-plugin-bruno`, part 2): `tooling` only, files only (no token, no network).
    Converts with `postmanToBruno` (`@usebruno/converters`) then `brunoToOpenCollection` (`@opencollection/converters`),
-   dumped as YAML. There is no `bruno-client`: Bruno has no HTTP API.
+   dumped with `js-yaml`. There is no `bruno-client`: Bruno has no HTTP API. Options mirror the other tooling providers'
+   (`collectionFiles`, `envFiles`, relative to the repo root). Checked against the real converters on the Sentinel and
+   Comlink collections: no issues, and the signing script comes out as `bru.getVar` / `req.setHeader`.
+   - **One file per collection**, named after the source (`collection.json` is `collection.yml`; two files of the same
+     name use their whole path joined with `-`).
+   - **Environments live inside the OpenCollection document** (`environments:`), not in a file of their own, so every
+     environment file goes into every exported collection. The converter takes an environment's name from its `.bru`
+     file name, so the plugin sets it to `<name>.bru` first (otherwise it is `Unnamed Environment`). A secret-type
+     variable becomes `transient: true`.
+   - **`sync()` is a no-op that succeeds.** Bruno holds no state to reconcile, `holocron setup` calls `sync` on every
+     tooling provider, and writing files is the person's call through `export`, never a side effect of `setup`.
+   - **`doctor()`** reports `collectionFiles` unset, or each collection and environment file that is missing or not JSON.
+   - Not verified against the Bruno app itself: the output is the converter's single-document OpenCollection YAML.
 4. **`postman` plugin** (part 3): `export` writes collection schema 3.0 YAML by running
    `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper.
 5. **Names.** The request files keep their tool-neutral names, and prose about them names no tool; the provider id and
