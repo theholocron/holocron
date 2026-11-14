@@ -13,6 +13,7 @@ type Args = GlobalArgs & {
 	onlySecrets?: boolean;
 	onlyVariables?: boolean;
 	strict?: boolean;
+	verify?: boolean;
 	name?: string;
 };
 
@@ -37,6 +38,11 @@ export const doctorSecretsCommand: CommandModule<GlobalArgs, Args> = {
 				type: "boolean",
 				conflicts: "only-secrets",
 				describe: "Show only the variables block",
+			})
+			.option("verify", {
+				type: "boolean",
+				default: false,
+				describe: "Also ask each vendor whether the tokens the plugins take are still accepted (goes online)",
 			})
 			.option("strict", {
 				type: "boolean",
@@ -63,6 +69,7 @@ export const doctorSecretsCommand: CommandModule<GlobalArgs, Args> = {
 					? { only: "variables" as const }
 					: {}),
 			strict: argv.strict === true,
+			...(argv.verify ? { verify: true } : {}),
 			...(argv.name ? { name: argv.name } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

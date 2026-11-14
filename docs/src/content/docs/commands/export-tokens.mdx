@@ -27,7 +27,7 @@ holocron export tokens --file --only ENVIRONMENT=prod                        # a
 
 A name that no plugin configured in this directory lists is written empty with `--blank`, even when the keyring has a value under it: run it from a directory whose `holocron.config` has the plugins (the repo root has most).
 
-The names are the ones the plugins list for `doctor tokens` and `doctor secrets`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor secrets`). Each value comes from the OS keyring. A name listed by two plugins is written once.
+The names are the ones the plugins list for `doctor secrets --verify` and `doctor secrets --verify`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor secrets --verify`). Each value comes from the OS keyring. A name listed by two plugins is written once.
 
 ```text
 exported 16 of 18:

@@ -221,7 +221,7 @@ export { encryptSecret } from "./sodium.js";
 export { verifyToken } from "./verify-token.js";
 
 /**
- * Every token this plugin takes, for `holocron doctor tokens`. The release token is `optional`: only CI's release
+ * Every token this plugin takes, for `holocron doctor secrets --verify`. The release token is `optional`: only CI's release
  * workflow reads it (from the org secret), so a development environment has no reason to hold it.
  */
 export const tokens: PluginToken[] = [

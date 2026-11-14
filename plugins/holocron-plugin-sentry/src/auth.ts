@@ -42,5 +42,5 @@ export function resolveRelayToken(input: ResolveTokenInput = {}): string {
 	}
 }
 
-/** Every token this plugin takes, for `holocron doctor tokens`: the general one and the Comlink relay's own. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`: the general one and the Comlink relay's own. */
 export const tokens: PluginToken[] = [resolveToken.token, resolveComlinkToken.token];

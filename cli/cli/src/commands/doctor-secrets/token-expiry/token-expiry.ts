@@ -1,6 +1,6 @@
 import type { TokenExpiry } from "./token-expiry.type.js";
 
-/** A token with this many days or fewer left fails `holocron doctor tokens`, so there is time to renew it. */
+/** A token with this many days or fewer left fails `holocron doctor secrets --verify`, so there is time to renew it. */
 export const TOKEN_EXPIRY_WARN_DAYS = 7;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

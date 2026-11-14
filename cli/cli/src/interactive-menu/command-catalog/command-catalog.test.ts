@@ -99,7 +99,6 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"dns",
 			"repo",
 			"secrets",
-			"tokens",
 			"variable-owners",
 			"shared-values",
 			"ci",

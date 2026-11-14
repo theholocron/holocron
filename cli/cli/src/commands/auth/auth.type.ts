@@ -53,7 +53,7 @@ export interface PluginToken {
 	keyringKey: string;
 	/**
 	 * `false` when the plugin's `verifyToken` does not apply to this token (it checks a different credential, such as
-	 * a webhook URL), so `holocron doctor tokens` reports it as set without calling the plugin. Default `true`.
+	 * a webhook URL), so `holocron doctor secrets --verify` reports it as set without calling the plugin. Default `true`.
 	 */
 	verifiable?: boolean;
 	/**
@@ -77,7 +77,7 @@ export interface PluginToken {
 
 export interface AuthPluginModule {
 	verifyToken?: (token: string) => Promise<VerifyTokenResult>;
-	/** Every token the plugin takes, for `holocron doctor tokens`. A plugin that lists none is not checked there. */
+	/** Every token the plugin takes, for `holocron doctor secrets --verify`. A plugin that lists none is not checked there. */
 	tokens?: PluginToken[];
 	/** One-line hint printed when no token was supplied. */
 	AUTH_HINT?: string;

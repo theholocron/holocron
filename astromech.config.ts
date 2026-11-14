@@ -72,7 +72,7 @@ export default defineConfig({
 		// generated reusable workflows + composite actions in theholocron/.github and in each repo that has a
 		// holocron.config (holocron#1012/#1013/#1014). Holocron-repo-specific — no other repo owns these templates.
 		"sync-templates",
-		// Token Expiry: `holocron doctor tokens` daily, so a token that is rejected or has 7 days or fewer
+		// Token Expiry: `holocron doctor secrets --verify` daily, so a token that is rejected or has 7 days or fewer
 		// left fails a run and GitHub's failed-workflow notification reaches the team.
 		"check-tokens",
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.

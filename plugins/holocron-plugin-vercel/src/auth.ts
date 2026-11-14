@@ -15,5 +15,5 @@ export const resolveToken = createResolveToken({
 		"or run: holocron new token vercel <PAT>",
 });
 
-/** Every token this plugin takes, for `holocron doctor tokens`, with the layers that hold it. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`, with the layers that hold it. */
 export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED }];

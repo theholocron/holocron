@@ -27,6 +27,14 @@ export interface RunDoctorSecretsInput {
 	 * command does not cover yet (`local`, `dev`) or that has no layer (`test`) is a skipped row.
 	 */
 	environments?: readonly DoctorEnvironment[];
+	/** Ask each vendor whether the tokens the plugins take are still accepted (`--verify`). Goes online; off by default. */
+	verify?: boolean;
+	/** The environment `--verify` looks tokens up in. Defaults to the process environment. */
+	processEnv?: NodeJS.ProcessEnv;
+	/** Reads a keyring entry, or null, for `--verify`. Defaults to the OS keyring. */
+	keyring?: (key: string) => string | null;
+	/** The current time, for how long a token has left. Defaults to the clock; tests pass a fixed one. */
+	now?: () => Date;
 	/** Show only the secrets block (`--only-secrets`) or only the variables block (`--only-variables`). Both when omitted. */
 	only?: "secrets" | "variables";
 	/** An `extra` name is a failure instead of an `info` row (`--strict`). */

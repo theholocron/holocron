@@ -13,5 +13,5 @@ export const resolveToken = createResolveToken({
 		"or run: holocron new token axiom <TOKEN>",
 });
 
-/** Every token this plugin takes, for `holocron doctor tokens`. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`. */
 export const tokens: PluginToken[] = [resolveToken.token];

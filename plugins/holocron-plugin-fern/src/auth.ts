@@ -14,5 +14,5 @@ export const resolveToken = createResolveToken({
 		"no Fern token found. Set HOLOCRON_FERN_TOKEN / FERN_TOKEN, " + "or run: holocron new token fern <token>",
 });
 
-/** Every token this plugin takes, for `holocron doctor tokens`, with the layers that hold it. */
+/** Every token this plugin takes, for `holocron doctor secrets --verify`, with the layers that hold it. */
 export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED }];

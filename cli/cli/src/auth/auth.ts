@@ -32,7 +32,7 @@ export const keyring = createKeyring({ service: "com.theholocron.cli", binding: 
 
 /**
  * Kyber's `createResolveToken` with the keyring, the `HOLOCRON_ORG` variable and the `token` description
- * `holocron doctor tokens` reads filled in, so a plugin stays at a one-liner call site. The chain is the flag, the
+ * `holocron doctor secrets --verify` reads filled in, so a plugin stays at a one-liner call site. The chain is the flag, the
  * plugin's variable, the vendor's variable, the `credentials` providers' variables, the keyring.
  */
 export function createResolveToken(config: ResolveTokenConfig): TokenResolver {

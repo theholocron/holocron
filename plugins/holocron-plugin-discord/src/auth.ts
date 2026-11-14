@@ -42,7 +42,7 @@ export const resolveClientSecret = createResolveToken({
 });
 
 /**
- * Every token this plugin takes, for `holocron doctor tokens`. `verifyToken` checks a webhook URL, so the bot token has
+ * Every token this plugin takes, for `holocron doctor secrets --verify`. `verifyToken` checks a webhook URL, so the bot token has
  * its own `verify` (it asks for the bot's application) and the OAuth client secret, which cannot be checked without a
  * sign-in, is listed but not handed to it. The webhook is the last resort for a post that names no
  * channel, alias or `defaultChannel`, so nothing needs it by default (`optional`).
