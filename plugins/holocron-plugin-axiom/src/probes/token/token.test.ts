@@ -175,6 +175,23 @@ describe("token probe", () => {
 			}
 		);
 
+		it("judges the token named by --token-name against its own declaration, and takes its value for no dataset", async () => {
+			const { rows, calls } = await check([ok(), ok(), ok(), ok([])], {
+				args: ["--layer", "ci", "--token-name", "HOLOCRON_AXIOM_TOKEN"],
+			});
+			expect(row(rows, "Query (holocron)")?.status).toBe("fail");
+			expect(calls[0]?.url).toContain("/v2/datasets/holocron");
+			expect(calls).toHaveLength(4);
+		});
+
+		it("only describes a token name the plugin does not declare, and says so", async () => {
+			const { rows } = await check([ok(), ok(), ok(), ok([])], {
+				args: ["--layer", "ci", "--token-name", "OTHER_TOKEN"],
+			});
+			expect(row(rows, "ci")).toMatchObject({ status: "info" });
+			expect(row(rows, "Query (holocron)")?.status).toBe("ok");
+		});
+
 		it("only describes a layer with no declared expectations, and says so", async () => {
 			const { rows } = await check([ok(), denied, ok(), ok([])], { args: ["--layer", "staging"] });
 			expect(row(rows, "staging")).toMatchObject({ status: "info" });

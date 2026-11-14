@@ -318,11 +318,13 @@ Limit Zone, DNS and Workers Routes to the domains Holocron manages (Zone Resourc
 
 Axiom API tokens are scoped per dataset and per action. Holocron calls two and the probe tries a third, each on the dataset the setup ships to (`holocron`, one dataset per service, [ADR-0019](/holocron/decisions/0019-axiom-dataset-per-service-split-by-env/)):
 
-| Permission | Dataset       | Called by                                                               |
-| ---------- | ------------- | ----------------------------------------------------------------------- |
-| Read       | the CLI's own | `doctor logs`, `holocron setup` (does the dataset exist, its retention) |
-| Ingest     | the CLI's own | the logger (`HOLOCRON_AXIOM_TOKEN`), every command that ships logs      |
-| Query      | none          | nothing: no command reads logs back, so a token must not carry it       |
+| Permission | Id       | Resource      | `local`    | `dev`      | `ci`       | `prod`     | Called by                                                               |
+| ---------- | -------- | ------------- | ---------- | ---------- | ---------- | ---------- | ----------------------------------------------------------------------- |
+| Read       | `read`   | the CLI's own | `required` | `required` | `required` | `required` | `doctor logs`, `holocron setup` (does the dataset exist, its retention) |
+| Ingest     | `ingest` | the CLI's own | `required` | `required` | `required` | `required` | the logger (`HOLOCRON_AXIOM_TOKEN`), every command that ships logs      |
+| Query      | `query`  | the CLI's own | `absent`   | `absent`   | `absent`   | `absent`   | nothing: no command reads logs back, so a token must not carry it       |
+
+The layer columns are what `holocron probe docs tokens` compares with the plugin's declaration.
 
 - **Every layer (`local`, `dev`, `ci` and `prod`)**: Read and Ingest, not Query. Every layer ships to the same dataset and only passes the environment as a field, so it is one token with the same permissions everywhere. Leaving Query off means a leaked token cannot read the logs back.
 - **Declared once.** The layers and permissions are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-axiom/src/probes/token/expectations.ts`); a new permission is one change there, one row in the table above and one probe check.

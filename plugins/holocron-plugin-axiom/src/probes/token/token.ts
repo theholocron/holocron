@@ -93,8 +93,10 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 			probe.secret(token);
 			const client = ctx.client();
 
-			const { layer, datasets: named } = parseTokenArgs(probe.args ?? []);
-			const rules = layer ? tokenExpectations(tokens, { layer })[0]?.rules : undefined;
+			const { layer, tokenName, datasets: named } = parseTokenArgs(probe.args ?? []);
+			const rules = layer
+				? tokenExpectations(tokens, { layer, ...(tokenName ? { envName: tokenName } : {}) })[0]?.rules
+				: undefined;
 			if (layer && !rules) {
 				probe.say({
 					status: "info",
