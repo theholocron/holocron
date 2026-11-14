@@ -194,6 +194,7 @@ plugins/                             — vendor capability providers            
   holocron-plugin-axiom/             — @theholocron/holocron-plugin-axiom             (logs — REST)
   holocron-plugin-slack/             — @theholocron/holocron-plugin-slack             (notifications)
   holocron-plugin-postman/           — @theholocron/holocron-plugin-postman           (tooling)
+  holocron-plugin-bruno/             — @theholocron/holocron-plugin-bruno             (tooling — files only)
   holocron-plugin-posthog/           — @theholocron/holocron-plugin-posthog           (analytics)
   holocron-plugin-sentry/            — @theholocron/holocron-plugin-sentry            (errors)
   holocron-plugin-checkly/           — @theholocron/holocron-plugin-checkly           (monitoring)

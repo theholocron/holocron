@@ -54,6 +54,7 @@
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/holocron-plugin-1password": "workspace:*",
     "@theholocron/holocron-plugin-axiom": "workspace:*",
+    "@theholocron/holocron-plugin-bruno": "workspace:*",
     "@theholocron/holocron-plugin-checkly": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-cloudflare": "workspace:*",

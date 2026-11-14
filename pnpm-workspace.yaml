@@ -111,6 +111,9 @@ catalogs:
 
   # plugins: dependencies only plugins/ uses
   plugins:
+    "@opencollection/converters": ^0.0.2
+    "@usebruno/converters": ^0.25.0
+    js-yaml: ^5.5.0
     libsodium-wrappers: ^0.8.4
 
   # themes: dependencies only themes/ uses

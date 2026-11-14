@@ -1,0 +1,45 @@
+---
+title: Bruno Plugin
+description: Implements the tooling capability over files — it exports the repo's request collections as OpenCollection YAML for Bruno.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-bruno"]} capability="tooling" />
+
+<Installation package={getPlugins()["holocron-plugin-bruno"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "tooling", token: "None (reads and writes files)" }]} />
+
+[Bruno](https://www.usebruno.com) opens a collection from a folder of files, and has no HTTP API. So this plugin needs no token and makes no network call, and it has no `auth.ts`. Its one real job is [`holocron export requests`](/holocron/commands/export-requests/): it writes the repo's request collections, which are JSON files in the v2.1 collection format, as one OpenCollection YAML document each, with the environments inside.
+
+## Config
+
+```ts
+providers: {
+  tooling: [
+    ["bruno", {
+      collectionFiles: ["requests/collection.json"],
+      envFiles: ["requests/environment.json"],
+    }],
+  ],
+}
+```
+
+### Options
+
+| Option            | Required | Description                                                                                                                      |
+| ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repository root. Each becomes one YAML file                                    |
+| `envFiles`        | No       | The environment JSON files, relative to the repository root. Every exported collection gets all of them, inside its own document |
+
+## What `tooling` provides
+
+- `export()` — converts each collection with Bruno's own converters (`@usebruno/converters` reads the collection and rewrites its `pm.*` scripts to `bru.*` and `req.*`, then `@opencollection/converters` lays it out as OpenCollection) and writes `<name>.yml` under the folder it is given: `collection.json` is `collection.yml`, and two files with the same name use their whole path (`apps-a-collection.yml`). Environments are written inside the document, and a variable of the secret type is marked `transient`. What the converters report they could not carry across is returned as issues, and `holocron export requests` lists them. `--dry-run` converts and lists the files without writing any.
+- `sync()` — does nothing and succeeds. Bruno keeps no state of its own to reconcile, and the files are written by `export`, which is your call, never a side effect of `holocron setup`.
+- `doctor()` — checks that `collectionFiles` is set and that every collection and environment file exists and parses as JSON.
+
+The files go to `requests/.export/bruno/` by default, which is git-ignored; import one in Bruno as an OpenCollection file.
+
+The full [API reference](/holocron/plugins/holocron-plugin-bruno/api/readme/) is generated from the package's TSDoc comments.

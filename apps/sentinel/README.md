@@ -735,6 +735,10 @@ drift apart.
 is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the steps first; `setup` also runs the
 other steps this config declares (the Vercel domain, DNS), each of which is a no-op when it is already right.
 
+The two JSON files are the one source. A tool that reads another format gets it generated:
+`holocron export requests --to bruno --cwd apps/sentinel` writes OpenCollection YAML into the git-ignored
+`requests/.export/bruno/` (`--dry-run` converts and lists without writing).
+
 ## Development
 
 | Script               | Description                                 |

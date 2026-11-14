@@ -99,6 +99,8 @@ Point `baseUrl` at a development instance (see the package README), never produc
 
 `holocron setup --cwd apps/sentinel` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `webhookSecret` you set there. Add `--dry-run` to see the steps first.
 
+The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/sentinel` generates it (OpenCollection YAML, into the git-ignored `requests/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/).
+
 ## Related
 
 - [Server as Code](/holocron/server-as-code/): the other half of org-level setup, which the CLI applies and checks from the same config
