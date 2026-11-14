@@ -1,0 +1,57 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/doctor-tokens.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Doctor Tokens
+
+# Runs `holocron doctor tokens` on a schedule (#2158, epic #2147): for each layer and each token a configured plugin
+# declares, it reads the layer's 1Password Environment in memory and runs the provider's `token` probe against the token
+# held there, so a token that gained a permission it must not have, lost one it needs, is past its rotation age or is near
+# its expiry fails this job. A failed run reaches #alerts through `platform.notifications.yml`; there is no other channel.
+#
+# Only what the runner can read is checked. The job reads Environments through a 1Password service account
+# (`HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`); give it read access to the `ci` Environment and nothing else. A layer the
+# account cannot read (`local`, `dev`, `prod`) is a `skip` row with the reason, never a failure, so the run proves what CI
+# itself can reach and says what it did not look at. `doctor tokens` has no flag to limit the layers: a layer the account
+# can read is checked, and its fail rules are unchanged. Without the secret every row is a skip and the run passes, which
+# the job notes with a warning.
+#
+# Daily, a little after `check-tokens`, so a token near its expiry stays in view until it is renewed. Values are never
+# printed: the probes scrub every token they use from their output.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN:
+        description: A 1Password service account with read access to the `ci` layer Environment.
+        required: false
+
+jobs:
+  doctor-tokens:
+    name: Run holocron doctor tokens
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}
+    steps:
+      - name: Warn when no Environment can be read
+        if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN == '' }}
+        run: echo "::warning::HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN is not set, so no Environment can be read and every row is a skip."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: 1password/install-cli-action@1a3160d5e9de1ae0803eaa08a88746f5ae3daa50 # v4.1.0
+        name: Install the 1Password CLI
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run holocron doctor tokens
+        with:
+          task: doctor-tokens

@@ -1089,6 +1089,31 @@ describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () 
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['doctor-tokens'] — the scheduled layer token check (#2158)", () => {
+	const wf = REUSABLE_WORKFLOWS["doctor-tokens"]!;
+
+	it("runs the task through the holocron action", () => {
+		expect(wf).toMatch(/task: doctor-tokens/);
+	});
+
+	it("reads Environments through an optional 1Password service account, handed over in the environment", () => {
+		expect(wf).toMatch(/HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN:\n\s+description: .+\n\s+required: false/);
+		expect(wf).toContain("OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}");
+		expect(wf).toContain("1password/install-cli-action@");
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("warns, and does not fail, when no service account is set", () => {
+		expect(wf).toContain("if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN == '' }}");
+		expect(wf).toContain("::warning::");
+	});
+
+	it("only reads the repository", () => {
+		expect(wf).toContain("contents: read");
+		expect(wf).not.toMatch(/: write/);
+	});
+});
+
 describe("organization variables are read by their HOLOCRON_ name first (#1864)", () => {
 	it("maps vars.HOLOCRON_TURBO_TEAM onto TURBO_TEAM, with the bare variable as the fallback", () => {
 		for (const id of ["build", "typecheck", "release"]) {

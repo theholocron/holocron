@@ -1,0 +1,15 @@
+name: doctor-tokens
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  doctor-tokens:
+    name: doctor-tokens
+    uses: theholocron/.github/.github/workflows/doctor-tokens.yml@main
+    secrets: inherit

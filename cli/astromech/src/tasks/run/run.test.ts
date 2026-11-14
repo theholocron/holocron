@@ -408,6 +408,12 @@ describe("runTask", () => {
 		});
 	});
 
+	it("runs `holocron doctor tokens` for doctor-tokens, as two argv entries", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		call("doctor-tokens");
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "tokens"], { cwd: CWD });
+	});
+
 	it("runs `holocron reconcile project` for reconcile-projects, as two argv entries", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
 		call("reconcile-projects");
