@@ -12,19 +12,16 @@ export type Rule = PermissionRule;
  */
 export const RETIRED_DATASETS: readonly string[] = ["holocron-local", "holocron-ci", "holocron-global"];
 
-const SHIPS_AND_READS: Record<Permission, Rule> = { read: "required", ingest: "required", query: "required" };
+const RULES: Record<Permission, Rule> = { read: "required", ingest: "required", query: "absent" };
 
 /**
  * What each layer's Axiom token is meant to carry, the same as "What each Axiom token needs" in
- * `docs/src/content/docs/tokens.mdx`: a laptop (`local` inherits `dev`) ships logs, reads datasets (`doctor logs`) and
- * queries them; CI only ships logs and checks its dataset, so a leak from CI cannot read the logs back. A layer not
- * listed (`prod`) has no declared expectations and its token is only reported. This is the plugin's `tokens`
- * declaration, read through `tokenExpectations()`; change it and that table together.
+ * `docs/src/content/docs/tokens.mdx`. Every layer ships to the same dataset and only passes the environment as a field,
+ * so it is one token with the same permissions everywhere: it ingests (the logger) and reads the dataset (`doctor
+ * logs`), and does not query, because nothing in the repo reads logs back, so a leaked token cannot either. The probe
+ * still tries query, so a token that can is flagged. This is the plugin's `tokens` declaration, read through
+ * `tokenExpectations()`; change it and that table together.
  */
 export const EXPECTED: TokenExpectation = {
-	permissions: {
-		local: SHIPS_AND_READS,
-		dev: SHIPS_AND_READS,
-		ci: { read: "required", ingest: "required", query: "absent" },
-	},
+	permissions: { local: RULES, dev: RULES, ci: RULES, prod: RULES },
 };

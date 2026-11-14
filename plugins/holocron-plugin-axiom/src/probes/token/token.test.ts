@@ -129,7 +129,6 @@ describe("token probe", () => {
 
 	describe("checked against a layer", () => {
 		const ci = { args: ["--layer", "ci"] };
-		const dev = { args: ["--layer", "dev"] };
 
 		it("passes a ci token that reads and ingests but cannot query", async () => {
 			const { rows, calls } = await check([ok(ds("holocron")), ok(), denied, ok([ds("holocron")])], ci);
@@ -164,17 +163,21 @@ describe("token probe", () => {
 			]);
 		});
 
-		it("fails a dev token that lacks any of the three, and passes one that has them", async () => {
-			const lacking = await check([ok(), ok(), denied, ok([])], dev);
-			expect(row(lacking.rows, "Query (holocron)")?.status).toBe("fail");
-			const full = await check([ok(), ok(), ok(), ok([])], dev);
-			expect(full.rows.some((r) => r.status === "fail")).toBe(false);
-			expect(full.rows.some((r) => r.label === "Should not have")).toBe(false);
-		});
+		it.each(["local", "dev", "ci", "prod"])(
+			"judges a %s token the same way: read and ingest, never query",
+			async (layer) => {
+				const good = await check([ok(), ok(), denied, ok([])], { args: ["--layer", layer] });
+				expect(good.rows.some((r) => r.status === "fail")).toBe(false);
+				const lacking = await check([ok(), denied, denied, ok([])], { args: ["--layer", layer] });
+				expect(row(lacking.rows, "Ingest (holocron)")?.status).toBe("fail");
+				const extra = await check([ok(), ok(), ok(), ok([])], { args: ["--layer", layer] });
+				expect(row(extra.rows, "Query (holocron)")?.status).toBe("fail");
+			}
+		);
 
 		it("only describes a layer with no declared expectations, and says so", async () => {
-			const { rows } = await check([ok(), denied, ok(), ok([])], { args: ["--layer", "prod"] });
-			expect(row(rows, "prod")).toMatchObject({ status: "info" });
+			const { rows } = await check([ok(), denied, ok(), ok([])], { args: ["--layer", "staging"] });
+			expect(row(rows, "staging")).toMatchObject({ status: "info" });
 			expect(row(rows, "Ingest (holocron)")?.status).toBe("info");
 		});
 	});

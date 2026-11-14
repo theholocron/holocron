@@ -11,18 +11,17 @@ describe("the plugin's tokens export", () => {
 		]);
 	});
 
-	it("declares CI's token as ship and check, a laptop's as ship, read and query, the same as the token table in the docs", () => {
-		const { ci, dev, local } = tokens[0]!.expect!.permissions!;
-		expect(ci).toEqual({ read: "required", ingest: "required", query: "absent" });
-		expect(Object.values(dev!)).toEqual(["required", "required", "required"]);
-		expect(local).toEqual(dev);
+	it("declares the same rules in every layer: read and ingest required, query absent, because one token serves them all", () => {
+		const permissions = tokens[0]!.expect!.permissions!;
+		const rules = { read: "required", ingest: "required", query: "absent" };
+		for (const layer of ["local", "dev", "ci", "prod"] as const) expect(permissions[layer]).toEqual(rules);
 	});
 
 	it("is read through tokenExpectations(), layer by layer", () => {
-		expect(tokenExpectations(tokens).map((e) => e.layer)).toEqual(["local", "dev", "ci"]);
-		const [ci] = tokenExpectations(tokens, { layer: "ci" });
-		expect(ci!.required).toEqual(["read", "ingest"]);
-		expect(ci!.absent).toEqual(["query"]);
-		expect(tokenExpectations(tokens, { layer: "prod" })).toEqual([]);
+		expect(tokenExpectations(tokens).map((e) => e.layer)).toEqual(["local", "dev", "ci", "prod"]);
+		const [prod] = tokenExpectations(tokens, { layer: "prod" });
+		expect(prod!.required).toEqual(["read", "ingest"]);
+		expect(prod!.absent).toEqual(["query"]);
+		expect(tokenExpectations(tokens, { layer: "test" })).toEqual([]);
 	});
 });
