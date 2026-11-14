@@ -72,7 +72,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 `holocron probe comlink deliver` sends the signed delivery from the command line.
 
-`holocron setup --cwd apps/comlink` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the steps first.
+[`holocron sync tooling --cwd apps/comlink`](/holocron/commands/sync-tooling/) pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the step first.
 
 ## Build and deploy
 

@@ -111,7 +111,7 @@ Every command is tagged with how much of a repo it needs:
 | ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin` / `token` / `github-app`, `upgrade …`, `check token` / `resolved`, `remove token` / `skill`, `list tokens` / `skills`, `publish …`, `install skills`, `update skills`, `run lint commit-msg` |
 | `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `show config`, `sync readme`, `deploy on-release`                                                                                                                                                                     |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`                                                                                                                    |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`, `sync tooling`                                                                                                    |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -709,6 +709,14 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
 - **`holocron new issue <title> [--body <text>] [--label <name>]... [--milestone <value>] [--dry-run] [--yes]`** — files an
   issue through the `issues` provider (`Issues.create`: GitHub or Linear) and prints its key. It asks first unless
   `--dry-run` or `--yes` (without a terminal it refuses instead) and does not look for a duplicate.
+
+## Syncing tooling
+
+- **`holocron sync tooling [--dry-run]`** — runs each `tooling` provider's `sync()` (the Postman plugin pushing a
+  workspace, its collections and environments) without `setup`'s other steps. It loads only the `tooling` providers and the
+  `credentials` provider their tokens may come from, so an unreachable vault or DNS provider cannot fail it. One row per
+  provider, a throwing provider is a failing row and the others still run, `--dry-run` calls none, and there is no
+  confirmation (like `setup`). Run it with `--cwd <app>` for an app's own config.
 
 ## Syncing issues
 

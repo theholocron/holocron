@@ -229,8 +229,8 @@ export default defineConfig({
 				],
 			},
 		],
-		// The requests for sending a delivery by hand, `requests/` (#2172): `holocron setup --cwd apps/sentinel` pushes
-		// them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
+		// The requests for sending a delivery by hand, `requests/` (#2172): `holocron sync tooling --cwd apps/sentinel`
+		// pushes them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
 		// `webhookSecret` is committed empty and keeps the value set there.
 		tooling: [
 			"postman",
