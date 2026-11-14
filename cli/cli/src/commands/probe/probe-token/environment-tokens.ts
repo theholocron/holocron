@@ -1,20 +1,21 @@
 import { ENVIRONMENT_LAYERS, isEnvironmentLayer } from "../../../credentials-environments/index.js";
 import { resolveEnvironmentId } from "../../secrets-sync/resolve-environment-id/index.js";
-import type { EnvironmentToken, EnvironmentTokenInput } from "./probe-token.type.js";
+import type { EnvironmentTokenInput, EnvironmentTokens } from "./probe-token.type.js";
 
 /**
- * The provider's API token as held in one vault Environment, read in memory. Only an Environment this repo uses is
+ * Every token the provider declares that one vault Environment holds, read in memory. Only an Environment this repo uses is
  * read: a layer word (`local`, `dev`, `ci`, `prod`) is this repo's `<org/repo> - <layer>`, and any other text must be a
  * name the config already names (`configured`), so a probe cannot be pointed at an Environment the repo has nothing to
  * do with. `local` reads the way the CLI does, `- local` over `- dev`, and `- local` may be absent.
  *
- * The variables looked for are the ones the provider's plugin lists (`HOLOCRON_CLOUDFLARE_TOKEN`, then the vendor's own
- * `CLOUDFLARE_API_TOKEN`); the first that holds a value wins.
+ * Each token the provider's plugin lists is looked for under its own variable (`HOLOCRON_SENTRY_TOKEN`), then the
+ * vendor's (`vendorEnvName`); the first that holds a value is that token's. A token the Environment does not hold is in
+ * `missing`, so the caller can report it by name.
  *
- * @throws {Error} When the name is not one of this repo's, no vault that reads an Environment is configured, or the
- * Environment holds none of the variables.
+ * @throws {Error} When the name is not one of this repo's, no vault that reads an Environment is configured, the plugin
+ * lists no token, or the Environment holds none of them.
  */
-export async function environmentToken(input: EnvironmentTokenInput): Promise<EnvironmentToken> {
+export async function environmentTokens(input: EnvironmentTokenInput): Promise<EnvironmentTokens> {
 	if (!isEnvironmentLayer(input.environment) && !input.configured.includes(input.environment)) {
 		const known = [...ENVIRONMENT_LAYERS, ...input.configured];
 		throw new Error(
@@ -38,11 +39,18 @@ export async function environmentToken(input: EnvironmentTokenInput): Promise<En
 	} else {
 		values = await read(environment);
 	}
-	const names = input.tokens.flatMap((t) => [t.envName, ...(t.vendorEnvName ? [t.vendorEnvName] : [])]);
-	if (names.length === 0) throw new Error(`the ${input.provider} plugin lists no token to look for`);
-	for (const variable of names) {
-		const token = values[variable];
-		if (token) return { token, environment, variable };
+	if (input.tokens.length === 0) throw new Error(`the ${input.provider} plugin lists no token to look for`);
+	const held: EnvironmentTokens["held"] = [];
+	const missing: string[] = [];
+	for (const declared of input.tokens) {
+		const variables = [declared.envName, ...(declared.vendorEnvName ? [declared.vendorEnvName] : [])];
+		const variable = variables.find((v) => values[v]);
+		if (variable) held.push({ token: values[variable]!, variable, envName: declared.envName });
+		else missing.push(declared.envName);
 	}
-	throw new Error(`${environment} holds none of ${names.join(", ")}`);
+	if (held.length === 0) {
+		const names = input.tokens.flatMap((t) => [t.envName, ...(t.vendorEnvName ? [t.vendorEnvName] : [])]);
+		throw new Error(`${environment} holds none of ${names.join(", ")}`);
+	}
+	return { environment, held, missing };
 }

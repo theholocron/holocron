@@ -30,11 +30,18 @@ export interface EnvironmentTokenInput {
 	tokens: readonly PluginToken[];
 }
 
-/** A token read from an Environment, with where it came from (names only, never the value). */
-export interface EnvironmentToken {
-	token: string;
+/** The declared tokens one Environment holds and the ones it does not (names only, never a value). */
+export interface EnvironmentTokens {
 	/** The Environment's resolved name. */
 	environment: string;
-	/** The variable the token was in. */
-	variable: string;
+	/** Each declared token the Environment holds, in the plugin's order. */
+	held: Array<{
+		token: string;
+		/** The variable the token was in (the plugin's own, or the vendor's). */
+		variable: string;
+		/** The declared token's `envName`, its identity in the plugin's `tokens` list. */
+		envName: string;
+	}>;
+	/** The `envName` of each declared token the Environment does not hold. */
+	missing: string[];
 }

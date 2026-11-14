@@ -209,6 +209,15 @@ describe("token probe", () => {
 			expect(rows.some((r) => r.status === "fail")).toBe(false);
 		});
 
+		it("judges the token named by --token-name, and describes one the layer does not declare", async () => {
+			const own = { args: ["--layer", "ci", "--token-name", "HOLOCRON_CLOUDFLARE_TOKEN"] };
+			const judged = await check([denied, cfOk([]), cfOk([]), cfOk([{ name: "site" }]), cfOk([])], own);
+			expect(row(judged.rows, "Should have")).toMatchObject({ status: "heading" });
+			const other = { args: ["--layer", "ci", "--token-name", "HOLOCRON_OTHER_TOKEN"] };
+			const { rows } = await check([denied, cfOk([]), cfOk([]), cfOk([]), cfOk([])], other);
+			expect(row(rows, "ci")?.detail).toContain("no expectations");
+		});
+
 		it("fails a layer check that cannot reach the account permissions for want of an account id", async () => {
 			const { rows } = await check([denied, cfOk([])], { ...ci, accountId: undefined });
 			expect(row(rows, "account permissions")?.status).toBe("fail");

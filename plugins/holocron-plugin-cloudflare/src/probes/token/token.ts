@@ -80,7 +80,7 @@ function rowFor({ label, outcome }: Tried, rule: Rule | undefined): ProbeRow {
  * `--token cloudflare=<token>` or `--environment <layer>` checks another one; the account id is the plugin's own.
  *
  * A token with no layer is only described. When the CLI passes `--layer` (because `--environment` named `ci`, `dev` or
- * `local`), the results are judged against what that layer's token is meant to carry (the plugin's `tokens` declaration, read with `tokenExpectations()`) and shown in
+ * `local`) with `--token-name` (the declared token the Environment held, so the expectations are that token's own), the results are judged against what that layer's token is meant to carry (the plugin's `tokens` declaration, read with `tokenExpectations()`) and shown in
  * two groups, what it should have and what it should not, where a missing or extra permission fails. The other words
  * limit the zone checks to those zones; otherwise up to five are read. How the token is chosen is in `holocron probe --help`.
  */
@@ -95,8 +95,10 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 			probe.secret(token);
 			const client = ctx.client();
 
-			const { layer, zones: wanted } = parseTokenArgs(probe.args ?? []);
-			const rules = layer ? tokenExpectations(tokens, { layer })[0]?.rules : undefined;
+			const { layer, tokenName, zones: wanted } = parseTokenArgs(probe.args ?? []);
+			const rules = layer
+				? tokenExpectations(tokens, { layer, ...(tokenName ? { envName: tokenName } : {}) })[0]?.rules
+				: undefined;
 			if (layer && !rules) {
 				probe.say({
 					status: "info",

@@ -1,10 +1,11 @@
 import { join } from "node:path";
 
-import { commandFailureMessage, statusRow } from "@theholocron/kyber/ui";
+import { commandFailureMessage, statusRow, style } from "@theholocron/kyber/ui";
 
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
 import { ownerEnvironments } from "../owner-environments/index.js";
+import { tokenExpectations } from "../token-expectations/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
@@ -12,8 +13,8 @@ import { DEPS_PROVIDER, depsProbes } from "./deps/index.js";
 import { DOCS_PROVIDER, docsCoverageProbes } from "./docs-coverage/index.js";
 import { GENERATED_PROVIDER, generatedProbes } from "./generated/index.js";
 import { listProbes } from "./list-probes.js";
-import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
-import { defaultProviderTokens, environmentToken } from "./probe-token/index.js";
+import type { ProbeCommandReport, ProbeStep, RunProbeCommandInput } from "./probe.type.js";
+import { defaultProviderTokens, environmentTokens } from "./probe-token/index.js";
 import { CI_PROVIDER, ciProbes } from "./references/index.js";
 import { runProbe } from "./run-probe.js";
 import { realSpecsIo, SPECS_PROVIDER, specsProbes } from "./specs/index.js";
@@ -69,7 +70,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		for (const line of listProbes(new Map([[input.provider, probes]]))) print(line);
 		return { status: "listed" };
 	}
-	let probe = probes[input.probe];
+	const probe = probes[input.probe];
 	if (!probe) {
 		print(
 			statusRow("fail", [
@@ -80,62 +81,99 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		return { status: "fail" };
 	}
 
-	let context = input.context;
 	// A token read from a layer's Environment is checked against what that layer should carry; any other token is only described.
+	// Every token the plugin declares that the Environment holds is its own step, so no feature word has to pick one.
 	let layer: string | undefined;
+	const steps: ProbeStep[] = [{ context: input.context, args: [] }];
+	const notHeld: Array<{ name: string; fails: boolean; environment: string }> = [];
 	if (probe.acceptsToken) {
-		const given = context.cliTokens?.[input.provider] ?? context.cliToken;
+		const given = input.context.cliTokens?.[input.provider] ?? input.context.cliToken;
 		const chosen = input.environment
 			? { environment: input.environment }
 			: given === undefined
 				? await input.chooseToken?.(input.provider)
 				: undefined;
-		let override: string | undefined;
 		try {
 			if (chosen?.environment) {
-				const found = await environmentToken({
+				/* v8 ignore next -- the real importer reads installed plugin packages, which tests replace with `providerTokens` */
+				const declared = await (input.providerTokens ?? defaultProviderTokens(input.loaded))(input.provider);
+				const found = await environmentTokens({
 					provider: input.provider,
 					environment: chosen.environment,
-					repoRoot: context.repoRoot,
+					repoRoot: input.context.repoRoot,
 					configured: ownerEnvironments(input.loaded.resolved).names,
 					vault: loader.has("vault") ? loader.get("vault") : undefined,
-					/* v8 ignore next -- the real importer reads installed plugin packages, which tests replace with `providerTokens` */
-					tokens: await (input.providerTokens ?? defaultProviderTokens(input.loaded))(input.provider),
+					tokens: declared,
 				});
-				override = found.token;
 				if (isEnvironmentLayer(chosen.environment)) layer = chosen.environment;
+				steps.length = 0;
+				for (const held of found.held) {
+					steps.push({
+						context: {
+							...input.context,
+							cliTokens: { ...input.context.cliTokens, [input.provider]: held.token },
+						},
+						heading: held.envName,
+						args: ["--token-name", held.envName],
+					});
+				}
+				for (const name of found.missing) {
+					notHeld.push({
+						name,
+						// A layer that declares the token holds it, so a missing one is a failure there.
+						fails: layer !== undefined && tokenExpectations(declared, { layer, envName: name }).length > 0,
+						environment: found.environment,
+					});
+				}
 			} else if (chosen?.token) {
-				override = chosen.token;
+				steps[0] = {
+					context: {
+						...input.context,
+						cliTokens: { ...input.context.cliTokens, [input.provider]: chosen.token },
+					},
+					args: [],
+				};
 			}
 		} catch (err) {
 			print(statusRow("fail", [`\`${input.provider} ${input.probe}\``, commandFailureMessage(err)]));
 			return { status: "fail" };
 		}
-		if (override !== undefined) {
-			context = { ...context, cliTokens: { ...context.cliTokens, [input.provider]: override } };
-			const reloaded = makeLoader(context);
-			await reloaded.load();
-			probe = reloaded.probes().get(input.provider)?.[input.probe] ?? probe;
-		}
 	}
 
-	const tokens = [context.cliToken, ...Object.values(context.cliTokens ?? {})].filter(
-		(t): t is string => typeof t === "string"
-	);
-	const report = await runProbe({
-		name: `${input.provider} ${input.probe}`,
-		provider: input.provider,
-		probeName: input.probe,
-		args: [...(input.args ?? []), ...(layer ? ["--layer", layer] : [])],
-		...(input.lcov ? { lcov: input.lcov } : {}),
-		probe,
-		dryRun: input.dryRun ?? false,
-		yes: input.yes ?? false,
-		secrets: tokens,
-		print: input.print ?? (probe.reportsTo === "stderr" ? (line: string) => console.error(line) : print),
-		...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
-		...(input.confirm ? { confirm: input.confirm } : {}),
-		...(input.onInterrupt ? { onInterrupt: input.onInterrupt } : {}),
-	});
-	return { status: report.status };
+	const out = input.print ?? (probe.reportsTo === "stderr" ? (line: string) => console.error(line) : print);
+	const statuses: Array<ProbeCommandReport["status"]> = [];
+	for (const step of steps) {
+		let stepProbe = probe;
+		if (step.context !== input.context) {
+			const reloaded = makeLoader(step.context);
+			await reloaded.load();
+			stepProbe = reloaded.probes().get(input.provider)?.[input.probe] ?? probe;
+		}
+		const tokens = [step.context.cliToken, ...Object.values(step.context.cliTokens ?? {})].filter(
+			(t): t is string => typeof t === "string"
+		);
+		const report = await runProbe({
+			name: `${input.provider} ${input.probe}`,
+			provider: input.provider,
+			probeName: input.probe,
+			args: [...(input.args ?? []), ...(layer ? ["--layer", layer] : []), ...step.args],
+			...(step.heading ? { heading: step.heading } : {}),
+			...(input.lcov ? { lcov: input.lcov } : {}),
+			probe: stepProbe,
+			dryRun: input.dryRun ?? false,
+			yes: input.yes ?? false,
+			secrets: tokens,
+			print: out,
+			...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
+			...(input.confirm ? { confirm: input.confirm } : {}),
+			...(input.onInterrupt ? { onInterrupt: input.onInterrupt } : {}),
+		});
+		statuses.push(report.status);
+	}
+	for (const missing of notHeld) {
+		out(`\n  ${style.header(missing.name)}`);
+		out(statusRow(missing.fails ? "fail" : "skip", [`not held in ${missing.environment}`]));
+		if (missing.fails) statuses.push("fail");
+	}
+	return { status: (["fail", "cancelled"] as const).find((s) => statuses.includes(s)) ?? "ok" };
 }

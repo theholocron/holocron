@@ -25,14 +25,14 @@ Probes come from the plugins your config names (a plugin offers them next to its
 
 ## Options
 
-| Option          | Default | Description                                                                                                                                                 |
-| --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                            |
-| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                          |
-| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                              |
-| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                    |
-| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                          |
-| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`): check the provider's token held in this vault Environment, a layer (`ci`, `dev`) or a name |
+| Option          | Default | Description                                                                                                                                                        |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                   |
+| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                 |
+| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                     |
+| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                           |
+| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                 |
+| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name |
 
 ## Connection, for every provider
 
@@ -52,7 +52,7 @@ Every provider offers `connection` (for example `holocron probe github connectio
 A probe about a token (it declares `acceptsToken`) tries what the token can do and can be pointed at any token, not only the one the provider resolves for this repo. Which token is checked, in this order:
 
 1. `--token <provider>=<value>` (or a bare `--token <value>`), as for any command.
-2. `--environment <layer or name>`: the provider's token read in memory from that vault Environment. A layer word (`local`, `dev`, `ci`, `prod`) is this repo's `<org/repo> - <layer>`; any other text must be an Environment the config already names (a `credentials` provider, `githubApps`, `dev`, `repo.secrets.sync` or `repo.variables.sync`), and anything else is refused with the list of what is allowed, so a probe cannot be pointed at an Environment the repo has nothing to do with. `local` is read the way the CLI reads it, `- local` over `- dev`, and `- local` may be absent. The variables looked for are the ones the provider's plugin lists (`HOLOCRON_CLOUDFLARE_TOKEN`, then `CLOUDFLARE_API_TOKEN`). It needs a vault provider that can read an Environment (1Password).
+2. `--environment <layer or name>`: the provider's token read in memory from that vault Environment. A layer word (`local`, `dev`, `ci`, `prod`) is this repo's `<org/repo> - <layer>`; any other text must be an Environment the config already names (a `credentials` provider, `githubApps`, `dev`, `repo.secrets.sync` or `repo.variables.sync`), and anything else is refused with the list of what is allowed, so a probe cannot be pointed at an Environment the repo has nothing to do with. `local` is read the way the CLI reads it, `- local` over `- dev`, and `- local` may be absent. Every token the provider's plugin declares (its `tokens` export) is looked for under its own variable (`HOLOCRON_CLOUDFLARE_TOKEN`, then the vendor's `CLOUDFLARE_API_TOKEN`), and each one the Environment holds is checked in turn, so you never name a feature or pick one. Each run starts with a heading row, the token's declared variable name (such as `HOLOCRON_SENTRY_TOKEN`), and the probe is told which token it is with `--token-name <VARIABLE>`, so it judges the token against that token's own expectations. A declared token the Environment does not hold gets its heading and a skipped row, `not held in <Environment>`, and fails instead when the layer is meant to hold it (a missing required token is caught). An Environment that holds none of them fails. It needs a vault provider that can read an Environment (1Password). A token you pass in with `--token`, or one you paste, has no variable name and is only described.
 3. On a terminal with neither, a question: the token this repo is configured to use, one from an Environment, or one you type or paste (hidden as you type).
 4. Without a terminal, the token the provider normally resolves.
 

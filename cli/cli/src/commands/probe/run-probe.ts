@@ -42,6 +42,8 @@ export async function runProbe(input: RunProbeInput): Promise<ProbeReport> {
 		else print(statusRow(clean.status === "info" ? "skip" : clean.status, [clean.label, clean.detail ?? ""]));
 	};
 
+	if (input.heading) emit({ status: "heading", label: input.heading });
+
 	if (input.probe.writes && !input.dryRun && !input.yes) {
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
