@@ -37,6 +37,10 @@ export HOLOCRON_VERCEL_TOKEN=v_xxx
 
 Generate a token at [vercel.com/account/tokens](https://vercel.com/account/tokens). Use "Full Account" scope for team operations.
 
+## Checking a token
+
+`holocron probe vercel token` asks who the token belongs to (`/v2/user`) and whether it can list projects, and never prints it. Vercel does not report a token's scope, so the probe says that permissions are not checked. `--environment <layer>` reads that layer's token (`local`, `dev` or `ci`) and confirms the layer should hold it; `--token vercel=<token>` checks another one. See [what can be checked for Fern, Vercel, Turbo and Codecov tokens](/holocron/tokens/#fern-vercel-turbo-and-codecov).
+
 ## What `deployment` provides
 
 - List and create Vercel projects

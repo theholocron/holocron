@@ -5,7 +5,12 @@ import { tokens } from "./index.js";
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up", () => {
 		expect(tokens).toEqual([
-			{ envName: "HOLOCRON_VERCEL_TOKEN", vendorEnvName: "VERCEL_TOKEN", keyringKey: "vercel" },
+			{
+				envName: "HOLOCRON_VERCEL_TOKEN",
+				vendorEnvName: "VERCEL_TOKEN",
+				keyringKey: "vercel",
+				expect: { layers: ["local", "dev", "ci"] },
+			},
 		]);
 	});
 });

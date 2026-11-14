@@ -115,6 +115,10 @@ The `publish-wiki` workflow passes it to `fern generate --docs` via
 access control at `dashboard.buildwithfern.com`.
 :::
 
+## Checking a token
+
+`holocron probe fern token` checks that a token is set. Fern has no endpoint that reports who a token is or what it may do, so the probe makes no request and says that permissions are not checked. `--environment ci` reads the CI Environment's token and confirms `ci` is a layer that should hold it. See [what can be checked for Fern, Vercel, Turbo and Codecov tokens](/holocron/tokens/#fern-vercel-turbo-and-codecov).
+
 ## What `wiki` provides
 
 - `provision(opts?)` — writes `fern/fern.config.json` and scaffolds
