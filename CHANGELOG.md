@@ -1,3 +1,9 @@
+## [5.0.0-alpha.437](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.436...v5.0.0-alpha.437) (2026-11-14)
+
+### Features
+
+* **sentry:** ✨ add probe sentry token and declare what each Sentry token needs ([#2162](https://github.com/theholocron/holocron/issues/2162)) ([b699fb1](https://github.com/theholocron/holocron/commit/b699fb1a3730bbf68fa9c051827621050101292a)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2152](https://github.com/theholocron/holocron/issues/2152)
+
 ## [5.0.0-alpha.436](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.435...v5.0.0-alpha.436) (2026-11-14)
 
 ### Features
