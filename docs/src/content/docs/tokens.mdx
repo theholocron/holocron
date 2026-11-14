@@ -254,6 +254,10 @@ Fine-grained PATs have two resource owner modes: **personal** (your repos) and *
 
 The `projects` capability (`list projects`, `new project`, `setup project`, `doctor project`) also uses `HOLOCRON_ORG_TOKEN`. Give it the organization permission **Projects: Read and write** (Read is enough for `list projects` and `doctor project`), and **Issues: Read** and **Pull requests: Read** on the repositories whose issues sit on the board. The hourly `reconcile-projects` task does not use this token: it mints one from the GitHub App, which needs the same organization Projects permission.
 
+## Check every layer at once
+
+[`holocron doctor tokens`](/holocron/commands/doctor-tokens/) runs the `token` probe of each provider below against every layer that should hold one of its tokens, so one command compares the whole declaration with the real tokens: permissions a token must not have, ones it lacks, a layer that does not hold a token it should, and a token past its rotation age or near its expiry. It is the same check as `holocron probe <provider> token --environment <layer>` for each token, in one run, and it reads names, counts and dates only.
+
 ## Provider tokens
 
 `holocron probe docs tokens` fails when a plugin resolves a token that has no row here (CI runs it in the `validate:docs` check). Each token resolves as described [above](#provider-token-resolution): the plugin's env var, then the vendor's, then the keyring.

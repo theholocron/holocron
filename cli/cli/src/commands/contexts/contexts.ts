@@ -95,6 +95,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor dns": "workspace",
 	"doctor repo": "workspace",
 	"doctor secrets": "workspace",
+	// Reads each layer's Environment through `vault` and runs each plugin's `token` probe against what it holds.
+	"doctor tokens": "workspace",
 	"doctor monitoring": "workspace",
 	// Reads each layer's Environment through the `vault` provider, in memory.
 	// Reads `./holocron.config` and `.github/workflows`, no plugins.

@@ -22,6 +22,7 @@ import { doctorNotificationsEntry } from "../../commands/doctor-notifications/do
 import { doctorProjectEntry } from "../../commands/doctor-project/doctor-project.entry.js";
 import { doctorRepoEntry } from "../../commands/doctor-repo/doctor-repo.entry.js";
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
+import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { githubAppCreateEntry } from "../../commands/github-app-create/github-app-create.entry.js";
 import { ideasPromoteEntry } from "../../commands/ideas-promote/ideas-promote.entry.js";
 import { ideasSyncEntry } from "../../commands/ideas-sync/ideas-sync.entry.js";
@@ -105,6 +106,7 @@ const registry = createCommandRegistry(
 		doctorDnsEntry,
 		doctorRepoEntry,
 		doctorSecretsEntry,
+		doctorTokensEntry,
 		doctorCiEntry,
 		notificationsSetupEntry,
 		notificationsCreateServerEntry,
