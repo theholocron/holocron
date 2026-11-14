@@ -51,6 +51,7 @@ import { providerEntry } from "../../commands/provider/provider.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
 import { repoPropertiesApplyEntry } from "../../commands/repo-properties/repo-properties-apply.entry.js";
+import { requestsExportEntry } from "../../commands/requests-export/requests-export.entry.js";
 import { runCiEntry } from "../../commands/run/run-ci.entry.js";
 import { secretSetEntry } from "../../commands/secret-set/secret-set.entry.js";
 import { secretsListEntry } from "../../commands/secrets-list/secrets-list.entry.js";
@@ -142,6 +143,7 @@ const registry = createCommandRegistry(
 		authCheckEntry,
 		authListEntry,
 		authExportEntry,
+		requestsExportEntry,
 		githubAppCreateEntry,
 		tunnelUpEntry,
 		// project: one entry per subcommand of `holocron project`; add new ones here.

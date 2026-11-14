@@ -1790,6 +1790,44 @@ export interface Tooling extends ProviderIdentity {
 
 	/** Check the tool is set up and working, and report what was found. */
 	doctor(): Promise<ToolingDoctorReport>;
+
+	/**
+	 * Write the repo's request collections (and environments) in this tool's own format into `input.outDir`, so a
+	 * person can open them in the tool. The repo's files stay the one source: nothing is written back, and the tool's
+	 * account is never touched. With `input.dryRun` the files are converted but not written, and `files` lists what
+	 * would be. Optional — a tool that reads the source format as it is omits it. Used by `holocron export requests`.
+	 */
+	export?(input: ToolingExportInput): Promise<ToolingExportResult>;
+}
+
+/** What {@link Tooling.export} is given. */
+export interface ToolingExportInput {
+	/** The collection files to convert, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files to convert, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute folder to write into. The provider makes it and only writes below it. */
+	outDir: string;
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+	/** Convert and report, but write nothing. */
+	dryRun?: boolean;
+}
+
+/** Something the conversion could not carry across faithfully, found by {@link Tooling.export}. */
+export interface ToolingExportIssue {
+	/** The source file it concerns, as listed in the input. */
+	file: string;
+	/** What was lost or changed. */
+	message: string;
+}
+
+/** What {@link Tooling.export} wrote. */
+export interface ToolingExportResult {
+	/** The files written (or, on a dry run, that would be), as paths relative to `outDir`. */
+	files: string[];
+	/** What the conversion could not carry across; an issue is reported, never a failure on its own. */
+	issues: ToolingExportIssue[];
 }
 
 /** What an `ensure*` call found or made. `created: false` means it already existed. */

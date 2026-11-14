@@ -17,6 +17,7 @@ const EVERY_COMMAND = [
 	"remove token",
 	"list tokens",
 	"export tokens",
+	"export requests",
 	"new github-app",
 	"new tunnel",
 	"list projects",
