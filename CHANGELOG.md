@@ -1,3 +1,13 @@
+## [5.0.0-alpha.428](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.427...v5.0.0-alpha.428) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ declare each token's layers and permissions in one typed place ([#2159](https://github.com/theholocron/holocron/issues/2159)) ([afd49ca](https://github.com/theholocron/holocron/commit/afd49ca8912ebb4c518ea314c36d20e60a099b5f)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2149](https://github.com/theholocron/holocron/issues/2149)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2170](https://github.com/theholocron/holocron/issues/2170)) ([edb5436](https://github.com/theholocron/holocron/commit/edb5436eee0ca7c60b63db49a5c4696f52cb6cb6))
+
 ## [5.0.0-alpha.427](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.426...v5.0.0-alpha.427) (2026-11-13)
 
 ### Features
