@@ -28,4 +28,11 @@ Rotation is read where the provider exposes it (Cloudflare `expires_on` and `not
 - [`doctor secrets --verify`](/holocron/commands/doctor-secrets/) asks each vendor whether the one token this machine resolves is still accepted, and fails a token near its expiry. It does not look at layers or permissions.
 - `doctor tokens` is the per-layer comparison with the declaration. It reuses the probe flow (`environmentTokens()` and `runProbe()`), so a result here is the one `probe <provider> token --environment <layer>` would print for that token.
 
-`holocron doctor --all` runs it with the other deep checks. It does not schedule itself; a scheduled run is a separate follow-up.
+`holocron doctor --all` runs it with the other deep checks. ## Scheduled run
+
+The `doctor-tokens` task runs it every day at 06:41 UTC (the `ci.doctor-tokens.yml` caller, the reusable `doctor-tokens.yml`), after [`check-tokens`](/holocron/commands/doctor-secrets/) at 06:17. It is never part of `holocron run ci`.
+
+- **What it reads.** The job reads Environments through a 1Password service account, the optional secret `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`. Give the account read access to the `ci` Environment and nothing else, so a pass proves the tokens CI holds and what CI can reach.
+- **What it skips.** The command has no flag to limit the layers. A layer the account cannot read (`local`, `dev` and `prod` Environments) is a `skip` row with the reason on each of its rows, never a failure; a layer it can read is checked with the same fail rules. With no secret set, every row is a skip, the run passes and the job prints a warning.
+- **Where it reports.** A failed run posts to Discord #alerts through `platform.notifications.yml` (the task id `doctor-tokens` is in its list), with the failing jobs linked. There is no other channel. A run that only skipped is not an alert.
+- **Output.** Names, counts and dates only; the probes scrub every token they use.

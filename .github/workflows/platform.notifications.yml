@@ -52,6 +52,7 @@ on: # yamllint disable-line rule:truthy
       - publish-wiki
       - deploy-docs
       - check-tokens
+      - doctor-tokens
       - deploy
       - deploy-components
       - preview
