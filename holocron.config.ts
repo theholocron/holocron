@@ -33,8 +33,23 @@ export default defineConfig({
 	org,
 	docs,
 	// `doctor dns` watches the iCloud Mail records on the apex (#1569). `sharedVariables` (#2041) are held twice on purpose: a local and a CI copy of a token; rotate both.
+	// `manualSecrets` are set by hand on purpose and never reported as `extra`: nothing syncs the `dev` layer, so what it
+	// holds beyond the plugins' tokens and the synced variables (Sentinel's own values, two tokens no configured plugin
+	// lists) is listed here. The list is not per layer, so it also covers these names in `ci` and `prod`.
 	doctor: {
 		mail: "icloud",
+		manualSecrets: [
+			"COMLINK_AXIOM_DATASET",
+			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_LINEAR_TOKEN",
+			"HOLOCRON_POSTMAN_TOKEN",
+			"SENTINEL_AXIOM_INGEST_TOKEN",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+			"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
+			"SENTINEL_ROLE_SYNC_REPO",
+			"SENTINEL_VERCEL_PROJECT",
+			"SENTINEL_WEBHOOK_SECRET",
+		],
 		sharedVariables: [
 			"HOLOCRON_ADMIN_TOKEN",
 			"HOLOCRON_AXIOM_ORG",
