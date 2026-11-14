@@ -87,6 +87,24 @@ describe("the org area in this repo (#1820)", () => {
 			},
 		]);
 		delete resolved.repo;
+		// And the Postman collection (#2172): Sentinel's `tooling` provider pushes its collection and environment to
+		// the shared `Holocron` workspace, which did not exist before the move.
+		const providers = resolved.providers as unknown as Record<string, unknown>;
+		expect(providers.tooling).toEqual({
+			cardinality: "many",
+			tuples: [
+				{
+					provider: "postman",
+					packageName: "@theholocron/holocron-plugin-postman",
+					options: {
+						workspace: "Holocron",
+						collectionFiles: ["postman/sentinel.postman_collection.json"],
+						envFiles: ["postman/sentinel.postman_environment.json"],
+					},
+				},
+			],
+		});
+		delete providers.tooling;
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.
 		expect(resolved.domain).toBe("theholocron.dev");
