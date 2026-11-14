@@ -249,7 +249,7 @@ describe("doctor secrets — no provider", () => {
 		);
 		expect(report.rows.map((r) => r.status)).toEqual(["skip", "skip"]);
 		expect(report.status).toBe("skip");
-		expect(lines.at(-1)).toBe("0 ok, 0 fail, 2 skipped");
+		expect(lines.at(-1)).toBe("2 names: 0 ok, 0 MISSING, 0 extra, 4 not read");
 	});
 });
 

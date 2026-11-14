@@ -10,7 +10,7 @@
  * names), `prod` the `repo.secrets.deploy` destinations; `local`, `dev` and `test` are skipped rows that say why.
  */
 
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
+import { type CheckRow, printCheckRows, printCheckSummary, style, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { ENVIRONMENT_LAYERS } from "../../credentials-environments/index.js";
@@ -33,6 +33,7 @@ import { explainName } from "./matrix-explain.js";
 import { matrixPlaces } from "./matrix-places.js";
 import { renderMatrix } from "./matrix-render.js";
 import { matrixRows } from "./matrix-rows.js";
+import { matrixSummary } from "./matrix-summary.js";
 import { memoVault } from "./memo-vault.js";
 import { sharedRows } from "./shared-rows.js";
 import { variableRows } from "./variable-rows.js";
@@ -207,7 +208,13 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	printCheckRows(rows, print);
 	for (const note of notes) print(note);
 	const summary = summariseChecks(rows);
-	printCheckSummary(summary, print);
+	// With a table the last line counts what the table shows; the rows' own count is for a run that has none.
+	if (matrix && matrix.places.length > 0) {
+		print("");
+		print(style.header(matrixSummary(matrix, summary.fail)));
+	} else {
+		printCheckSummary(summary, print);
+	}
 
 	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
 	logger.info({ ...summary, status }, "doctor secrets");
