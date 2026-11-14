@@ -1,3 +1,13 @@
+## [5.0.0-alpha.433](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.432...v5.0.0-alpha.433) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ probe every declared token an Environment holds with --environment ([#2182](https://github.com/theholocron/holocron/issues/2182)) ([8aaf16d](https://github.com/theholocron/holocron/commit/8aaf16dffac818cef9000c56ff34c89d22cc793e)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Documentation
+
+* **specs:** move the doctor secrets matrix spec out of .notes and accept it (Refs [#2136](https://github.com/theholocron/holocron/issues/2136)) ([#2177](https://github.com/theholocron/holocron/issues/2177)) ([cac6a33](https://github.com/theholocron/holocron/commit/cac6a334e6fec3daa3f2c428b464817ab70117ba))
+
 ## [5.0.0-alpha.432](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.431...v5.0.0-alpha.432) (2026-11-14)
 
 ### Bug Fixes
