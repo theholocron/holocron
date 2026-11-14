@@ -160,6 +160,12 @@ describe("doctor secrets — the matrix", () => {
 		expect(report.status).toBe("fail");
 	});
 
+	it("ends with a line that counts the table, not the rows below it", async () => {
+		const { lines } = await run({ repo }, { vault, held: { repo: ["TOKEN_A", "TOKEN_B", "HAND_SET", "STRAY"] } });
+		expect(lines.at(-1)).toMatch(/^\d+ names: \d+ ok, 0 MISSING, \d+ extra/);
+		expect(lines.some((l) => /\d+ ok, \d+ fail, \d+ skipped/.test(l))).toBe(false);
+	});
+
 	it("shows an extra GitHub name as info and exits ok, and a failure with --strict", async () => {
 		const held = { repo: ["TOKEN_A", "TOKEN_B", "HAND_SET", "STRAY"] };
 		const soft = await run({ repo }, { vault, held });
