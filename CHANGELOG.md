@@ -1,3 +1,9 @@
+## [5.0.0-alpha.429](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.428...v5.0.0-alpha.429) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ add token probes for Fern and Vercel ([#2163](https://github.com/theholocron/holocron/issues/2163)) ([ded8273](https://github.com/theholocron/holocron/commit/ded82730d031e8c91ad13dfaf20c192b9bca67c3)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2149](https://github.com/theholocron/holocron/issues/2149) [#2155](https://github.com/theholocron/holocron/issues/2155)
+
 ## [5.0.0-alpha.428](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.427...v5.0.0-alpha.428) (2026-11-14)
 
 ### Features
