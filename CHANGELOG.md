@@ -1,3 +1,18 @@
+## [5.0.0-alpha.438](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.437...v5.0.0-alpha.438) (2026-11-14)
+
+### Features
+
+* **bruno:** ✨ add the Bruno plugin, which exports the request collections as OpenCollection YAML ([#2191](https://github.com/theholocron/holocron/issues/2191)) ([0efa785](https://github.com/theholocron/holocron/commit/0efa78503bab0e2be02ab30e7448c008f715f0f5)), closes [#2189](https://github.com/theholocron/holocron/issues/2189)
+* **cli:** ✨ export the request collections to each tooling provider's format ([#2190](https://github.com/theholocron/holocron/issues/2190)) ([01eb10f](https://github.com/theholocron/holocron/commit/01eb10fe96adeeab5d8732af094c0de83c470ad0)), closes [#2189](https://github.com/theholocron/holocron/issues/2189)
+
+### Documentation
+
+* **specs:** 📚 supersede the doctor variable-owners spec ([#2193](https://github.com/theholocron/holocron/issues/2193)) ([2b6164d](https://github.com/theholocron/holocron/commit/2b6164d9fabae92455f037518836e0f2dbf4fe52)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2192](https://github.com/theholocron/holocron/issues/2192)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2201](https://github.com/theholocron/holocron/issues/2201)) ([25b806c](https://github.com/theholocron/holocron/commit/25b806cd6c259fa2d7b9db0ec4e10eb6ecc67dd6))
+
 ## [5.0.0-alpha.437](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.436...v5.0.0-alpha.437) (2026-11-14)
 
 ### Features
