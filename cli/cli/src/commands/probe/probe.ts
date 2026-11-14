@@ -4,7 +4,7 @@ import { commandFailureMessage, statusRow } from "@theholocron/kyber/ui";
 
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
-import { ownerEnvironments } from "../doctor-variable-owners/index.js";
+import { ownerEnvironments } from "../owner-environments/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";

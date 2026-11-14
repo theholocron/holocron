@@ -4,14 +4,7 @@ import {
 	type ResolvedHolocronConfig,
 	type ResolvedProviderEntry,
 } from "../../config/index.js";
-
-/** The Environments the check reads, and the ones that are instances of one GitHub App. */
-export interface OwnerEnvironments {
-	/** Every Environment the config names, once each, in the order it names them. */
-	names: string[];
-	/** The `githubApps` Environments: they hold the same names by design, so they count as one place. */
-	instances: Set<string>;
-}
+import type { OwnerEnvironments } from "./owner-environments.type.js";
 
 /**
  * The Environments the config names: each `credentials` provider's, `githubApps[].environment`, `dev.environment`
