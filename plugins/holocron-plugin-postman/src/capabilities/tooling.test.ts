@@ -1,3 +1,5 @@
+import type { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,7 +7,7 @@ import { join } from "node:path";
 import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { PostmanPlanLimitError } from "@theholocron/postman-client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createPostmanClient } from "../rest.js";
 import { keepSecrets, PostmanTooling } from "./tooling.js";
@@ -22,6 +24,7 @@ function makeTooling(
 		collectionName: string;
 		envFiles: string[];
 		repoRoot: string;
+		spawn: typeof spawnSync;
 	}> = {}
 ) {
 	const { fetch, calls } = stubFetch(responses);
@@ -632,5 +635,51 @@ describe("PostmanTooling.doctor", () => {
 		const report = await tooling.doctor();
 		expect(report.ok).toBe(false);
 		expect(report.message).toContain("401");
+	});
+});
+
+describe("PostmanTooling.export", () => {
+	it("runs `postman collection migrate` for each collection through the spawn it is given, and touches no API", async () => {
+		const out = await mkdtemp(join(tmpdir(), "postman-tooling-export-"));
+		try {
+			const spawn = vi.fn((_bin: string, args: readonly string[]) => {
+				const dir = args[args.length - 1] as string;
+				mkdirSync(dir, { recursive: true });
+				writeFileSync(join(dir, "collection.yaml"), "name: x\n");
+				return { status: 0, stdout: "", stderr: "" };
+			}) as unknown as typeof spawnSync;
+			const { tooling, calls } = makeTooling([], { spawn });
+			const result = await tooling.export({
+				collectionFiles: ["requests/collection.json"],
+				envFiles: [],
+				outDir: out,
+				repoRoot: "/repo",
+			});
+			expect(result).toEqual({ files: ["collection/collection.yaml"], issues: [] });
+			expect(spawn).toHaveBeenCalledWith(
+				"postman",
+				["collection", "migrate", "/repo/requests/collection.json", "--output", join(out, "collection")],
+				expect.any(Object)
+			);
+			expect(calls).toHaveLength(0);
+		} finally {
+			await rm(out, { recursive: true, force: true });
+		}
+	});
+
+	it("runs the real spawn when none is injected, and names the missing CLI", async () => {
+		const out = await mkdtemp(join(tmpdir(), "postman-tooling-export-"));
+		const path = process.env.PATH;
+		process.env.PATH = "";
+		try {
+			const { tooling } = makeTooling([]);
+			const err = await tooling
+				.export({ collectionFiles: ["c.json"], envFiles: [], outDir: out, repoRoot: out })
+				.catch((e: unknown) => e);
+			expect((err as Error).message).toContain("is not installed");
+		} finally {
+			process.env.PATH = path;
+			await rm(out, { recursive: true, force: true });
+		}
 	});
 });

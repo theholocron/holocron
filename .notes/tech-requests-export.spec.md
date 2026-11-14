@@ -48,7 +48,18 @@ generated from it, so no tool's file is edited by hand and none drifts.
    - **`doctor()`** reports `collectionFiles` unset, or each collection and environment file that is missing or not JSON.
    - Not verified against the Bruno app itself: the output is the converter's single-document OpenCollection YAML.
 4. **`postman` plugin** (part 3): `export` writes collection schema 3.0 YAML by running
-   `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper.
+   `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper (`shell.ts`: `spawnSync`,
+   stdin attached, injected for tests).
+   - **One folder per collection** under `outDir`, named after the file (the whole path when two share a name); the files
+     written are listed by walking that folder afterwards, because the CLI's layout is not known here.
+   - **Environments are not exported**: the command migrates collections only, so each environment file is an issue
+     ("not exported"), never a failure.
+   - **A dry run** migrates into a temporary folder, lists it and removes it, so `outDir` is never touched.
+   - **The CLI is installed by `.humans/setup.sh`** (its own step, `have postman`; `doctor` only reports; macOS with
+     Homebrew installs the `postman-cli` cask, anything else gets a hand step), not by the Brewfile, so a machine that
+     never exports is not asked for it. The cask name and its `postman` binary were checked with `brew info --cask`.
+   - **Unverified against the real CLI**: the arguments follow the vendor's documentation and the wrapper is exercised
+     only through an injected runner. A missing CLI is an error that says how to install it.
 5. **Names.** The request files keep their tool-neutral names, and prose about them names no tool; the provider id and
    the format's own `info.schema` URL are the only mentions.
 

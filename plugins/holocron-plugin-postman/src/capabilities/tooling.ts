@@ -26,10 +26,11 @@
  * reachability and returns a `ToolingDoctorReport`.
  */
 
+import type { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
-import type { Tooling, ToolingDoctorReport } from "@theholocron/cli";
+import type { Tooling, ToolingDoctorReport, ToolingExportInput, ToolingExportResult } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import { errorMessage } from "@theholocron/misc-utils";
 import type {
@@ -41,6 +42,9 @@ import type {
 	PostmanUser,
 	PostmanWorkspace,
 } from "@theholocron/postman-client";
+
+import { exportCollections } from "../export-collections.js";
+import { PostmanCli } from "../shell.js";
 
 export interface PostmanToolingOptions {
 	/** Postman workspace id. Wins over `workspace`. */
@@ -61,6 +65,8 @@ export interface PostmanToolingOptions {
 	envFiles?: string[];
 	/** Working repo root. Defaults to process.cwd(). */
 	repoRoot?: string;
+	/** Override the spawn function the Postman CLI is run with, in tests. */
+	spawn?: typeof spawnSync;
 }
 
 /** The Postman implementation of the `tooling` capability: syncs an OpenAPI spec, collection and environments into a workspace. */
@@ -175,6 +181,15 @@ export class PostmanTooling implements Tooling {
 			});
 			return made.id;
 		})());
+	}
+
+	/**
+	 * Writes each collection file in Postman's schema 3.0 YAML layout under `input.outDir` by running the Postman CLI
+	 * (`postman collection migrate`), one folder per collection. Environment files are reported as issues, not exported.
+	 * Needs the CLI on the PATH and no API key: it never touches the workspace.
+	 */
+	async export(input: ToolingExportInput): Promise<ToolingExportResult> {
+		return exportCollections(input, new PostmanCli(this.opts.spawn ? { spawn: this.opts.spawn } : {}));
 	}
 
 	/** Checks the key and the configured workspace; reports the authenticated user and the workspace, or why either failed. */
