@@ -314,6 +314,23 @@ Limit Zone, DNS and Workers Routes to the domains Holocron manages (Zone Resourc
 - **Check a token** with `holocron probe cloudflare token`: it tries each permission above with the account id from your config and reports which the token has. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and checks it against the bullets below, failing on a missing or extra permission. `--token cloudflare=<token>`, or a token you paste when it asks, only reports what that token can reach. See [`probe`](/holocron/commands/probe/#cloudflare).
 - **`holocron dev` alone** needs Cloudflare Tunnel: Edit, DNS: Edit and Zone: Read on the zone of the tunnel's hostname. The plugin takes one token per provider, so a token with only those three works for `dev` and for nothing else; keep the full one for `setup` and pass it with `--token cloudflare=<token>` when you need it.
 
+### What each Axiom token needs
+
+Axiom API tokens are scoped per dataset and per action. Holocron calls two and the probe tries a third, each on the dataset the setup ships to (`holocron`, one dataset per service, [ADR-0019](/holocron/decisions/0019-axiom-dataset-per-service-split-by-env/)):
+
+| Permission | Id       | Resource      | `local`    | `dev`      | `ci`       | `prod`     | Called by                                                               |
+| ---------- | -------- | ------------- | ---------- | ---------- | ---------- | ---------- | ----------------------------------------------------------------------- |
+| Read       | `read`   | the CLI's own | `required` | `required` | `required` | `required` | `doctor logs`, `holocron setup` (does the dataset exist, its retention) |
+| Ingest     | `ingest` | the CLI's own | `required` | `required` | `required` | `required` | the logger (`HOLOCRON_AXIOM_TOKEN`), every command that ships logs      |
+| Query      | `query`  | the CLI's own | `absent`   | `absent`   | `absent`   | `absent`   | nothing: no command reads logs back, so a token must not carry it       |
+
+The layer columns are what `holocron probe docs tokens` compares with the plugin's declaration.
+
+- **Every layer (`local`, `dev`, `ci` and `prod`)**: Read and Ingest, not Query. Every layer ships to the same dataset and only passes the environment as a field, so it is one token with the same permissions everywhere. Leaving Query off means a leaked token cannot read the logs back.
+- **Declared once.** The layers and permissions are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-axiom/src/probes/token/expectations.ts`); a new permission is one change there, one row in the table above and one probe check.
+- **Which dataset a token reaches.** The probe also lists the datasets the token can see and points out a retired one (`holocron-local`, `holocron-ci`, `holocron-global`) the token still reaches, so a layer whose token or `HOLOCRON_AXIOM_DATASET` still points at the old per-environment datasets is visible.
+- **Check a token** with `holocron probe axiom token [<dataset>...]`: it reads, ingests (an empty list, so no event is written) and queries the plugin's dataset, or the datasets you name. `--environment <layer>` (`local`, `dev`, `ci` or `prod`) reads that layer's token from 1Password and checks it against the bullets above, failing on a missing Read or Ingest and on a token that can Query. `--token axiom=<token>`, or a token you paste when it asks, only reports what that token can do. See [`probe`](/holocron/commands/probe/#axiom).
+
 ### Fern, Vercel, Turbo and Codecov
 
 None of these four can say what a token is allowed to do, so Holocron declares only the layers that hold each one, and the probes say that permissions are not checked rather than guess. The layers are the `expect` of the token in the plugin's `tokens` export (`plugins/holocron-plugin-fern/src/probes/token/expectations.ts`, `plugins/holocron-plugin-vercel/src/probes/token/expectations.ts`).

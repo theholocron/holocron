@@ -1,5 +1,7 @@
 import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
+import { EXPECTED } from "./probes/token/expectations.js";
+
 export { AuthError };
 export type { ResolveTokenInput };
 
@@ -13,5 +15,5 @@ export const resolveToken = createResolveToken({
 		"or run: holocron new token axiom <TOKEN>",
 });
 
-/** Every token this plugin takes, for `holocron doctor secrets --verify`. */
-export const tokens: PluginToken[] = [resolveToken.token];
+/** Every token this plugin takes, for `holocron doctor secrets --verify`, with what each layer's token must and must not be able to do. */
+export const tokens: PluginToken[] = [{ ...resolveToken.token, expect: EXPECTED }];

@@ -81,11 +81,23 @@ holocron probe cloudflare token --environment dev theholocron.dev
 
 The plugin holds nine tokens. With `--environment ci`, `dev` or `local` the probe runs once for **each** GitHub token that Environment holds, each under a heading with its variable name (`HOLOCRON_ADMIN_TOKEN`), and the result is two groups, **Should have** and **Should not have**, judged against that token's declaration, the same as [Check a GitHub token](/holocron/tokens/#check-a-github-token). Without `--environment` it checks the token the plugin resolves, `HOLOCRON_READ_TOKEN`, or the one `--token-name <VAR>` names, and only describes it. A read shows a token can see an area, not that it can write there, and on a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token.
 
-```bash
+````bash
 holocron probe github token --environment dev   # every GitHub token the dev layer holds
 holocron probe github token --environment ci    # and the ci layer's
 holocron probe github token --token-name HOLOCRON_ADMIN_TOKEN   # the admin token this machine resolves
-```
+
+## Axiom
+
+| Probe                                       | Changes things | What it does                                                                                                                                                                                                                 |
+| ------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe axiom token [<dataset>...]` | no             | Tries Read, Ingest and Query on the plugin's dataset (or the datasets you name), then lists the datasets the token can see. Ingest sends an empty list, so no event is written, and the query reads one row it never prints. |
+
+A token with no layer is described: a row is `ok` when the token may do it and `skip` when it may not (a 401, 403 or 404). A token read with `--environment local`, `dev`, `ci` or `prod` is also checked against [what each Axiom token needs](/holocron/tokens/#what-each-axiom-token-needs) and shown as **Should have** and **Should not have**: every layer is declared the same (one token ships to one dataset everywhere): Read and Ingest are required and a token that can Query fails, even in `prod`. The last group, **Datasets this token can see**, names every dataset the token lists and flags a retired one (`holocron-local`), so a layer's token that still reaches the old per-environment datasets shows. A token that cannot list datasets is an `info` row, not a failure.
+
+```bash
+holocron probe axiom token --environment ci     # the ci layer's token
+holocron probe axiom token --environment dev holocron-sentinel
+````
 
 ## 1Password
 

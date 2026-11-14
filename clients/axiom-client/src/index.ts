@@ -2,7 +2,7 @@ import { datasets } from "./datasets/datasets.js";
 import { user } from "./user/user.js";
 import { type AxiomClientOptions, createAxiomRestClient } from "./utils.js";
 
-export type { AxiomDataset, CreateAxiomDatasetInput } from "./datasets/datasets.js";
+export type { AxiomDataset, AxiomQueryInput, CreateAxiomDatasetInput } from "./datasets/datasets.js";
 export type { AxiomUser } from "./user/user.js";
 export type { AxiomClientOptions } from "./utils.js";
 

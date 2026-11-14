@@ -65,6 +65,37 @@ describe("datasets.get", () => {
 	});
 });
 
+describe("datasets.list", () => {
+	it("GET /v2/datasets", async () => {
+		const { client, calls } = makeClient([{ body: [{ id: "d1", name: "logs" }] }]);
+		const result = await client.datasets.list();
+		expect(calls[0]?.url).toContain("/v2/datasets");
+		expect(calls[0]?.method).toBe("GET");
+		expect(result).toEqual([{ id: "d1", name: "logs" }]);
+	});
+});
+
+describe("datasets.ingest", () => {
+	it("POST /v1/datasets/:name/ingest with the events", async () => {
+		const { client, calls } = makeClient([{ body: { ingested: 0 } }]);
+		await client.datasets.ingest("my logs", []);
+		expect(calls[0]?.url).toContain("/v1/datasets/my%20logs/ingest");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toEqual([]);
+	});
+});
+
+describe("datasets.query", () => {
+	it("POST /v1/datasets/_apl in tabular format", async () => {
+		const { client, calls } = makeClient([{ body: { tables: [] } }]);
+		await client.datasets.query({ apl: "['logs'] | take 1" });
+		expect(calls[0]?.url).toContain("/v1/datasets/_apl");
+		expect(calls[0]?.url).toContain("format=tabular");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toEqual({ apl: "['logs'] | take 1" });
+	});
+});
+
 describe("datasets.create", () => {
 	it("POST /v2/datasets", async () => {
 		const { client, calls } = makeClient([{ status: 201, body: { id: "d2", name: "new-logs" } }]);
