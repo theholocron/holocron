@@ -54,7 +54,7 @@ jobs:
 
           while :; do
             runs=$(gh api --paginate "repos/${REPO}/commits/${SHA}/check-runs?per_page=100" \
-              --jq '.check_runs[] | {name, status, conclusion, url: .html_url}' | jq -s '.')
+              --jq '.check_runs[] | {id, name, status, conclusion, started_at, url: .html_url}' | jq -s '.')
             posted=$(gh api "repos/${REPO}/commits/${SHA}/status?per_page=100" \
               --jq '.statuses | map({context, state, url: .target_url})')
 
@@ -66,8 +66,11 @@ jobs:
               def expire($r):
                 if $timed_out and $r.state == "pending" then $r | .state = "failure" | .detail = "timed out while still running"
                 else $r end;
-              ($expected | map(. as $id
-                | ($runs | map(select(.name | startswith($id + " / ")))) as $found
+              # A commit can carry several runs of one check (a cancelled first batch, a re-run job): only the newest
+              # run of each name counts, whatever the older ones said.
+              ($runs | group_by(.name) | map(sort_by([.started_at // "", .id // 0]) | last)) as $latest
+              | ($expected | map(. as $id
+                | ($latest | map(select(.name | startswith($id + " / ")))) as $found
                 | ($found | map(select(.status != "completed"))) as $open
                 | ($found | map(select(.status == "completed" and ((.conclusion // "") | ok | not)))) as $bad
                 | if ($found | length) == 0 then row($id; "check"; "missing"; "never posted"; null)
@@ -77,7 +80,7 @@ jobs:
               + ($wanted | map(. as $context
                 # Codecov posts through its GitHub App as a check run named like the context; a plain commit status is
                 # the fallback, so either shape counts.
-                | ($runs | map(select(.name == $context)) | .[0]) as $c
+                | ($latest | map(select(.name == $context)) | .[0]) as $c
                 | ($posted | map(select(.context == $context)) | .[0]) as $s
                 | if $c != null and $c.status != "completed" then expire(row($context; "status"; "pending"; "still running"; $c.url))
                   elif $c != null and (($c.conclusion // "") | ok) then row($context; "status"; "success"; $c.conclusion; $c.url)
