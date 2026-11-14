@@ -1,3 +1,9 @@
+## [1.58.0-alpha.30](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.29...clients-v1.58.0-alpha.30) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ report token age and expiry for rotation, starting with Cloudflare ([#2161](https://github.com/theholocron/holocron/issues/2161)) ([533f885](https://github.com/theholocron/holocron/commit/533f8850a3f7faafd41124339e717b59dbdba66c)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2157](https://github.com/theholocron/holocron/issues/2157)
+
 ## [1.58.0-alpha.29](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.28...clients-v1.58.0-alpha.29) (2026-11-12)
 
 ### Refactoring
