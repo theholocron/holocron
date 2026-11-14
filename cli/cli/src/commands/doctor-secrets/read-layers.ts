@@ -1,9 +1,9 @@
 import type { CheckRow } from "@theholocron/kyber/ui";
 import { describeError } from "@theholocron/kyber/ui";
 
-import { ENVIRONMENT_LAYERS, layerEnvironment } from "../../credentials-environments/index.js";
+import { ENVIRONMENT_LAYERS, type EnvironmentLayer, layerEnvironment } from "../../credentials-environments/index.js";
 import type { EnvironmentEntry, Vault } from "../../plugin/index.js";
-import type { LayerReads, LayerSecrets } from "./doctor-shared-values.type.js";
+import type { LayerReads, LayerSecrets } from "./doctor-secrets.type.js";
 
 /** An error's text with every value read so far taken out, so a vault's message can never carry one to the output. */
 function scrubbed(err: unknown, known: string[]): string {
@@ -21,12 +21,16 @@ function scrubbed(err: unknown, known: string[]): string {
  * @param vault - A `vault` provider that can read an environment.
  * @param slug - The `<org>/<repo>` the Environments are named from.
  */
-export async function readLayers(vault: Vault, slug: string): Promise<LayerReads> {
-	const layers: LayerSecrets[] = [];
+export async function readLayers(
+	vault: Vault,
+	slug: string,
+	layers: readonly EnvironmentLayer[] = ENVIRONMENT_LAYERS
+): Promise<LayerReads> {
+	const read: LayerSecrets[] = [];
 	const rows: CheckRow[] = [];
 	const known: string[] = [];
 	let blind = false;
-	for (const layer of ENVIRONMENT_LAYERS) {
+	for (const layer of layers) {
 		const environment = layerEnvironment(slug, layer);
 		let entries: EnvironmentEntry[];
 		try {
@@ -49,7 +53,7 @@ export async function readLayers(vault: Vault, slug: string): Promise<LayerReads
 			continue;
 		}
 		known.push(...entries.map((e) => e.value).filter(Boolean));
-		layers.push({ layer, environment, entries });
+		read.push({ layer, environment, entries });
 	}
 	if (blind) {
 		rows.unshift({
@@ -60,5 +64,5 @@ export async function readLayers(vault: Vault, slug: string): Promise<LayerReads
 			problems: [],
 		});
 	}
-	return { layers, rows };
+	return { layers: read, rows };
 }

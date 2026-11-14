@@ -14,6 +14,8 @@ type Args = GlobalArgs & {
 	onlyVariables?: boolean;
 	strict?: boolean;
 	verify?: boolean;
+	shared?: boolean;
+	allow?: string[];
 	name?: string;
 };
 
@@ -44,10 +46,23 @@ export const doctorSecretsCommand: CommandModule<GlobalArgs, Args> = {
 				default: false,
 				describe: "Also ask each vendor whether the tokens the plugins take are still accepted (goes online)",
 			})
+			.option("shared", {
+				type: "boolean",
+				default: false,
+				describe:
+					"Compare the layers named by --env (two or more) for a secret that holds the same value in two of them. Values are hashed in memory and never printed",
+			})
+			.option("allow", {
+				type: "string",
+				array: true,
+				describe:
+					"A name shared on purpose with --shared; repeat for more. `doctor.sharedVariables` in the config lists them too",
+			})
 			.option("strict", {
 				type: "boolean",
 				default: false,
-				describe: "Fail (exit 1) when a place holds a name nothing feeds, instead of reporting it as info",
+				describe:
+					"Fail (exit 1) when a place holds a name nothing feeds, or with --shared a secret two layers share, instead of reporting it as info",
 			})
 			.option("name", {
 				type: "string",
@@ -70,6 +85,7 @@ export const doctorSecretsCommand: CommandModule<GlobalArgs, Args> = {
 					: {}),
 			strict: argv.strict === true,
 			...(argv.verify ? { verify: true } : {}),
+			...(argv.shared ? { shared: true, allow: argv.allow ?? [] } : {}),
 			...(argv.name ? { name: argv.name } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

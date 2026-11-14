@@ -1329,7 +1329,7 @@ export interface Vault extends ProviderIdentity {
 
 	/**
 	 * Optional — like `readEnvironment`, but each entry says whether the vault holds it concealed (a secret) or
-	 * visible (a plain value). `holocron doctor shared-values` compares only the concealed ones. The values are for
+	 * visible (a plain value). `holocron doctor secrets --shared` compares only the concealed ones. The values are for
 	 * in-memory comparison and are never printed. A provider that cannot tell omits this.
 	 */
 	readEnvironmentEntries?(environmentId: string): Promise<EnvironmentEntry[]>;

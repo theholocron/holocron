@@ -1,6 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 
-import type { LayerSecrets, SharedPair } from "./doctor-shared-values.type.js";
+import type { LayerSecrets, SharedPair } from "./doctor-secrets.type.js";
 
 /**
  * Finds, for every pair of layers, the secrets that hold the same value. A value is never compared as text: each is

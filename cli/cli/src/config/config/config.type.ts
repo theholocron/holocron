@@ -354,7 +354,7 @@ export interface DoctorConfig {
 	 * Variable names that live in more than one place on purpose (an Environment's entry and the one a second
 	 * Environment holds), which `holocron doctor variable-owners` does not report. Names only. The copy a
 	 * `repo.secrets.sync` or `repo.variables.sync` entry makes is never reported, so it needs no entry here.
-	 * `holocron doctor shared-values` leaves out the same names: a secret two layers hold the same value of on purpose.
+	 * `holocron doctor secrets --shared` leaves out the same names: a secret two layers hold the same value of on purpose.
 	 */
 	sharedVariables?: string[];
 	/**

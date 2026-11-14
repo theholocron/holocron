@@ -59,6 +59,15 @@ describe("doctor secrets command", () => {
 		expect("name" in runDoctorSecrets.mock.calls[2]![0]).toBe(false);
 	});
 
+	it("passes --shared with its --allow names, or none", async () => {
+		await runCommand(doctorSecretsCommand, ["secrets", "--shared", "--allow", "A", "--allow", "B"]);
+		expect(runDoctorSecrets.mock.calls[0]![0]).toMatchObject({ shared: true, allow: ["A", "B"] });
+		await runCommand(doctorSecretsCommand, ["secrets", "--shared"]);
+		expect(runDoctorSecrets.mock.calls[1]![0]).toMatchObject({ shared: true, allow: [] });
+		await runCommand(doctorSecretsCommand, ["secrets"]);
+		expect("shared" in runDoctorSecrets.mock.calls[2]![0]).toBe(false);
+	});
+
 	it("refuses --only-secrets together with --only-variables", async () => {
 		const err = await runCommand(doctorSecretsCommand, ["secrets", "--only-secrets", "--only-variables"]).catch(
 			(e: unknown) => e

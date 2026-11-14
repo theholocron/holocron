@@ -13,6 +13,7 @@
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { ENVIRONMENT_LAYERS } from "../../credentials-environments/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Vault, WorkspaceContextError } from "../../plugin/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
@@ -33,6 +34,7 @@ import { matrixPlaces } from "./matrix-places.js";
 import { renderMatrix } from "./matrix-render.js";
 import { matrixRows } from "./matrix-rows.js";
 import { memoVault } from "./memo-vault.js";
+import { sharedRows } from "./shared-rows.js";
 import { variableRows } from "./variable-rows.js";
 import { verifyRows } from "./verify-rows.js";
 
@@ -55,6 +57,11 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	const withSecrets = input.only !== "variables";
 	const withVariables = input.only !== "secrets";
 	let ran = false;
+	const notes: string[] = [];
+	const vaultOf = (loader: PluginLoader): Vault | { why: string } =>
+		loader.has("vault")
+			? (loader.get("vault") as Vault)
+			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") };
 	// The plugins are loaded once, the first time a part needs them (this also fills the credential store).
 	let loading: Promise<PluginLoader> | undefined;
 	const getLoader = () =>
@@ -88,9 +95,7 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	if (wants("ci") || wants("prod")) {
 		ran = true;
 		const loader = await getLoader();
-		const provider: Vault | { why: string } = loader.has("vault")
-			? (loader.get("vault") as Vault)
-			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") };
+		const provider = vaultOf(loader);
 		// Each Environment is read once, however many rows and columns ask about it.
 		const vault = "why" in provider ? provider : memoVault(provider);
 		const org = input.context.org ?? (input.context.repo ?? config.repo?.name ?? "").split("/")[0];
@@ -146,6 +151,33 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		}
 	}
 
+	// `--shared`: do two layers hold the same value of a secret? Compares by a per-run salted hash, in memory.
+	if (input.shared) {
+		ran = true;
+		const layers = ENVIRONMENT_LAYERS.filter((layer) => wants(layer));
+		if (layers.length < 2) {
+			rows.push({
+				id: "shared:layers",
+				title: "compare the layers",
+				status: "skip",
+				detail: "--shared needs two or more of local, dev, ci and prod in --env",
+				problems: [],
+			});
+		} else {
+			const shared = await sharedRows({
+				loaded: input.loaded,
+				context: input.context,
+				vault: vaultOf(await getLoader()),
+				...(input.gitExec ? { gitExec: input.gitExec } : {}),
+				layers,
+				strict: input.strict === true,
+				allow: input.allow ?? [],
+			});
+			rows.push(...shared.rows);
+			notes.push(shared.note);
+		}
+	}
+
 	let matrix: Matrix | undefined;
 	if (ran) {
 		matrix = buildMatrix(
@@ -173,6 +205,7 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		print("");
 	}
 	printCheckRows(rows, print);
+	for (const note of notes) print(note);
 	const summary = summariseChecks(rows);
 	printCheckSummary(summary, print);
 

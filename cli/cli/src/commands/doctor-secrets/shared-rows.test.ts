@@ -1,13 +1,13 @@
 import { stripVTControlCharacters } from "node:util";
 
+import { printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { resolveConfig } from "../../config/index.js";
-import type { EnvironmentEntry, PluginLoader } from "../../plugin/index.js";
+import type { EnvironmentEntry, PluginLoader, Vault } from "../../plugin/index.js";
 import { compareLayers } from "./compare-layers.js";
-import { runDoctorSharedValues } from "./doctor-shared-values.js";
-import type { RunDoctorSharedValuesInput } from "./doctor-shared-values.type.js";
+import { sharedRows } from "./shared-rows.js";
 
 /** Values that must never reach any output. */
 const SHARED = "sentinel-shared-value-9f3a";
@@ -21,6 +21,40 @@ const secret = (name: string, value: string): EnvironmentEntry => ({ name, value
 const visible = (name: string, value: string): EnvironmentEntry => ({ name, value, concealed: false });
 
 const origin = async () => "git@github.com:acme/demo.git\n";
+
+interface RunDoctorSharedValuesInput {
+	loaded: Parameters<typeof sharedRows>[0]["loaded"];
+	context: { repoRoot: string };
+	loader: PluginLoader;
+	gitExec?: never;
+	strict?: boolean;
+	allow?: string[];
+	print: (l: string) => void;
+	logger: ReturnType<typeof fakeLogger>;
+}
+
+/** The old `doctor secrets` report, built from the rows and the note `sharedRows()` gives. */
+async function runDoctorSharedValues(input: RunDoctorSharedValuesInput) {
+	const vault = input.loader.has("vault")
+		? (input.loader.get("vault") as unknown as Vault)
+		: { why: "needs a `vault` provider in holocron.config.ts (1password)" };
+	const result = await sharedRows({
+		loaded: input.loaded,
+		context: input.context,
+		vault,
+		...(input.gitExec ? { gitExec: input.gitExec } : {}),
+		layers: ["local", "dev", "ci", "prod"],
+		strict: input.strict === true,
+		allow: input.allow ?? [],
+	});
+	printCheckRows(result.rows, input.print);
+	input.print(result.note);
+	const summary = summariseChecks(result.rows);
+	printCheckSummary(summary, input.print);
+	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
+	input.logger.info({ ...summary, status }, "doctor shared-values");
+	return { status, rows: result.rows, summary };
+}
 
 /** A fake world: layer to its entries, or an Error; a layer that is absent throws "not found". */
 async function run(
@@ -65,7 +99,7 @@ async function run(
 	return { report, text, everything: `${text}${JSON.stringify(report)}${JSON.stringify(logger.info.mock.calls)}` };
 }
 
-describe("runDoctorSharedValues", () => {
+describe("sharedRows", () => {
 	it("is ok when no secret shares a value", async () => {
 		const { report, text } = await run({
 			dev: [secret("TOKEN", ONLY_DEV)],
@@ -87,7 +121,6 @@ describe("runDoctorSharedValues", () => {
 		expect(text).toContain("info: 1 secret shares a value between dev and ci: TOKEN");
 		expect(text).toContain("3 pairs compared, 1 shared name");
 		expect(report.status).toBe("ok");
-		expect(report.reason).toBeUndefined();
 	});
 
 	it("reports every pair of layers when all share a value", async () => {
@@ -203,27 +236,16 @@ describe("runDoctorSharedValues", () => {
 		expect(text).toContain("`origin` remote");
 	});
 
-	it("builds its own loader, prints to the console and logs to the command's logger when none are given", async () => {
-		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-		const report = await runDoctorSharedValues({
-			loaded: { resolved: resolveConfig({ name: "demo", org: "acme", providers: {} } as never), filepath: "/x" },
-			context: { repoRoot: "/tmp/test" },
-		}).catch((e: unknown) => e);
-		log.mockRestore();
-		// With no provider configured the workspace guard or the missing-vault skip answers; either way, no throw of a value.
-		expect(report).toBeDefined();
-	});
-
 	it("reports a variable that ci has and dev lacks, by name, as info", async () => {
 		const { report, text } = await run({
 			dev: [visible("KEPT", "same")],
 			ci: [visible("KEPT", "same"), visible("ORG_CONSTANT", "v1")],
 		});
-		const row = report.rows.find((r) => r.id === "variables:missing");
+		const row = report.rows.find((r) => r.id === "shared:variables:missing");
 		expect(row).toMatchObject({ status: "skip", title: "variables missing from dev, present in ci" });
 		expect(text).toContain("info: 1 variable: ORG_CONSTANT");
 		expect(text).toContain("1 variable drifting");
-		expect(report.rows.some((r) => r.id === "variables:differ")).toBe(false);
+		expect(report.rows.some((r) => r.id === "shared:variables:differ")).toBe(false);
 	});
 
 	it("reports variables whose value differs between ci and dev, by name, even with --strict", async () => {
@@ -248,13 +270,13 @@ describe("runDoctorSharedValues", () => {
 			},
 			{ allow: ["old", "gone"] }
 		);
-		expect(report.rows.some((r) => r.id.startsWith("variables:"))).toBe(false);
+		expect(report.rows.some((r) => r.id.startsWith("shared:variables:"))).toBe(false);
 		expect(text).toContain("0 variables drifting");
 	});
 
 	it("does not compare variables when ci or dev could not be read", async () => {
 		const { report } = await run({ dev: [visible("A", "1")], ci: new Error("down") });
-		expect(report.rows.some((r) => r.id.startsWith("variables:"))).toBe(false);
+		expect(report.rows.some((r) => r.id.startsWith("shared:variables:"))).toBe(false);
 	});
 
 	it("never lets a value, a digest or a length reach the output, the report, the logger or an error", async () => {
