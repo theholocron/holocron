@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-linear",
-  "version": "5.0.0-alpha.433",
+  "version": "5.0.0-alpha.434",
   "description": "Holocron plugin for Linear. Implements the issues and projects capabilities against the Linear GraphQL API, with export and import for migrating to and from other trackers.",
   "keywords": [
     "holocron",

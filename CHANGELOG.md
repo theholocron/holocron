@@ -1,3 +1,18 @@
+## [5.0.0-alpha.434](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.433...v5.0.0-alpha.434) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ report token age and expiry for rotation, starting with Cloudflare ([#2161](https://github.com/theholocron/holocron/issues/2161)) ([533f885](https://github.com/theholocron/holocron/commit/533f8850a3f7faafd41124339e717b59dbdba66c)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2157](https://github.com/theholocron/holocron/issues/2157)
+* **postman:** ✨ make the workspace and push hand-written collections ([#2181](https://github.com/theholocron/holocron/issues/2181)) ([756a33e](https://github.com/theholocron/holocron/commit/756a33e606385f48cf62d3dd6e8b19eb7f8748dd)), closes [#2180](https://github.com/theholocron/holocron/issues/2180) [#2180](https://github.com/theholocron/holocron/issues/2180)
+
+### Bug Fixes
+
+* **cli:** 🐛 end doctor secrets with a count of the table, not of the rows ([#2187](https://github.com/theholocron/holocron/issues/2187)) ([23c6a33](https://github.com/theholocron/holocron/commit/23c6a3380a70030a50d6db00aed5f10cd9493797)), closes [#2186](https://github.com/theholocron/holocron/issues/2186)
+
+### Chores
+
+* **config:** 🔧 list the dev layer's hand-set names in doctor.manualSecrets ([#2185](https://github.com/theholocron/holocron/issues/2185)) ([7e97653](https://github.com/theholocron/holocron/commit/7e976535ff48b39e9dc434aa038ab339f9b68f08)), closes [#2183](https://github.com/theholocron/holocron/issues/2183)
+
 ## [5.0.0-alpha.433](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.432...v5.0.0-alpha.433) (2026-11-14)
 
 ### Features
