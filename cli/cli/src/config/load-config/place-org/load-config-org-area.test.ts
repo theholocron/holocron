@@ -98,8 +98,8 @@ describe("the org area in this repo (#1820)", () => {
 					packageName: "@theholocron/holocron-plugin-postman",
 					options: {
 						workspace: "Holocron",
-						collectionFiles: ["postman/sentinel.postman_collection.json"],
-						envFiles: ["postman/sentinel.postman_environment.json"],
+						collectionFiles: ["requests/collection.json"],
+						envFiles: ["requests/environment.json"],
 					},
 				},
 			],

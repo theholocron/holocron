@@ -62,7 +62,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 ## Sending a delivery by hand
 
-`apps/comlink/postman/` holds a Postman collection and an environment for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
+`apps/comlink/requests/` holds a collection of requests and an environment for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
 
 | Folder                     | What it sends                                                               | What the relay does                   |
 | -------------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
@@ -72,7 +72,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 `holocron probe comlink deliver` sends the signed delivery from the command line.
 
-`holocron setup --cwd apps/comlink` pushes the collection and the environment through the [Postman plugin](/holocron/plugins/postman/) into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set in Postman. The plugin reads `HOLOCRON_POSTMAN_TOKEN`; add `--dry-run` to see the steps first.
+`holocron setup --cwd apps/comlink` pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the steps first.
 
 ## Build and deploy
 

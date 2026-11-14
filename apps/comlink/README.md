@@ -37,10 +37,10 @@ The embed's Project field is the Sentry project's slug, taken from the event's A
 A source is one file under `src/sources/<id>/` that implements `Source` (`verify` and `format`) and one entry in the list
 in `src/worker.ts`. Nothing else changes.
 
-## Sending a delivery by hand (Postman)
+## Sending a delivery by hand
 
-`postman/comlink.postman_collection.json` and `postman/comlink.postman_environment.json` are a Postman collection and
-environment for a Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
+`requests/collection.json` and `requests/environment.json` are a collection of requests and its environment for a
+Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
 `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (a secret-type variable the file leaves empty) and
 `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as sent
 (`Sentry-Hook-Signature`).
@@ -51,12 +51,11 @@ environment for a Worker run locally (the default `baseUrl` is `http://127.0.0.1
 - **Signed, posts to Discord** is an `event_alert`: it posts a real embed (pings off) to the bound webhook.
 
 `holocron probe comlink deliver` does the signed delivery from the command line. The collection's tests run its signing
-script against the real relay (`src/postman-collection/postman-collection.test.ts`).
+script against the real relay (`src/requests/requests.test.ts`).
 
-`holocron setup --cwd apps/comlink` pushes both files through the Postman plugin (`providers.tooling` in
-`holocron.config.ts`): the `Holocron` workspace is made when it is missing, the collection is replaced in place and the
-environment is made or updated, keeping a `sentrySecret` set in Postman. The plugin reads `HOLOCRON_POSTMAN_TOKEN`
-(then `POSTMAN_API_KEY`) from the `dev` layer. Add `--dry-run` to see the steps first.
+`holocron setup --cwd apps/comlink` pushes both files through the `tooling` provider (`providers.tooling` in
+`holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
+is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the steps first.
 
 ## Build
 

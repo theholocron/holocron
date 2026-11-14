@@ -27,16 +27,16 @@ interface Environment {
 }
 
 const read = <T>(file: string) =>
-	JSON.parse(readFileSync(fileURLToPath(new URL(`../../postman/${file}`, import.meta.url)), "utf8")) as T;
-const collection = read<Collection>("comlink.postman_collection.json");
-const environment = read<Environment>("comlink.postman_environment.json");
+	JSON.parse(readFileSync(fileURLToPath(new URL(`../../requests/${file}`, import.meta.url)), "utf8")) as T;
+const collection = read<Collection>("collection.json");
+const environment = read<Environment>("environment.json");
 
-const SECRET = "client_secret_postman_test";
+const SECRET = "client_secret_requests_test";
 const HOOK = "https://discord.com/api/webhooks/1/token";
 const VARIABLES: Record<string, string> = { sentrySecret: SECRET };
 const fill = (text: string) => text.replace(/\{\{([^}]+)\}\}/g, (_, name: string) => VARIABLES[name] ?? "");
 
-/** Runs a folder's pre-request script in a stand-in for Postman's sandbox (`pm`, `CryptoJS`) and returns the headers it set. */
+/** Runs a folder's pre-request script in a stand-in for the collection format's script sandbox (`pm`, `CryptoJS`) and returns the headers it set. */
 function sign(folder: Item, request: NonNullable<Item["request"]>): Record<string, string> {
 	const headers: Record<string, string> = {};
 	for (const h of request.header) headers[h.key] = h.value;
@@ -64,7 +64,7 @@ const expectedStatus = (item: Item) =>
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("Comlink's Postman collection", () => {
+describe("Comlink's requests", () => {
 	it("keeps the secret out of the committed environment", () => {
 		expect(environment.values.find((v) => v.key === "sentrySecret")).toMatchObject({ type: "secret", value: "" });
 	});

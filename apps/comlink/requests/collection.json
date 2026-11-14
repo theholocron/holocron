@@ -57,7 +57,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "raw": "{\"data\":{\"triggered_rule\":\"Comlink check\",\"event\":{\"title\":\"Comlink test alert\",\"culprit\":\"requests/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -97,7 +97,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "raw": "{\"data\":{\"triggered_rule\":\"Comlink check\",\"event\":{\"title\":\"Comlink test alert\",\"culprit\":\"requests/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -141,7 +141,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "raw": "{\"data\":{\"triggered_rule\":\"Comlink check\",\"event\":{\"title\":\"Comlink test alert\",\"culprit\":\"requests/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -303,7 +303,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "raw": "{\"data\":{\"triggered_rule\":\"Comlink check\",\"event\":{\"title\":\"Comlink test alert\",\"culprit\":\"requests/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
               "options": {
                 "raw": {
                   "language": "json"

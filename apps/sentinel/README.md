@@ -710,10 +710,10 @@ and `SENTINEL_AXIOM_DATASET`, or leave both out. It says which it is on start. U
 (`where env == "development"`); production sets `HOLOCRON_ENVIRONMENT=production` (or the older `ENVIRONMENT=production`) in the `prod` layer Environment. Install the dev
 App only on the repositories you test with.
 
-### Sending a delivery by hand (Postman)
+### Sending a delivery by hand
 
-`postman/sentinel.postman_collection.json` and `postman/sentinel.postman_environment.json` are a Postman collection and
-environment for the instance above. Import both, point `baseUrl` at the dev instance (the default is
+`requests/collection.json` and `requests/environment.json` are a collection of requests and its environment for the
+instance above. Open them in an API client, point `baseUrl` at the dev instance (the default is
 `http://127.0.0.1:3000`, what `holocron dev serve` listens on; never production) and put the dev App's webhook secret in
 `webhookSecret`, a secret-type variable the file leaves empty. A pre-request script signs each body as sent
 (`X-Hub-Signature-256`).
@@ -727,14 +727,13 @@ The folders go from harmless to acting:
   `pullNumber` and `installationId`, with the App's installation token, and posts the check runs, comments and the
   `#prs` feed. Use a sandbox repository the dev App is installed on.
 
-`src/postman-collection/postman-collection.test.ts` runs the collection's signing script against `parseWebhookEvent()`,
-so the two cannot drift apart.
+`src/requests/requests.test.ts` runs the collection's signing script against `parseWebhookEvent()`, so the two cannot
+drift apart.
 
-`holocron setup --cwd apps/sentinel` pushes both files through the Postman plugin (`providers.tooling` in
-`holocron.config.ts`): the `Holocron` workspace is made when it is missing, the collection is replaced in place and the
-environment is made or updated, keeping a `webhookSecret` set in Postman. The plugin reads `HOLOCRON_POSTMAN_TOKEN`
-(then `POSTMAN_API_KEY`) from the `dev` layer. Add `--dry-run` to see the steps first; `setup` also runs the other
-steps this config declares (the Vercel domain, DNS), each of which is a no-op when it is already right.
+`holocron setup --cwd apps/sentinel` pushes both files through the `tooling` provider (`providers.tooling` in
+`holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
+is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the steps first; `setup` also runs the
+other steps this config declares (the Vercel domain, DNS), each of which is a no-op when it is already right.
 
 ## Development
 

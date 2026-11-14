@@ -229,15 +229,15 @@ export default defineConfig({
 				],
 			},
 		],
-		// The Postman collection for sending a delivery by hand (#2172): `holocron setup --cwd apps/sentinel` pushes it
-		// to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
-		// `webhookSecret` is committed empty and keeps the value set in Postman. The key is `HOLOCRON_POSTMAN_TOKEN`.
+		// The requests for sending a delivery by hand, `requests/` (#2172): `holocron setup --cwd apps/sentinel` pushes
+		// them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
+		// `webhookSecret` is committed empty and keeps the value set there.
 		tooling: [
 			"postman",
 			{
 				workspace: "Holocron",
-				collectionFiles: ["postman/sentinel.postman_collection.json"],
-				envFiles: ["postman/sentinel.postman_environment.json"],
+				collectionFiles: ["requests/collection.json"],
+				envFiles: ["requests/environment.json"],
 			},
 		],
 		secrets: "github",

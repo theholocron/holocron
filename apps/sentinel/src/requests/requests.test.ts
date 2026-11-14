@@ -26,11 +26,11 @@ interface Environment {
 }
 
 const read = <T>(file: string) =>
-	JSON.parse(readFileSync(fileURLToPath(new URL(`../../postman/${file}`, import.meta.url)), "utf8")) as T;
-const collection = read<Collection>("sentinel.postman_collection.json");
-const environment = read<Environment>("sentinel.postman_environment.json");
+	JSON.parse(readFileSync(fileURLToPath(new URL(`../../requests/${file}`, import.meta.url)), "utf8")) as T;
+const collection = read<Collection>("collection.json");
+const environment = read<Environment>("environment.json");
 
-const SECRET = "whsec_postman_test";
+const SECRET = "whsec_requests_test";
 const VARIABLES: Record<string, string> = {
 	...Object.fromEntries(collection.variable.map((v) => [v.key, v.value])),
 	webhookSecret: SECRET,
@@ -38,7 +38,7 @@ const VARIABLES: Record<string, string> = {
 const fill = (text: string) =>
 	text.replace(/\{\{([^}]+)\}\}/g, (_, name: string) => VARIABLES[name] ?? "00000000-0000-4000-8000-000000000000");
 
-/** Runs a folder's pre-request script in a stand-in for Postman's sandbox (`pm`, `CryptoJS`) and returns the headers it set. */
+/** Runs a folder's pre-request script in a stand-in for the collection format's script sandbox (`pm`, `CryptoJS`) and returns the headers it set. */
 function sign(folder: Item, request: NonNullable<Item["request"]>): Record<string, string> {
 	const headers: Record<string, string> = {};
 	for (const h of request.header) headers[h.key.toLowerCase()] = fill(h.value);
@@ -68,7 +68,7 @@ const deliver = (f: Item, name: string) => {
 	return { body: fill(request.body?.raw ?? ""), headers: sign(f, request) };
 };
 
-describe("Sentinel's Postman collection", () => {
+describe("Sentinel's requests", () => {
 	it("keeps the secret out of the committed environment", () => {
 		const secret = environment.values.find((v) => v.key === "webhookSecret");
 		expect(secret).toMatchObject({ type: "secret", value: "" });
