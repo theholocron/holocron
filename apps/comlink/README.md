@@ -53,6 +53,11 @@ environment for a Worker run locally (the default `baseUrl` is `http://127.0.0.1
 `holocron probe comlink deliver` does the signed delivery from the command line. The collection's tests run its signing
 script against the real relay (`src/postman-collection/postman-collection.test.ts`).
 
+`holocron setup --cwd apps/comlink` pushes both files through the Postman plugin (`providers.tooling` in
+`holocron.config.ts`): the `Holocron` workspace is made when it is missing, the collection is replaced in place and the
+environment is made or updated, keeping a `sentrySecret` set in Postman. The plugin reads `HOLOCRON_POSTMAN_TOKEN`
+(then `POSTMAN_API_KEY`) from the `dev` layer. Add `--dry-run` to see the steps first.
+
 ## Build
 
 `pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is

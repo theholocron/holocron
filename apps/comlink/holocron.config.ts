@@ -24,6 +24,17 @@ export default defineConfig({
 		// Only `sync` needs this one: it sets the Worker's secrets. It has no `accountId`: the plugin reads
 		// CLOUDFLARE_ACCOUNT_ID through the credential chain, from the Environment named in `credentials` below.
 		workers: "cloudflare",
+		// The Postman collection for sending a delivery by hand (#2172): `holocron setup --cwd apps/comlink` pushes it
+		// to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
+		// `sentrySecret` is committed empty and keeps the value set in Postman. The key is `HOLOCRON_POSTMAN_TOKEN`.
+		tooling: [
+			"postman",
+			{
+				workspace: "Holocron",
+				collectionFiles: ["postman/comlink.postman_collection.json"],
+				envFiles: ["postman/comlink.postman_environment.json"],
+			},
+		],
 		// This machine's own tokens (the Cloudflare one `workers` uses, and CLOUDFLARE_ACCOUNT_ID) come from the
 		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.
 		credentials: ["1password"],

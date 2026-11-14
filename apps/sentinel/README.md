@@ -730,6 +730,12 @@ The folders go from harmless to acting:
 `src/postman-collection/postman-collection.test.ts` runs the collection's signing script against `parseWebhookEvent()`,
 so the two cannot drift apart.
 
+`holocron setup --cwd apps/sentinel` pushes both files through the Postman plugin (`providers.tooling` in
+`holocron.config.ts`): the `Holocron` workspace is made when it is missing, the collection is replaced in place and the
+environment is made or updated, keeping a `webhookSecret` set in Postman. The plugin reads `HOLOCRON_POSTMAN_TOKEN`
+(then `POSTMAN_API_KEY`) from the `dev` layer. Add `--dry-run` to see the steps first; `setup` also runs the other
+steps this config declares (the Vercel domain, DNS), each of which is a no-op when it is already right.
+
 ## Development
 
 | Script               | Description                                 |
