@@ -81,7 +81,7 @@ holocron probe cloudflare token --environment dev theholocron.dev
 
 The plugin holds nine tokens. With `--environment ci`, `dev` or `local` the probe runs once for **each** GitHub token that Environment holds, each under a heading with its variable name (`HOLOCRON_ADMIN_TOKEN`), and the result is two groups, **Should have** and **Should not have**, judged against that token's declaration, the same as [Check a GitHub token](/holocron/tokens/#check-a-github-token). Without `--environment` it checks the token the plugin resolves, `HOLOCRON_READ_TOKEN`, or the one `--token-name <VAR>` names, and only describes it. A read shows a token can see an area, not that it can write there, and on a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token.
 
-```bash
+````bash
 holocron probe github token --environment dev   # every GitHub token the dev layer holds
 holocron probe github token --environment ci    # and the ci layer's
 holocron probe github token --token-name HOLOCRON_ADMIN_TOKEN   # the admin token this machine resolves
@@ -97,7 +97,7 @@ A token with no layer is described: a row is `ok` when the token may do it and `
 ```bash
 holocron probe axiom token --environment ci     # the ci layer's token
 holocron probe axiom token --environment dev holocron-sentinel
-```
+````
 
 ## 1Password
 
