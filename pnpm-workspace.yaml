@@ -35,7 +35,7 @@ catalog:
   "@types/node": ^26
   "@vitest/coverage-v8": ^5.1.0
   "@vitest/eslint-plugin": ^1.6.28
-  astro: ^7.4.5
+  astro: ^7.4.7
   chalk: ^6.0.1
   conventional-changelog-conventionalcommits: 9.3.1
   dotenv: ^18.0.9
