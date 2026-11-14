@@ -20,6 +20,7 @@ async function check(responses: Parameters<typeof stubFetch>[0], over: { account
 		options: { accountId: "accountId" in over ? over.accountId : "acct-1" },
 		client: () => client,
 		token: () => "cf-tok",
+		now: () => new Date("2026-11-13T12:00:00Z"),
 	});
 	await probe.run({
 		...(over.args ? { args: over.args } : {}),
@@ -65,6 +66,54 @@ describe("token probe", () => {
 		}
 		expect(calls.some((c) => c.url.includes("/accounts/acct-1/pages/projects"))).toBe(true);
 		expect(rows.some((r) => r.status === "fail")).toBe(false);
+	});
+
+	describe("rotation", () => {
+		const verified = (extra: Record<string, string>) => cfOk({ id: "t1", status: "active", ...extra });
+		const rest = [cfOk([]), cfOk([]), cfOk([]), cfOk([])];
+
+		it("reports expiry and the start of validity, and passes a young token far from expiry", async () => {
+			const { rows } = await check([
+				verified({ expires_on: "2027-06-01T00:00:00Z", not_before: "2026-10-13T00:00:00Z" }),
+				...rest,
+			]);
+			expect(row(rows, "expiry")).toMatchObject({ status: "ok" });
+			expect(row(rows, "age")).toMatchObject({ status: "ok" });
+		});
+
+		it("fails a token that expires soon and one past the allowed age", async () => {
+			const { rows } = await check([
+				verified({ expires_on: "2026-11-20T00:00:00Z", not_before: "2026-01-01T00:00:00Z" }),
+				...rest,
+			]);
+			expect(row(rows, "expiry")).toMatchObject({ status: "fail" });
+			expect(row(rows, "age")).toMatchObject({ status: "fail" });
+		});
+
+		it("says there is no expiry and no creation date when Cloudflare gives neither", async () => {
+			const { rows } = await check([verified({}), ...rest]);
+			expect(row(rows, "expiry")).toMatchObject({ status: "info", detail: "the token has no expiry" });
+			expect(row(rows, "age")?.status).toBe("info");
+		});
+
+		it("says it is not exposed for a token verify rejects", async () => {
+			const { rows } = await check([denied, ...rest]);
+			expect(row(rows, "rotation")).toMatchObject({ status: "info" });
+		});
+
+		it("reads the time from the clock when none is injected", async () => {
+			const { fetch } = stubFetch([denied, cfOk([])]);
+			const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch, retryDelayMs: 0 });
+			const rows: ProbeRow[] = [];
+			await tokenProbe({ options: {}, client: () => client, token: () => "cf-tok" }).run({
+				dryRun: false,
+				say: (r) => void rows.push(r),
+				secret: () => {},
+				write: async () => undefined,
+				cleanup: () => {},
+			});
+			expect(row(rows, "rotation")).toBeDefined();
+		});
 	});
 
 	it("treats a 403 and an empty list as no access, not as a failure", async () => {
@@ -161,12 +210,16 @@ describe("token probe", () => {
 				"ok:Zone: Read",
 				"ok:Workers Scripts: Edit",
 				"ok:Cloudflare Tunnel: Edit",
+				"heading:Rotation",
+				"info:rotation",
 			]);
 		});
 
 		it("says nothing before the results about where the token came from or what it is checked against", async () => {
 			const { rows } = await check([denied, cfOk([]), cfOk([]), cfOk([{ name: "site" }]), cfOk([])], ci);
-			expect(rows.filter((r) => r.status === "info")).toEqual([]);
+			// The only info row is the rotation one, after its own heading.
+			const rotation = rows.findIndex((r) => r.label === "Rotation");
+			expect(rows.slice(0, rotation).filter((r) => r.status === "info")).toEqual([]);
 			expect(rows[0]).toMatchObject({ status: "heading" });
 		});
 

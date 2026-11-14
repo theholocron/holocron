@@ -1,5 +1,5 @@
 import type { EnvironmentLayer } from "../../credentials-environments/index.js";
-import type { PermissionRule } from "../auth/index.js";
+import type { PermissionRule, TokenRotation } from "../auth/index.js";
 
 /** What one token must carry in one layer, as `tokenExpectations()` reads it from a plugin's `PluginToken.expect`. */
 export interface LayerTokenExpectation {
@@ -13,6 +13,8 @@ export interface LayerTokenExpectation {
 	required: readonly string[];
 	/** The permissions the token must not have, in declaration order. */
 	absent: readonly string[];
+	/** When the token is due for rotation: the declared policy over `DEFAULT_TOKEN_ROTATION`. */
+	rotation: Required<TokenRotation>;
 }
 
 /** Which of the declared expectations to return; both left out returns all of them. */

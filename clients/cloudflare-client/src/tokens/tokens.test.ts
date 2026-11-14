@@ -20,4 +20,15 @@ describe("tokens.verify", () => {
 		expect(calls[0]?.url).toContain(`${BASE}/user/tokens/verify`);
 		expect(result).toEqual({ id: "tok-123", status: "active" });
 	});
+
+	it("returns the expiry and start of validity when Cloudflare gives them", async () => {
+		const body = {
+			id: "tok-1",
+			status: "active",
+			expires_on: "2027-01-01T00:00:00Z",
+			not_before: "2026-10-01T00:00:00Z",
+		};
+		const { tokens } = client([cfOk(body)]);
+		expect(await tokens.verify()).toEqual(body);
+	});
 });

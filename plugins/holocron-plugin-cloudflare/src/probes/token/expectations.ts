@@ -23,6 +23,7 @@ const EVERYTHING: Record<Permission, Rule> = {
  * that table together.
  */
 export const EXPECTED: TokenExpectation = {
+	rotation: { maxAgeDays: 90, warnDays: 14 },
 	permissions: {
 		local: EVERYTHING,
 		dev: EVERYTHING,

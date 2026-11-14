@@ -1,5 +1,5 @@
 import type { Probe, ProbeRow } from "@theholocron/cli";
-import { ProviderApiError, tokenExpectations } from "@theholocron/cli";
+import { DEFAULT_TOKEN_ROTATION, ProviderApiError, tokenExpectations, tokenRotationRows } from "@theholocron/cli";
 import type { CfZone } from "@theholocron/cloudflare-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -96,9 +96,10 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 			const client = ctx.client();
 
 			const { layer, tokenName, zones: wanted } = parseTokenArgs(probe.args ?? []);
-			const rules = layer
-				? tokenExpectations(tokens, { layer, ...(tokenName ? { envName: tokenName } : {}) })[0]?.rules
+			const expectation = layer
+				? tokenExpectations(tokens, { layer, ...(tokenName ? { envName: tokenName } : {}) })[0]
 				: undefined;
+			const rules = expectation?.rules;
 			if (layer && !rules) {
 				probe.say({
 					status: "info",
@@ -108,13 +109,26 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 			}
 
 			// /user/tokens/verify answers only for a token with User: API Tokens Read; an account or zone token gets a 401
-			// there even when it works, so only a token that passes is worth a row.
+			// there even when it works, so it gets no `token` row, and its age and expiry are reported as not exposed. The
+			// start of validity (`not_before`) is the nearest thing to a creation date Cloudflare gives.
+			const now = (ctx.now ?? (() => new Date()))();
+			const rotation = expectation?.rotation ?? DEFAULT_TOKEN_ROTATION;
+			let lifetime: { createdAt?: string; expiresAt?: string } | undefined;
 			try {
 				const verified = await client.tokens.verify();
 				probe.say({ status: "ok", label: "token", detail: `${verified.id} (${verified.status})` });
+				lifetime = {
+					...(verified.not_before ? { createdAt: verified.not_before } : {}),
+					...(verified.expires_on ? { expiresAt: verified.expires_on } : {}),
+				};
 			} catch {
 				// Judged by what it can reach, below.
 			}
+			const rotationRows = tokenRotationRows(lifetime, rotation, now);
+			const sayRotation = () => {
+				probe.say({ status: "heading", label: "Rotation" });
+				for (const row of rotationRows) probe.say(row);
+			};
 
 			const tried: Tried[] = [];
 			let zones: CfZone[] = [];
@@ -174,6 +188,7 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 
 			if (!rules) {
 				for (const t of tried) probe.say(rowFor(t, undefined));
+				sayRotation();
 				return;
 			}
 			const groups: Array<[string, Rule]> = [
@@ -186,6 +201,7 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 				probe.say({ status: "heading", label: heading });
 				for (const t of inGroup) probe.say(rowFor(t, rule));
 			}
+			sayRotation();
 		},
 	};
 }
