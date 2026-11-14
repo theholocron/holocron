@@ -1,3 +1,9 @@
+## [5.0.0-alpha.432](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.431...v5.0.0-alpha.432) (2026-11-14)
+
+### Bug Fixes
+
+* **cli:** 🐛 count only a block's own kind as extra in doctor secrets ([#2179](https://github.com/theholocron/holocron/issues/2179)) ([365081c](https://github.com/theholocron/holocron/commit/365081cfa361233d8f6d9bcc092197160535c56e)), closes [#2178](https://github.com/theholocron/holocron/issues/2178)
+
 ## [5.0.0-alpha.431](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.430...v5.0.0-alpha.431) (2026-11-14)
 
 ### Refactoring
