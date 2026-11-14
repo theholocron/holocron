@@ -1,17 +1,25 @@
 ---
 id: SPEC-0073
-status: draft
+status: superseded
 issue: theholocron/holocron#2041
 blocked-by: []
 related:
   - theholocron/holocron#1672
   - theholocron/holocron#2039
   - theholocron/holocron#2043
+  - theholocron/holocron#2136
 discussion:
   url: https://discord.com/channels/1303969001822486568/1569828364204904590
 ---
 
 # `doctor variable-owners`: flag a variable that lives in two places
+
+> **Superseded** by `tech-doctor-secrets-matrix` (#2136). `doctor variable-owners` was removed there: with the layer
+> layout (`local`, `dev`, `ci`, `prod`) the same name legitimately lives in several places, so "in more than one place" is
+> no longer a finding. Its role is now `doctor secrets --name <name>`, which says where a name lives and why, and the
+> `extra` cell of the matrix, which marks a name nothing feeds. What the repo's own fan-out feeds (`repo.*.sync`),
+> `doctor.sharedVariables` and `doctor.manualSecrets` are not findings. The text below is kept as the record of the
+> original decision.
 
 ## Problem
 
