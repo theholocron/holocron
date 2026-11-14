@@ -7,15 +7,15 @@ describe("resolveToken", () => {
 		expect(
 			resolveToken({
 				cliToken: "cli-key",
-				env: { HOLOCRON_POSTMAN_API_KEY: "env-key", POSTMAN_API_KEY: "native" },
+				env: { HOLOCRON_POSTMAN_TOKEN: "env-key", POSTMAN_API_KEY: "native" },
 			})
 		).toBe("cli-key");
 	});
 
-	it("prefers HOLOCRON_POSTMAN_API_KEY over POSTMAN_API_KEY", () => {
+	it("prefers HOLOCRON_POSTMAN_TOKEN over POSTMAN_API_KEY", () => {
 		expect(
 			resolveToken({
-				env: { HOLOCRON_POSTMAN_API_KEY: "env-key", POSTMAN_API_KEY: "native" },
+				env: { HOLOCRON_POSTMAN_TOKEN: "env-key", POSTMAN_API_KEY: "native" },
 			})
 		).toBe("env-key");
 	});
@@ -33,6 +33,6 @@ describe("resolveToken", () => {
 			}
 		})();
 		expect(err).toBeInstanceOf(AuthError);
-		expect((err as AuthError).message).toMatch(/HOLOCRON_POSTMAN_API_KEY/);
+		expect((err as AuthError).message).toMatch(/HOLOCRON_POSTMAN_TOKEN/);
 	});
 });

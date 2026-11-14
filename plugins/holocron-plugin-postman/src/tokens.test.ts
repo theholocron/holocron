@@ -5,7 +5,7 @@ import { tokens } from "./index.js";
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up", () => {
 		expect(tokens).toEqual([
-			{ envName: "HOLOCRON_POSTMAN_API_KEY", vendorEnvName: "POSTMAN_API_KEY", keyringKey: "postman" },
+			{ envName: "HOLOCRON_POSTMAN_TOKEN", vendorEnvName: "POSTMAN_API_KEY", keyringKey: "postman" },
 		]);
 	});
 });

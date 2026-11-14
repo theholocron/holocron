@@ -3,13 +3,13 @@ import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput
 export { AuthError };
 export type { ResolveTokenInput };
 
-/** Resolves the Postman API key from `--token`, `HOLOCRON_POSTMAN_API_KEY`, `POSTMAN_API_KEY` or the keyring, and throws an `AuthError` when none is set. */
+/** Resolves the Postman API key from `--token`, `HOLOCRON_POSTMAN_TOKEN`, `POSTMAN_API_KEY` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
-	envName: "HOLOCRON_POSTMAN_API_KEY",
+	envName: "HOLOCRON_POSTMAN_TOKEN",
 	vendorEnvName: "POSTMAN_API_KEY",
 	keyringService: "postman",
 	errorMessage:
-		"no Postman API key found. Pass --token <KEY>, set HOLOCRON_POSTMAN_API_KEY / POSTMAN_API_KEY, " +
+		"no Postman API key found. Pass --token <KEY>, set HOLOCRON_POSTMAN_TOKEN / POSTMAN_API_KEY, " +
 		"or run: holocron new token postman <KEY>",
 });
 

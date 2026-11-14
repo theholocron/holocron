@@ -10,7 +10,7 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <Installation package={getPlugins()["holocron-plugin-postman"].package} dev />
 
-<CapabilitiesTable rows={[{ capability: "tooling", token: "HOLOCRON_POSTMAN_API_KEY (postman)" }]} />
+<CapabilitiesTable rows={[{ capability: "tooling", token: "HOLOCRON_POSTMAN_TOKEN (postman)" }]} />
 
 ## Config
 
@@ -47,7 +47,7 @@ holocron new token postman PMAK-xxx
 Or via env var:
 
 ```bash
-export HOLOCRON_POSTMAN_API_KEY=PMAK-xxx
+export HOLOCRON_POSTMAN_TOKEN=PMAK-xxx
 ```
 
 ## What `tooling` provides
