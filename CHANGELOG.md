@@ -1,3 +1,13 @@
+## [5.0.0-alpha.436](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.435...v5.0.0-alpha.436) (2026-11-14)
+
+### Features
+
+* **discord:** ✨ add probe discord token and declare the bot token's layers and permissions ([#2164](https://github.com/theholocron/holocron/issues/2164)) ([d14c150](https://github.com/theholocron/holocron/commit/d14c150305c8f34e2e1e7e65c5b7dfa4c413d44e)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2154](https://github.com/theholocron/holocron/issues/2154)
+
+### Documentation
+
+* **requests:** 📚 request collections for Sentinel and Comlink, pushed through the tooling provider ([#2188](https://github.com/theholocron/holocron/issues/2188)) ([f6f7b0f](https://github.com/theholocron/holocron/commit/f6f7b0f790b7a17a54cd0ddbd7f96ff4a83b1359)), closes [#2172](https://github.com/theholocron/holocron/issues/2172) [#2172](https://github.com/theholocron/holocron/issues/2172)
+
 ## [5.0.0-alpha.435](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.434...v5.0.0-alpha.435) (2026-11-14)
 
 ### Features
