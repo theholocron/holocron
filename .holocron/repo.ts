@@ -9,7 +9,7 @@ export default {
 	teams: [{ slug: "gatekeepers", permission: "maintain" }],
 	topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 	// Organization Actions variables the reusable workflows read as `vars.NAME`. Their values are edited in the
-	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron sync secrets ci`. Names only; a key blank or
+	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron sync secrets --env ci`. Names only; a key blank or
 	// missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
 	// (no `prune`). `doctor variables` expects every key listed here at its scope.
@@ -40,7 +40,7 @@ export default {
 			},
 		],
 	},
-	// The GitHub secrets the `ci` layer of the 1Password Environments fills (`holocron sync secrets ci`,
+	// The GitHub secrets the `ci` layer of the 1Password Environments fills (`holocron sync secrets --env ci`,
 	// `theholocron/holocron - ci`, #1702, #2069): change one in 1Password, run the sync, and both scopes are updated. Names
 	// only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
 	// `doctor secrets` expects every key listed here at its scope.

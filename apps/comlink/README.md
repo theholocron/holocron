@@ -51,7 +51,7 @@ Deploying it is `holocron setup notifications`'s job, through the `workers` capa
 ```bash
 # once, by hand (`op` cannot create an Environment): make the Environment `<org>/<repo> - prod` (if it does not exist) and add
 # COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to it, then:
-holocron sync secrets prod --cwd apps/comlink --worker comlink
+holocron sync secrets --env prod --cwd apps/comlink --worker comlink
 ```
 
 Only the `COMLINK_` names of the Environment reach the Worker: `repo.secrets.deploy` in this config says so, and `--worker` with no entry stops with a `ConfigError` (#2061). Any other key stays in the Environment.

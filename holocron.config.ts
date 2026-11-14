@@ -143,7 +143,7 @@ export default defineConfig({
 		credentials: ["1password"],
 		// Vault: the source `holocron sync secrets` reads. Sentinel and Comlink name their own layer (`prod`) in their
 		// configs; this one is for the GitHub Actions secrets, so it is the `ci` layer, `<org/repo> - ci` (#2069).
-		// `holocron sync secrets ci` reads it (`repo.secrets.sync` says where each key goes).
+		// `holocron sync secrets --env ci` reads it (`repo.secrets.sync` says where each key goes).
 		vault: ["1password", { layer: "ci" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",

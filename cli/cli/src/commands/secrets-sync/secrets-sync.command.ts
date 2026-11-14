@@ -1,9 +1,7 @@
-import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { loadConfig } from "../../config/index.js";
 import { assertSyncableLayer } from "../../credentials-environments/index.js";
-import { getEntry } from "../../interactive-menu/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
@@ -13,7 +11,7 @@ import { parseScope } from "./parse-scope/index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 
 export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
-	command: "secrets [environmentId]",
+	command: "secrets",
 	describe: "Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 	builder: secretsSyncArgs,
 	handler: async (argv) => {
@@ -21,12 +19,12 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 		if (!tokens) return;
 		// Only a scope given on the command line counts as naming a destination (#2104).
 		const githubSecretScope = argv.githubSecretScope ? parseScope(argv.githubSecretScope as string) : undefined;
-		const [environmentId] = await promptForPositionals(getEntry("sync secrets"), argv as Record<string, unknown>);
+		const environmentId = argv.env;
 		// `local` and `dev` are read by this machine and never synced, whatever else is given (#2104).
-		await assertSyncableLayer(environmentId!, { repoRoot: argv.cwd });
+		await assertSyncableLayer(environmentId, { repoRoot: argv.cwd });
 		const loaded = await loadConfig(argv.cwd);
 		// A layer word (`prod`) names this repository's Environment of that layer; any other text is a literal name.
-		const environment = await resolveEnvironmentId(environmentId!, { repoRoot: argv.cwd });
+		const environment = await resolveEnvironmentId(environmentId, { repoRoot: argv.cwd });
 		applyResolvedConfig(argv, loaded.resolved);
 		// `--github-secret` describes one route by hand; without it, `repo.secrets.sync` says where each key goes.
 		const routes = argv.githubSecret?.length ? [] : secretRoutes(loaded.resolved.repo?.secrets?.sync, environment);

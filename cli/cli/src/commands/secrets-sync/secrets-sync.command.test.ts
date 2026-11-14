@@ -94,6 +94,7 @@ describe("sync secrets", () => {
 	it("syncs the vault environment to the targets, with the project, worker and GitHub secrets as given", async () => {
 		await go([
 			"secrets",
+			"--env",
 			"prd",
 			"--project-id",
 			"p1",
@@ -119,11 +120,25 @@ describe("sync secrets", () => {
 		});
 	});
 
+	it("takes the environment only as --env: the old positional is a usage error, and so is leaving it out", async () => {
+		const positional = await go(["secrets", "ci"]).catch((e: unknown) => e);
+		expect(String((positional as Error).message ?? positional)).toMatch(/Unknown argument|env/i);
+		const missing = await go(["secrets"]).catch((e: unknown) => e);
+		expect(String((missing as Error).message ?? missing)).toMatch(/Missing required argument: env/);
+		expect(runSecretsSync).not.toHaveBeenCalled();
+	});
+
+	it("shows the --env syntax in the refusal of a local or dev sync", async () => {
+		const err = await go(["secrets", "--env", "dev"]).catch((e: unknown) => e);
+		expect((err as Error).message).toContain("`sync secrets --env dev`");
+	});
+
 	it.each(["dev", "local"])(
 		"refuses the %s layer whatever else is given, before any config is loaded",
 		async (layer) => {
 			const err = await go([
 				"secrets",
+				"--env",
 				layer,
 				"--github-secret",
 				"A",
@@ -141,7 +156,7 @@ describe("sync secrets", () => {
 	);
 
 	it("leaves out the project, worker and GitHub secrets it was not given", async () => {
-		await go(["secrets", "prd"]);
+		await go(["secrets", "--env", "prd"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect(
 			["projectId", "workerScript", "githubSecretKeys", "secretRoutes", "githubSecretScope"].some(
@@ -166,7 +181,7 @@ describe("sync secrets", () => {
 			},
 			filepath: "/x",
 		});
-		await go(["secrets", "ci"]);
+		await go(["secrets", "--env", "ci"]);
 		expect(runSecretsSync.mock.calls[0]![0].secretRoutes).toEqual([
 			{ scope: { kind: "organization", name: "acme" }, keys: ["A"] },
 			{ scope: { kind: "repo" }, keys: ["B"] },
@@ -186,23 +201,23 @@ describe("sync secrets", () => {
 			},
 			filepath: "/x",
 		});
-		await go(["secrets", "vars"]);
+		await go(["secrets", "--env", "vars"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect(input.variableRoutes).toEqual([{ scope: { kind: "organization", name: "acme" }, keys: ["A"] }]);
 		expect(input.secretRoutes).toEqual([]);
 
 		runSecretsSync.mockClear();
-		await go(["secrets", "ci"]);
+		await go(["secrets", "--env", "ci"]);
 		const secretsOnly = runSecretsSync.mock.calls[0]![0];
 		expect("variableRoutes" in secretsOnly).toBe(false);
 		expect(secretsOnly.secretRoutes).toHaveLength(1);
 	});
 
 	it("reads the Environment of a layer word, and a literal name as it is", async () => {
-		await go(["secrets", "prod"]);
+		await go(["secrets", "--env", "prod"]);
 		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("org/repo - prod");
 		runSecretsSync.mockClear();
-		await go(["secrets", "Sentinel"]);
+		await go(["secrets", "--env", "Sentinel"]);
 		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("Sentinel");
 	});
 
@@ -211,7 +226,7 @@ describe("sync secrets", () => {
 			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "org/repo - ci", keys: ["A"] }] } } },
 			filepath: "/x",
 		});
-		await go(["secrets", "ci", "--github-secret", "Z"]);
+		await go(["secrets", "--env", "ci", "--github-secret", "Z"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect("secretRoutes" in input).toBe(false);
 		expect(input.githubSecretKeys).toEqual(["Z"]);
@@ -219,11 +234,11 @@ describe("sync secrets", () => {
 
 	it("exits 1 when a secret failed, and stops when --token cannot be parsed", async () => {
 		runSecretsSync.mockResolvedValue({ summary: { ok: 0, fail: 1, skip: 0 } });
-		await go(["secrets", "prd"]);
+		await go(["secrets", "--env", "prd"]);
 		expect(process.exitCode).toBe(1);
 		tokenContext.mockReturnValue(null);
 		runSecretsSync.mockClear();
-		await go(["secrets", "prd"]);
+		await go(["secrets", "--env", "prd"]);
 		expect(runSecretsSync).not.toHaveBeenCalled();
 	});
 });

@@ -59,7 +59,7 @@ holocron deploy main --project-id prj_xxx --target production
 
 ```bash
 # Pull from Doppler "production" config → push to GitHub secrets + Vercel production + preview
-holocron sync secrets production --project-id prj_xxx
+holocron sync secrets --env production --project-id prj_xxx
 ```
 
 The full [API reference](/holocron/plugins/holocron-plugin-vercel/api/readme/) is generated from the package's TSDoc comments.

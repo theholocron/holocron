@@ -5,10 +5,11 @@ import type { GlobalArgs } from "../global-args/index.js";
 
 export const secretsSyncArgs = (y: Argv<GlobalArgs>) =>
 	y
-		.positional("environmentId", {
+		.option("env", {
 			type: "string",
+			demandOption: true,
 			describe:
-				"Vault environment to read: a layer (local, dev, ci, prod) of this repository, or an Environment name",
+				"Vault environment to read, one value: a layer (ci, prod) of this repository, or an Environment name. `local` and `dev` are never synced",
 		})
 		.option("project-id", {
 			type: "string",
