@@ -53,9 +53,9 @@ Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler 
 `holocron probe comlink deliver` does the signed delivery from the command line. The collection's tests run its signing
 script against the real relay (`src/requests/requests.test.ts`).
 
-`holocron setup --cwd apps/comlink` pushes both files through the `tooling` provider (`providers.tooling` in
+`holocron sync tooling --cwd apps/comlink` pushes both files through the `tooling` provider (`providers.tooling` in
 `holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
-is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the steps first.
+is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the step first.
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
 `holocron export requests --to bruno --cwd apps/comlink` writes OpenCollection YAML into the git-ignored
