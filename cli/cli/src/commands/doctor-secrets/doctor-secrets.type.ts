@@ -2,7 +2,7 @@ import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui"
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
+import type { PluginLoader, RuntimeContext, SecretScope, Source } from "../../plugin/index.js";
 
 /** An environment `doctor secrets --env` can be asked about. */
 export type DoctorEnvironment = "local" | "dev" | "ci" | "test" | "prod";
@@ -19,6 +19,14 @@ export interface RunDoctorSecretsInput {
 	 * command does not cover yet (`local`, `dev`) or that has no layer (`test`) is a skipped row.
 	 */
 	environments?: readonly DoctorEnvironment[];
+	/** Show only the secrets block (`--only-secrets`) or only the variables block (`--only-variables`). Both when omitted. */
+	only?: "secrets" | "variables";
+	/** An `extra` name is a failure instead of an `info` row (`--strict`). */
+	strict?: boolean;
+	/** Print how each place stands for this one name and exit 0 (`--name`). */
+	name?: string;
+	/** The terminal's width in columns, for laying the matrix out. Defaults to the real terminal's, else 100. */
+	width?: number;
 	/** Where the rows and the closing count go. Defaults to the console. */
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */
@@ -50,4 +58,106 @@ export interface SyncedSecrets {
 	scopes: Array<{ scope: SecretScope; names: string[]; repos?: string[] }>;
 	/** A row for each entry that could not be resolved. */
 	rows: CheckRow[];
+}
+
+/** Either why a variable scope could not be read, or the problems found there (none when it matches) and the names it holds. */
+export type VariableScopeResult = { skip: string } | { problems: string[]; checked: number; have?: string[] };
+
+/** One variable scope to read through the `source` provider and compare. */
+export interface VariableScopeCheck {
+	/** The row id. */
+	id: string;
+	/** The row title. */
+	title: string;
+	/** Whether this reads the repository's variables or an organization's. */
+	scope: "repo" | "org";
+	/** Reads the scope and compares it. */
+	run(source: Source): Promise<VariableScopeResult>;
+}
+
+/** What one variable scope held when it was read, by name only. */
+export interface VariableObservation {
+	/** The repository's variables or an organization's. */
+	scope: "repo" | "org";
+	/** The names found there; absent when the scope could not be read. */
+	have?: string[];
+	/** Why the scope could not be read, when it could not. */
+	unread?: string;
+}
+
+/** The result of the variable checks. */
+export interface VariableRowsResult {
+	/** Whether the config declares any variable to check. */
+	declared: boolean;
+	/** The rows to show. */
+	rows: CheckRow[];
+	/** One observation per scope read, for the matrix. */
+	observations: VariableObservation[];
+}
+
+/** What one cell of the matrix says about a name in one place. */
+export type MatrixCell = "ok" | "n/a" | "MISSING" | "extra" | "?";
+
+/** One place a name can be stored: a column of the matrix. */
+export interface MatrixColumn {
+	/** A stable id, such as `1password:ci` or `github:repo`. */
+	id: string;
+	/** What stores it: the vault provider (1Password), GitHub or a deployment. Columns are grouped by this. */
+	group: string;
+	/** The place within its group: a layer, a scope or an environment name. */
+	label: string;
+	/** The environment that `--env` selects this column with. */
+	env: "local" | "dev" | "ci" | "prod";
+	/** The column's MISSING names are already a failing row of another check, so the matrix adds none. */
+	reportedElsewhere?: boolean;
+	/** When the column cannot be read, another check already has a skipped row that says why, so the matrix adds none. */
+	unreadReported?: boolean;
+}
+
+/** What is known about one place: the names it holds, the names it should hold and why. Names only. */
+export interface MatrixPlace {
+	/** The column the place fills. */
+	column: MatrixColumn;
+	/** Whether the names are secrets or variables, which decides the block they appear in. */
+	kind: "secret" | "variable";
+	/** The names found there. Absent when the place could not be read. */
+	present?: string[];
+	/** The names the config says it should hold. */
+	needed: string[];
+	/** Why a name is needed, by upper-case name, for the `--name` lookup. */
+	reasons?: Record<string, string>;
+	/** Why the place could not be read, when it could not. */
+	unread?: string;
+}
+
+/** One name and its cell in each column. */
+export interface MatrixRow {
+	/** The name, in the spelling the config uses when it has one. */
+	name: string;
+	/** The cell for each column id. */
+	cells: Record<string, MatrixCell>;
+}
+
+/** The matrix: the columns, then one block of rows for secrets and one for variables. */
+export interface Matrix {
+	/** The columns of the secrets block, then of the variables block, grouped and in a stable order. */
+	columns: { secret: MatrixColumn[]; variable: MatrixColumn[] };
+	/** One row per secret name. */
+	secrets: MatrixRow[];
+	/** One row per variable name. */
+	variables: MatrixRow[];
+	/** The places the matrix was built from, kept for the rows and the name lookup. */
+	places: MatrixPlace[];
+}
+
+/** What one GitHub secret scope held when it was read, by name only. */
+export interface SecretObservation {
+	/** The scope that was read. */
+	scope: SecretScope;
+	/** The names the config says it should hold. */
+	needed: string[];
+	/** The names found there; absent when the scope could not be read. */
+	have?: string[];
+	/** Why the scope could not be read, when it could not. */
+	unread?: string;
 }

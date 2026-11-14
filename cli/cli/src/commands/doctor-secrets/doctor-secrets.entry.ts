@@ -12,6 +12,14 @@ export const doctorSecretsEntry: MenuEntry = {
 			type: "input",
 			message: "Environments to check (local, dev, ci, test, prod; comma-separated):",
 		},
+		{
+			key: "strict",
+			flag: "--strict",
+			type: "confirm",
+			default: false,
+			message: "Fail when a place holds a name nothing feeds?",
+		},
+		{ key: "name", flag: "--name", type: "input", message: "Look up one name:" },
 	],
 	supportsDryRun: false,
 };

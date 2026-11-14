@@ -9,7 +9,7 @@ holocron doctor repo
 
 Compares what [`holocron setup`](/holocron/commands/setup/) writes to the repository with what the `source` provider reports now, and prints one row per group. It changes nothing and exits non-zero while any row fails.
 
-Run it after `setup` to see whether the repository still matches the config, or before it to see what `setup` would change. Variables, secrets and environments have their own checks: [`doctor variables`](/holocron/commands/doctor-variables/) and [`doctor secrets`](/holocron/commands/doctor-secrets/).
+Run it after `setup` to see whether the repository still matches the config, or before it to see what `setup` would change. Variables, secrets and environments have their own checks: [`doctor secrets`](/holocron/commands/doctor-secrets/) (secrets and Actions variables).
 
 ```text
   ✓ description and homepage match  2 of 2 match
@@ -54,4 +54,4 @@ A row **fails** when something differs and when the provider reports an error fo
 
 The reads use the same token as `setup`: `github.admin` for the repository, rulesets and security settings, and `github.org` for the teams when set. Security settings GitHub does not report to the token are left out of the comparison rather than counted as off.
 
-Related: [`doctor`](/holocron/commands/doctor/), [`setup`](/holocron/commands/setup/), [`doctor variables`](/holocron/commands/doctor-variables/), [`doctor secrets`](/holocron/commands/doctor-secrets/).
+Related: [`doctor`](/holocron/commands/doctor/), [`setup`](/holocron/commands/setup/), [`doctor secrets`](/holocron/commands/doctor-secrets/).

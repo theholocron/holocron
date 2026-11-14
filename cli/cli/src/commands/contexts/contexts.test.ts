@@ -69,7 +69,6 @@ const EVERY_COMMAND = [
 	"doctor secrets",
 	"doctor tokens",
 	"doctor monitoring",
-	"doctor variables",
 	"doctor variable-owners",
 	"doctor shared-values",
 	"doctor ci",
@@ -146,7 +145,6 @@ describe("COMMAND_CONTEXTS", () => {
 			"doctor secrets",
 			"doctor tokens",
 			"doctor monitoring",
-			"doctor variables",
 			"doctor variable-owners",
 			"doctor shared-values",
 		]) {

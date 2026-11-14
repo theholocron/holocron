@@ -1,11 +1,11 @@
 import { stripVTControlCharacters } from "node:util";
 
-import { fakeLogger } from "@theholocron/observability/testing";
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { MissingTokenError, type PluginImporter, PluginLoader } from "../../plugin/index.js";
-import { runDoctorVariables } from "./doctor-variables.js";
+import { variableRows } from "./variable-rows.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
 
@@ -42,17 +42,28 @@ async function run(
 	context: { org?: string; repo?: string } = {}
 ) {
 	const lines: string[] = [];
-	const report = await runDoctorVariables({
-		loaded,
-		context: { repoRoot: "/tmp/test", ...context },
-		loader: loaderWith(loaded, source, context),
-		print: (l) => lines.push(stripVTControlCharacters(l)),
-		logger: fakeLogger(),
-	});
+	const loader = loaderWith(loaded, source, context);
+	await loader.load();
+	const org = context.org ?? (context.repo ?? loaded.resolved.repo?.name ?? "").split("/")[0];
+	const result = await variableRows(loader, loaded.resolved, org);
+	const rows: CheckRow[] = result.declared
+		? result.rows
+		: [{ id: "variables", title: "variables", status: "ok", detail: "none declared", problems: [] }];
+	printCheckRows(rows, (l) => lines.push(stripVTControlCharacters(l)));
+	const summary = summariseChecks(rows);
+	printCheckSummary(summary, (l) => lines.push(stripVTControlCharacters(l)));
+	const status = summary.fail > 0 ? "fail" : summary.ok === 0 ? "skip" : "ok";
+	const report = {
+		status,
+		summary,
+		rows,
+		observations: result.observations,
+		reason: status === "skip" ? rows.map((r) => r.detail).join("; ") : undefined,
+	};
 	return { report, lines };
 }
 
-describe("doctor variables — what is declared", () => {
+describe("variable rows — what is declared", () => {
 	it("says none declared when the config declares no variables", async () => {
 		const { report, lines } = await run(loadedWith(undefined, { providers: {} }), null);
 		expect(report.status).toBe("ok");
@@ -69,7 +80,7 @@ describe("doctor variables — what is declared", () => {
 	});
 });
 
-describe("doctor variables — repository", () => {
+describe("variable rows — repository", () => {
 	const declared = { repo: { TURBO_TEAM: "acme", CF_ACCOUNT: "123" } };
 
 	it("passes when every declared variable exists with its value, whatever the case of the name", async () => {
@@ -114,7 +125,7 @@ describe("doctor variables — repository", () => {
 	});
 });
 
-describe("doctor variables — organization", () => {
+describe("variable rows — organization", () => {
 	const declared = { org: { A: "1", B: { value: "2", visibility: "private" as const } } };
 	const ctx = { org: "acme" };
 
@@ -199,7 +210,7 @@ describe("doctor variables — organization", () => {
 	});
 });
 
-describe("doctor variables — no provider", () => {
+describe("variable rows — no provider", () => {
 	it("skips every declared scope with the reason", async () => {
 		const { report, lines } = await run(
 			loadedWith({ repo: { A: "1" }, org: { B: "2" } }, { providers: {} }),
@@ -223,7 +234,7 @@ describe("doctor variables — no provider", () => {
 	});
 });
 
-describe("doctor variables — repo.variables.sync", () => {
+describe("variable rows — repo.variables.sync", () => {
 	const sync = (extra: Record<string, unknown> = {}) => ({
 		sync: [{ environment: "Vars", scope: "org=acme", keys: ["TURBO_TEAM", "AXIOM_DATASET"], ...extra }],
 	});
@@ -275,18 +286,5 @@ describe("doctor variables — repo.variables.sync", () => {
 			status: "skip",
 			detail: "provider does not implement listVariables",
 		});
-	});
-});
-
-describe("doctor variables — defaults", () => {
-	it("prints to the console and builds its own loader when none is passed", async () => {
-		const log = vi.spyOn(console, "log").mockImplementation(() => {});
-		const report = await runDoctorVariables({
-			loaded: loadedWith(undefined, { providers: {} }),
-			context: { repoRoot: "/tmp/test" },
-		});
-		expect(report.status).toBe("ok");
-		expect(log).toHaveBeenCalled();
-		log.mockRestore();
 	});
 });

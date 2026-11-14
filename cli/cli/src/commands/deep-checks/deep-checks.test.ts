@@ -46,12 +46,6 @@ vi.mock("../doctor-dns/index.js", async (importActual) => ({
 	runDoctorDns,
 }));
 
-const runDoctorVariables = vi.hoisted(() => vi.fn());
-vi.mock("../doctor-variables/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../doctor-variables/index.js")>()),
-	runDoctorVariables,
-}));
-
 const runDoctorVariableOwners = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-variable-owners/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-variable-owners/index.js")>()),
@@ -338,30 +332,6 @@ describe("the dns entry", () => {
 			status: "skip",
 			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no dns provider",
-		});
-	});
-});
-
-describe("the variables entry", () => {
-	const input = { loaded: {} as never, context: {} as never };
-	const variables = DEEP_CHECKS.find((c) => c.name === "variables")!;
-
-	it("reports the run's status and counts", async () => {
-		runDoctorVariables.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 1 } });
-		expect(await variables.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 1 } });
-	});
-
-	it("carries the reason every row was skipped", async () => {
-		runDoctorVariables.mockResolvedValue({
-			status: "skip",
-			rows: [],
-			summary: { ok: 0, fail: 0, skip: 1 },
-			reason: "no source provider",
-		});
-		expect(await variables.run(input)).toEqual({
-			status: "skip",
-			summary: { ok: 0, fail: 0, skip: 1 },
-			reason: "no source provider",
 		});
 	});
 });

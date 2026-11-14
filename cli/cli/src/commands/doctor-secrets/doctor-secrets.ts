@@ -17,8 +17,15 @@ import { assertPluginsResolvable, PluginLoader, type Vault } from "../../plugin/
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { ciRows } from "./ci-rows.js";
 import { deployKeyRows } from "./deploy-key-rows.js";
-import type { DoctorEnvironment, DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
+import type { DoctorEnvironment, DoctorSecretsReport, Matrix, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
 import { environmentSkipRow } from "./environment-skip-row.js";
+import { buildMatrix } from "./matrix-build.js";
+import { explainName } from "./matrix-explain.js";
+import { matrixPlaces } from "./matrix-places.js";
+import { renderMatrix } from "./matrix-render.js";
+import { matrixRows } from "./matrix-rows.js";
+import { memoVault } from "./memo-vault.js";
+import { variableRows } from "./variable-rows.js";
 
 export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<DoctorSecretsReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -33,30 +40,66 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	};
 
 	const rows: CheckRow[] = [...skipRow("local"), ...skipRow("dev")];
+	const config = input.loaded.resolved;
+	const manual = config.doctor.manualSecrets ?? [];
+	let matrix: Matrix | undefined;
 	if (wants("ci") || wants("prod")) {
-		const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+		const loader = input.loader ?? new PluginLoader(config, input.context);
 		await loader.load();
 		assertPluginsResolvable(loader, "doctor secrets");
-		const vault: Vault | { why: string } = loader.has("vault")
+		const provider: Vault | { why: string } = loader.has("vault")
 			? (loader.get("vault") as Vault)
 			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") };
+		// Each Environment is read once, however many rows and columns ask about it.
+		const vault = "why" in provider ? provider : memoVault(provider);
+		const org = input.context.org ?? (input.context.repo ?? config.repo?.name ?? "").split("/")[0];
+		const withSecrets = input.only !== "variables";
+		const withVariables = input.only !== "secrets";
 
-		const org = input.context.org ?? (input.context.repo ?? input.loaded.resolved.repo?.name ?? "").split("/")[0];
-		const ci = wants("ci")
-			? await ciRows(loader, input.loaded.resolved, vault, org)
-			: { declared: false, rows: [] };
+		const none = { declared: false, rows: [] as CheckRow[], observations: [] };
+		const ci = wants("ci") && withSecrets ? await ciRows(loader, config, vault, org) : none;
+		const variables = wants("ci") && withVariables ? await variableRows(loader, config, org) : none;
 		// What `repo.secrets.deploy` lets a deployment or Worker receive: names only, shown before a sync (#2061).
-		const deployRows = wants("prod")
-			? await deployKeyRows(input.loaded.resolved.repo?.secrets?.deploy ?? [], vault)
-			: [];
-		if (!ci.declared && deployRows.length === 0) {
+		const deployRows =
+			wants("prod") && withSecrets ? await deployKeyRows(config.repo?.secrets?.deploy ?? [], vault) : [];
+		if (!ci.declared && !variables.declared && deployRows.length === 0) {
 			rows.push({ id: "secrets", title: "secrets", status: "ok", detail: "none declared", problems: [] });
 		}
-		rows.push(...ci.rows, ...skipRow("test"), ...deployRows);
+		rows.push(...ci.rows, ...variables.rows, ...skipRow("test"), ...deployRows);
+
+		const places = (
+			await matrixPlaces({
+				config,
+				vault,
+				secrets: ci.observations,
+				variables: variables.observations,
+				org,
+				wants,
+			})
+		).filter(
+			(place) => input.only === undefined || place.kind === (input.only === "secrets" ? "secret" : "variable")
+		);
+		matrix = buildMatrix(places, manual);
+		if (input.name === undefined) rows.push(...matrixRows(matrix, manual, input.strict === true));
 	} else {
 		rows.push(...skipRow("test"));
 	}
 
+	// `--name` is a lookup: it says how each place stands for one name and changes the exit status for nothing.
+	if (input.name !== undefined) {
+		for (const line of matrix
+			? explainName(matrix, input.name, manual)
+			: [`${input.name}: no environment was read`]) {
+			print(line);
+		}
+		return { status: "ok", rows: [], summary: { ok: 0, fail: 0, skip: 0 } };
+	}
+
+	if (matrix && matrix.places.length > 0) {
+		const width = input.width ?? process.stdout.columns ?? 100;
+		for (const line of renderMatrix(matrix, width, input.only)) print(line);
+		print("");
+	}
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);
 	printCheckSummary(summary, print);

@@ -26,7 +26,6 @@ import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets
 import { doctorSharedValuesEntry } from "../../commands/doctor-shared-values/doctor-shared-values.entry.js";
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariableOwnersEntry } from "../../commands/doctor-variable-owners/doctor-variable-owners.entry.js";
-import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { githubAppCreateEntry } from "../../commands/github-app-create/github-app-create.entry.js";
 import { ideasPromoteEntry } from "../../commands/ideas-promote/ideas-promote.entry.js";
 import { ideasSyncEntry } from "../../commands/ideas-sync/ideas-sync.entry.js";
@@ -112,7 +111,6 @@ const registry = createCommandRegistry(
 		doctorRepoEntry,
 		doctorSecretsEntry,
 		doctorTokensEntry,
-		doctorVariablesEntry,
 		doctorVariableOwnersEntry,
 		doctorSharedValuesEntry,
 		doctorCiEntry,

@@ -7,6 +7,7 @@ import { missingTokenReason } from "../missing-token/index.js";
 import { layoutSecretNames, whyMissing } from "../notifications-channel-add/index.js";
 import { repoName } from "../secrets-sync/repo-name/index.js";
 import { accessRow, type OrgReaders, shadowRow } from "./access-rows.js";
+import type { SecretObservation } from "./doctor-secrets.type.js";
 import { expectedSecrets } from "./expected-secrets.js";
 import { syncedSecrets } from "./synced-secrets.js";
 import { uniqueNames } from "./unique-names.js";
@@ -28,14 +29,15 @@ interface ScopeCheck {
  * @param config - The resolved config.
  * @param vault - The `vault` provider, or why there is none.
  * @param org - The organization the organization secrets live in, when it is known.
- * @returns The rows, and whether the config declares anything on this side (when it does not, the caller says so once).
+ * @returns The rows, what each scope held (names only, for the matrix), and whether the config declares anything on this
+ *   side (when it does not, the caller says so once).
  */
 export async function ciRows(
 	loader: PluginLoader,
 	config: ResolvedHolocronConfig,
 	vault: Vault | { why: string },
 	org: string | undefined
-): Promise<{ declared: boolean; rows: CheckRow[] }> {
+): Promise<{ declared: boolean; rows: CheckRow[]; observations: SecretObservation[] }> {
 	const layouts = (loader.has("notifications") ? loader.get("notifications") : []).flatMap((p) =>
 		p.layout ? [p.layout] : []
 	);
@@ -92,13 +94,27 @@ export async function ciRows(
 	}
 
 	const rows: CheckRow[] = [];
-	if (checks.length === 0 && synced.rows.length === 0) return { declared: false, rows };
+	const observations: SecretObservation[] = [];
+	if (checks.length === 0 && synced.rows.length === 0) return { declared: false, rows, observations };
 	if (!loader.has("secrets")) {
 		const why = whyMissing(loader, "secrets", "no `secrets` provider to check them with");
-		for (const { id, title } of checks) rows.push({ id, title, status: "skip", detail: why, problems: [] });
+		for (const { id, title, scope, names } of checks) {
+			rows.push({ id, title, status: "skip", detail: why, problems: [] });
+			if (!("problem" in scope)) observations.push({ scope, needed: names, unread: why });
+		}
 	} else {
 		const secrets = loader.get("secrets") as Secrets;
-		for (const check of checks) rows.push(await checkScope(secrets, check));
+		for (const check of checks) {
+			const checked = await checkScope(secrets, check);
+			rows.push(checked.row);
+			if (!("problem" in check.scope)) {
+				observations.push({
+					scope: check.scope,
+					needed: check.names,
+					...(checked.have ? { have: checked.have } : { unread: checked.row.detail }),
+				});
+			}
+		}
 		// Who can read the organization secrets the sync fills, and a name that a repository secret overrides (#2062).
 		const readers = new Map<string, OrgReaders>();
 		for (const { scope, names, repos } of synced.scopes) {
@@ -119,12 +135,14 @@ export async function ciRows(
 		if (expected.org.length > 0) rows.push(await shadowRow(secrets, expected.org));
 	}
 	rows.push(...synced.rows);
-	return { declared: true, rows };
+	return { declared: true, rows, observations };
 }
 
-async function checkScope(secrets: Secrets, check: ScopeCheck): Promise<CheckRow> {
+async function checkScope(secrets: Secrets, check: ScopeCheck): Promise<{ row: CheckRow; have?: string[] }> {
 	const { id, title, scope, names } = check;
-	if ("problem" in scope) return { id, title, status: "fail", detail: "1 problem(s)", problems: [scope.problem] };
+	if ("problem" in scope) {
+		return { row: { id, title, status: "fail", detail: "1 problem(s)", problems: [scope.problem] } };
+	}
 	try {
 		const have = await secrets.listSecrets(scope);
 		// GitHub treats names as case-insensitive: read what it holds under the spelling the config uses.
@@ -134,12 +152,14 @@ async function checkScope(secrets: Secrets, check: ScopeCheck): Promise<CheckRow
 			new Map(have.map((name) => [spelled.get(name.toUpperCase()) ?? name, true])),
 			{ noun: "secret", flagExtra: false }
 		);
-		return problems.length > 0
-			? { id, title, status: "fail", detail: `${problems.length} problem(s)`, problems }
-			: { id, title, status: "ok", detail: `${names.length} of ${names.length} exist`, problems: [] };
+		const row: CheckRow =
+			problems.length > 0
+				? { id, title, status: "fail", detail: `${problems.length} problem(s)`, problems }
+				: { id, title, status: "ok", detail: `${names.length} of ${names.length} exist`, problems: [] };
+		return { row, have };
 	} catch (err) {
 		const noToken = missingTokenReason(err);
-		if (noToken !== undefined) return { id, title, status: "skip", detail: noToken, problems: [] };
-		return { id, title, status: "fail", detail: errorMessage(err), problems: [] };
+		if (noToken !== undefined) return { row: { id, title, status: "skip", detail: noToken, problems: [] } };
+		return { row: { id, title, status: "fail", detail: errorMessage(err), problems: [] } };
 	}
 }
