@@ -25,6 +25,8 @@ afterEach(() => {
 });
 
 interface Run {
+	id?: number;
+	started_at?: string;
 	name: string;
 	status: string;
 	conclusion: string | null;
@@ -160,6 +162,105 @@ describe.skipIf(!hasJq)("ci workflow script", () => {
 		]);
 		expect(r.code).toBe(1);
 		expect(r.out).toContain("::error title=Typecheck::cancelled");
+	});
+
+	it("judges a check by its newest run: a cancelled first batch does not count once the second passed", () => {
+		const r = run([
+			{
+				runs: [
+					{ ...done("Typecheck / a", "cancelled"), id: 1, started_at: "2026-01-01T00:36:36Z" },
+					{ ...done("Typecheck / a", "success"), id: 3, started_at: "2026-01-01T00:43:03Z" },
+					{ ...done("Test / Conclusion", "failure"), id: 2, started_at: "2026-01-01T00:36:39Z" },
+					{ ...done("Test / Conclusion", "success"), id: 4, started_at: "2026-01-01T00:53:26Z" },
+				],
+			},
+		]);
+		expect(r.code).toBe(0);
+		expect(r.out).toContain("ci passed: all 2 expected checks are green.");
+	});
+
+	it("still fails when the newest run failed after an older success, whatever the listing order", () => {
+		const r = run([
+			{
+				runs: [
+					{ ...done("Typecheck / a", "failure"), id: 9, started_at: "2026-01-01T02:00:00Z" },
+					{ ...done("Typecheck / a", "success"), id: 1, started_at: "2026-01-01T01:00:00Z" },
+					done("Test / a", "success"),
+				],
+			},
+		]);
+		expect(r.code).toBe(1);
+		expect(r.out).toContain("::error title=Typecheck::failure");
+	});
+
+	it("breaks a started_at tie by id", () => {
+		const t = "2026-01-01T00:00:00Z";
+		const r = run([
+			{
+				runs: [
+					{ ...done("Typecheck / a", "success"), id: 2, started_at: t },
+					{ ...done("Typecheck / a", "cancelled"), id: 1, started_at: t },
+					done("Test / a", "success"),
+				],
+			},
+		]);
+		expect(r.code).toBe(0);
+	});
+
+	it("waits while the newest run is open even if an older run passed", () => {
+		const open: Run = {
+			name: "Typecheck / a",
+			status: "in_progress",
+			conclusion: null,
+			id: 2,
+			started_at: "2026-01-01T01:00:00Z",
+		};
+		const r = run(
+			[
+				{
+					runs: [
+						{ ...done("Typecheck / a", "success"), id: 1, started_at: "2026-01-01T00:00:00Z" },
+						open,
+						done("Test / a", "success"),
+					],
+				},
+			],
+			{ TIMEOUT_MINUTES: "0" }
+		);
+		expect(r.code).toBe(1);
+		expect(r.out).toContain("::error title=Typecheck::timed out while still running");
+	});
+
+	it("keeps checks of different ids apart when each has stale runs", () => {
+		const r = run([
+			{
+				runs: [
+					{ ...done("Typecheck / a", "cancelled"), id: 1, started_at: "2026-01-01T00:00:00Z" },
+					{ ...done("Typecheck / a", "success"), id: 3, started_at: "2026-01-01T01:00:00Z" },
+					{ ...done("Test / a", "success"), id: 2, started_at: "2026-01-01T00:00:00Z" },
+					{ ...done("Test / a", "cancelled"), id: 4, started_at: "2026-01-01T01:00:00Z" },
+				],
+			},
+		]);
+		expect(r.code).toBe(1);
+		expect(r.out).toContain("ci failed: Test");
+	});
+
+	it("uses the newest run of a codecov context posted as a check run", () => {
+		const base = [done("Typecheck / a", "success"), done("Test / a", "success")];
+		const r = run(
+			[
+				{
+					runs: [
+						...base,
+						{ ...done("codecov/patch", "failure"), id: 1, started_at: "2026-01-01T00:00:00Z" },
+						{ ...done("codecov/patch", "success"), id: 2, started_at: "2026-01-01T01:00:00Z" },
+					],
+				},
+			],
+			{ STATUSES: '["codecov/patch"]' }
+		);
+		expect(r.code).toBe(0);
 	});
 
 	it("falls back to `none` when a completed run has no conclusion", () => {

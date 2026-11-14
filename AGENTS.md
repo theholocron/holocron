@@ -195,7 +195,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
 - **The `ci` aggregate check** (#1613, spec `ci-flat-task-vocabulary`, epic #1612). One stable required check: the
   reusable `ci/workflows/ci.yml` has one job, `Required checks` (called from the caller job `ci`, so the context is `ci / Required checks`), that polls the Checks API for the PR's head commit until every
   `expected` id has a check run named `<id> / ...` and has completed, and every `statuses` entry (the `codecov/`
-  extras) reached `success`, or 30 minutes pass; an id that never posted fails. `aggregateChecks()` derives both
+  extras) reached `success`, or 30 minutes pass; an id that never posted fails. Only the newest run of each check name counts (latest `started_at`, then `id`), so a cancelled first batch or a job that failed and was re-run to green does not hold the aggregate red (#2171). `aggregateChecks()` derives both
   inputs from the same list the ruleset used to take (`required: true` tasks, then `extraRequiredChecks`, using
   the names the checks post) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that contains
   the reusables. The summary lists every expected check with a link, failures first, plus `::error` annotations.
