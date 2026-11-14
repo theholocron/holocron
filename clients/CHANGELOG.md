@@ -1,3 +1,9 @@
+## [1.58.0-alpha.32](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.31...clients-v1.58.0-alpha.32) (2026-11-14)
+
+### Features
+
+* **axiom:** ✨ add probe axiom token with per-layer permissions and reachable datasets ([#2166](https://github.com/theholocron/holocron/issues/2166)) ([e6963be](https://github.com/theholocron/holocron/commit/e6963be070260fe54fde53603e9162f194a4b052)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2153](https://github.com/theholocron/holocron/issues/2153)
+
 ## [1.58.0-alpha.31](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.30...clients-v1.58.0-alpha.31) (2026-11-14)
 
 ### Features
