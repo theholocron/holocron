@@ -79,7 +79,6 @@ export const COMMAND_CONTEXTS = {
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",
-	"doctor credentials": "workspace",
 	"doctor project": "workspace",
 	// Reads each dataset through the `logs` provider.
 	"doctor logs": "workspace",

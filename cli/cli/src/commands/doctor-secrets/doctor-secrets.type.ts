@@ -1,8 +1,10 @@
+import type { GitExec } from "@theholocron/git-utils";
 import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope, Source } from "../../plugin/index.js";
+import type { AuthImporter } from "../auth/index.js";
 
 /** An environment `doctor secrets --env` can be asked about. */
 export type DoctorEnvironment = "local" | "dev" | "ci" | "test" | "prod";
@@ -13,6 +15,12 @@ export interface RunDoctorSecretsInput {
 	/** The runtime context; `org` says where the organization's secrets live. */
 	context: RuntimeContext;
 	loader?: PluginLoader;
+	/** The loader for the `local` and `dev` side, which must not read the providers' values. Defaults to one that does not. */
+	credentialsLoader?: PluginLoader;
+	/** Loads a plugin package for its `tokens`. Defaults to resolving from the working directory. */
+	importer?: AuthImporter;
+	/** Replaces the `git` call that reads the repo's `origin`, for tests. */
+	gitExec?: GitExec;
 	/**
 	 * The environments to check. Omit it to run every environment the config declares: `ci` (the GitHub secrets
 	 * `repo.secrets.sync` fills) and `prod` (the `repo.secrets.deploy` destinations). An environment named here that this
@@ -160,4 +168,20 @@ export interface SecretObservation {
 	have?: string[];
 	/** Why the scope could not be read, when it could not. */
 	unread?: string;
+}
+
+/** One variable name the configured plugins take, and whether every plugin that lists it only falls back to it. */
+export interface ExpectedToken {
+	/** The variable's name. */
+	name: string;
+	/** Whether every plugin that lists it only falls back to it. */
+	optional: boolean;
+}
+
+/** What the `local` and `dev` side gave: its rows and its places for the matrix. */
+export interface CredentialsRowsResult {
+	/** The rows to show. */
+	rows: CheckRow[];
+	/** One place per credentials Environment that was read or could not be found. */
+	places: MatrixPlace[];
 }

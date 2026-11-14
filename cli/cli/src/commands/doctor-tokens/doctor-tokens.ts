@@ -20,6 +20,7 @@ import { keyring } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader } from "../../plugin/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
+import { configuredPackages } from "../doctor-secrets/configured-packages.js";
 import type { DoctorTokensReport, RunDoctorTokensInput } from "./doctor-tokens.type.js";
 import { describeExpiry } from "./token-expiry/index.js";
 
@@ -64,14 +65,6 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
-
-/** The package of every provider the config names, once each. */
-export function configuredPackages(input: Pick<RunDoctorTokensInput, "loaded">): string[] {
-	const packages = Object.values(input.loaded.resolved.providers).flatMap((entry) =>
-		entry.cardinality === "single" ? [entry.tuple.packageName] : entry.tuples.map((t) => t.packageName)
-	);
-	return [...new Set(packages)];
-}
 
 /**
  * Runs the step every command runs first: the repo's `.env` and the config's `credentials` providers are read into the

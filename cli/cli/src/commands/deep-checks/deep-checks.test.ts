@@ -28,12 +28,6 @@ vi.mock("../doctor-tokens/index.js", async (importActual) => ({
 	runDoctorTokens,
 }));
 
-const runDoctorCredentials = vi.hoisted(() => vi.fn());
-vi.mock("../doctor-credentials/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../doctor-credentials/index.js")>()),
-	runDoctorCredentials,
-}));
-
 const runDoctorEnvironments = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-environments/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-environments/index.js")>()),
@@ -284,30 +278,6 @@ describe("the environments entry", () => {
 			status: "skip",
 			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no environments provider",
-		});
-	});
-});
-
-describe("the credentials entry", () => {
-	const input = { loaded: {} as never, context: {} as never };
-	const credentials = DEEP_CHECKS.find((c) => c.name === "credentials")!;
-
-	it("reports the run's status and counts", async () => {
-		runDoctorCredentials.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 0 } });
-		expect(await credentials.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 0 } });
-	});
-
-	it("carries the reason every row was skipped", async () => {
-		runDoctorCredentials.mockResolvedValue({
-			status: "skip",
-			rows: [],
-			summary: { ok: 0, fail: 0, skip: 1 },
-			reason: "no `credentials` provider is configured",
-		});
-		expect(await credentials.run(input)).toEqual({
-			status: "skip",
-			summary: { ok: 0, fail: 0, skip: 1 },
-			reason: "no `credentials` provider is configured",
 		});
 	});
 });

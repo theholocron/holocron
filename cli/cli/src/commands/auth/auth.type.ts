@@ -64,7 +64,7 @@ export interface PluginToken {
 	/**
 	 * `true` when the plugin only falls back to this token: nothing needs it unless a call names no better source (the
 	 * Discord webhook a post uses when it names no channel). The checks that expect every token a plugin lists, such as
-	 * `holocron doctor credentials`, do not expect it, and `holocron export tokens` marks it as optional when it has none.
+	 * `holocron doctor secrets`, do not expect it, and `holocron export tokens` marks it as optional when it has none.
 	 * Default `false`.
 	 */
 	optional?: boolean;
