@@ -1,0 +1,329 @@
+{
+  "info": {
+    "name": "Comlink relay",
+    "description": "Requests for Comlink's relay Worker (`/<source>`, today `/sentry`). Point `baseUrl` at a Worker run locally, with `COMLINK_SENTRY_SECRET` set to `sentrySecret` and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. The relay answers 405 to a non-POST, 404 to an unknown source, 413 to a body over 256 KB, 401 to a wrong signature, 400 to a body that is not JSON, 202 to a delivery it does not carry and 422 to one it cannot read.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Rejected",
+      "description": "Nothing here reaches Discord: the relay refuses before it formats anything.",
+      "item": [
+        {
+          "name": "GET is not a delivery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 405\", () => pm.response.to.have.status(405));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "description": "Only POST is accepted.",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        },
+        {
+          "name": "unknown source",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 404\", () => pm.response.to.have.status(404));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "No source with this id: 404.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "event_alert"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/nope",
+              "host": ["{{baseUrl}}"],
+              "path": ["nope"]
+            }
+          }
+        },
+        {
+          "name": "POST with no signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 401\", () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "No `Sentry-Hook-Signature`: 401.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "event_alert"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        },
+        {
+          "name": "POST with a wrong signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 401\", () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "A signature that is not this body's under the secret: 401.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "event_alert"
+              },
+              {
+                "key": "Sentry-Hook-Signature",
+                "value": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signed, nothing posted",
+      "description": "Valid deliveries the relay acknowledges or refuses without posting.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.",
+              "const secret = pm.variables.get(\"sentrySecret\");",
+              "if (!secret) throw new Error(\"Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).\");",
+              "const body = pm.variables.replaceIn(pm.request.body.raw);",
+              "pm.request.headers.upsert({ key: \"Sentry-Hook-Signature\", value: CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex) });"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "a resource the source does not carry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 202\", () => pm.response.to.have.status(202));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Only issue alerts (`event_alert`) are carried: 202, so Sentry does not retry.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "issue"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"created\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        },
+        {
+          "name": "event_alert with no event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 422\", () => pm.response.to.have.status(422));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Cannot be read: 422.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "event_alert"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data\":{}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signed, posts to Discord",
+      "description": "This one posts a real message (pings off) to the Discord webhook bound as `COMLINK_SENTRY_WEBHOOK`. Bind a throwaway one.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.",
+              "const secret = pm.variables.get(\"sentrySecret\");",
+              "if (!secret) throw new Error(\"Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).\");",
+              "const body = pm.variables.replaceIn(pm.request.body.raw);",
+              "pm.request.headers.upsert({ key: \"Sentry-Hook-Signature\", value: CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex) });"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "event_alert: posts an embed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test(\"status is 204\", () => pm.response.to.have.status(204));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "204 when Discord accepted it, 502 when it did not, 500 when no webhook is bound.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Sentry-Hook-Resource",
+                "value": "event_alert"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"data\":{\"triggered_rule\":\"Postman check\",\"event\":{\"title\":\"Postman test alert\",\"culprit\":\"postman/collection\",\"level\":\"warning\",\"environment\":\"development\",\"project_name\":\"comlink-test\",\"datetime\":\"2026-01-01T00:00:00Z\"}}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sentry",
+              "host": ["{{baseUrl}}"],
+              "path": ["sentry"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8787"
+    }
+  ]
+}

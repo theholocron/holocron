@@ -37,6 +37,22 @@ The embed's Project field is the Sentry project's slug, taken from the event's A
 A source is one file under `src/sources/<id>/` that implements `Source` (`verify` and `format`) and one entry in the list
 in `src/worker.ts`. Nothing else changes.
 
+## Sending a delivery by hand (Postman)
+
+`postman/comlink.postman_collection.json` and `postman/comlink.postman_environment.json` are a Postman collection and
+environment for a Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
+`COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (a secret-type variable the file leaves empty) and
+`COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as sent
+(`Sentry-Hook-Signature`).
+
+- **Rejected** is a GET, an unknown source and a POST with no or a wrong signature: 405, 404, 401, 401, and nothing is
+  posted.
+- **Signed, nothing posted** is a resource the source does not carry (202) and an `event_alert` with no event (422).
+- **Signed, posts to Discord** is an `event_alert`: it posts a real embed (pings off) to the bound webhook.
+
+`holocron probe comlink deliver` does the signed delivery from the command line. The collection's tests run its signing
+script against the real relay (`src/postman-collection/postman-collection.test.ts`).
+
 ## Build
 
 `pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is

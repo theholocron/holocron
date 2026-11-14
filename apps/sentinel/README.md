@@ -710,6 +710,26 @@ and `SENTINEL_AXIOM_DATASET`, or leave both out. It says which it is on start. U
 (`where env == "development"`); production sets `HOLOCRON_ENVIRONMENT=production` (or the older `ENVIRONMENT=production`) in the `prod` layer Environment. Install the dev
 App only on the repositories you test with.
 
+### Sending a delivery by hand (Postman)
+
+`postman/sentinel.postman_collection.json` and `postman/sentinel.postman_environment.json` are a Postman collection and
+environment for the instance above. Import both, point `baseUrl` at the dev instance (the default is
+`http://127.0.0.1:3000`, what `holocron dev serve` listens on; never production) and put the dev App's webhook secret in
+`webhookSecret`, a secret-type variable the file leaves empty. A pre-request script signs each body as sent
+(`X-Hub-Signature-256`).
+
+The folders go from harmless to acting:
+
+- **Rejected** is a GET, a POST with no signature and a POST with a wrong one: 405, 401, 401, and nothing is read.
+- **Signed, no effect** is a `ping`, a push to a non-default branch and an `installation` `created`: Sentinel answers
+  without a GitHub call, a check or a comment.
+- **Signed, acts on GitHub** is a `pull_request` `opened`: it runs every check on the pull request named by `repo`,
+  `pullNumber` and `installationId`, with the App's installation token, and posts the check runs, comments and the
+  `#prs` feed. Use a sandbox repository the dev App is installed on.
+
+`src/postman-collection/postman-collection.test.ts` runs the collection's signing script against `parseWebhookEvent()`,
+so the two cannot drift apart.
+
 ## Development
 
 | Script               | Description                                 |
