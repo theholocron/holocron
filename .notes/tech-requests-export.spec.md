@@ -12,7 +12,7 @@ related:
 
 The Sentinel and Comlink request collections (#2172) are one JSON source per app, `apps/<app>/requests/collection.json`
 and `environment.json`. A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
-Postman's git-native format is collection schema 3.0 YAML. The JSON should stay the one source, with each tool's format
+the `postman` tool's git-native format is collection schema 3.0 YAML. The JSON should stay the one source, with each tool's format
 generated from it, so no tool's file is edited by hand and none drifts.
 
 ## Decision
@@ -35,7 +35,7 @@ generated from it, so no tool's file is edited by hand and none drifts.
 3. **Bruno plugin** (`@theholocron/holocron-plugin-bruno`, part 2): `tooling` only, files only (no token, no network).
    Converts with `postmanToBruno` (`@usebruno/converters`) then `brunoToOpenCollection` (`@opencollection/converters`),
    dumped as YAML. There is no `bruno-client`: Bruno has no HTTP API.
-4. **Postman plugin** (part 3): `export` writes collection schema 3.0 YAML by running
+4. **`postman` plugin** (part 3): `export` writes collection schema 3.0 YAML by running
    `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper.
 5. **Names.** The request files keep their tool-neutral names, and prose about them names no tool; the provider id and
    the format's own `info.schema` URL are the only mentions.
