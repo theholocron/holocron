@@ -16,4 +16,14 @@ describe("parseTokenArgs", () => {
 	it("ignores other flags, and a --layer with no value", () => {
 		expect(parseTokenArgs(["--copy", "a.dev", "--layer"])).toEqual({ zones: ["a.dev"] });
 	});
+
+	it("reads the token name in either spelling, and does not take its value for a zone", () => {
+		expect(parseTokenArgs(["--layer", "ci", "--token-name", "HOLOCRON_CLOUDFLARE_TOKEN", "a.dev"])).toEqual({
+			layer: "ci",
+			tokenName: "HOLOCRON_CLOUDFLARE_TOKEN",
+			zones: ["a.dev"],
+		});
+		expect(parseTokenArgs(["--token-name=X"])).toEqual({ tokenName: "X", zones: [] });
+		expect(parseTokenArgs(["--token-name"])).toEqual({ zones: [] });
+	});
 });

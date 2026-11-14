@@ -237,8 +237,8 @@ describe("runProbeCommand", () => {
 			expect((await promise).status).toBe("ok");
 			// The first loader has no token of its own; the one built again for the probe has the Environment's.
 			expect(seen).toEqual([undefined, "env-token-value"]);
-			// Where the token came from is in `holocron probe --help`, not repeated in the run.
-			expect(text()).not.toContain("DEMO_TOKEN");
+			// The run names the declared token it checked (its heading), but never the vendor variable or the value.
+			expect(text()).toContain("HOLOCRON_DEMO_TOKEN");
 			expect(text()).not.toContain("env-token-value");
 			expect(text()).toContain("checked");
 		});
@@ -251,14 +251,115 @@ describe("runProbeCommand", () => {
 				args: ["a.dev"],
 				context: { repoRoot: process.cwd() },
 			}).promise;
-			expect(argsSeen).toEqual([["a.dev", "--layer", "ci"]]);
+			expect(argsSeen).toEqual([["a.dev", "--layer", "ci", "--token-name", "HOLOCRON_DEMO_TOKEN"]]);
 		});
 
 		it("passes no layer for an Environment named literally, or for a token given another way", async () => {
 			argsSeen.length = 0;
 			await run({ ...base(), environment: "Sentinel" }).promise;
 			await run({ ...base(), chooseToken: async () => ({ token: "pasted" }) }).promise;
-			expect(argsSeen).toEqual([[], []]);
+			// An Environment named literally has no layer, but the token it held is still named; a pasted token has no name.
+			expect(argsSeen).toEqual([["--token-name", "HOLOCRON_DEMO_TOKEN"], []]);
+		});
+
+		describe("an Environment that holds several declared tokens", () => {
+			const several = async () => [
+				{ envName: "HOLOCRON_A_TOKEN", keyringKey: "a", expect: { layers: ["ci"] as const } },
+				{
+					envName: "HOLOCRON_B_TOKEN",
+					vendorEnvName: "B_TOKEN",
+					keyringKey: "b",
+					expect: { layers: ["dev"] as const },
+				},
+				{ envName: "HOLOCRON_C_TOKEN", keyringKey: "c", expect: { layers: ["ci"] as const } },
+				{ envName: "HOLOCRON_D_TOKEN", keyringKey: "d" },
+			];
+			const held = { HOLOCRON_A_TOKEN: "token-a", B_TOKEN: "token-b" };
+			const severalBase = () => ({
+				...base(),
+				providerTokens: several,
+				loader: tokenLoader({}, held),
+				makeLoader: (context: { cliTokens?: Record<string, string> }) => tokenLoader(context),
+			});
+
+			it("checks each one it holds, in turn, with its own token, a heading and its own name", async () => {
+				argsSeen.length = 0;
+				seen.length = 0;
+				const { promise, text } = run({ ...severalBase(), environment: "Sentinel" });
+				await promise;
+				expect(argsSeen).toEqual([
+					["--token-name", "HOLOCRON_A_TOKEN"],
+					["--token-name", "HOLOCRON_B_TOKEN"],
+				]);
+				// The probe's loader is built again with each token in turn, never with a value printed.
+				expect(seen.filter(Boolean)).toEqual(["token-a", "token-b"]);
+				expect(text()).not.toContain("token-a");
+				const lines = text().split("\n");
+				expect(lines.filter((l) => l.trim() === "HOLOCRON_A_TOKEN")).toHaveLength(1);
+				expect(lines.filter((l) => l.trim() === "HOLOCRON_B_TOKEN")).toHaveLength(1);
+			});
+
+			it("says a token the Environment lacks is not held, and does not fail for a literal Environment name", async () => {
+				const { promise, text } = run({ ...severalBase(), environment: "Sentinel" });
+				expect((await promise).status).toBe("ok");
+				expect(text()).toContain("HOLOCRON_C_TOKEN");
+				expect(text()).toContain("not held in Sentinel");
+			});
+
+			it("fails for a missing token the layer is declared to hold, and only describes one it is not", async () => {
+				const { promise, text } = run({
+					...severalBase(),
+					environment: "ci",
+					context: { repoRoot: process.cwd() },
+				});
+				expect((await promise).status).toBe("fail");
+				const lines = text().split("\n");
+				const at = lines.findIndex((l) => l.trim() === "HOLOCRON_C_TOKEN");
+				expect(lines[at + 1]).toContain("not held in theholocron/holocron - ci");
+				// D declares no layers at all, so a layer cannot require it: it is only reported.
+				expect(text()).toContain("HOLOCRON_D_TOKEN");
+			});
+
+			it("keeps the run ok when the missing tokens are not declared for the layer", async () => {
+				const { promise } = run({
+					...severalBase(),
+					providerTokens: async () => [
+						{ envName: "HOLOCRON_A_TOKEN", keyringKey: "a", expect: { layers: ["ci"] as const } },
+						{ envName: "HOLOCRON_C_TOKEN", keyringKey: "c", expect: { layers: ["dev"] as const } },
+					],
+					environment: "ci",
+					context: { repoRoot: process.cwd() },
+				});
+				expect((await promise).status).toBe("ok");
+			});
+
+			it("fails when any one run fails", async () => {
+				const failing: PluginProbes = {
+					check: {
+						summary: "Check a token.",
+						writes: false,
+						acceptsToken: true,
+						run: async (ctx) => {
+							ctx.say({
+								status: ctx.args?.includes("HOLOCRON_B_TOKEN") ? "fail" : "ok",
+								label: "checked",
+							});
+						},
+					},
+				};
+				const withFailing = (context: { cliTokens?: Record<string, string> }) =>
+					({
+						...tokenLoader(context),
+						probes: () => new Map([["demo", failing]]),
+					}) as unknown as PluginLoader;
+				const { promise } = run({
+					...severalBase(),
+					loader: withFailing({}),
+					makeLoader: withFailing,
+					environment: "Sentinel",
+				});
+				expect((await promise).status).toBe("fail");
+			});
 		});
 
 		it("builds its own loader when none is injected, and keeps the probe it already has if the rebuilt loader lacks it", async () => {

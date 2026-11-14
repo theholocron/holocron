@@ -13,6 +13,8 @@ export interface RunProbeInput {
 	probeName: string;
 	/** Words after the probe name, for a probe that takes an argument. */
 	args?: readonly string[];
+	/** A heading row printed first: which declared token this run checks (its variable name). */
+	heading?: string;
 	/** `--lcov <path>`: where a coverage probe also writes its lcov report. */
 	lcov?: string;
 	probe: PluginProbes[string];
@@ -28,6 +30,13 @@ export interface RunProbeInput {
 	confirm?: (message: string) => Promise<boolean>;
 	/** Registers what to do on Ctrl-C and returns how to stop listening. Defaults to a one-shot SIGINT handler. */
 	onInterrupt?: (handler: () => Promise<void>) => () => void;
+}
+
+/** One run of a probe: the context it runs in (its token), the heading naming that token and the arguments only it gets. */
+export interface ProbeStep {
+	context: RuntimeContext;
+	heading?: string;
+	args: string[];
 }
 
 export interface ProbeReport {

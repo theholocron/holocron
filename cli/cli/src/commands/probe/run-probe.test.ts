@@ -55,6 +55,18 @@ describe("runProbe", () => {
 		expect(seen).toEqual(["coverage/docs.lcov", undefined]);
 	});
 
+	it("prints the heading it is given before anything else, as a title and not a result", async () => {
+		const { promise, text } = run(
+			reader(async (ctx) => {
+				ctx.say({ status: "ok", label: "a" });
+			}),
+			{ heading: "HOLOCRON_DEMO_TOKEN" }
+		);
+		const report = await promise;
+		expect(report.rows.map((r) => `${r.status}:${r.label}`)).toEqual(["heading:HOLOCRON_DEMO_TOKEN", "ok:a"]);
+		expect(text().trimStart().startsWith("HOLOCRON_DEMO_TOKEN")).toBe(true);
+	});
+
 	it("prints a heading as a title, not as a result", async () => {
 		const { promise, text } = run(
 			reader(async (ctx) => {
