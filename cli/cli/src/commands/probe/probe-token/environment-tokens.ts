@@ -1,5 +1,6 @@
 import { ENVIRONMENT_LAYERS, isEnvironmentLayer } from "../../../credentials-environments/index.js";
 import { resolveEnvironmentId } from "../../secrets-sync/resolve-environment-id/index.js";
+import { HoldsNoTokenError } from "./holds-no-token-error.js";
 import type { EnvironmentTokenInput, EnvironmentTokens } from "./probe-token.type.js";
 
 /**
@@ -50,7 +51,7 @@ export async function environmentTokens(input: EnvironmentTokenInput): Promise<E
 	}
 	if (held.length === 0) {
 		const names = input.tokens.flatMap((t) => [t.envName, ...(t.vendorEnvName ? [t.vendorEnvName] : [])]);
-		throw new Error(`${environment} holds none of ${names.join(", ")}`);
+		throw new HoldsNoTokenError(`${environment} holds none of ${names.join(", ")}`);
 	}
 	return { environment, held, missing };
 }
