@@ -1,0 +1,42 @@
+---
+title: "sync tooling"
+description: Sync each tooling provider (collections, environments, specs) without running the rest of setup.
+---
+
+```bash
+holocron sync tooling [--dry-run]
+```
+
+A `tooling` provider keeps a tool in step with the repo: it pushes the repo's API definitions, request collections and environments to a workspace. [`setup`](/holocron/commands/setup/) already runs each provider's `sync()`, but only after every other step the config declares (the vault, the deployment domain, DNS), so pushing a collection needed all of those to be reachable. `sync tooling` runs the `tooling` providers and nothing else.
+
+```ts
+providers: {
+	tooling: [
+		["postman", { workspace: "Holocron", collectionFiles: ["requests/collection.json"], envFiles: ["requests/environment.json"] }],
+	],
+},
+```
+
+Run it from the app's folder, so the provider's relative paths resolve there:
+
+```bash
+holocron sync tooling --cwd apps/comlink
+```
+
+## Behavior
+
+- **Only the providers it needs.** It loads the `tooling` providers and the `credentials` provider a plugin's token may come from (for example the 1Password Environment holding `HOLOCRON_POSTMAN_TOKEN`). The vault, the deployment, DNS and every other provider are not loaded, called or reported, so one that is unreachable cannot fail this run.
+- **One row per provider.** Rows print like every [`doctor <capability>`](/holocron/commands/doctor/), then `N ok, N fail, N skipped`. A provider that throws is a failing row with its message, the others still run, and the exit code is 1 if any row fails. A config with no `tooling` provider is a failing row that says where to set one.
+- **`--dry-run`** names each provider as `would sync` and calls none.
+- **No confirmation.** Like `setup`, it makes the tool match what the repo declares: it creates what is missing and replaces what the repo declares, and removes nothing else. What it replaces is the provider's own; see the [Postman plugin](/holocron/plugins/postman/) for what `sync` does there.
+
+## Options
+
+| Option      | Default | Description                                |
+| ----------- | ------- | ------------------------------------------ |
+| `--dry-run` | `false` | Name what each provider would sync, only   |
+| `--cwd`     | `.`     | The folder holding the `holocron.config.*` |
+
+## Tokens
+
+Each plugin reads its token through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs the plugin packages of the `tooling` providers to resolve, as every command that calls a provider does.

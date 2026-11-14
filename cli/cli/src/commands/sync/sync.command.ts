@@ -11,6 +11,7 @@ import { specsSyncCommand } from "../specs-sync/specs-sync.command.js";
 import { syncGithubCommand } from "../sync-github/sync-github.command.js";
 import { syncIssuesCommand } from "../sync-issues/index.js";
 import { syncReadmeCommand } from "../sync-readme/sync-readme.command.js";
+import { syncToolingCommand } from "../sync-tooling/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runSync } from "./index.js";
 import { type SyncArgs, syncArgs } from "./sync.args.js";
@@ -25,6 +26,7 @@ export const syncCommand: CommandModule<GlobalArgs, SyncArgs> = {
 			.command(syncIssuesCommand as never)
 			.command(syncReadmeCommand as never)
 			.command(ideasSyncCommand as never)
+			.command(syncToolingCommand as never)
 			.command(specsSyncCommand as never)
 			.command(secretsSyncCommand as never)
 			.command(notificationsSyncRolesCommand as never),
