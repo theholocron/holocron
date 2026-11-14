@@ -644,6 +644,7 @@ plugins/                          — vendor capability providers, one package p
   holocron-plugin-fern/           — wiki
   holocron-plugin-obsidian/       — ideas (files only: no token, no network)
   holocron-plugin-postman/        — tooling
+  holocron-plugin-bruno/          — tooling (files only: no token, no network; `export requests` writes OpenCollection YAML)
   holocron-plugin-posthog/        — analytics
   holocron-plugin-sentry/         — errors
   holocron-plugin-checkly/        — monitoring (REST)

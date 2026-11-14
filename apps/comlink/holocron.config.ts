@@ -28,12 +28,23 @@ export default defineConfig({
 		// them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
 		// `sentrySecret` is committed empty and keeps the value set there.
 		tooling: [
-			"postman",
-			{
-				workspace: "Holocron",
-				collectionFiles: ["requests/collection.json"],
-				envFiles: ["requests/environment.json"],
-			},
+			[
+				"postman",
+				{
+					workspace: "Holocron",
+					collectionFiles: ["requests/collection.json"],
+					envFiles: ["requests/environment.json"],
+				},
+			],
+			// Bruno reads files, not an account: `holocron export requests --to bruno` writes the same collection as
+			// OpenCollection YAML into the git-ignored `requests/.export/bruno/`.
+			[
+				"bruno",
+				{
+					collectionFiles: ["requests/collection.json"],
+					envFiles: ["requests/environment.json"],
+				},
+			],
 		],
 		// This machine's own tokens (the Cloudflare one `workers` uses, and CLOUDFLARE_ACCOUNT_ID) come from the
 		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.
