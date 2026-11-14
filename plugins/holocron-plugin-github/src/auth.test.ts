@@ -78,7 +78,11 @@ describe("the plugin's tokens export", () => {
 		expect(tokens).toHaveLength(9);
 		expect(new Set(tokens.map((t) => t.envName)).size).toBe(9);
 		expect(new Set(tokens.map((t) => t.keyringKey)).size).toBe(9);
-		expect(tokens).toContainEqual({ envName: "HOLOCRON_ADMIN_TOKEN", keyringKey: "github.admin" });
-		expect(tokens).toContainEqual({ envName: "HOLOCRON_USER_SYNC_TOKEN", keyringKey: "github.user-sync" });
+		expect(tokens).toContainEqual(
+			expect.objectContaining({ envName: "HOLOCRON_ADMIN_TOKEN", keyringKey: "github.admin" })
+		);
+		expect(tokens).toContainEqual(
+			expect.objectContaining({ envName: "HOLOCRON_USER_SYNC_TOKEN", keyringKey: "github.user-sync" })
+		);
 	});
 });

@@ -8,20 +8,17 @@
  * returns the bound implementation.
  */
 
-import type { Auth, Ci, Environments, Issues, PluginToken, Projects, Secrets, Source } from "@theholocron/cli";
+import type { Auth, Ci, Environments, Issues, Projects, Secrets, Source } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
 import {
 	AuthError,
 	resolveAdminToken,
-	resolveDeployToken,
 	resolveIssuesToken,
 	resolveOrgToken,
 	resolveReadToken,
-	resolveReleaseToken,
 	resolveSecretsToken,
-	resolveSyncToken,
 	type ResolveTokenInput,
 	resolveUserSyncToken,
 } from "./auth.js";
@@ -31,6 +28,8 @@ import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubProjects } from "./capabilities/projects.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
+import { tokenProbe } from "./probes/token/token.js";
+import { TOKEN_RESOLVERS } from "./token-resolvers.js";
 import { verifyToken } from "./verify-token.js";
 
 /** Options for the GitHub plugin. */
@@ -174,6 +173,13 @@ export function createPlugin(options: GitHubPluginOptions) {
 	return {
 		name: "@theholocron/holocron-plugin-github",
 		probes: {
+			token: tokenProbe({
+				repo: options.repo,
+				baseUrl: (options.baseUrl ?? "https://api.github.com").replace(/\/$/, ""),
+				fetch: options.fetch ?? fetch,
+				resolve: (envName) => TOKEN_RESOLVERS[envName]?.(options),
+				tokenNames: Object.keys(TOKEN_RESOLVERS),
+			}),
 			connection: connectionProbe({
 				provider: "GitHub",
 				url: options.baseUrl ?? "https://api.github.com",
@@ -218,21 +224,6 @@ export type { NormalizedTeamEntry, TeamEntry, TeamPermission } from "./capabilit
 export { normalizeTeamEntry, syncTeams } from "./capabilities/teams.js";
 export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
+export { tokens } from "./tokens.js";
 export { verifyToken } from "./verify-token.js";
-
-/**
- * Every token this plugin takes, for `holocron doctor secrets --verify`. The release token is `optional`: only CI's release
- * workflow reads it (from the org secret), so a development environment has no reason to hold it.
- */
-export const tokens: PluginToken[] = [
-	resolveReadToken.token,
-	resolveIssuesToken.token,
-	resolveSyncToken.token,
-	{ ...resolveReleaseToken.token, optional: true },
-	resolveAdminToken.token,
-	resolveSecretsToken.token,
-	resolveDeployToken.token,
-	resolveUserSyncToken.token,
-	resolveOrgToken.token,
-];
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
