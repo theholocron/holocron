@@ -1,3 +1,14 @@
+## [5.0.0-alpha.435](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.434...v5.0.0-alpha.435) (2026-11-14)
+
+### Features
+
+* **axiom:** ✨ add probe axiom token with per-layer permissions and reachable datasets ([#2166](https://github.com/theholocron/holocron/issues/2166)) ([e6963be](https://github.com/theholocron/holocron/commit/e6963be070260fe54fde53603e9162f194a4b052)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2153](https://github.com/theholocron/holocron/issues/2153)
+* **github:** ✨ add probe github token and declare each GitHub token's permissions ([#2165](https://github.com/theholocron/holocron/issues/2165)) ([76b7415](https://github.com/theholocron/holocron/commit/76b741597004d1c52ddcfc4bcbfb5dc9344ef34c)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2151](https://github.com/theholocron/holocron/issues/2151)
+
+### Bug Fixes
+
+* **cli:** 🐛 show dev variables as variables and drop the extra rows from doctor secrets ([#2184](https://github.com/theholocron/holocron/issues/2184)) ([071d194](https://github.com/theholocron/holocron/commit/071d194562170bb40f093033e172b45c4c9127f8)), closes [#2183](https://github.com/theholocron/holocron/issues/2183)
+
 ## [5.0.0-alpha.434](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.433...v5.0.0-alpha.434) (2026-11-14)
 
 ### Features
