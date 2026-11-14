@@ -32,6 +32,8 @@ The "token" for `send()` is the full webhook URL, not a separate API key. The bo
 
 The webhook is the last resort for a post that names no channel, alias or `defaultChannel`, so the plugin lists it as an optional token: `holocron doctor secrets` does not expect it in the credentials environment, and `holocron export tokens` marks it `(optional)` when it has none. The connection check (`holocron doctor`, `holocron probe discord connection`) uses the webhook when there is one and the bot token when there is not, so a missing webhook is not a broken connection as long as the bot can be reached.
 
+`holocron probe discord token` checks the bot token itself: that Discord accepts it, that the bot is in the `guildId` server and which of the permissions `setup` needs its roles give it. With `--environment <layer>` it judges the layer's token against what [that layer should carry](/holocron/tokens/#discord).
+
 ## Config
 
 ```ts

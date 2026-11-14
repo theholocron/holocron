@@ -25,6 +25,7 @@ import {
 } from "@theholocron/cli";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { BOT_NEEDS, botNeeds } from "../bot-needs.js";
 import {
 	ApplicationFlag,
 	ChannelType,
@@ -52,20 +53,6 @@ const NOTIFICATIONS = { all: 0, mentions: 1 } as const;
 const FILTER = { off: 0, noRoles: 1, all: 2 } as const;
 const nameOf = <T extends Record<string, number>>(map: T, value: number | undefined): keyof T | undefined =>
 	(Object.keys(map) as Array<keyof T>).find((k) => map[k] === value);
-
-/** What the bot needs in the server to do everything `setup` does. The invite link asks for exactly these. */
-const BOT_NEEDS: PermissionName[] = [
-	"ViewChannel",
-	"SendMessages",
-	"ReadMessageHistory",
-	"ManageChannels",
-	"ManageRoles",
-	"ManageWebhooks",
-	"ManageGuild",
-	"CreatePublicThreads",
-	"CreatePrivateThreads",
-	"SendMessagesInThreads",
-];
 
 /** The OAuth2 scopes Discord offers an application, as its own application page lists them. Exact, lower-case. */
 const SCOPES = new Set([
@@ -593,15 +580,7 @@ export class DiscordNotifications implements Notifications {
 	 * and Add Reactions when a forum has `starterReactions` (without it the bot skips them and the post still gets made).
 	 */
 	private needs(): PermissionName[] {
-		const channels = (this.opts.layout?.categories ?? []).flatMap((c) => c.channels ?? []);
-		const forum = channels.some((ch) => ch.kind === "forum");
-		const reacts = channels.some((ch) => (ch.starterReactions ?? []).length > 0);
-		return [
-			...BOT_NEEDS,
-			...(this.opts.layout?.pinned?.length ? (["PinMessages"] as PermissionName[]) : []),
-			...(forum ? (["ManageThreads"] as PermissionName[]) : []),
-			...(reacts ? (["AddReactions"] as PermissionName[]) : []),
-		];
+		return botNeeds(this.opts.layout);
 	}
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */

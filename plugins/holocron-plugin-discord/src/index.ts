@@ -3,6 +3,7 @@ import { connectionProbe } from "@theholocron/cli";
 
 import { resolveBotToken, resolveClientSecret, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { DiscordNotifications, type DiscordNotificationsOptions } from "./capabilities/notifications.js";
+import { tokenProbe } from "./probes/token/token.js";
 import {
 	createDiscordBotClient,
 	createDiscordClient,
@@ -88,7 +89,7 @@ export function notifications(ctx: PluginContext): Notifications {
 }
 
 /**
- * Creates the Discord plugin: its `notifications` capability and its `connection` probe. The probe checks the webhook
+ * Creates the Discord plugin: its `notifications` capability and its `connection` and `token` probes. The probe checks the webhook
  * when there is one, and the bot token when there is not: the webhook is only a last resort for a post that names no
  * channel, so a missing one is not a failed connection when the bot can be reached.
  */
@@ -99,6 +100,21 @@ export function createPlugin(options: DiscordPluginOptions = {}) {
 	return {
 		name: "@theholocron/holocron-plugin-discord",
 		probes: {
+			// `probe` hands another token over as `cliToken`, which here is the one to check, so it is read as the bot token.
+			token: tokenProbe({
+				options: { guildId: options.guildId, layout: options.layout },
+				token: () =>
+					options.cliToken ??
+					resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
+				bot: () =>
+					createDiscordBotClient({
+						botToken:
+							options.cliToken ??
+							resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
+						...(options.unsafeBotBaseUrl && options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+						...(options.fetch ? { fetch: options.fetch } : {}),
+					}),
+			}),
 			connection: connectionProbe({
 				provider: "Discord",
 				url: options.baseUrl ?? "https://discord.com",
