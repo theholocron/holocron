@@ -1,3 +1,25 @@
+## [5.0.0-alpha.430](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.429...v5.0.0-alpha.430) (2026-11-14)
+
+### Features
+
+* **cli:** doctor secrets prints a matrix of where every secret lives ([#2141](https://github.com/theholocron/holocron/issues/2141)) ([5719432](https://github.com/theholocron/holocron/commit/571943274c6d4f52578784690d3c9d84cbccfbaa)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+* **cli:** sync secrets takes --env, doctor secrets takes an --env list ([#2139](https://github.com/theholocron/holocron/issues/2139)) ([6784c03](https://github.com/theholocron/holocron/commit/6784c03f43cfe56fa6ba19a1bcb60201df3468a6)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+
+### Bug Fixes
+
+* **ci:** count only the newest run of each check in the ci aggregate ([#2173](https://github.com/theholocron/holocron/issues/2173)) ([e732f5f](https://github.com/theholocron/holocron/commit/e732f5fa0e9604fa5423230cb267e492e57fec8d)), closes [#2171](https://github.com/theholocron/holocron/issues/2171)
+
+### Refactoring
+
+* **cli:** ♻️ doctor secrets takes over doctor credentials ([#2143](https://github.com/theholocron/holocron/issues/2143)) ([1c23956](https://github.com/theholocron/holocron/commit/1c239565d36192d88fbf4ca9e5ad05ffd5df5d6c)), closes [#2136](https://github.com/theholocron/holocron/issues/2136)
+* **cli:** doctor secrets --shared replaces doctor shared-values ([#2145](https://github.com/theholocron/holocron/issues/2145)) ([19fdf30](https://github.com/theholocron/holocron/commit/19fdf3099f42430155c5b5cfead34f5ff294c08f)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+* **cli:** doctor secrets --verify replaces doctor tokens ([#2144](https://github.com/theholocron/holocron/issues/2144)) ([df635d0](https://github.com/theholocron/holocron/commit/df635d0e165323b6fab3eb092fa2cedc8a576342)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+
+### Chores
+
+* **cli:** remove doctor variable-owners, its role is --name and extra ([#2146](https://github.com/theholocron/holocron/issues/2146)) ([481ae39](https://github.com/theholocron/holocron/commit/481ae3944ef6270a35dab6c12a643b1ee549c435)), closes [#2136](https://github.com/theholocron/holocron/issues/2136) [#2136](https://github.com/theholocron/holocron/issues/2136)
+* **deps:** bump astro ([#2174](https://github.com/theholocron/holocron/issues/2174)) ([edee617](https://github.com/theholocron/holocron/commit/edee6177dffaa272503120afe6e086136a844ffc))
+
 ## [5.0.0-alpha.429](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.428...v5.0.0-alpha.429) (2026-11-14)
 
 ### Features
