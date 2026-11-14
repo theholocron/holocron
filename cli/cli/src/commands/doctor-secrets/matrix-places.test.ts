@@ -82,4 +82,30 @@ describe("matrixPlaces — the vault", () => {
 		expect(place.unread).toBe(`could not read vault environment ${VARS}: boom`);
 		expect(place.present).toBeUndefined();
 	});
+
+	describe("an Environment that feeds both secrets and variables", () => {
+		const config = configOf({
+			secrets: { sync: [{ environment: VARS, keys: ["A_SECRET"] }] },
+			variables: { sync: [{ environment: VARS, keys: ["A_VAR"] }] },
+		});
+		const both = vaultOf(async () => ({ A_SECRET: "s", A_VAR: "v", NEITHER: "n" }));
+
+		it("does not count a variable's name as an extra secret, nor a secret's as an extra variable", async () => {
+			const places = await matrixPlaces(input(config, [], both));
+			const secret = places.find((p) => p.kind === "secret" && p.column.id === `vault:${VARS}`)!;
+			const variable = places.find((p) => p.kind === "variable" && p.column.id === `vault:${VARS}`)!;
+			expect(secret.present).toEqual(["A_SECRET", "NEITHER"]);
+			expect(variable.present).toEqual(["A_VAR"]);
+		});
+
+		it("keeps a name the secret entry takes whole even when a variable entry lists it", async () => {
+			const taken = configOf({
+				secrets: { sync: [{ environment: VARS }] },
+				variables: { sync: [{ environment: VARS, keys: ["A_VAR"] }] },
+			});
+			const places = await matrixPlaces(input(taken, [], both));
+			const secret = places.find((p) => p.kind === "secret" && p.column.id === `vault:${VARS}`)!;
+			expect(secret.present).toEqual(["A_SECRET", "A_VAR", "NEITHER"]);
+		});
+	});
 });

@@ -189,6 +189,27 @@ export async function matrixPlaces(input: MatrixPlacesInput): Promise<MatrixPlac
 		const environment = resolvedEnvironment(entry);
 		envs.set(`secret:${environment}`, { kind: "secret", env: layerOf(environment, "prod"), environment });
 	}
+	// An Environment can feed both kinds (this repo's `ci` does), and a vault does not tell a secret from a variable. So
+	// each column counts only its own kind: the names the variable entries list are not extra secrets, and a name that
+	// neither kind lists is reported once, under secrets, not again under variables.
+	const listedVariables = (environment: string): Set<string> =>
+		new Set(
+			variableEntries
+				.filter((entry) => resolvedEnvironment(entry) === environment)
+				.flatMap((entry) => entry.keys.map((name) => name.toUpperCase()))
+		);
+	const ownNames = (
+		kind: "secret" | "variable",
+		environment: string,
+		present: string[],
+		needed: string[]
+	): string[] => {
+		if (!envs.has(`${kind === "secret" ? "variable" : "secret"}:${environment}`)) return present;
+		const variables = listedVariables(environment);
+		if (kind === "variable") return present.filter((name) => variables.has(name.toUpperCase()));
+		const wanted = new Set(needed.map((name) => name.toUpperCase()));
+		return present.filter((name) => !variables.has(name.toUpperCase()) || wanted.has(name.toUpperCase()));
+	};
 	for (const { kind, env, environment } of envs.values()) {
 		if (!wants(env)) continue;
 		const found = await namesOf(environment);
@@ -225,7 +246,9 @@ export async function matrixPlaces(input: MatrixPlacesInput): Promise<MatrixPlac
 			kind,
 			needed,
 			reasons,
-			...(Array.isArray(found) ? { present } : { unread: found.why }),
+			...(Array.isArray(found)
+				? { present: ownNames(kind, environment, present, needed) }
+				: { unread: found.why }),
 		});
 	}
 
