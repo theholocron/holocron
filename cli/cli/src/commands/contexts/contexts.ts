@@ -22,6 +22,8 @@ export const COMMAND_CONTEXTS = {
 	"list tokens": "global",
 	// `export tokens` asks the configured plugins for the tokens they take, so their packages must be resolvable.
 	"export tokens": "workspace",
+	// `export requests` loads the `tooling` providers to convert the repo's request files, so their packages must be resolvable.
+	"export requests": "workspace",
 	// `new github-app` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
 	"new github-app": "global",
 	// `check token` loads a plugin to verify, but degrades to "token present,

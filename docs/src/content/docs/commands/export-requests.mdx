@@ -1,0 +1,36 @@
+---
+title: "export requests"
+description: Write the repo's request collections in each tooling provider's own format, under a git-ignored folder.
+---
+
+```bash
+holocron export requests [--to <provider>] [--out <dir>] [--dry-run] [--yes]
+```
+
+A repo can keep a collection of requests and an environment as JSON files (`apps/sentinel/requests/collection.json` and `environment.json`). Those files are the one source. A tool that reads another format cannot open them, so `export requests` asks each `tooling` provider to write its own format from them. Nothing is written back to the source and no account is touched.
+
+## What it does
+
+For every `tooling` provider in `holocron.config` (or only `--to <provider>`), the command reads that provider's `collectionFiles` and `envFiles` options (paths relative to the repo root) and calls the provider's optional `export` with them and an output folder. A provider with no `export` (it reads the source files as they are) is a skipped row, and so is an entry with no `collectionFiles`.
+
+```ts
+providers: {
+	tooling: [
+		["bruno", { collectionFiles: ["requests/collection.json"], envFiles: ["requests/environment.json"] }],
+	],
+},
+```
+
+Each provider writes under its own folder, `<out>/<provider>`. The default `<out>` is `.export` next to the first collection file, so `requests/.export/bruno/`, which the repo's `.gitignore` leaves out (`**/requests/.export/`). `--out <dir>` puts the provider folders under `<dir>` instead (absolute, or relative to the repo root).
+
+## Rules
+
+- **It never writes where the source files are.** A folder that is, or contains, the folder of a collection or environment file is refused, so an export can never overwrite the source. A folder below the source folder, like the default, is fine.
+- **It asks first.** `--dry-run` converts the files and lists what would be written, without writing anything, and without asking. `--yes` skips the question; without a terminal and without either flag the command refuses.
+- **A conversion issue is reported, not fatal.** What a format cannot carry across is listed under the provider's row. The run still exits 0 when every provider wrote its files; a provider that fails (unreadable file, a tool that is missing) fails the run.
+- **It needs the plugins.** It is a workspace command: the `tooling` providers' packages must resolve, as for every command that calls a provider. No provider token is needed to export.
+
+## See also
+
+- [`tooling` capability](/holocron/capabilities/)
+- [Providers](/holocron/plugins/overview/)

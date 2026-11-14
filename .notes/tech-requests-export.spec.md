@@ -1,0 +1,50 @@
+---
+status: draft
+issue: theholocron/holocron#2189
+blocked-by: []
+related:
+  - theholocron/holocron#2172
+---
+
+# `export requests`: each tool's format, generated from one JSON source
+
+## Problem
+
+The Sentinel and Comlink request collections (#2172) are one JSON source per app, `apps/<app>/requests/collection.json`
+and `environment.json`. A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
+Postman's git-native format is collection schema 3.0 YAML. The JSON should stay the one source, with each tool's format
+generated from it, so no tool's file is edited by hand and none drifts.
+
+## Decision
+
+1. **Capability method.** An optional `export(input)` on the existing `Tooling` interface, like the optional methods on
+   `Source` and `Notifications`. No new capability, so no change to `CARDINALITY` or the organization's
+   `holocron_capabilities` property. `ToolingExportInput` is `{ collectionFiles, envFiles, outDir, repoRoot, dryRun? }`
+   (files relative to `repoRoot`, `outDir` absolute); `ToolingExportResult` is `{ files, issues }` (`files` relative to
+   `outDir`, `issues` a list of `{ file, message }`). With `dryRun` the provider converts but writes nothing, and
+   `files` lists what would be written. A provider that reads the source format as it is omits `export`.
+2. **Command.** `holocron export requests [--to <provider>] [--out <dir>] [--dry-run] [--yes]`, beside `export tokens`.
+   It is a `workspace` command. It takes each `tooling` provider's `collectionFiles` and `envFiles` options as the list
+   of source files (the same two option names every tooling provider uses for the repo's request files), calls `export`
+   on every provider that has it (or only `--to`), and writes to `<out>/<provider>`; `<out>` defaults to `.export`
+   beside the first collection file (`requests/.export/<provider>/`), which `.gitignore` leaves out. It refuses a folder
+   that is, or contains, the folder of a source file ("never writes inside the source folder"; a folder below it, the
+   default, is allowed). It asks first unless `--dry-run` or `--yes`, and refuses without a terminal. A conversion issue
+   is a line under the provider's row and is not a failure; a provider that throws is a failing row, and the run goes on
+   with the next one.
+3. **Bruno plugin** (`@theholocron/holocron-plugin-bruno`, part 2): `tooling` only, files only (no token, no network).
+   Converts with `postmanToBruno` (`@usebruno/converters`) then `brunoToOpenCollection` (`@opencollection/converters`),
+   dumped as YAML. There is no `bruno-client`: Bruno has no HTTP API.
+4. **Postman plugin** (part 3): `export` writes collection schema 3.0 YAML by running
+   `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper.
+5. **Names.** The request files keep their tool-neutral names, and prose about them names no tool; the provider id and
+   the format's own `info.schema` URL are the only mentions.
+
+## Out of scope
+
+- Importing a tool's own edits back into the JSON. The JSON is the source; an export is read-only output.
+- Pushing to an account (`sync` does that for providers that have one).
+
+## Open questions
+
+None for part 1. Parts 2 and 3 record what the real converters and CLI did.

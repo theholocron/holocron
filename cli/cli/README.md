@@ -111,7 +111,7 @@ Every command is tagged with how much of a repo it needs:
 | ------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin` / `token` / `github-app`, `upgrade …`, `check token` / `resolved`, `remove token` / `skill`, `list tokens` / `skills`, `publish …`, `install skills`, `update skills`, `run lint commit-msg` |
 | `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `show config`, `sync readme`, `deploy on-release`                                                                                                                                                                     |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`                                                                                                                    |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `setup`, `sync`, `cleanup branches`, `sync secrets`, `deploy`, `sync github`, `sync issues`, `sync ideas`, `export requests`                                                                                                 |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -794,6 +794,8 @@ holocron list skills                # the skills installed in .agents/skills/
 holocron remove skill --all         # remove every installed skill (or name some; a bare call asks on a terminal)
 holocron export tokens             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
 holocron export tokens --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
+holocron export requests --dry-run   # convert the repo's request collections for each tooling provider that can export, writing nothing
+holocron export requests --to bruno --yes  # write requests/.export/bruno/ (ignored by version control; never inside the source folder)
 holocron export tokens --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron new github-app --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials
 holocron new tunnel --name sentinel-dev --hostname sentinel-dev.example.dev --port 3000 --run  # a named tunnel with a stable hostname to a local port
@@ -929,7 +931,7 @@ the local override exists to exempt.
 - `src/commands/` — `setup`, `sync`, `doctor`, `deploy`,
   `check monitor`, `list secrets`, `new secret`, `sync secrets`, `publish package`,
   `publish bump-versions`, `publish tag`, `sync github`, `upgrade node`,
-  `upgrade deps`, `new plugin`, `check token`, `export tokens`, `setup notifications`,
+  `upgrade deps`, `new plugin`, `check token`, `export tokens`, `export requests`, `setup notifications`,
   `new channel`, `link account`,
   `sync roles`, `doctor ci`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor project`, `doctor repo`, `doctor secrets`
   `sync roles`, `reconcile project`, `doctor ci`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor repo`, `doctor secrets`
