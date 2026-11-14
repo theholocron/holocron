@@ -19,10 +19,12 @@ It runs these steps in order, prints a line for each, and ends with a list of wh
 do. Running it again only changes what is missing.
 
 1. **Installs the tools in the Brewfile** that are not already on your `PATH` (see below).
-2. **Checks Node** against the strictest `engines.node` in the workspace, and turns pnpm on through corepack.
-3. **Checks your git identity.**
-4. **Checks `gh` and `op` are signed in.** It reports; it never signs in for you.
-5. **Runs `pnpm install` and `pnpm build`.**
+2. **Installs the Postman CLI** (`postman`, the Homebrew cask `postman-cli`) when it is missing, in a step of its own
+   rather than the Brewfile. See below.
+3. **Checks Node** against the strictest `engines.node` in the workspace, and turns pnpm on through corepack.
+4. **Checks your git identity.**
+5. **Checks `gh` and `op` are signed in.** It reports; it never signs in for you.
+6. **Runs `pnpm install` and `pnpm build`.**
 
 `doctor` does the same checks and installs, enables and builds nothing.
 
@@ -35,6 +37,12 @@ do. Running it again only changes what is missing.
 | `cloudflared`   | `cloudflared` | The connector for a Cloudflare named tunnel. `holocron dev` and `holocron new tunnel` run it so GitHub can reach a webhook server on your laptop at a stable hostname (`sentinel-dev.theholocron.dev`). The tunnel's token is handed to it in its environment, never on its command line. |
 | `1password-cli` | `op`          | The `vault` and `credentials` providers read **1Password Environments** through it, so tokens and app secrets are not kept in files on disk or in your shell profile. It needs the 1Password desktop app's CLI integration, which is what lets you unlock with Touch ID.                  |
 | `gh`            | `gh`          | GitHub's own CLI. `holocron new` and the `probe` commands use it, and it is the quickest way to open and check pull requests and to get a token for `holocron setup` (`GITHUB_TOKEN=$(gh auth token)`).                                                                                   |
+
+### Needed to export the request collections
+
+| Tool          | Command   | Why                                                                                                                                                                                                                                                                 |
+| ------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `postman-cli` | `postman` | `holocron export requests --to postman` runs `postman collection migrate` to write a collection in Postman's schema 3.0 YAML. It is installed by its own step in `setup.sh`, not from the Brewfile, so a machine that never exports collections is not asked for it |
 
 ### Needed to run `holocron run ci` locally
 
