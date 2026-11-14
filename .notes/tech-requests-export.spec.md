@@ -1,9 +1,12 @@
 ---
+id: SPEC-0085
 status: draft
 issue: theholocron/holocron#2189
 blocked-by: []
 related:
   - theholocron/holocron#2172
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571054704140755016
 ---
 
 # `export requests`: each tool's format, generated from one JSON source
