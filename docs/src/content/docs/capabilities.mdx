@@ -210,10 +210,11 @@ These accept any number of providers — all are active simultaneously.
 
 Sync external tool state from the repo. Implemented by: [Postman](./plugins/postman).
 
-| Method     | Description                                            |
-| ---------- | ------------------------------------------------------ |
-| `sync()`   | Pull the tool's authoritative state from the repo      |
-| `doctor()` | Return `{ ok, message }` — a health check for the tool |
+| Method          | Description                                                                                                                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sync()`        | Pull the tool's authoritative state from the repo                                                                                                                                                                                            |
+| `doctor()`      | Return `{ ok, message }` — a health check for the tool                                                                                                                                                                                       |
+| `export(input)` | Optional. Write the repo's request collections and environments in the tool's own format into a folder, and return the files written and what the conversion could not carry across. Used by [`export requests`](./commands/export-requests) |
 
 ### `notifications`
 
