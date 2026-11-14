@@ -1,5 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
+import type { EnvironmentLayer } from "../../credentials-environments/index.js";
+
 // ── Plugin-level export shapes (mirrored on every plugin) ────────────
 
 /** A plugin's `verifyToken` result when the provider accepted the token. */
@@ -22,6 +24,24 @@ export interface VerifyTokenFailure {
 
 /** What a plugin's `verifyToken` returns: the token was accepted, or it was rejected with a reason. */
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
+
+/** What a layer's token must do about a permission: `required` it must have it, `absent` it must not. */
+export type PermissionRule = "required" | "absent";
+
+/**
+ * What a token must carry, declared once next to the plugin's `tokens` list. The permission names are the plugin's own
+ * (Cloudflare: `pages`, `dns`); a layer's rules say which are `required` and which `absent`, so a laptop token might
+ * need everything while `ci` needs one permission and must have none of the rest.
+ */
+export interface TokenExpectation {
+	/**
+	 * The layers that hold this token, for a token with no permission rules (a rotation-only check). Default: the layers
+	 * `permissions` names. A layer in neither has no declared expectations.
+	 */
+	layers?: readonly EnvironmentLayer[];
+	/** Per layer, each permission's rule. A layer named here holds the token. */
+	permissions?: Readonly<Partial<Record<EnvironmentLayer, Readonly<Record<string, PermissionRule>>>>>;
+}
 
 /** One token a plugin takes, and where it is looked up. */
 export interface PluginToken {
@@ -49,13 +69,10 @@ export interface PluginToken {
 	 */
 	optional?: boolean;
 	/**
-	 * What this token must and must not be able to do in each layer that holds it (`local`, `dev`, `ci`, `prod`; a layer
-	 * left out has no declared expectations). The permission names are the plugin's own and `required` or `absent` is the
-	 * rule: a laptop token might need all of a provider's permissions, while `ci` needs one and must not have the rest.
-	 * A token probe (`holocron probe <provider> token --environment <layer>`) judges the token against it, and the
-	 * permission table in `docs/src/content/docs/tokens.mdx` says the same in prose.
+	 * Which layers hold this token and what it must and must not be able to do in each (#2149). One declaration that the
+	 * token probes, the doctor and the docs check read through `tokenExpectations()`; see `TokenExpectation`.
 	 */
-	expect?: Readonly<Record<string, Readonly<Partial<Record<string, "required" | "absent">>>>>;
+	expect?: TokenExpectation;
 }
 
 export interface AuthPluginModule {

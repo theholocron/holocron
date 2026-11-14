@@ -1,9 +1,10 @@
 import type { Probe, ProbeRow } from "@theholocron/cli";
-import { ProviderApiError } from "@theholocron/cli";
+import { ProviderApiError, tokenExpectations } from "@theholocron/cli";
 import type { CfZone } from "@theholocron/cloudflare-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { EXPECTED_BY_LAYER, type Permission, type Rule } from "./expectations.js";
+import { tokens } from "../../auth.js";
+import type { Permission, Rule } from "./expectations.js";
 import { parseTokenArgs } from "./parse-token-args.js";
 import type { TokenProbeContext } from "./token.type.js";
 
@@ -79,7 +80,7 @@ function rowFor({ label, outcome }: Tried, rule: Rule | undefined): ProbeRow {
  * `--token cloudflare=<token>` or `--environment <layer>` checks another one; the account id is the plugin's own.
  *
  * A token with no layer is only described. When the CLI passes `--layer` (because `--environment` named `ci`, `dev` or
- * `local`), the results are judged against what that layer's token is meant to carry (`EXPECTED_BY_LAYER`) and shown in
+ * `local`), the results are judged against what that layer's token is meant to carry (the plugin's `tokens` declaration, read with `tokenExpectations()`) and shown in
  * two groups, what it should have and what it should not, where a missing or extra permission fails. The other words
  * limit the zone checks to those zones; otherwise up to five are read. How the token is chosen is in `holocron probe --help`.
  */
@@ -95,7 +96,7 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 			const client = ctx.client();
 
 			const { layer, zones: wanted } = parseTokenArgs(probe.args ?? []);
-			const rules = layer ? EXPECTED_BY_LAYER[layer] : undefined;
+			const rules = layer ? tokenExpectations(tokens, { layer })[0]?.rules : undefined;
 			if (layer && !rules) {
 				probe.say({
 					status: "info",
