@@ -38,6 +38,12 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"check-tokens": { id: "token-expiry", name: "Token Expiry" },
 		},
 	},
+	"doctor-tokens": {
+		name: "Doctor Tokens",
+		jobs: {
+			"doctor-tokens": { id: "doctor-tokens", name: "Doctor Tokens" },
+		},
+	},
 	"deploy-preview": {
 		name: "Delivery",
 		jobs: {

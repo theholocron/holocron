@@ -85,6 +85,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"check-notify": ["check-notify / Check ${{ matrix.channel.name }}"],
 	"check-preview": ["check-preview / Run monitoring checks against the preview deployment"],
 	"check-tokens": ["check-tokens / Run holocron doctor secrets --verify"],
+	"doctor-tokens": ["doctor-tokens / Run holocron doctor tokens"],
 	deploy: ["deploy / Deploy"],
 	"deploy-preview": ["deploy-preview / Deploy preview", "deploy-preview / Report deployment status"],
 	greet: ["greet / Greet first-time contributors"],

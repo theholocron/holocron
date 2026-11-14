@@ -72,6 +72,7 @@
     "check-notify",
     "sync-templates",
     "check-tokens",
+    "doctor-tokens",
     "publish-wiki",
     "sync-specs",
     "preview-specs",
