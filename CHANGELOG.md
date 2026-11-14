@@ -1,3 +1,9 @@
+## [5.0.0-alpha.440](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.439...v5.0.0-alpha.440) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ add holocron sync tooling to push a tooling provider without a full setup ([#2199](https://github.com/theholocron/holocron/issues/2199)) ([e448c27](https://github.com/theholocron/holocron/commit/e448c278e9623d49b055f3d7d85fed56b811886e))
+
 ## [5.0.0-alpha.439](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.438...v5.0.0-alpha.439) (2026-11-14)
 
 ### Features
