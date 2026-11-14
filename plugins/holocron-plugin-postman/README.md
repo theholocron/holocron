@@ -57,31 +57,35 @@ Generate the key at <https://web.postman.co/settings/me/api-keys>.
 
 ```
 
-- `workspaceId` (required) — Postman workspace id. Find via `holocron tooling postman workspaces`.
+- `workspace` / `workspaceId` (one is required) — the workspace by name (`sync` finds it, or makes it) or by id (wins over the name). Find an id via `holocron tooling postman workspaces`.
+- `workspaceType` (optional) — `personal` (default) or `team`: the type of a workspace `sync` makes.
+- `collectionFiles` (optional) — hand-written Postman collection JSON files. Each is matched to a collection in the workspace by `info.name` and replaced in place, or created.
 - `specFile` (optional) — relative path to the local OpenAPI JSON. `sync` reads + uploads this.
 - `specName` (optional) — display name in Postman's Spec Hub. Defaults to repo name.
 - `collectionName` (optional) — name for the imported collection. Defaults to `specName`.
-- `envFiles` (optional) — local Postman environment JSON files to push.
+- `envFiles` (optional) — local Postman environment JSON files to push. A secret the file leaves empty keeps the value the environment already holds.
+
+`sync` needs at least one of `specFile`, `collectionFiles` and `envFiles`.
 
 ## What's implemented
 
-| Method                                                                             | What it does                                                                                                             |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **Tooling interface**                                                              |                                                                                                                          |
-| `sync()`                                                                           | Reads `specFile`, upserts the Spec Hub spec, delete-then-imports the collection, find-or-creates each env in `envFiles`. |
-| `doctor()`                                                                         | Probes `/me` + `/workspaces`; returns `{ ok, message }`.                                                                 |
-| **Postman-specific methods** (on `PostmanTooling`, not on the `Tooling` interface) |                                                                                                                          |
-| `getMyself`                                                                        | `GET /me` — authed user identity.                                                                                        |
-| `listWorkspaces`                                                                   | `GET /workspaces`.                                                                                                       |
-| `findCollectionByName`                                                             | `GET /collections?workspace=…` + name filter.                                                                            |
-| `deleteCollection`                                                                 | `DELETE /collections/{uid}`.                                                                                             |
-| `importOpenApi`                                                                    | `POST /import/openapi?workspace=…` with the spec stringified into `{ type: "string", input }`.                           |
-| `findEnvironmentByName`                                                            | `GET /environments?workspace=…` + name filter.                                                                           |
-| `createEnvironment`                                                                | `POST /environments?workspace=…`.                                                                                        |
-| `updateEnvironment`                                                                | `PUT /environments/{uid}`.                                                                                               |
-| `findSpecByName`                                                                   | `GET /specs?workspaceId=…` + name filter.                                                                                |
-| `createSpec`                                                                       | `POST /specs?workspaceId=…` (flat body — name/type are NOT wrapped under `spec`).                                        |
-| `upsertSpecFile`                                                                   | `PATCH /specs/{id}/files/{path}` (PUT returns 404 here).                                                                 |
+| Method                                                                             | What it does                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tooling interface**                                                              |                                                                                                                                                                                                                 |
+| `sync()`                                                                           | Finds or makes the workspace; with `specFile`, upserts the Spec Hub spec and delete-then-imports the collection; replaces or creates each `collectionFiles` collection; find-or-creates each env in `envFiles`. |
+| `doctor()`                                                                         | Probes `/me` + `/workspaces`; returns `{ ok, message }`.                                                                                                                                                        |
+| **Postman-specific methods** (on `PostmanTooling`, not on the `Tooling` interface) |                                                                                                                                                                                                                 |
+| `getMyself`                                                                        | `GET /me` — authed user identity.                                                                                                                                                                               |
+| `listWorkspaces`                                                                   | `GET /workspaces`.                                                                                                                                                                                              |
+| `findCollectionByName`                                                             | `GET /collections?workspace=…` + name filter.                                                                                                                                                                   |
+| `deleteCollection`                                                                 | `DELETE /collections/{uid}`.                                                                                                                                                                                    |
+| `importOpenApi`                                                                    | `POST /import/openapi?workspace=…` with the spec stringified into `{ type: "string", input }`.                                                                                                                  |
+| `findEnvironmentByName`                                                            | `GET /environments?workspace=…` + name filter.                                                                                                                                                                  |
+| `createEnvironment`                                                                | `POST /environments?workspace=…`.                                                                                                                                                                               |
+| `updateEnvironment`                                                                | `PUT /environments/{uid}`.                                                                                                                                                                                      |
+| `findSpecByName`                                                                   | `GET /specs?workspaceId=…` + name filter.                                                                                                                                                                       |
+| `createSpec`                                                                       | `POST /specs?workspaceId=…` (flat body — name/type are NOT wrapped under `spec`).                                                                                                                               |
+| `upsertSpecFile`                                                                   | `PATCH /specs/{id}/files/{path}` (PUT returns 404 here).                                                                                                                                                        |
 
 ## Status
 

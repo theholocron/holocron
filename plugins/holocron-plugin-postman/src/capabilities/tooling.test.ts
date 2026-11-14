@@ -8,11 +8,15 @@ import { PostmanPlanLimitError } from "@theholocron/postman-client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createPostmanClient } from "../rest.js";
-import { PostmanTooling } from "./tooling.js";
+import { keepSecrets, PostmanTooling } from "./tooling.js";
 
 function makeTooling(
 	responses: Parameters<typeof stubFetch>[0],
 	opts: Partial<{
+		workspaceId: string;
+		workspace: string;
+		workspaceType: "personal" | "team";
+		collectionFiles: string[];
 		specFile: string;
 		specName: string;
 		collectionName: string;
@@ -37,9 +41,14 @@ describe("PostmanTooling identity", () => {
 		expect(tooling.providerName).toBe("postman");
 	});
 
-	it("throws when workspaceId is missing", () => {
+	it("throws when neither workspaceId nor workspace is given", () => {
 		const client = createPostmanClient({ token: "t" });
-		expect(() => new PostmanTooling(() => client, { workspaceId: "" })).toThrow(/workspaceId/);
+		expect(() => new PostmanTooling(() => client, { workspaceId: "" })).toThrow(/workspaceId.*workspace/);
+	});
+
+	it("accepts a workspace name alone", () => {
+		const client = createPostmanClient({ token: "t" });
+		expect(() => new PostmanTooling(() => client, { workspace: "Holocron" })).not.toThrow();
 	});
 });
 
@@ -373,6 +382,123 @@ describe("PostmanTooling.sync", () => {
 		expect(calls[5]?.method).toBe("PUT");
 		expect(calls[7]?.method).toBe("POST");
 	});
+
+	it("makes the workspace by name when none has it, then creates the collection", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "Sentinel" }, item: [] }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Other", type: "personal" }] } },
+				{ status: 200, body: { workspace: { id: "w-new", name: "Holocron" } } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collection: { id: "c1", uid: "u1", name: "Sentinel" } } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron", collectionFiles: ["c.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.body).toEqual({ workspace: { name: "Holocron", type: "personal" } });
+		expect(calls[2]?.url).toContain("/collections?workspace=w-new");
+		expect(calls[3]?.method).toBe("POST");
+		expect(calls[3]?.url).toContain("/collections?workspace=w-new");
+	});
+
+	it("uses the workspace that already has the name and replaces an existing collection in place", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "Sentinel" }, item: [] }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Holocron", type: "personal" }] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "Sentinel" }] } },
+				{ status: 200, body: { collection: { id: "c1", uid: "u1", name: "Sentinel" } } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron", collectionFiles: ["c.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls).toHaveLength(3);
+		expect(calls[2]?.method).toBe("PUT");
+		expect(calls[2]?.url).toBe("https://api.getpostman.com/collections/u1");
+	});
+
+	it("makes a workspace of the configured type", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "X" } }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [] } },
+				{ status: 200, body: { workspace: { id: "w", name: "Holocron" } } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collection: { id: "c", uid: "u", name: "X" } } },
+			],
+			{
+				workspaceId: undefined,
+				workspace: "Holocron",
+				workspaceType: "team",
+				collectionFiles: ["c.json"],
+				repoRoot,
+			}
+		);
+		await tooling.sync();
+		expect(calls[1]?.body).toEqual({ workspace: { name: "Holocron", type: "team" } });
+	});
+
+	it("rejects a collection file with no info.name", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ item: [] }));
+		const { tooling } = makeTooling([], { collectionFiles: ["c.json"], repoRoot });
+		await expect(tooling.sync()).rejects.toThrow(/info\.name/);
+	});
+
+	it("keeps the value of a secret the file leaves empty when it updates an environment", async () => {
+		await writeFile(
+			join(repoRoot, "e.json"),
+			JSON.stringify({
+				name: "Sentinel",
+				values: [
+					{ key: "baseUrl", value: "http://127.0.0.1:3000", type: "default" },
+					{ key: "webhookSecret", value: "", type: "secret" },
+				],
+			})
+		);
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Sentinel" }] } },
+				{
+					status: 200,
+					body: {
+						environment: {
+							id: "e1",
+							uid: "eu1",
+							name: "Sentinel",
+							values: [{ key: "webhookSecret", value: "held", type: "secret" }],
+						},
+					},
+				},
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Sentinel" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls[1]?.method).toBe("GET");
+		expect(calls[2]?.method).toBe("PUT");
+		const sent = calls[2]?.body as { environment: { values: { key: string; value: string }[] } };
+		expect(sent.environment.values.find((v) => v.key === "webhookSecret")?.value).toBe("held");
+	});
+});
+
+describe("keepSecrets", () => {
+	it("fills only an empty secret from the existing variable of the same key", () => {
+		const result = keepSecrets(
+			[
+				{ key: "a", value: "", type: "secret" },
+				{ key: "b", value: "mine", type: "secret" },
+				{ key: "c", value: "", type: "default" },
+				{ key: "d", value: "", type: "secret" },
+			],
+			[
+				{ key: "a", value: "held-a", type: "secret" },
+				{ key: "b", value: "held-b", type: "secret" },
+				{ key: "c", value: "held-c" },
+			]
+		);
+		expect(result.map((v) => v.value)).toEqual(["held-a", "mine", "", ""]);
+	});
 });
 
 // ──────────────────────────────────────────────────────────────────────
@@ -402,6 +528,20 @@ describe("PostmanTooling.doctor", () => {
 		const report = await tooling.doctor();
 		expect(report.ok).toBe(false);
 		expect(report.message).toContain("not visible");
+	});
+
+	it("finds a workspace by name, and does not make it when it is absent", async () => {
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { user: { id: 1, username: "newton" } } },
+				{ status: 200, body: { workspaces: [] } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron" }
+		);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(true);
+		expect(report.message).toContain("does not exist yet");
+		expect(calls).toHaveLength(2);
 	});
 
 	it("returns ok:false with the error message when /me fails", async () => {
