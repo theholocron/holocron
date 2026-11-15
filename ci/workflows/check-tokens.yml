@@ -9,6 +9,10 @@ name: Token Expiry
 #
 # A token that is not set is skipped, not a failure, so a repo passes only the secrets it uses. Secrets reach the
 # job through `secrets: inherit`; the declared list below is for callers that pass them explicitly.
+#
+# The run also reads the repo's 1Password credentials provider (`<org/repo> - ci`), so it installs `op` and signs in with
+# `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`, a read-only service account for that one Environment. Without it the `1password`
+# rows fail and the job is red every day, which hides a real expiry.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -40,6 +44,9 @@ on: # yamllint disable-line rule:truthy
       HOLOCRON_USER_SYNC_TOKEN:
         description: Fine-grained token for the account links files.
         required: false
+      HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN:
+        description: A read-only 1Password service account for the `ci` layer Environment, so the run can compare it with GitHub.
+        required: false
 
 jobs:
   token-expiry:
@@ -65,7 +72,13 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
+      - uses: 1password/install-cli-action@1a3160d5e9de1ae0803eaa08a88746f5ae3daa50 # v4.1.0
+        name: Install the 1Password CLI
+
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run holocron doctor secrets --verify
+        # Only this step holds the service account, not the job: the install action above never sees it.
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}
         with:
           task: check-tokens
