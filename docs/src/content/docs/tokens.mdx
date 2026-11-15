@@ -147,16 +147,16 @@ A fine-grained token expires on the date you chose when you created it. [`holocr
 
 `holocron probe github token` tries a token with one read per permission and reports which it reaches. GitHub lists scopes only for a **classic** token (the `X-OAuth-Scopes` header, shown on the first row); a **fine-grained** token has no list, so each permission is found by a read, and the first row says which kind was read. A read proves a token can _see_ an area, not that it can write there, so the write half of a `read/write` row in the table above is not checked. On a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token, so those can show a permission is present but not that it is absent; Administration, Secrets, Environments and the organization permissions can prove both.
 
-| Permission (declaration name)                                       | The read that needs it                                                                      |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `contents`                                                          | `GET /repos/{repo}/contents`                                                                |
-| `actions`                                                           | `GET /repos/{repo}/actions/runs`                                                            |
-| `issues`, `pull-requests`                                           | `GET /repos/{repo}/issues`, `/pulls`                                                        |
-| `administration`                                                    | `GET /repos/{repo}/actions/permissions`                                                     |
-| `secrets`, `environments`, `actions-variables`                      | `GET /repos/{repo}/actions/secrets`, `/environments`, `/actions/variables`                  |
-| `custom-properties`, `pages`                                        | `GET /repos/{repo}/properties/values`, `/pages`                                             |
-| `org-administration`, `org-members`, `org-variables`, `org-secrets` | `GET /orgs/{org}/actions/permissions`, `/members`, `/actions/variables`, `/actions/secrets` |
-| `user-sync-contents`                                                | `GET /repos/{org}/.github-private/contents`                                                 |
+| Permission (declaration name)                  | The read that needs it                                                     |
+| ---------------------------------------------- | -------------------------------------------------------------------------- |
+| `contents`                                     | `GET /repos/{repo}/contents`                                               |
+| `actions`                                      | `GET /repos/{repo}/actions/runs`                                           |
+| `issues`, `pull-requests`                      | `GET /repos/{repo}/issues`, `/pulls`                                       |
+| `administration`                               | `GET /repos/{repo}/actions/permissions`                                    |
+| `secrets`, `environments`, `actions-variables` | `GET /repos/{repo}/actions/secrets`, `/environments`, `/actions/variables` |
+| `custom-properties`, `pages`                   | `GET /repos/{repo}/properties/values`, `/pages`                            |
+| `org-members`, `org-variables`, `org-secrets`  | `GET /orgs/{org}/members`, `/actions/variables`, `/actions/secrets`        |
+| `user-sync-contents`                           | `GET /repos/{org}/.github-private/contents`                                |
 
 With `--environment ci` (or `dev`, `local`) the probe checks **every** GitHub token that layer's 1Password Environment holds, one after another, each under a heading with its variable name and judged against its own declaration: required permissions must be reached and the absent ones must not. Without `--environment` it checks the token the plugin resolves (`HOLOCRON_READ_TOKEN`), or the one `--token-name <VAR>` names (for example `--token-name HOLOCRON_ADMIN_TOKEN`), and only describes it.
 
@@ -239,12 +239,12 @@ With `--environment ci` (or `dev`, `local`) the probe checks **every** GitHub to
 
 #### `HOLOCRON_ORG_TOKEN`
 
-| Permission                   | Id                   | `local`    | `dev`      | `ci`       |
-| ---------------------------- | -------------------- | ---------- | ---------- | ---------- |
-| Organization: Administration | `org-administration` | `required` | `required` | `required` |
-| Organization: Members        | `org-members`        | `required` | `required` | `required` |
-| Organization: Variables      | `org-variables`      | `required` | `required` | `required` |
-| Organization: Secrets        | `org-secrets`        | `absent`   | `absent`   | `absent`   |
+| Permission              | Id               | `local`    | `dev`      | `ci`       |
+| ----------------------- | ---------------- | ---------- | ---------- | ---------- |
+| Administration          | `administration` | `required` | `required` | `required` |
+| Organization: Members   | `org-members`    | `required` | `required` | `required` |
+| Organization: Variables | `org-variables`  | `required` | `required` | `required` |
+| Organization: Secrets   | `org-secrets`    | `absent`   | `absent`   | `absent`   |
 
 Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `link account` and `sync roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
 

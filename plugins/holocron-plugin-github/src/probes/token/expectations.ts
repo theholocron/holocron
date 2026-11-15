@@ -74,7 +74,7 @@ export const EXPECTED: Readonly<Record<string, TokenExpectation>> = {
 		secrets: "absent",
 	}),
 	HOLOCRON_ORG_TOKEN: everywhere({
-		"org-administration": "required",
+		administration: "required",
 		"org-members": "required",
 		"org-variables": "required",
 		"org-secrets": "absent",

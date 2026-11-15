@@ -161,6 +161,19 @@ describe("token probe", () => {
 		expect(row(rows, "Contents")).toMatchObject({ status: "ok" });
 	});
 
+	it("does not fail an absent permission whose read any token can make on a public repository", async () => {
+		const { rows } = await check({}, ["--layer", "ci", ...named("HOLOCRON_READ_TOKEN")]);
+		expect(row(rows, "Environments")).toMatchObject({ status: "info" });
+		expect(row(rows, "Environments")?.detail).toContain("not proof either way");
+	});
+
+	it("judges the org token on the repository's Administration, not the organization's", async () => {
+		const { rows, calls } = await check({}, ["--layer", "ci", ...named("HOLOCRON_ORG_TOKEN")]);
+		expect(row(rows, "Administration")).toMatchObject({ status: "ok" });
+		expect(row(rows, "Organization: Administration")).toBeUndefined();
+		expect(calls.map((c) => c.url)).not.toContain("https://gh.test/orgs/acme/actions/permissions");
+	});
+
 	it("fails a read that errors, whatever the layer expects", async () => {
 		const { rows } = await check({ "/repos/acme/widgets/actions/runs": 500 }, [
 			"--layer",

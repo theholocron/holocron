@@ -4,7 +4,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { tokens } from "../../tokens.js";
 import { parseTokenArgs } from "./parse-token-args.js";
-import { type Permission, PERMISSIONS } from "./permissions.js";
+import { type Permission, type PermissionRead, PERMISSIONS } from "./permissions.js";
 import type { TokenProbeContext } from "./token.type.js";
 
 /** The token checked when none is named: the one the plugin reads with by default. */
@@ -58,10 +58,17 @@ async function reach(ctx: TokenProbeContext, token: string, permission: Permissi
  * judges: a required permission the token lacks fails, and one the layer must not have fails when the token has it; a
  * permission that is rightly absent is a bare `ok`.
  */
-function rowFor({ label, outcome }: Tried, rule: PermissionRule | undefined): ProbeRow {
+function rowFor({ label, permission, outcome }: Tried, rule: PermissionRule | undefined): ProbeRow {
 	if (outcome.kind === "error") return { status: "fail", label, detail: outcome.detail };
 	const has = outcome.kind === "has";
 	if (rule === "required") return { status: has ? "ok" : "fail", label, detail: outcome.detail };
+	if (rule === "absent" && has && (PERMISSIONS[permission] as PermissionRead).publicRead) {
+		return {
+			status: "info",
+			label,
+			detail: `${outcome.detail}, which any token can on a public repository: not proof either way`,
+		};
+	}
 	if (rule === "absent") return has ? { status: "fail", label, detail: outcome.detail } : { status: "ok", label };
 	return { status: has ? "ok" : "info", label, detail: outcome.detail };
 }
