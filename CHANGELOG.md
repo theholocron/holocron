@@ -1,3 +1,9 @@
+## [5.0.0-alpha.448](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.447...v5.0.0-alpha.448) (2026-11-15)
+
+### Features
+
+* **codecov:** ✨ add the coverage capability and a Codecov plugin with a token probe ([#2228](https://github.com/theholocron/holocron/issues/2228)) ([ed5c8ff](https://github.com/theholocron/holocron/commit/ed5c8ff03da8d07e3c2badb3bdc2f81e9cf64ee7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167)
+
 ## [5.0.0-alpha.447](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.446...v5.0.0-alpha.447) (2026-11-15)
 
 ### Bug Fixes
