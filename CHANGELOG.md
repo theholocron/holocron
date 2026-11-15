@@ -1,3 +1,22 @@
+## [5.0.0-alpha.446](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.445...v5.0.0-alpha.446) (2026-11-15)
+
+### Features
+
+* **cli:** ✨ probe each doctor tokens layer with its Environment's own plain values ([#2221](https://github.com/theholocron/holocron/issues/2221)) ([e1820e6](https://github.com/theholocron/holocron/commit/e1820e66d6146607d60dd9e7a0304597077de2b3)), closes [#2219](https://github.com/theholocron/holocron/issues/2219)
+
+### Bug Fixes
+
+* **axiom:** 🐛 verify the token against its own dataset, not a made-up one ([#2225](https://github.com/theholocron/holocron/issues/2225)) ([5ed82a8](https://github.com/theholocron/holocron/commit/5ed82a85655388207f47b7c967cc23d26bb23355)), closes [#2223](https://github.com/theholocron/holocron/issues/2223)
+* **ci:** 🔐 limit the daily check-tokens run to the ci layer its service account can read ([#2224](https://github.com/theholocron/holocron/issues/2224)) ([a9e72ea](https://github.com/theholocron/holocron/commit/a9e72eadcd5623952139723ba264adb45132c38e)), closes [#2222](https://github.com/theholocron/holocron/issues/2222)
+
+### Documentation
+
+* **specs:** 📝 draft Codecov and Turbo as plugins and which capability they sit under ([#2220](https://github.com/theholocron/holocron/issues/2220)) ([9621eb5](https://github.com/theholocron/holocron/commit/9621eb5de189b9c09bd3099f1e3ccb739bb766e6)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2168](https://github.com/theholocron/holocron/issues/2168)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2226](https://github.com/theholocron/holocron/issues/2226)) ([b312853](https://github.com/theholocron/holocron/commit/b312853e7fde89f8af4ddd77d23a10536e19e932))
+
 ## [5.0.0-alpha.445](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.444...v5.0.0-alpha.445) (2026-11-15)
 
 ### Bug Fixes
