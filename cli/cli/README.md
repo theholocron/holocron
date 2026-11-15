@@ -713,6 +713,8 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
 
 ## Syncing tooling
 
+<!--alex ignore postman-postwoman-->
+
 - **`holocron sync tooling [--dry-run]`** — runs each `tooling` provider's `sync()` (the Postman plugin pushing a
   workspace, its collections and environments) without `setup`'s other steps. It loads only the `tooling` providers and the
   `credentials` provider their tokens may come from, so an unreachable vault or DNS provider cannot fail it. One row per
@@ -916,7 +918,7 @@ the local override exists to exempt.
 
 ## What's in here
 
-- `src/plugin/capabilities.ts` — the 22 capability interfaces that
+- `src/plugin/capabilities.ts` — the 23 capability interfaces that
   providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`

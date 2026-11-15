@@ -18,6 +18,7 @@ updates:
       - dependency-name: "@theholocron/checkly-client"
       - dependency-name: "@theholocron/clerk-client"
       - dependency-name: "@theholocron/cloudflare-client"
+      - dependency-name: "@theholocron/codecov-client"
       - dependency-name: "@theholocron/discord-client"
       - dependency-name: "@theholocron/doppler-client"
       - dependency-name: "@theholocron/fs-utils"

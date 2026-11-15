@@ -197,6 +197,7 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-checkly",
 		"@theholocron/holocron-plugin-clerk",
 		"@theholocron/holocron-plugin-cloudflare",
+		"@theholocron/holocron-plugin-codecov",
 		"@theholocron/holocron-plugin-discord",
 		"@theholocron/holocron-plugin-doppler",
 		"@theholocron/holocron-plugin-fern",

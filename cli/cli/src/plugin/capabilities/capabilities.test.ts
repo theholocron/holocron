@@ -22,6 +22,7 @@ describe("CARDINALITY", () => {
 			"tunnels",
 			"projects",
 			"ideas",
+			"coverage",
 		] as const;
 		for (const key of singles) {
 			expect(CARDINALITY[key]).toBe("single");
@@ -36,7 +37,7 @@ describe("CARDINALITY", () => {
 	});
 
 	it("covers every capability key", () => {
-		expect(Object.keys(CARDINALITY)).toHaveLength(22);
+		expect(Object.keys(CARDINALITY)).toHaveLength(23);
 	});
 });
 

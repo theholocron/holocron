@@ -185,6 +185,7 @@ plugins/                             — vendor capability providers            
   holocron-plugin-neon/              — @theholocron/holocron-plugin-neon              (storage)
   holocron-plugin-clerk/             — @theholocron/holocron-plugin-clerk             (auth)
   holocron-plugin-cloudflare/        — @theholocron/holocron-plugin-cloudflare        (dns)
+  holocron-plugin-codecov/           — @theholocron/holocron-plugin-codecov           (coverage — REST)
   holocron-plugin-1password/         — @theholocron/holocron-plugin-1password         (vault — CLI shell-out)
   holocron-plugin-doppler/           — @theholocron/holocron-plugin-doppler           (vault — REST)
   holocron-plugin-infisical/         — @theholocron/holocron-plugin-infisical         (vault — REST)

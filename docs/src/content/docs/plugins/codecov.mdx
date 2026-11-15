@@ -1,0 +1,82 @@
+---
+title: Codecov Plugin
+description: Implements the coverage capability against Codecov's REST API and checks what a Codecov token can be checked for.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-codecov"]} capability="coverage" />
+
+<Installation package={getPlugins()["holocron-plugin-codecov"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "coverage", token: "HOLOCRON_CODECOV_TOKEN (codecov)" }]} />
+
+`coverage` is a provider-neutral capability for the service that holds a repository's coverage, so another service could implement it. The first scope is `checkToken()`: whether the service accepts the configured token for the repository. A later `checkRepo()` (flags, components and required statuses exist) is declared optional and is not built, so there is no `doctor coverage` yet.
+
+:::note
+The organization's `holocron_capabilities` property must allow `coverage` (`holocron apply properties`) before a repo declares `providers.coverage`. Until then the plugin is not loaded by any config; `holocron probe codecov token` needs it to be named under `providers.coverage`.
+:::
+
+## Config
+
+```ts
+providers: {
+  coverage: "codecov",
+}
+```
+
+The repository is the one the CLI is operating on (`owner/name`), or the active org with a bare repo name. Set it explicitly when the checkout does not match Codecov:
+
+```ts
+providers: {
+  coverage: ["codecov", { owner: "theholocron", repo: "holocron", service: "github" }],
+}
+```
+
+| Option    | Default                         | Description                                                                        |
+| --------- | ------------------------------- | ---------------------------------------------------------------------------------- |
+| `service` | `github`                        | The git service Codecov knows the owner by (`github`, `gitlab`, `bitbucket`, ...). |
+| `owner`   | the active repo's owner, or org | The user or organization.                                                          |
+| `repo`    | the active repo                 | The repository name, or `owner/name`.                                              |
+
+## Authentication
+
+```text
+--token flag
+→ HOLOCRON_CODECOV_TOKEN (env var)
+→ CODECOV_TOKEN (Codecov's own variable — vendor fallback)
+→ keyring "codecov.<org>" (org-namespaced)
+→ keyring "codecov" (unnamespaced fallback)
+```
+
+The token is held in the `ci` layer's Environment and synced to an organization secret. Only `ci` is declared, so a copy in another layer fails `holocron doctor tokens`.
+
+## Two kinds of Codecov token
+
+This is what the Codecov REST API documentation says, and what the plugin does about it:
+
+| Token                       | What it is for                                         | Accepted by the REST API (`api.codecov.io/api/v2`)?                                                    |
+| --------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| API token (personal)        | Reading the API: repos, flags, components, commits     | Yes, as `Authorization: Bearer <token>`. Created in the account's Access settings                      |
+| Repository **upload** token | Uploading coverage and bundle stats (`measure:bundle`) | Not documented. The API reference describes only the personal token, and the plugin cannot assume more |
+
+`HOLOCRON_CODECOV_TOKEN` is the repository upload token. Codecov has no read-only endpoint that proves an upload token (the upload endpoints create a commit, which a check must not do). So the probe asks the API for the repository and reports what came back, and does not call a 401 a failure.
+
+## Checking a token
+
+`holocron probe codecov token` reads the repository from Codecov's REST API with the token:
+
+| Codecov answered         | Row                                                                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 200                      | `ok`: it answered for the repository with this token. A public repository answers without a token, so an `info` row says it proves little |
+| 401 or 403               | `info`: an upload token cannot be checked this way; a revoked or wrong API token answers the same, so Codecov cannot say which it is      |
+| 404                      | `info`: Codecov has no such repository, or the token cannot see it                                                                        |
+| a network error or a 5xx | `fail`: it says nothing about access                                                                                                      |
+
+It always ends with an `info` row that permissions are not checked: Codecov has no permission model and reports none. `--environment ci` reads the CI Environment's token and confirms `ci` is a layer that should hold it; `--token codecov=<value>` checks another one. The probe never prints the token. See [what can be checked for Fern, Vercel, Turbo and Codecov](/holocron/tokens/#fern-vercel-turbo-and-codecov).
+
+## What `coverage` provides
+
+- `checkToken()` — asks Codecov for the repository with the token; returns `outcome` (`accepted`, `refused` or `not-found`), `repoPrivate` and `status`, and throws for an error that says nothing about the token.
+- `checkRepo()` — optional, not implemented.

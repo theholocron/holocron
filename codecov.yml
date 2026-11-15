@@ -96,6 +96,8 @@ coverage:
           - uri-utils
           - ci
           - council
+          - codecov-client
+          - holocron-plugin-codecov
         target: auto
         if_not_found: success
         threshold: 2%
@@ -192,6 +194,8 @@ coverage:
           - string-utils
           - uri-utils
           - ci
+          - codecov-client
+          - holocron-plugin-codecov
         target: 80%
         if_not_found: success
         threshold: 2%
@@ -294,6 +298,8 @@ flag_management:
     - name: uri-utils
     - name: documentation
     - name: ci
+    - name: codecov-client
+    - name: holocron-plugin-codecov
 
 component_management:
   default_rules:
@@ -371,6 +377,11 @@ component_management:
       name: "cloudflare-client"
       paths:
         - clients/cloudflare-client/**
+
+    - component_id: codecov-client
+      name: "codecov-client"
+      paths:
+        - clients/codecov-client/**
 
     - component_id: confluence-client
       name: "confluence-client"
@@ -585,6 +596,11 @@ component_management:
       name: "holocron-plugin-cloudflare"
       paths:
         - plugins/holocron-plugin-cloudflare/**
+
+    - component_id: holocron-plugin-codecov
+      name: "holocron-plugin-codecov"
+      paths:
+        - plugins/holocron-plugin-codecov/**
 
     - component_id: holocron-plugin-discord
       name: "holocron-plugin-discord"
