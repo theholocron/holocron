@@ -234,7 +234,13 @@ export class GitHubSource implements Source {
 	}
 
 	async addOrgPropertyValues(name: string, values: string[]): Promise<string[]> {
-		return addOrgPropertyValues(this.orgClient ?? this.client, this.repo, name, values);
+		return addOrgPropertyValues(
+			this.orgClient ?? this.client,
+			this.repo,
+			name,
+			values,
+			this.orgClient !== undefined
+		);
 	}
 
 	async checkPropertyValues(values: Record<string, string | string[]>): Promise<string[] | undefined> {

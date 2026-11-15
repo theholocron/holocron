@@ -327,6 +327,35 @@ describe("addOrgPropertyValues", () => {
 		});
 	});
 
+	it("names the missing permission and the token used when GitHub refuses the write", async () => {
+		const refused = [
+			{ body: [CAPS] },
+			{ status: 403, body: { message: "Resource not accessible by personal access token" } },
+		];
+		const withOrg = await addOrgPropertyValues(makeRest(refused).rest, REPO, "holocron_capabilities", [
+			"tunnels",
+		]).catch((e: unknown) => e);
+		expect((withOrg as Error).message).toMatch(
+			/\(403\).*Custom properties.*organization token \(HOLOCRON_ORG_TOKEN/
+		);
+		const withAdmin = await addOrgPropertyValues(
+			makeRest(refused).rest,
+			REPO,
+			"holocron_capabilities",
+			["tunnels"],
+			false
+		).catch((e: unknown) => e);
+		expect((withAdmin as Error).message).toMatch(/admin token, because no organization token was found/);
+	});
+
+	it("passes any other failure of the write through unchanged", async () => {
+		const { rest } = makeRest([{ body: [CAPS] }, { status: 500, body: { message: "boom" } }]);
+		const err = await addOrgPropertyValues(rest, REPO, "holocron_capabilities", ["tunnels"]).catch(
+			(e: unknown) => e
+		);
+		expect((err as Error).message).not.toMatch(/Custom properties/);
+	});
+
 	it("writes nothing when every value is already allowed", async () => {
 		const { rest, calls } = makeRest([{ body: [CAPS] }]);
 		expect(await addOrgPropertyValues(rest, REPO, "holocron_capabilities", ["ci"])).toEqual([]);
