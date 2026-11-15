@@ -113,6 +113,46 @@ describe("token probe", () => {
 	});
 });
 
+describe("token probe with a bare check result", () => {
+	async function bare(result: Record<string, unknown>) {
+		const rows: ProbeRow[] = [];
+		const probe = tokenProbe({
+			cache: () => ({ key: "cache", providerName: "turbo", checkToken: async () => result }) as never,
+			team: () => "acme",
+			token: () => "v-tok",
+		});
+		await probe.run({
+			dryRun: false,
+			say: (r) => void rows.push(r),
+			secret: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+		});
+		return rows;
+	}
+
+	it("falls back to a plain word when a refused token has no reason", async () => {
+		expect(row(await bare({ ok: false, problem: "token" }), "token")).toMatchObject({
+			status: "fail",
+			detail: "refused",
+		});
+	});
+
+	it("falls back to a plain word when a team refusal has no reason", async () => {
+		expect(row(await bare({ ok: false, problem: "team" }), "team access")).toMatchObject({
+			status: "fail",
+			detail: "no access",
+		});
+	});
+
+	it("falls back to a plain word when the cache is unusable with no reason or status", async () => {
+		expect(row(await bare({ ok: false }), "remote cache")).toMatchObject({
+			status: "fail",
+			detail: "not usable",
+		});
+	});
+});
+
 describe("parseLayer", () => {
 	it("reads the layer in either spelling, and none when it is not given", () => {
 		expect(parseLayer([])).toBeUndefined();
