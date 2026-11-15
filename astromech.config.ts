@@ -75,6 +75,9 @@ export default defineConfig({
 		// Token Expiry: `holocron doctor secrets --verify` daily, so a token that is rejected or has 7 days or fewer
 		// left fails a run and GitHub's failed-workflow notification reaches the team.
 		"check-tokens",
+		// Token layers: `holocron doctor tokens` daily, each layer's tokens against what the plugins declare for them. A
+		// layer the runner cannot read is a skip, and a failed run reaches #alerts (#2158).
+		"doctor-tokens",
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"publish-wiki",
 		// Spec discussions: a forum post in #ideas for every ADR and spec, hourly and on a push to alpha, and for the

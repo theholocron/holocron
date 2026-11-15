@@ -137,6 +137,7 @@ describe("TASKS registry", () => {
 		expect(leaves("scan")).toEqual(["scan:secrets", "scan:code"]);
 		expect(leaves("test")).toEqual(["test:unit", "test:visual", "test:perf"]);
 		expect(TASKS["check-tokens"]!.suite).toBeUndefined();
+		expect(TASKS["doctor-tokens"]!.suite).toBeUndefined();
 	});
 
 	it("the audit-decomposed tasks are standalone", () => {

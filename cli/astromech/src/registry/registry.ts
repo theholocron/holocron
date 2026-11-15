@@ -169,6 +169,11 @@ export const TASKS: Record<string, TaskDef> = {
 	// its workflow; never part of `holocron run ci`'s gate (it needs the org's token secrets, and a token about to
 	// expire is not a reason to block a merge). Not a `scan` leaf: it is an operations signal that needs secrets.
 	"check-tokens": { group: "Security", scope: "repo", local: { command: "doctor secrets --verify" } },
+	// Runs `holocron doctor tokens` (#2158): each layer's tokens against what the plugins declare for them (permissions it
+	// must and must not have, rotation age, expiry), through a 1Password service account that reads the `ci` Environment.
+	// Scheduled daily by its workflow; a layer the runner cannot read is a skip row. Never part of `holocron run ci`
+	// (it needs the service account and calls each provider's API).
+	"doctor-tokens": { group: "Security", scope: "repo", local: { command: "doctor tokens" } },
 
 	// ── Delivery — shipping software (npm packages, deployed apps) ────────
 	build: {

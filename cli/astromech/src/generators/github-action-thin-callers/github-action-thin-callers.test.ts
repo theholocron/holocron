@@ -450,6 +450,22 @@ describe("withCacheMode", () => {
 	});
 });
 
+describe("WORKFLOW_TEMPLATES['doctor-tokens']", () => {
+	it("is a known workflow", () => {
+		expect(KNOWN_WORKFLOWS.has("doctor-tokens")).toBe(true);
+	});
+
+	it("runs daily, after check-tokens, and by hand, read-only, through the reusable workflow", () => {
+		const yaml = generateThinCallerContent("doctor-tokens");
+		expect(yaml).toContain("schedule:");
+		expect(yaml).toContain('cron: "41 6 * * *"');
+		expect(yaml).toContain("workflow_dispatch: {}");
+		expect(yaml).toContain("contents: read");
+		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/");
+		expect(yaml).toContain("secrets: inherit");
+	});
+});
+
 describe("WORKFLOW_TEMPLATES['check-tokens']", () => {
 	it("is a known workflow", () => {
 		expect(KNOWN_WORKFLOWS.has("check-tokens")).toBe(true);

@@ -23,6 +23,7 @@ describe("describeTasks", () => {
 		expect(text).toContain("scan (suite)  scan:secrets, scan:code");
 		expect(text).toContain("  typecheck");
 		expect(text).toContain("  check-tokens");
+		expect(text).toContain("check-tokens, doctor-tokens");
 	});
 
 	it("mentions every task of the registry", () => {
