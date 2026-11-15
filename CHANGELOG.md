@@ -1,3 +1,24 @@
+## [5.0.0-alpha.442](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.441...v5.0.0-alpha.442) (2026-11-15)
+
+### Features
+
+* **cli:** ✨ add --package to publish package to bootstrap or register one package ([#2207](https://github.com/theholocron/holocron/issues/2207)) ([eaed5c5](https://github.com/theholocron/holocron/commit/eaed5c550183a808f4ec4544d9cd2bd47ac319e2))
+* **cli:** ✨ add a Bruno tooling provider to the root config for export requests ([#2204](https://github.com/theholocron/holocron/issues/2204)) ([642cc5c](https://github.com/theholocron/holocron/commit/642cc5c2463b57978b03cf87c3a41a2be8e49cfd)), closes [#2172](https://github.com/theholocron/holocron/issues/2172)
+* **cli:** ✨ list the full path of every file export requests writes ([#2205](https://github.com/theholocron/holocron/issues/2205)) ([7a36729](https://github.com/theholocron/holocron/commit/7a367292cf226d46140e2eca797e2503ab67fb74))
+
+### Bug Fixes
+
+* **ci:** 🐛 hand the Axiom dataset to the scheduled doctor-tokens run ([#2209](https://github.com/theholocron/holocron/issues/2209)) ([3845e7f](https://github.com/theholocron/holocron/commit/3845e7fdd2bb01d7ee619851715e1768264c600f)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **github:** 🐛 stop the token probe judging public reads and the org token's Administration wrongly ([#2208](https://github.com/theholocron/holocron/issues/2208)) ([662fe70](https://github.com/theholocron/holocron/commit/662fe707a4c4a2fdc7141a4fccf83fd065a07fa9)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Documentation
+
+* **cli:** 📚 print the --sync-trust command in publish --initial's next steps ([#2206](https://github.com/theholocron/holocron/issues/2206)) ([22641bb](https://github.com/theholocron/holocron/commit/22641bb31d19cba6bc3fbf7ea0d435490f965167))
+
+### Chores
+
+* **ci:** 🔧 rename the 1Password service account token to HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN ([#2202](https://github.com/theholocron/holocron/issues/2202)) ([0b5f2aa](https://github.com/theholocron/holocron/commit/0b5f2aa467c5ff3d8bbdb151771d297723657ce3)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [5.0.0-alpha.441](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.440...v5.0.0-alpha.441) (2026-11-15)
 
 ### Features
