@@ -1,3 +1,9 @@
+## [5.0.0-alpha.447](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.446...v5.0.0-alpha.447) (2026-11-15)
+
+### Bug Fixes
+
+* **github:** 🔐 say which token and permission a refused property write lacked ([#2229](https://github.com/theholocron/holocron/issues/2229)) ([029672e](https://github.com/theholocron/holocron/commit/029672e70341108a48db10338bf20203e02c19f0))
+
 ## [5.0.0-alpha.446](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.445...v5.0.0-alpha.446) (2026-11-15)
 
 ### Features
