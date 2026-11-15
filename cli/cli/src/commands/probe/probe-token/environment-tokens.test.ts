@@ -37,6 +37,7 @@ describe("environmentTokens", () => {
 			environment: "Sentinel",
 			held: [{ token: "own", variable: "HOLOCRON_CLOUDFLARE_TOKEN", envName: "HOLOCRON_CLOUDFLARE_TOKEN" }],
 			missing: [],
+			plain: {},
 		});
 	});
 
@@ -54,6 +55,7 @@ describe("environmentTokens", () => {
 				{ token: "b", variable: "B_TOKEN", envName: "HOLOCRON_B_TOKEN" },
 			],
 			missing: ["HOLOCRON_C_TOKEN"],
+			plain: {},
 		});
 	});
 
@@ -121,6 +123,45 @@ describe("environmentTokens", () => {
 			expect(await environmentTokens(input(overridden, { environment: "local", configured: [] }))).toMatchObject({
 				held: [{ token: "local-token" }],
 			});
+		});
+
+		it("returns the visible values as `plain`, never a concealed one or a declared token", async () => {
+			const vault = {
+				providerName: "1password",
+				readEnvironment: vi.fn(),
+				readEnvironmentEntries: vi.fn(async () => [
+					{ name: "HOLOCRON_CLOUDFLARE_TOKEN", value: "tok", concealed: true },
+					{ name: "CLOUDFLARE_API_TOKEN", value: "visible-token", concealed: false },
+					{ name: "HOLOCRON_AXIOM_DATASET", value: "logs", concealed: false },
+					{ name: "SOME_SECRET", value: "s3", concealed: true },
+				]),
+			} as unknown as Vault;
+			const found = await environmentTokens(input(vault));
+			expect(found.plain).toEqual({ HOLOCRON_AXIOM_DATASET: "logs" });
+			expect(found.held).toEqual([
+				{ token: "tok", variable: "HOLOCRON_CLOUDFLARE_TOKEN", envName: "HOLOCRON_CLOUDFLARE_TOKEN" },
+			]);
+		});
+
+		it("merges the plain values of local over dev, and gives none when the vault cannot tell", async () => {
+			const entries = (rows: Record<string, string>) =>
+				Object.entries(rows).map(([name, value]) => ({ name, value, concealed: false }));
+			const byName: Record<string, Array<{ name: string; value: string; concealed: boolean }>> = {
+				"theholocron/holocron - dev": entries({ HOLOCRON_CLOUDFLARE_TOKEN: "t", A: "dev", B: "dev" }),
+				"theholocron/holocron - local": entries({ B: "local" }),
+			};
+			const vault = {
+				providerName: "1password",
+				readEnvironment: vi.fn(),
+				readEnvironmentEntries: vi.fn(async (name: string) => {
+					if (!byName[name]) throw new Error("absent");
+					return byName[name];
+				}),
+			} as unknown as Vault;
+			const found = await environmentTokens(input(vault, { environment: "local", configured: [] }));
+			expect(found.plain).toEqual({ A: "dev", B: "local" });
+			const blind = await environmentTokens(input(vaultOf({ HOLOCRON_CLOUDFLARE_TOKEN: "t", A: "x" })));
+			expect(blind.plain).toEqual({});
 		});
 
 		it("lets the local Environment be absent, but not the dev one it falls back to", async () => {

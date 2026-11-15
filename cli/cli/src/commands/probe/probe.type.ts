@@ -37,6 +37,8 @@ export interface ProbeStep {
 	context: RuntimeContext;
 	heading?: string;
 	args: string[];
+	/** The Environment's plain values the plugin sees for this run, ahead of the machine's own (never printed). */
+	values?: Record<string, string>;
 }
 
 export interface ProbeReport {

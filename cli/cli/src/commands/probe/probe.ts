@@ -14,7 +14,7 @@ import { DOCS_PROVIDER, docsCoverageProbes } from "./docs-coverage/index.js";
 import { GENERATED_PROVIDER, generatedProbes } from "./generated/index.js";
 import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, ProbeStep, RunProbeCommandInput } from "./probe.type.js";
-import { defaultProviderTokens, environmentTokens } from "./probe-token/index.js";
+import { defaultProviderTokens, environmentTokens, withEnvironmentValues } from "./probe-token/index.js";
 import { CI_PROVIDER, ciProbes } from "./references/index.js";
 import { runProbe } from "./run-probe.js";
 import { realSpecsIo, SPECS_PROVIDER, specsProbes } from "./specs/index.js";
@@ -115,6 +115,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 						},
 						heading: held.envName,
 						args: ["--token-name", held.envName],
+						values: found.plain,
 					});
 				}
 				for (const name of found.missing) {
@@ -142,31 +143,35 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 
 	const out = input.print ?? (probe.reportsTo === "stderr" ? (line: string) => console.error(line) : print);
 	const statuses: Array<ProbeCommandReport["status"]> = [];
+	const { provider, probe: probeName } = input;
 	for (const step of steps) {
-		let stepProbe = probe;
-		if (step.context !== input.context) {
-			const reloaded = makeLoader(step.context);
-			await reloaded.load();
-			stepProbe = reloaded.probes().get(input.provider)?.[input.probe] ?? probe;
-		}
-		const tokens = [step.context.cliToken, ...Object.values(step.context.cliTokens ?? {})].filter(
-			(t): t is string => typeof t === "string"
-		);
-		const report = await runProbe({
-			name: `${input.provider} ${input.probe}`,
-			provider: input.provider,
-			probeName: input.probe,
-			args: [...(input.args ?? []), ...(layer ? ["--layer", layer] : []), ...step.args],
-			...(step.heading ? { heading: step.heading } : {}),
-			...(input.lcov ? { lcov: input.lcov } : {}),
-			probe: stepProbe,
-			dryRun: input.dryRun ?? false,
-			yes: input.yes ?? false,
-			secrets: tokens,
-			print: out,
-			...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
-			...(input.confirm ? { confirm: input.confirm } : {}),
-			...(input.onInterrupt ? { onInterrupt: input.onInterrupt } : {}),
+		// The Environment's plain values are set only while the loader is built and the probe runs, then put back.
+		const report = await withEnvironmentValues(step.values, async () => {
+			let stepProbe = probe;
+			if (step.context !== input.context) {
+				const reloaded = makeLoader(step.context);
+				await reloaded.load();
+				stepProbe = reloaded.probes().get(provider)?.[probeName] ?? probe;
+			}
+			const tokens = [step.context.cliToken, ...Object.values(step.context.cliTokens ?? {})].filter(
+				(t): t is string => typeof t === "string"
+			);
+			return runProbe({
+				name: `${provider} ${probeName}`,
+				provider,
+				probeName,
+				args: [...(input.args ?? []), ...(layer ? ["--layer", layer] : []), ...step.args],
+				...(step.heading ? { heading: step.heading } : {}),
+				...(input.lcov ? { lcov: input.lcov } : {}),
+				probe: stepProbe,
+				dryRun: input.dryRun ?? false,
+				yes: input.yes ?? false,
+				secrets: tokens,
+				print: out,
+				...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
+				...(input.confirm ? { confirm: input.confirm } : {}),
+				...(input.onInterrupt ? { onInterrupt: input.onInterrupt } : {}),
+			});
 		});
 		statuses.push(report.status);
 	}

@@ -262,6 +262,108 @@ describe("runProbeCommand", () => {
 			expect(argsSeen).toEqual([["--token-name", "HOLOCRON_DEMO_TOKEN"], []]);
 		});
 
+		describe("the plugin's own values", () => {
+			const DATASET = "DEMO_PROBE_DATASET";
+			const entry = (name: string, value: string, concealed = false) => ({ name, value, concealed });
+			const byLayer: Record<string, ReturnType<typeof entry>[]> = {
+				ci: [
+					entry("DEMO_TOKEN", "ci-token-value", true),
+					entry(DATASET, "ci-dataset"),
+					entry("CI_SECRET", "ci-secret-value", true),
+				],
+				dev: [entry("DEMO_TOKEN", "dev-token-value", true), entry(DATASET, "dev-dataset")],
+				local: [entry("OTHER", "x")],
+			};
+			const layerVault = {
+				providerName: "1password",
+				readEnvironment: async () => ({}),
+				readEnvironmentEntries: async (id: string) => {
+					const layer = id.split(" - ")[1] ?? "";
+					if (!byLayer[layer]) throw new Error(`no Environment ${id}`);
+					return byLayer[layer];
+				},
+			};
+			const seenDataset: Array<{ atBuild: string | undefined; atRun: string | undefined }> = [];
+			const build = (context: { cliTokens?: Record<string, string> }) => {
+				const atBuild = process.env[DATASET];
+				return {
+					load: async () => {},
+					probes: () =>
+						new Map([
+							[
+								"demo",
+								{
+									check: {
+										summary: "Check.",
+										writes: false,
+										acceptsToken: true,
+										run: async (ctx: { say: (r: { status: "ok"; label: string }) => void }) => {
+											seenDataset.push({ atBuild, atRun: process.env[DATASET] });
+											ctx.say({ status: "ok", label: "checked" });
+										},
+									},
+								},
+							],
+						]),
+					loadedKeys: () => [],
+					loadFailures: () => [],
+					has: (k: string) => k === "vault",
+					get: () => layerVault,
+					cliTokens: context.cliTokens,
+				} as unknown as PluginLoader;
+			};
+			const go = (environment: string) =>
+				run({
+					loaded: { resolved: { providers: {} } } as unknown as LoadedConfig,
+					provider: "demo",
+					probe: "check",
+					environment,
+					context: { repoRoot: process.cwd() },
+					providerTokens: async () => [
+						{ envName: "HOLOCRON_DEMO_TOKEN", vendorEnvName: "DEMO_TOKEN", keyringKey: "demo" },
+					],
+					loader: build({}),
+					makeLoader: build,
+				});
+
+			it("shows the plugin the Environment's visible values first, then puts the machine's back", async () => {
+				seenDataset.length = 0;
+				process.env[DATASET] = "machine-dataset";
+				try {
+					const { promise, text } = go("ci");
+					expect((await promise).status).toBe("ok");
+					// The first loader is the machine's; the one built for the probe and the run see the Environment's value.
+					expect(seenDataset).toEqual([{ atBuild: "ci-dataset", atRun: "ci-dataset" }]);
+					expect(process.env[DATASET]).toBe("machine-dataset");
+					// Neither the values nor the concealed ones are printed.
+					for (const value of ["ci-dataset", "ci-token-value", "ci-secret-value", "machine-dataset"]) {
+						expect(text()).not.toContain(value);
+					}
+				} finally {
+					delete process.env[DATASET];
+				}
+			});
+
+			it("falls back to the machine's value for what the Environment does not hold", async () => {
+				seenDataset.length = 0;
+				byLayer.ci = [entry("DEMO_TOKEN", "ci-token-value", true)];
+				process.env[DATASET] = "machine-dataset";
+				try {
+					await go("ci").promise;
+					expect(seenDataset).toEqual([{ atBuild: "machine-dataset", atRun: "machine-dataset" }]);
+				} finally {
+					delete process.env[DATASET];
+				}
+			});
+
+			it("reads local over dev, so the dev value still comes through when local has none", async () => {
+				seenDataset.length = 0;
+				await go("local").promise;
+				expect(seenDataset).toEqual([{ atBuild: "dev-dataset", atRun: "dev-dataset" }]);
+				expect(process.env[DATASET]).toBeUndefined();
+			});
+		});
+
 		describe("an Environment that holds several declared tokens", () => {
 			const several = async () => [
 				{ envName: "HOLOCRON_A_TOKEN", keyringKey: "a", expect: { layers: ["ci"] as const } },
