@@ -17,9 +17,17 @@ export interface CodecovRepo {
 	/** Whether the repository has not been manually deactivated. */
 	activated?: boolean;
 	/** The owner. */
-	author?: { service?: string; username?: string; name?: string };
+	author?: {
+		/** The service the owner is on. */
+		service?: string;
+		/** The owner's login. */
+		username?: string;
+		/** The owner's display name. */
+		name?: string;
+	};
 }
 
+/** The `repos` group of the Codecov client. */
 export function repos(rest: RestClient) {
 	return {
 		/** Get one repository: `GET /{service}/{owner}/repos/{repo}/`. */

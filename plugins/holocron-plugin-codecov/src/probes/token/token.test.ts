@@ -125,6 +125,7 @@ describe("token probe", () => {
 describe("parseTokenArgs", () => {
 	it("reads the layer and token name in either spelling, and none when not given", () => {
 		expect(parseTokenArgs([])).toEqual({});
+		expect(parseTokenArgs(["--unknown", "x", "--layer", "ci"])).toEqual({ layer: "ci" });
 		expect(parseTokenArgs(["--layer", "ci", "--token-name", "X"])).toEqual({ layer: "ci", tokenName: "X" });
 		expect(parseTokenArgs(["--layer=dev", "--token-name=Y"])).toEqual({ layer: "dev", tokenName: "Y" });
 	});

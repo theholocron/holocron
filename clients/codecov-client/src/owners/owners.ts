@@ -11,6 +11,7 @@ export interface CodecovOwner {
 	name?: string;
 }
 
+/** The `owners` group of the Codecov client. */
 export function owners(rest: RestClient) {
 	return {
 		/** Get one owner: `GET /{service}/{owner}/`. */

@@ -50,6 +50,14 @@ describe("CodecovCoverage", () => {
 		expect((err as Error).message).not.toContain("cc-tok");
 	});
 
+	it("wraps an error that is not an API error, without the token", async () => {
+		const failing = { repos: { get: () => Promise.reject(new TypeError("offline")) } };
+		const cap = new CodecovCoverage(() => failing as never, target);
+		const err = await cap.checkToken().catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/theholocron\/holocron.*offline/);
+		expect((err as Error).cause).toBeInstanceOf(TypeError);
+	});
+
 	it("throws when the options name no repository", async () => {
 		const { cap } = build([], { target: null });
 		await expect(cap.checkToken()).rejects.toThrow(/needs a repository/);
