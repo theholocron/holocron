@@ -76,7 +76,12 @@ export function createPlugin(options: AxiomPluginOptions) {
 				url: options.baseUrl ?? "https://api.axiom.co",
 				fetch: options.fetch,
 				token: () => resolveToken(options),
-				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+				verify: (token) =>
+					verifyToken(token, {
+						baseUrl: options.baseUrl,
+						fetch: options.fetch,
+						dataset: ctx.options.dataset,
+					}),
 			}),
 		},
 		capabilities: {

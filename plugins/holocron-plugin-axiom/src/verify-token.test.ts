@@ -75,6 +75,57 @@ describe("verifyToken", () => {
 		expect(((await verifyToken("t", { fetch: stub.fetch })) as Result).ok).toBe(true);
 	});
 
+	describe("with the dataset the token is meant to read", () => {
+		it("asks about that dataset, not the probe name, and accepts a read of it", async () => {
+			const stub = stubFetch([
+				{ status: 403, body: {} },
+				{ status: 200, body: { id: "holocron", name: "holocron" } },
+			]);
+			const result = (await verifyToken("xaat-scoped", { fetch: stub.fetch, dataset: "holocron" })) as Result;
+			expect(result).toEqual({ ok: true, subject: "API token" });
+			expect(stub.calls[1]?.url).toContain("/v2/datasets/holocron");
+			expect(stub.calls[1]?.url).not.toContain("holocron-token-check");
+		});
+
+		it("accepts a dataset that does not exist yet (404), as the probe name does", async () => {
+			const stub = stubFetch([
+				{ status: 403, body: {} },
+				{ status: 404, body: {} },
+			]);
+			const result = (await verifyToken("t", { fetch: stub.fetch, dataset: "holocron" })) as Result;
+			expect(result).toEqual({ ok: true, subject: "API token" });
+		});
+
+		it("rejects a token refused (403) on the dataset it is meant to read, naming the dataset", async () => {
+			const stub = stubFetch([
+				{ status: 403, body: {} },
+				{ status: 403, body: {} },
+			]);
+			const result = (await verifyToken("t", { fetch: stub.fetch, dataset: "holocron" })) as Result;
+			expect(result.ok).toBe(false);
+			expect(result.message).toMatch(/datasets\/holocron/);
+			expect(result.message).toMatch(/→ 403/);
+		});
+
+		it("rejects an invalid token (401) on the user without asking about the dataset", async () => {
+			const stub = stubFetch([{ status: 401, body: { message: "Invalid API token" } }]);
+			const result = (await verifyToken("bad", { fetch: stub.fetch, dataset: "holocron" })) as Result;
+			expect(result.ok).toBe(false);
+			expect(result.message).toMatch(/→ 401/);
+			expect(stub.calls).toHaveLength(1);
+		});
+
+		it("rejects a token that is refused (401) on the dataset", async () => {
+			const stub = stubFetch([
+				{ status: 403, body: {} },
+				{ status: 401, body: {} },
+			]);
+			const result = (await verifyToken("bad", { fetch: stub.fetch, dataset: "holocron" })) as Result;
+			expect(result.ok).toBe(false);
+			expect(result.message).toMatch(/→ 401/);
+		});
+	});
+
 	it("rejects a token that is refused both the user and the datasets", async () => {
 		const stub = stubFetch([
 			{ status: 403, body: {} },

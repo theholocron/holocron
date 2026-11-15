@@ -70,7 +70,7 @@ synced from 1Password. Leave the token unset locally to skip Axiom entirely.
 
 Plugin-level exports (not capability methods, per the auth-bootstrap convention):
 
-| Export        | Purpose                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v2/user` — returns `{ ok: true, subject: "user @ …" }` or `{ ok: false, message }`.    |
-| `AUTH_HINT`   | One-line hint printed by `holocron new token` when no token is supplied or the token is bad. |
+| Export        | Purpose                                                                                                                                                                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v2/user` — returns `{ ok: true, subject: "user @ …" }` or `{ ok: false, message }`. An API token cannot read the user (403), so it then reads the `dataset` option (`HOLOCRON_AXIOM_DATASET`), the dataset the token is scoped to: a 200 or a 404 is `API token`, a 403 or 401 there is rejected. |
+| `AUTH_HINT`   | One-line hint printed by `holocron new token` when no token is supplied or the token is bad.                                                                                                                                                                                                            |
