@@ -499,7 +499,7 @@ These are repository secrets that a workflow reads. Storing one locally is optio
 | `HOLOCRON_SECRETS_TOKEN`            | `sync-secrets`, passed with `--token github=…`; also the `secrets` capability locally | Organization-owned PAT with only organization **Secrets: read/write**                                                        |
 | `HOLOCRON_DEPLOYMENTS_TOKEN`        | `deploy-preview`, through `secrets: inherit`                                          | PAT with only **Deployments: read/write**; creates the GitHub Deployment and posts its status for a PR preview               |
 | `VERCEL_TOKEN`                      | `deploy-sentinel`, `sync-secrets`, the preview workflows                              | A Vercel personal access token (Vercel has no separate service token). The same one `holocron new token vercel` stores       |
-| `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN` | `sync-secrets` and `doctor-tokens`, exposed to `op` as `OP_SERVICE_ACCOUNT_TOKEN`     | A 1Password **service account** token with read access to the `ci` and `prod` layer Environments only                        |
+| `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN` | `doctor-tokens`, exposed to `op` as `OP_SERVICE_ACCOUNT_TOKEN`                        | A 1Password **service account** token with read access to the `ci` layer Environment only                                    |
 | `HOLOCRON_FERN_TOKEN`               | the `publish-wiki` reusable workflow, which passes it to the Fern CLI as `FERN_TOKEN` | The Fern API token. Password protection is set in the Fern dashboard and needs no token here                                 |
 
 The release workflow is the one place a broader token is used as a fallback. The CLI never falls back from one GitHub feature token to another, except that the `secrets` capability tries `github.secrets` or `github.admin` depending on the scope it writes (see [Organization secrets](#organization-secrets)).
@@ -523,7 +523,7 @@ security find-generic-password -s "com.theholocron.cli" -a "vercel" -w | gh secr
 
 macOS asks once to allow the keychain access. A separate CI-only token from `vercel.com/account/tokens` works too.
 
-For `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create a service account named for CI, give it **Read** access to the `<org>/<repo> - ci` and `<org>/<repo> - prod` Environments and nothing else, then `gh secret set HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN --repo theholocron/holocron`. 1Password documents service accounts reading Environments, but a Feb 2026 community report says `op environment` returned "not found" for one; if it does, run `holocron sync secrets --env prod --cwd apps/sentinel` locally instead.
+For `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create a service account named for CI, give it **Read** access to the `<org>/<repo> - ci` Environment and nothing else (never `prod`: the scheduled job must not read production secrets), then `gh secret set HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN --repo theholocron/holocron`. `sync-secrets` is run locally (`holocron sync secrets --env prod --cwd apps/sentinel`, signed in through 1Password on your machine), so no CI token reads `prod`.
 
 ### Organization secrets
 

@@ -6,7 +6,7 @@ name: Doctor Tokens
 # its expiry fails this job. A failed run reaches #alerts through `platform.notifications.yml`; there is no other channel.
 #
 # Only what the runner can read is checked. The job reads Environments through a 1Password service account
-# (`HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`, the one `sync-secrets` uses); it reads the `ci` and `prod` Environments and nothing else. A layer the
+# (`HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`); it reads the `ci` Environment and nothing else, never `prod`. A layer the
 # account cannot read (`local`, `dev`) is a `skip` row with the reason, never a failure, so the run proves what CI
 # itself can reach and says what it did not look at. `doctor tokens` has no flag to limit the layers: a layer the account
 # can read is checked, and its fail rules are unchanged. Without the secret every row is a skip and the run passes, which
