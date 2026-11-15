@@ -19,7 +19,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
 
 ## Architecture
 
-- **Capability/provider model.** 23 capabilities defined in
+- **Capability/provider model.** 24 capabilities defined in
   `cli/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
@@ -616,7 +616,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `validate
 <!-- prettier-ignore -->
 ```text
 cli/                              — core infrastructure (the CLI and its runtime)
-  cli/                            — @theholocron/cli                       (binary + runtime + 23 capability interfaces)
+  cli/                            — @theholocron/cli                       (binary + runtime + 24 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   dagobah/                        — @theholocron/dagobah                   (the local dev server behind `holocron dev serve` — env loading, a loopback handler server, request logging, and `superviseProcesses()`, the two-process foreground supervisor behind `holocron dev`, and the GitHub App manifest flow behind `holocron new github-app`; a published dependency of the CLI, #1714)
