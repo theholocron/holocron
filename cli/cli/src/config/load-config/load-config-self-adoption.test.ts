@@ -243,6 +243,25 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			},
 		};
 
+		// And (#2172): the `tooling` provider, Bruno over the apps' request files, so `export requests` runs from the root.
+		expect(expectedProviders.tooling).toBeUndefined();
+		expectedProviders.tooling = {
+			cardinality: "many",
+			tuples: [
+				{
+					provider: "bruno",
+					packageName: "@theholocron/holocron-plugin-bruno",
+					options: {
+						collectionFiles: [
+							"apps/sentinel/requests/collection.json",
+							"apps/comlink/requests/collection.json",
+						],
+						envFiles: ["apps/sentinel/requests/environment.json", "apps/comlink/requests/environment.json"],
+					},
+				},
+			],
+		};
+
 		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
 		(expected as unknown as { githubApps: unknown }).githubApps = [
 			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: `${SLUG} - prod` },
