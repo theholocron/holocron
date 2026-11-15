@@ -181,6 +181,15 @@ export default defineConfig({
 		// `holocron sync ideas` files the notes whose status is `in-progress` as issues. A machine whose vault is
 		// elsewhere sets HOLOCRON_IDEAS_DIR, which wins.
 		ideas: ["obsidian", { vault: "The Holocron" }],
+		// Tooling: the apps' request files, so `holocron export requests --to bruno` runs from the root. It writes to the
+		// git-ignored `apps/sentinel/requests/.export/bruno/`; pushing to Postman is each app's `sync tooling --cwd`.
+		tooling: [
+			"bruno",
+			{
+				collectionFiles: ["apps/sentinel/requests/collection.json", "apps/comlink/requests/collection.json"],
+				envFiles: ["apps/sentinel/requests/environment.json", "apps/comlink/requests/environment.json"],
+			},
+		],
 		// Notifications: the Holocron Discord server. `holocron setup notifications`
 		// applies the layout below (idempotent; --dry-run previews it). This block
 		// lives in ONE repo on purpose -- a server layout is org-level, so it must
