@@ -47,6 +47,13 @@ export const publishArgs = (y: Argv<GlobalArgs>) =>
 				"Only this version group's packages: a folder of the repo (clients, observability). " +
 				"Omitted, every public package in the workspace.",
 		})
+		.option("package", {
+			type: "string",
+			array: true,
+			describe:
+				"Only this package (repeatable): its name or its folder, like @theholocron/holocron-plugin-bruno or " +
+				"plugins/holocron-plugin-bruno. For --initial and --sync-trust; a steady-state publish refuses it.",
+		})
 		.option("exclude-group", {
 			type: "string",
 			array: true,

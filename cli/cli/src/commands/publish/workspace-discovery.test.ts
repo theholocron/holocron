@@ -106,6 +106,24 @@ describe("version groups", () => {
 		expect(workspaceFilterArgs(root(), { group: "skills" })).toEqual([]);
 	});
 
+	describe("only some packages", () => {
+		it("keeps the packages named, by name or by folder, in any spelling of the folder", () => {
+			expect(discoverPublicPackages(root(), { onlyPackages: ["@acme/github"] })).toEqual(["@acme/github"]);
+			expect(
+				discoverManifests(root(), { onlyPackages: ["clients/http", "./utils/array/"] }).map(({ dir }) => dir)
+			).toEqual(["./clients/http", "./utils/array"]);
+		});
+
+		it("narrows a group, and a name that matches nothing leaves nothing", () => {
+			expect(discoverPublicPackages(root(), { group: "clients", onlyPackages: ["@acme/array"] })).toEqual([]);
+			expect(discoverPublicPackages(root(), { onlyPackages: ["@acme/nope"] })).toEqual([]);
+		});
+
+		it("is no limit when the list is empty", () => {
+			expect(discoverPublicPackages(root(), { group: "utils", onlyPackages: [] })).toEqual(["@acme/array"]);
+		});
+	});
+
 	describe("excluding groups", () => {
 		it("leaves a group's packages out of the repo-wide set", () => {
 			expect(

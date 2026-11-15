@@ -30,6 +30,7 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				force: argv.force,
 				...(argv.group ? { group: argv.group as string } : {}),
 				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
+				...(argv.package?.length ? { onlyPackages: argv.package as string[] } : {}),
 				...(argv.repo ? { repo: argv.repo as string } : {}),
 			});
 			if (report.status === "fail") {
@@ -43,6 +44,7 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				dryRun: argv.dryRun,
 				...(argv.group ? { group: argv.group as string } : {}),
 				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
+				...(argv.package?.length ? { onlyPackages: argv.package as string[] } : {}),
 				...(argv.tag ? { tag: argv.tag as string } : {}),
 				...(otp ? { otp } : {}),
 			});
@@ -59,6 +61,13 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				// "proceed with the real run?" question.
 				process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
 			}
+			return;
+		}
+		if (argv.package?.length) {
+			reportError(
+				"publish package --package works with --initial or --sync-trust; a steady-state publish takes the whole scope"
+			);
+			process.exitCode = 1;
 			return;
 		}
 		const report = await runSteadyPublish({
