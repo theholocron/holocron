@@ -26,7 +26,12 @@ import { assertPluginsResolvable, PluginLoader, type PluginProbes, type ProbeRow
 import type { PluginToken } from "../auth/index.js";
 import { memoVault } from "../doctor-secrets/index.js";
 import { ownerEnvironments } from "../owner-environments/index.js";
-import { defaultProviderTokens, environmentTokens, HoldsNoTokenError } from "../probe/probe-token/index.js";
+import {
+	defaultProviderTokens,
+	environmentTokens,
+	HoldsNoTokenError,
+	withEnvironmentValues,
+} from "../probe/probe-token/index.js";
 import { runProbe } from "../probe/run-probe.js";
 import { type LayerTokenExpectation, tokenExpectations } from "../token-expectations/index.js";
 import type { DoctorTokensReport, RunDoctorTokensInput } from "./doctor-tokens.type.js";
@@ -180,19 +185,46 @@ async function checkLayer(c: LayerCheck): Promise<CheckRow[]> {
 			);
 			continue;
 		}
-		rows.push(summariseProbeRows(id(e), title(e), await probeToken(c, e, token.token)));
+		rows.push(summariseProbeRows(id(e), title(e), await probeToken(c, e, token.token, held.plain)));
 	}
 	return rows;
 }
 
 /** Runs the provider's token probe against one token, as `probe <provider> token --environment <layer>` does. */
-async function probeToken(c: LayerCheck, e: LayerTokenExpectation, token: string): Promise<ProbeRow[]> {
+async function probeToken(
+	c: LayerCheck,
+	e: LayerTokenExpectation,
+	token: string,
+	plain: Readonly<Record<string, string>>
+): Promise<ProbeRow[]> {
 	const provider = c.entry.provider;
 	const context = {
 		...c.input.context,
 		cliTokens: { ...c.input.context.cliTokens, [provider]: token },
 	};
 	try {
+		// The Environment's plain values are in `process.env` only while the loader is built and the probe runs.
+		return await withEnvironmentValues(plain, () => runWith(c, e, token, context));
+	} catch (err) {
+		// A probe that cannot run is a failure of this token's row, with the reason scrubbed of the token.
+		return [
+			{
+				status: "fail",
+				label: `${provider} ${PROBE}`,
+				detail: describeError(err).split(token).join("[redacted]"),
+			},
+		];
+	}
+}
+
+async function runWith(
+	c: LayerCheck,
+	e: LayerTokenExpectation,
+	token: string,
+	context: RunDoctorTokensInput["context"] & { cliTokens: Record<string, string> }
+): Promise<ProbeRow[]> {
+	const provider = c.entry.provider;
+	{
 		const reloaded = c.makeLoader(context);
 		await reloaded.load();
 		const probe = reloaded.probes().get(provider)?.[PROBE] ?? c.probes.get(provider)![PROBE]!;
@@ -210,14 +242,5 @@ async function probeToken(c: LayerCheck, e: LayerTokenExpectation, token: string
 			onInterrupt: () => () => {},
 		});
 		return report.rows;
-	} catch (err) {
-		// A probe that cannot run is a failure of this token's row, with the reason scrubbed of the token.
-		return [
-			{
-				status: "fail",
-				label: `${provider} ${PROBE}`,
-				detail: describeError(err).split(token).join("[redacted]"),
-			},
-		];
 	}
 }
