@@ -1,7 +1,10 @@
 ---
+id: SPEC-0086
 status: draft
 issue: theholocron/holocron#2167
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571415112630407168
 ---
 
 # Codecov and Turbo as plugins
