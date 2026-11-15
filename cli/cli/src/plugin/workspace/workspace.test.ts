@@ -86,6 +86,19 @@ describe("assertPluginsResolvable", () => {
 		expect((err as WorkspaceContextError).message).toMatch(/\(and 2 others\)/);
 	});
 
+	it("leaves an installed plugin that cannot load its own dependency alone, and keeps the cause", async () => {
+		const config = resolveConfig({ name: "demo", providers: { tooling: ["bruno"] } });
+		const importer = (async () => {
+			const err = new Error("Cannot find module 'tslib'") as NodeJS.ErrnoException;
+			err.code = "ERR_MODULE_NOT_FOUND";
+			throw err;
+		}) as PluginImporter;
+		const loader = new PluginLoader(config, { repoRoot: "/tmp/repo" }, importer);
+		await loader.load();
+		expect(() => assertPluginsResolvable(loader, "export requests")).not.toThrow();
+		expect(loader.loadFailures()[0]?.error.message).toContain("Cannot find module 'tslib'");
+	});
+
 	it("is a no-op when at least one capability loaded", async () => {
 		const loader = loaderWith(
 			{ name: "demo", providers: { source: "github", storage: "neon" } },

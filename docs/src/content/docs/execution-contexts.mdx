@@ -31,6 +31,8 @@ Run it from a repo that has the @theholocron/holocron-plugin-* packages as
 devDependencies, or `pnpm exec holocron sync`. A global install can't resolve them.
 ```
 
+That line is only for a plugin package that is not there. A plugin that is installed but cannot load one of its own dependencies (`Cannot find module 'tslib'` after a half-finished install) is not reported this way: the command keeps going and its row for that provider shows the missing module. Run `pnpm install` (or `pnpm install --force`) to link it again.
+
 The fix is to install the plugins you need next to the CLI:
 
 ```bash
