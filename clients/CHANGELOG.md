@@ -1,3 +1,9 @@
+## [1.58.0-alpha.33](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.32...clients-v1.58.0-alpha.33) (2026-11-15)
+
+### Features
+
+* **codecov:** ✨ add the coverage capability and a Codecov plugin with a token probe ([#2228](https://github.com/theholocron/holocron/issues/2228)) ([ed5c8ff](https://github.com/theholocron/holocron/commit/ed5c8ff03da8d07e3c2badb3bdc2f81e9cf64ee7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167)
+
 ## [1.58.0-alpha.32](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.31...clients-v1.58.0-alpha.32) (2026-11-14)
 
 ### Features
