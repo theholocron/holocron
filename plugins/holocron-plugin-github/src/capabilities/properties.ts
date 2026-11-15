@@ -88,7 +88,8 @@ export async function addOrgPropertyValues(
 	client: GitHubClient,
 	repo: string,
 	name: string,
-	values: string[]
+	values: string[],
+	viaOrgToken = true
 ): Promise<string[]> {
 	const org = repo.split("/")[0] as string;
 	const current = (await client.properties.orgSchema(org)).find((p) => p.property_name === name);
@@ -98,6 +99,20 @@ export async function addOrgPropertyValues(
 	const have = new Set(current.allowed_values);
 	const added = [...new Set(values)].filter((v) => !have.has(v));
 	if (added.length === 0) return [];
-	await client.properties.setOrgProperty(org, { ...current, allowed_values: [...current.allowed_values, ...added] });
+	try {
+		await client.properties.setOrgProperty(org, {
+			...current,
+			allowed_values: [...current.allowed_values, ...added],
+		});
+	} catch (err) {
+		if (!(err instanceof ProviderApiError) || (err.status !== 403 && err.status !== 401)) throw err;
+		const token = viaOrgToken
+			? "the organization token (HOLOCRON_ORG_TOKEN, or the token passed with --token)"
+			: "the admin token, because no organization token was found (set HOLOCRON_ORG_TOKEN or pass --token)";
+		throw new Error(
+			`GitHub refused to change the "${name}" definition (${err.status}): it needs the organization permission Custom properties: Read and write (admin) on ${org}, and this ran with ${token}`,
+			{ cause: err }
+		);
+	}
 	return added;
 }
