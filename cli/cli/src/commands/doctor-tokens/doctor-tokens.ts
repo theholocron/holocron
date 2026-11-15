@@ -221,7 +221,7 @@ async function runWith(
 	c: LayerCheck,
 	e: LayerTokenExpectation,
 	token: string,
-	context: RunDoctorTokensInput["context"]
+	context: RunDoctorTokensInput["context"] & { cliTokens: Record<string, string> }
 ): Promise<ProbeRow[]> {
 	const provider = c.entry.provider;
 	{
