@@ -1,0 +1,68 @@
+---
+title: Turbo Plugin
+description: Implements the cache capability for Turborepo's Remote Cache, which Vercel serves.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-turbo"]} capability="cache" />
+
+<Installation package={getPlugins()["holocron-plugin-turbo"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "cache", token: "HOLOCRON_TURBO_TOKEN (turbo)" }]} />
+
+Turborepo's Remote Cache is Vercel's, so the token is a Vercel token. The plugin is separate from the [Vercel plugin](./vercel) on purpose: swapping the cache service must not touch deployment.
+
+## Config
+
+```ts
+providers: {
+  cache: "turbo",
+}
+```
+
+The organization's `holocron_capabilities` property must allow `cache` (`holocron apply properties`) before a repo declares it.
+
+The team is read from `HOLOCRON_TURBO_TEAM`, then `TURBO_TEAM` (a team slug, or a `team_...` id). It is not a secret, so it is filled from the `ci` layer's 1Password Environment like the other organization variables. To pin it in config instead:
+
+```ts
+providers: {
+  cache: ["turbo", { team: "my-team" }],
+}
+```
+
+## Authentication
+
+```bash
+# Store in keyring
+holocron new token turbo <VERCEL_TOKEN>
+
+# Or via env var
+export HOLOCRON_TURBO_TOKEN=<VERCEL_TOKEN>
+# Also recognized:
+export TURBO_TOKEN=<VERCEL_TOKEN>
+```
+
+The token is held in the `ci` Environment only today. What can and cannot be checked for it: [Fern, Vercel, Turbo and Codecov](/holocron/tokens/#fern-vercel-turbo-and-codecov).
+
+## Checking a token
+
+`holocron probe turbo token` asks Vercel's remote-cache status endpoint (`GET /v8/artifacts/status`) for the configured team and never prints the token. Rows:
+
+| Row            | Meaning                                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| `team`         | `fail` naming `HOLOCRON_TURBO_TEAM` when a token has no team (Turborepo then turns the remote cache off)        |
+| `token`        | `fail` when Vercel refuses it (401)                                                                             |
+| `team access`  | `fail` when the cache does not answer for the team with this token (403, 404)                                   |
+| `remote cache` | `ok` when `enabled`; `fail` for `disabled`, `over_limit`, `paused` (and 402/410); `info` for a state not listed |
+| `upload`       | `info` when Vercel reports the token read-only (it can read the cache but not fill it)                          |
+| `permissions`  | `info`: Vercel does not report a token's scope (Full Account or a team), so it is not checked                   |
+
+`--environment ci` reads that layer's token (and the team, from the same Environment) from 1Password and confirms the layer is one that should hold it; `--token turbo=<token>` checks another token. [`holocron doctor tokens`](/holocron/commands/doctor-tokens/) runs the same probe for every layer that should hold the token and fails when a layer holds one it is not declared for.
+
+## What `cache` provides
+
+- `checkToken()` — is the token valid for the configured team, and is the remote cache reachable with it? Returns `ok`, the cache's `status`, `readOnly` where Vercel reports it, a `reason` and which part failed (`problem`: `token`, `team` or `cache`). Names and states only, never the token.
+
+The full [API reference](/holocron/plugins/holocron-plugin-turbo/api/readme/) is generated from the package's TSDoc comments.

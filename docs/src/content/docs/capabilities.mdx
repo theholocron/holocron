@@ -189,6 +189,14 @@ Log aggregation — ships structured log output to an external service. Implemen
 | `readDataset()`   | Read a dataset without changing it (`doctor logs`) |
 | `checkToken()`    | Ask the provider whether it accepts the token      |
 
+### `cache`
+
+A remote build cache and the token that reaches it, in a vocabulary no cache service owns. Optional: a repo with no `cache` provider is not affected. Implemented by: [Turbo](./plugins/turbo).
+
+| Method         | Description                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkToken()` | Is the token valid for the configured team, and is the remote cache reachable with it? Returns `ok`, a `status` and a `reason`; never the token |
+
 ### `ideas`
 
 The inbox in front of the issue: ideas that are not filed yet, in a shape no provider owns. Optional: a repo with no `ideas` provider is not affected. Implemented by: [Obsidian](./plugins/obsidian). `holocron sync ideas` reads through it and files through `issues`.

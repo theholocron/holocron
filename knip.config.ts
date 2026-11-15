@@ -210,6 +210,7 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-postman",
 		"@theholocron/holocron-plugin-sentry",
 		"@theholocron/holocron-plugin-slack",
+		"@theholocron/holocron-plugin-turbo",
 		"@theholocron/holocron-plugin-vercel",
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread

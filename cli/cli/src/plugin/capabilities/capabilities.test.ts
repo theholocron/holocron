@@ -23,6 +23,7 @@ describe("CARDINALITY", () => {
 			"projects",
 			"ideas",
 			"coverage",
+			"cache",
 		] as const;
 		for (const key of singles) {
 			expect(CARDINALITY[key]).toBe("single");

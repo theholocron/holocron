@@ -71,6 +71,7 @@
     "@theholocron/holocron-plugin-postman": "workspace:*",
     "@theholocron/holocron-plugin-sentry": "workspace:*",
     "@theholocron/holocron-plugin-slack": "workspace:*",
+    "@theholocron/holocron-plugin-turbo": "workspace:*",
     "@theholocron/holocron-plugin-vercel": "workspace:*",
     "@theholocron/lint-staged-config": "workspace:^",
     "@theholocron/prettier-config": "workspace:^",

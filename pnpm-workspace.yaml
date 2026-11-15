@@ -147,6 +147,7 @@ catalogs:
     "@theholocron/postman-client": ^1.43.1
     "@theholocron/sentry-client": ^1.56.0
     "@theholocron/slack-client": ^1.43.1
+    "@theholocron/turbo-client": ^1.58.0
     "@theholocron/vercel-client": ^1.43.1
 
 # @sentry/node and posthog-node are pinned exactly so every consumer resolves the

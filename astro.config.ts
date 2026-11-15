@@ -39,6 +39,7 @@ const CLIENTS = [
 	"postman-client",
 	"sentry-client",
 	"slack-client",
+	"turbo-client",
 	"vercel-client",
 	"zendesk-client",
 ] as const;
@@ -84,6 +85,7 @@ const PLUGINS = [
 	["postman", "Postman"],
 	["sentry", "Sentry"],
 	["slack", "Slack"],
+	["turbo", "Turbo"],
 	["vercel", "Vercel"],
 ] as const;
 

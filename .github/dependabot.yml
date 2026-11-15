@@ -31,6 +31,7 @@ updates:
       - dependency-name: "@theholocron/postman-client"
       - dependency-name: "@theholocron/sentry-client"
       - dependency-name: "@theholocron/slack-client"
+      - dependency-name: "@theholocron/turbo-client"
       - dependency-name: "@theholocron/vercel-client"
     groups:
       security-patches:

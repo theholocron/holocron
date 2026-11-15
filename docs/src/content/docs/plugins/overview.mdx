@@ -35,6 +35,7 @@ Plugins are the adapters between the Holocron CLI's capability interfaces and re
 | Plugin                                                    | Capability                                | Env var                                         |
 | --------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------- |
 | [`@theholocron/holocron-plugin-github`](./github)         | source, ci, secrets, environments, issues | `HOLOCRON_*_TOKEN` (5 fine-grained PATs)        |
+| [`@theholocron/holocron-plugin-turbo`](./turbo)           | cache                                     | `HOLOCRON_TURBO_TOKEN`                          |
 | [`@theholocron/holocron-plugin-vercel`](./vercel)         | deployment                                | `HOLOCRON_VERCEL_TOKEN`                         |
 | [`@theholocron/holocron-plugin-1password`](./1password)   | vault                                     | `op` CLI auth (no stored token)                 |
 | [`@theholocron/holocron-plugin-axiom`](./axiom)           | logs                                      | `HOLOCRON_AXIOM_TOKEN`                          |
