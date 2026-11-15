@@ -1,3 +1,10 @@
+## [5.0.0-alpha.443](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.442...v5.0.0-alpha.443) (2026-11-15)
+
+### Bug Fixes
+
+* **config:** 🔧 sync HOLOCRON_USER_SYNC_TOKEN to the repository for the daily token check ([#2213](https://github.com/theholocron/holocron/issues/2213)) ([ee60059](https://github.com/theholocron/holocron/commit/ee600595664b01ced508f16fe344a01970dd41c5)), closes [#2210](https://github.com/theholocron/holocron/issues/2210)
+* **kyber:** 🐛 report a plugin's own missing dependency instead of 'no plugin resolves here' ([#2211](https://github.com/theholocron/holocron/issues/2211)) ([712591d](https://github.com/theholocron/holocron/commit/712591da933ab92a127b4bac974c3674292e11b9))
+
 ## [5.0.0-alpha.442](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.441...v5.0.0-alpha.442) (2026-11-15)
 
 ### Features
