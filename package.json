@@ -58,6 +58,7 @@
     "@theholocron/holocron-plugin-checkly": "workspace:*",
     "@theholocron/holocron-plugin-clerk": "workspace:*",
     "@theholocron/holocron-plugin-cloudflare": "workspace:*",
+    "@theholocron/holocron-plugin-codecov": "workspace:*",
     "@theholocron/holocron-plugin-discord": "workspace:*",
     "@theholocron/holocron-plugin-doppler": "workspace:*",
     "@theholocron/holocron-plugin-fern": "workspace:*",

@@ -35,7 +35,8 @@ export type CapabilityKey =
 	| "tunnels"
 	| "credentials"
 	| "projects"
-	| "ideas";
+	| "ideas"
+	| "coverage";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
@@ -3197,6 +3198,44 @@ export interface Ideas extends ProviderIdentity {
 	retire?(key: string): Promise<void>;
 }
 
+/** Code coverage reporting: what the coverage service says about the repository and the token that uploads to it. */
+export interface Coverage extends ProviderIdentity {
+	/** Identifies this provider as the `coverage` capability. */
+	readonly key: "coverage";
+	/**
+	 * Asks the service whether it accepts the configured token for the repository, with names and statuses only, never
+	 * the token. A service may hold several kinds of token (an upload token that its API does not take, an API token): the
+	 * result says which question it could answer. An error that says nothing about the token (a network failure, a 5xx, a
+	 * missing token) throws.
+	 */
+	checkToken(): Promise<CoverageTokenCheck>;
+	/**
+	 * Later, when `doctor coverage` is built: the repo is active, the flags and components `holocron sync` writes exist, the
+	 * required statuses (`codecov/patch`, `codecov/patch/documentation`) are reported.
+	 */
+	checkRepo?(): Promise<CoverageRepoReport>;
+}
+
+/** What {@link Coverage.checkToken} found. */
+export interface CoverageTokenCheck {
+	/**
+	 * `accepted`: the service answered for the repository with the token. `refused`: it answered 401 or 403, which a
+	 * revoked token, a token without access and a kind of token its API does not take all look like. `not-found`: the
+	 * service has no such repository, or the token cannot see it.
+	 */
+	outcome: "accepted" | "refused" | "not-found";
+	/** Whether the repository is private, when the service said. A public repository answers without a token. */
+	repoPrivate?: boolean;
+	/** The HTTP status when the outcome is not `accepted`. */
+	status?: number;
+}
+
+/** What {@link Coverage.checkRepo} will report; not built yet. */
+export interface CoverageRepoReport {
+	/** Whether the repository has received an upload. */
+	active: boolean;
+}
+
 // ───────────────────────────────────────────────────────────────────────
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
@@ -3247,6 +3286,8 @@ export interface CapabilityImpls {
 	projects: Projects;
 	/** The `ideas` provider. */
 	ideas: Ideas;
+	/** The `coverage` provider. */
+	coverage: Coverage;
 }
 
 /** The cardinality (`"single"` or `"many"`) of the capability `K`. */
