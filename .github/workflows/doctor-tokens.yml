@@ -37,6 +37,8 @@ jobs:
     timeout-minutes: 15
     env:
       OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}
+      # The Axiom probe names the dataset it reads; the workflows read each organization variable as HOLOCRON_X || X.
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
     steps:
       - name: Warn when no Environment can be read
         if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN == '' }}
