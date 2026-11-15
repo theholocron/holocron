@@ -1,3 +1,9 @@
+## [5.0.0-alpha.444](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.443...v5.0.0-alpha.444) (2026-11-15)
+
+### Features
+
+* **cli:** ✨ read a probe's plugin values from the --environment it checks the token of ([#2215](https://github.com/theholocron/holocron/issues/2215)) ([537e462](https://github.com/theholocron/holocron/commit/537e462f5cd9378a71a51ca829d20a5194b037e1)), closes [#2214](https://github.com/theholocron/holocron/issues/2214)
+
 ## [5.0.0-alpha.443](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.442...v5.0.0-alpha.443) (2026-11-15)
 
 ### Bug Fixes
