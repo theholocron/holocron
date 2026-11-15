@@ -23,6 +23,39 @@ describe("assertPluginsResolvable", () => {
 		expect(() => assertPluginsResolvable(loader, "sync", make)).toThrow("sync: a,b");
 	});
 
+	it("counts a failure that names the plugin package as the missing one", () => {
+		const named: PluginLoadFailure = {
+			key: "source",
+			provider: "x",
+			packageName: "@acme/plugin-a",
+			error: new LoaderError(
+				"failed to import `@acme/plugin-a` for capability `source`: Cannot find package '@acme/plugin-a'"
+			),
+		};
+		const subpath: PluginLoadFailure = {
+			...named,
+			error: new LoaderError(
+				"failed to import `@acme/plugin-a` for capability `source`: Cannot find module '@acme/plugin-a/dist/x.js'"
+			),
+		};
+		expect(() => assertPluginsResolvable(report([], [named, subpath]), "sync", make)).toThrow(
+			"sync: @acme/plugin-a"
+		);
+	});
+
+	it("leaves a plugin whose own dependency is missing alone, so the real cause is reported", () => {
+		const dependency: PluginLoadFailure = {
+			key: "tooling",
+			provider: "bruno",
+			packageName: "@acme/plugin-bruno",
+			error: new LoaderError(
+				"failed to import `@acme/plugin-bruno` for capability `tooling`: Cannot find module 'tslib'"
+			),
+		};
+		expect(() => assertPluginsResolvable(report([], [dependency]), "export requests", make)).not.toThrow();
+		expect(() => assertPluginsResolvable(report([], [importFailure("a"), dependency]), "sync", make)).not.toThrow();
+	});
+
 	it("does nothing when a capability loaded", () => {
 		expect(() => assertPluginsResolvable(report(["source"], [importFailure("a")]), "sync", make)).not.toThrow();
 	});
