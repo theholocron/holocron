@@ -21,7 +21,7 @@ providers: {
 },
 ```
 
-Each provider writes under its own folder, `<out>/<provider>`. The default `<out>` is `.export` next to the first collection file, so `requests/.export/bruno/`, which the repo's `.gitignore` leaves out (`**/requests/.export/`). `--out <dir>` puts the provider folders under `<dir>` instead (absolute, or relative to the repo root).
+Each provider writes under its own folder, `<out>/<provider>`. The default `<out>` is `.export` next to the first collection file, so `requests/.export/bruno/`, which the repo's `.gitignore` leaves out (`**/requests/.export/`). `--out <dir>` puts the provider folders under `<dir>` instead (absolute, or relative to the repo root). The run ends with a `Wrote:` list (`Would write:` on `--dry-run`) of the full path of every file, so you can open them straight from the terminal.
 
 ## Rules
 

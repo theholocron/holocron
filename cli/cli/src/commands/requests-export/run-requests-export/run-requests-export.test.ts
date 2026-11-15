@@ -61,6 +61,16 @@ describe("runRequestsExport", () => {
 		expect(text).toContain("1 ok, 0 fail, 0 skipped");
 	});
 
+	it("prints the full path of every file it wrote, and says 'would write' on a dry run", async () => {
+		const exp = async () => result({ files: ["a.yml", "b.yml"] });
+		const written = await run([tool("bruno", exp)]);
+		expect(written.text).toContain(
+			"Wrote:\n  /repo/requests/.export/bruno/a.yml\n  /repo/requests/.export/bruno/b.yml"
+		);
+		const dry = await run([tool("bruno", exp)], undefined, { context: { repoRoot: "/repo", dryRun: true } });
+		expect(dry.text).toContain("Would write:\n  /repo/requests/.export/bruno/a.yml");
+	});
+
 	it("lists a conversion issue under the row without failing the run", async () => {
 		const exp = vi.fn(async () =>
 			result({ issues: [{ file: "requests/collection.json", message: "lost a script" }] })

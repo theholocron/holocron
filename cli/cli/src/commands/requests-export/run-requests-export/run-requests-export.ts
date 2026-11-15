@@ -10,7 +10,7 @@
  * files are converted and listed, nothing is written) or `--yes` (without a terminal it refuses instead).
  */
 
-import { relative } from "node:path";
+import { relative, resolve } from "node:path";
 
 import { confirm } from "@inquirer/prompts";
 import {
@@ -151,6 +151,7 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 		}
 	}
 
+	const paths: string[] = [];
 	for (const { tool, provider, collectionFiles, envFiles, outDir } of targets) {
 		try {
 			const result = await tool.export({
@@ -162,6 +163,7 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 			});
 			const where = relative(repoRoot, outDir);
 			const files = result.files.length > 0 ? ` (${result.files.join(", ")})` : "";
+			paths.push(...result.files.map((file) => resolve(outDir, file)));
 			rows.push(
 				row(
 					provider,
@@ -174,5 +176,11 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 			rows.push(row(provider, "fail", describeError(err)));
 		}
 	}
-	return finish(rows.sort((a, b) => a.id.localeCompare(b.id)));
+	const report = finish(rows.sort((a, b) => a.id.localeCompare(b.id)));
+	if (paths.length > 0) {
+		print("");
+		print(dryRun ? "Would write:" : "Wrote:");
+		for (const path of paths) print(`  ${path}`);
+	}
+	return report;
 }
