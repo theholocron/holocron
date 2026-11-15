@@ -109,8 +109,8 @@ declaration (one change). A layer that holds the token but is not declared fails
 1. What exactly does Turbo's remote-cache API report for a valid token and team (an artifacts status endpoint, and its
    answer for a token with no access to the team)? The probe is written against what the API returns, so this is read
    from the live service before the client is.
-2. Names: the client packages and the `cache` capability's method names (`checkToken` mirrors `Logs`).
 
 ## Decision log
 
 - Capability: `coverage` and `cache`, both `single` (decided in the session of #2220; `tooling` rejected as too generic).
+- Names: `@theholocron/codecov-client`, `@theholocron/turbo-client`, `@theholocron/holocron-plugin-codecov`, `@theholocron/holocron-plugin-turbo`, and `checkToken()` on both capabilities (agreed).
