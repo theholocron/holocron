@@ -7,7 +7,14 @@ import { EXPECTED } from "./probes/token/expectations.js";
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up and what each layer's token must carry", () => {
 		expect(tokens).toEqual([
-			{ envName: "HOLOCRON_AXIOM_TOKEN", vendorEnvName: "AXIOM_TOKEN", keyringKey: "axiom", expect: EXPECTED },
+			{
+				envName: "HOLOCRON_AXIOM_TOKEN",
+				vendorEnvName: "AXIOM_TOKEN",
+				keyringKey: "axiom",
+				// It checks the token against the dataset it is for, not the plugin's one `verifyToken`.
+				verify: expect.any(Function),
+				expect: EXPECTED,
+			},
 		]);
 	});
 
