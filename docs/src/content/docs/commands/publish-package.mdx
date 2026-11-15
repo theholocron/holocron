@@ -4,7 +4,7 @@ description: Publish @theholocron/* packages to npm — steady-state (CI/OIDC) o
 ---
 
 ```bash
-holocron publish package [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--group <folder> | --exclude-group <folder>...] [--dry-run]
+holocron publish package [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--group <folder> | --exclude-group <folder>...] [--package <name or folder>...] [--dry-run]
 holocron publish package --initial [--tag <tag>] [--otp <code>] [--dry-run]
 holocron publish package --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--force] [--dry-run]
 ```
@@ -18,6 +18,8 @@ Three modes:
 ## Publishing one version group (`--group`)
 
 `--group <folder>` limits discovery to the packages in one folder of the repo (`clients`, `observability`), for steady-state, `--initial` and `--sync-trust` alike. A group with no packages has nothing to publish, so it fails with "nothing to publish" rather than falling back to the root package. `--exclude-group <folder>` (repeatable) is the opposite: everything except those groups, for the repo-wide release of a repo whose other folders release on their own. See [releasing a version group](/self-hosting/#releasing-a-version-group).
+
+`--package <name or folder>` (repeatable) narrows `--initial` and `--sync-trust` to the packages named, so one new package can be bootstrapped or registered without touching the rest: `holocron publish package --sync-trust ci.release.yml ci.release.yml --package @theholocron/holocron-plugin-bruno`. A name (`@theholocron/holocron-plugin-bruno`) or a folder (`plugins/holocron-plugin-bruno`) both work, and it combines with `--group`. A name that matches nothing leaves nothing to do ("nothing to publish"). A steady-state publish refuses it, because that run releases the whole scope.
 
 ## Migrating Trusted Publisher config (`--sync-trust`)
 
@@ -112,6 +114,7 @@ The command fails loudly — `nothing to publish` — rather than silently no-op
 | `--provenance`             | `true`                                          | Steady-state only: publish with `--provenance`                                                                |
 | `--skip-already-published` | `false`                                         | Steady-state only: check `npm view <pkg>@<version>` first, skip a package whose exact version exists          |
 | `--sync-trust`             | —                                               | `<old-file> <new-file>` — migrate every package's Trusted Publisher config                                    |
+| `--package`                | —                                               | Only this package, by name or folder (repeatable; `--initial` and `--sync-trust` only)                        |
 | `--repo`                   | `theholocron/holocron`                          | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)                                           |
 | `--force`                  | `false`                                         | Replace entries that already match, which npm may have expired (`--sync-trust` only)                          |
 | `--dry-run`                | `false`                                         | Print what would happen without making any changes (`--sync-trust` still does the read-only `npm trust list`) |

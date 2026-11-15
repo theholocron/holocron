@@ -16,6 +16,8 @@ export interface RunPublishInput {
 	 * repo-wide release so it does not take in a group released separately.
 	 */
 	excludeGroups?: readonly string[];
+	/** Only these packages, each a name or its folder. Omitted, every new public package the scope above leaves. */
+	onlyPackages?: readonly string[];
 	/** Distribution tag for the publish. Defaults to `'alpha'`. */
 	tag?: string;
 	/** Skip the actual publish; print what would happen. */

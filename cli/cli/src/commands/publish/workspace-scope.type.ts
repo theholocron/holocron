@@ -4,4 +4,6 @@ export interface WorkspaceScope {
 	group?: string;
 	/** Everything except these version groups, which release on their own. */
 	excludeGroups?: readonly string[];
+	/** Only these packages, each a package name or its folder (`plugins/holocron-plugin-bruno`). */
+	onlyPackages?: readonly string[];
 }

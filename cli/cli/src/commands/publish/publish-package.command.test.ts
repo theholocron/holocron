@@ -82,3 +82,37 @@ describe("publish command's --group", () => {
 		expect("excludeGroups" in runSteadyPublish.mock.calls[0]![0]).toBe(false);
 	});
 });
+
+describe("publish command's --package", () => {
+	it("limits --initial and --sync-trust to the packages named", async () => {
+		await runCommand(publishPackageCommand, [
+			"package",
+			"--initial",
+			"--package",
+			"@acme/a",
+			"--package",
+			"plugins/b",
+		]);
+		expect(runPublish.mock.calls[0]![0]).toMatchObject({ onlyPackages: ["@acme/a", "plugins/b"] });
+		await runCommand(publishPackageCommand, [
+			"package",
+			"--sync-trust",
+			"old.yml",
+			"new.yml",
+			"--package",
+			"@acme/a",
+		]);
+		expect(runSyncTrust.mock.calls[0]![0]).toMatchObject({ onlyPackages: ["@acme/a"] });
+	});
+
+	it("passes no list when none is given", async () => {
+		await runCommand(publishPackageCommand, ["package", "--initial"]);
+		expect("onlyPackages" in runPublish.mock.calls[0]![0]).toBe(false);
+	});
+
+	it("refuses a steady-state publish with it, publishing nothing", async () => {
+		await runCommand(publishPackageCommand, ["package", "--package", "@acme/a"]);
+		expect(runSteadyPublish).not.toHaveBeenCalled();
+		expect(process.exitCode).toBe(1);
+	});
+});

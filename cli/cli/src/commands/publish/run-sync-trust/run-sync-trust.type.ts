@@ -15,6 +15,8 @@ export interface RunSyncTrustInput {
 	 * repo-wide release so it does not take in a group released separately.
 	 */
 	excludeGroups?: readonly string[];
+	/** Only these packages, each a name or its folder. Omitted, every public package the scope above leaves. */
+	onlyPackages?: readonly string[];
 	/** The workflow filename npm's Trusted Publisher config currently points at. */
 	oldFile: string;
 	/** The workflow filename to migrate every package's Trusted Publisher config to. */
