@@ -1,0 +1,31 @@
+---
+title: "doctor tokens"
+description: Check every token the plugins declare for a layer against its declaration, by running each provider's token probe against that layer's 1Password Environment. Read-only.
+---
+
+```bash
+holocron doctor tokens
+```
+
+[`probe <provider> token --environment <layer>`](/holocron/commands/probe/) proves one provider's tokens in one layer. This check runs all of them: for each layer (`local`, `dev`, `ci`, `prod`) and each token a configured plugin declares for it (its `expect`, listed in [Tokens](/holocron/tokens/)), it reads that layer's Environment in memory and runs the provider's `token` probe against the token it holds. It changes nothing, prints names, counts and dates only (the probes scrub every token they use from their output, and a token is never written anywhere), and exits non-zero while a row fails. It goes online: each probe calls its provider's API.
+
+## The rows
+
+There is one row per token per layer, titled `<layer>: <VARIABLE> (<provider>)`.
+
+| Row                                          | Passes when                                                                                                                                                                                     |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci: HOLOCRON_CLOUDFLARE_TOKEN (cloudflare)` | every check of the provider's probe passes: each permission the layer requires is reached, each one it must not have is not, and the token is neither past its rotation age nor near its expiry |
+| a failing row                                | it lists each failed check as a problem: a permission the token must not have, one it lacks, `expiry` (expired or within `warnDays`), or `age` (older than `maxAgeDays`)                        |
+| `not held in <Environment>`                  | fails: the layer declares the token and its Environment does not hold it, under the plugin's own variable or the vendor's                                                                       |
+
+A provider with no declared layers, no `token` probe, or tokens that cannot be read gets one `skip` row for the provider, with the reason, and never fails. A layer whose Environment cannot be read (no vault that reads an Environment, an Environment that is not there) is a skip with the reason on each of its rows, since nothing could be compared. A token a layer holds but does not declare for it is not reported here.
+
+Rotation is read where the provider exposes it (Cloudflare `expires_on` and `not_before`) through the same rows as the probe, using each token's declared `rotation` (default: due after 90 days, expiry flagged 14 days ahead). Where a provider does not expose a token's age or expiry, the probe says so as an `info` row, counted in the detail (`N noted`) and never a failure.
+
+## How it relates to the other checks
+
+- [`doctor secrets --verify`](/holocron/commands/doctor-secrets/) asks each vendor whether the one token this machine resolves is still accepted, and fails a token near its expiry. It does not look at layers or permissions.
+- `doctor tokens` is the per-layer comparison with the declaration. It reuses the probe flow (`environmentTokens()` and `runProbe()`), so a result here is the one `probe <provider> token --environment <layer>` would print for that token.
+
+`holocron doctor --all` runs it with the other deep checks. It does not schedule itself; a scheduled run is a separate follow-up.

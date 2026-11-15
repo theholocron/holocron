@@ -67,6 +67,7 @@ const EVERY_COMMAND = [
 	"doctor dns",
 	"doctor repo",
 	"doctor secrets",
+	"doctor tokens",
 	"doctor monitoring",
 	"doctor ci",
 	"probe",
@@ -140,6 +141,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"doctor dns",
 			"doctor repo",
 			"doctor secrets",
+			"doctor tokens",
 			"doctor monitoring",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
