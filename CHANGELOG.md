@@ -1,3 +1,9 @@
+## [5.0.0-alpha.441](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.440...v5.0.0-alpha.441) (2026-11-15)
+
+### Features
+
+* **cli:** ✨ add doctor tokens to check every layer's tokens against their declaration ([#2195](https://github.com/theholocron/holocron/issues/2195)) ([e646b3b](https://github.com/theholocron/holocron/commit/e646b3b9c1198426fe67738fa672b71b51841d33)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2156](https://github.com/theholocron/holocron/issues/2156)
+
 ## [5.0.0-alpha.440](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.439...v5.0.0-alpha.440) (2026-11-14)
 
 ### Features
