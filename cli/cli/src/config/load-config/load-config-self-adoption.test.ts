@@ -270,6 +270,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"HOLOCRON_ENVIRONMENT",
 			"HOLOCRON_FERN_TOKEN",
 			"HOLOCRON_ISSUES_TOKEN",
+			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
 			"HOLOCRON_ORG_TOKEN",
 			"HOLOCRON_READ_TOKEN",
 			"HOLOCRON_RELEASE_TOKEN",
@@ -280,7 +281,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"SENTINEL_AXIOM_INGEST_TOKEN",
 			"SENTINEL_GITHUB_APP_ID",
 			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
-			"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
 		];
 
 		// And (#2183): the strays of the `dev` layer, which nothing syncs, are set by hand on purpose.
@@ -288,10 +288,10 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"COMLINK_AXIOM_DATASET",
 			"HOLOCRON_ENVIRONMENT",
 			"HOLOCRON_LINEAR_TOKEN",
+			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
 			"HOLOCRON_POSTMAN_TOKEN",
 			"SENTINEL_AXIOM_INGEST_TOKEN",
 			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
-			"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
 			"SENTINEL_ROLE_SYNC_REPO",
 			"SENTINEL_VERCEL_PROJECT",
 			"SENTINEL_WEBHOOK_SECRET",

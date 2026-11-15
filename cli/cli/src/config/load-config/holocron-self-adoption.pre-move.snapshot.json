@@ -61,9 +61,9 @@
           "keys": [
             "HOLOCRON_DEPLOYMENTS_TOKEN",
             "HOLOCRON_DISCORD_BOT_TOKEN",
+            "HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
             "HOLOCRON_SECRETS_TOKEN",
             "NEXT_PUBLIC_SENTRY_DSN",
-            "SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
             "SENTRY_DSN",
             "VERCEL_PROTECTION_BYPASS_SECRET",
             "VERCEL_TOKEN"
