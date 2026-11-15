@@ -17,6 +17,8 @@ export function printNextSteps(
 	print(`    Organization: ${identity.owner}`);
 	print(`    Repository: ${identity.repo}`);
 	print(`    Workflow filename: ${workflowFile}`);
+	print("  or let the CLI register it on every package that has none (needs an npm session):");
+	print(`    holocron publish package --sync-trust ${workflowFile} ${workflowFile}`);
 	print("");
 	print("→ packages to be published:");
 	for (const name of packageNames) {

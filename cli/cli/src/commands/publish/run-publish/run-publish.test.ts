@@ -560,6 +560,7 @@ describe("runPublish", () => {
 		expect(joined).toContain("Publisher: GitHub Actions");
 		expect(joined).toContain("Label: Holocron Release");
 		expect(joined).toContain("Workflow filename: ci.release.yml");
+		expect(joined).toContain("holocron publish package --sync-trust ci.release.yml ci.release.yml");
 	});
 
 	it("auto-detects org + repo from git remote when orgName/repoName are not injected", async () => {
