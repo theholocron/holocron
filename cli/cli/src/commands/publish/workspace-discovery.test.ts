@@ -4,6 +4,7 @@ import { discoverManifests } from "./discover-manifests.js";
 import { discoverPublicPackageEntries } from "./discover-public-package-entries.js";
 import { discoverPublicPackages } from "./discover-public-packages.js";
 import { makeTempWorkspace as makeRepo } from "./publish.fixtures.js";
+import { scopeOf } from "./scope-of.js";
 import { workspaceFilterArgs } from "./workspace-filter-args.js";
 
 const workspace = (...globs: string[]) => `packages:\n${globs.map((glob) => `  - "${glob}"`).join("\n")}\n`;
@@ -117,6 +118,23 @@ describe("version groups", () => {
 		it("narrows a group, and a name that matches nothing leaves nothing", () => {
 			expect(discoverPublicPackages(root(), { group: "clients", onlyPackages: ["@acme/array"] })).toEqual([]);
 			expect(discoverPublicPackages(root(), { onlyPackages: ["@acme/nope"] })).toEqual([]);
+		});
+
+		it("still finds a package with no name by its folder", () => {
+			const repo = makeRepo({
+				"pnpm-workspace.yaml": workspace("plugins/*"),
+				"package.json": { name: "root", private: true },
+				"plugins/unnamed/package.json": { version: "1.0.0" },
+				"plugins/named/package.json": { name: "@acme/named" },
+			});
+			expect(discoverManifests(repo, { onlyPackages: ["plugins/unnamed"] }).map(({ dir }) => dir)).toEqual([
+				"./plugins/unnamed",
+			]);
+		});
+
+		it("is passed on by scopeOf, and left out when unset", () => {
+			expect(scopeOf({ onlyPackages: ["@acme/a"] })).toEqual({ onlyPackages: ["@acme/a"] });
+			expect(scopeOf({})).toEqual({});
 		});
 
 		it("is no limit when the list is empty", () => {
