@@ -613,12 +613,11 @@ registration, again only when a secret rotates" below). Uses a dedicated
 has no equivalent of a human's already-authenticated session — see
 the token reference's "Organization secrets" section
 (`docs/src/content/docs/tokens.mdx`) for why a new, narrowly-scoped token rather than widening an existing
-one. The 1Password side is a service account with read access to the
-`prod` layer Environment (and `ci`, for `doctor-tokens`), stored as the repo secret
-`HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`; the workflow installs the `op` CLI and
-sets `OP_SERVICE_ACCOUNT_TOKEN` from it. If a service account cannot read
-Environments with the CLI you have (1Password documents it; a Feb 2026
-community report says otherwise), run the same command locally instead.
+one. The 1Password side would be a service account that can read the
+`prod` layer Environment, but the repo's `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN` is not one: it is the scheduled
+`doctor-tokens` account and reads the `ci` Environment only, so that a job nobody watches cannot read production
+secrets. Run this sync locally, as above, signed in to 1Password on your machine; the workflow reads `prod` only
+if you give it an account that can.
 
 - **`--target production` only, deliberately still one target.**
   `deploy-preview` (holocron#1010/#1022/#1024/#1028) now gives
