@@ -1103,6 +1103,10 @@ describe("REUSABLE_WORKFLOWS['doctor-tokens'] — the scheduled layer token chec
 		expect(wf).not.toMatch(/--token/);
 	});
 
+	it("hands the Axiom probe its dataset, since the runner has no other way to name one", () => {
+		expect(wf).toContain("HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}");
+	});
+
 	it("warns, and does not fail, when no service account is set", () => {
 		expect(wf).toContain("if: ${{ env.OP_SERVICE_ACCOUNT_TOKEN == '' }}");
 		expect(wf).toContain("::warning::");
