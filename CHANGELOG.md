@@ -1,3 +1,13 @@
+## [5.0.0-alpha.445](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.444...v5.0.0-alpha.445) (2026-11-15)
+
+### Bug Fixes
+
+* **ci:** 🔐 give the daily check-tokens run the 1Password CLI ([#2218](https://github.com/theholocron/holocron/issues/2218)) ([ae36f04](https://github.com/theholocron/holocron/commit/ae36f045abfd451b16a0b1a76c32897281a6ff63)), closes [#2216](https://github.com/theholocron/holocron/issues/2216)
+
+### Documentation
+
+* **ci:** 📝 make the doctor-tokens service account read the ci Environment only ([#2217](https://github.com/theholocron/holocron/issues/2217)) ([6f1de5c](https://github.com/theholocron/holocron/commit/6f1de5c1139d159131095fea47cf9420b04a5398)), closes [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [5.0.0-alpha.444](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.443...v5.0.0-alpha.444) (2026-11-15)
 
 ### Features
