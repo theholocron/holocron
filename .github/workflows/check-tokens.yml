@@ -19,6 +19,9 @@ name: Token Expiry
 # The run also reads the repo's 1Password credentials provider (`<org/repo> - ci`), so it installs `op` and signs in with
 # `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`, a read-only service account for that one Environment. Without it the `1password`
 # rows fail and the job is red every day, which hides a real expiry.
+#
+# It reads the `ci` layer only (`--env ci`): the service account sees that one Environment, and without the flag the
+# run also asks for `local` and `dev`, which it cannot read and so reports as missing.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -88,3 +91,4 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}
         with:
           task: check-tokens
+          args: --env ci
