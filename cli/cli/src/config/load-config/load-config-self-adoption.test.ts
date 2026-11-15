@@ -188,6 +188,10 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				.map((key) => secretRenames[key] ?? key)
 				.sort();
 		}
+		// And (#2210): the daily `check-tokens` workflow reads `HOLOCRON_USER_SYNC_TOKEN`, so the repository-scoped entry
+		// syncs it too; before, the job got an empty value and never checked it.
+		const repoEntry = secretEntries.find((entry) => (entry as { scope?: string }).scope === undefined)!;
+		repoEntry.keys = [...repoEntry.keys, "HOLOCRON_USER_SYNC_TOKEN"].sort();
 		// And (#2062): the organization entry is two, each with its readers. The first is read by `holocron` and the
 		// frozen reusables in `.github`; the second only by holocron's own workflows.
 		const onlyHolocron = [
