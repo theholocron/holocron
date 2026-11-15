@@ -28,7 +28,7 @@ export const TOKEN_PROBE_HELP = [
 		"- Otherwise: the token the provider normally resolves.",
 	].join("\n"),
 	"--environment takes a layer (local, dev, ci or prod, which is this repo's `<org/repo> - <layer>`) or an Environment the config already names; anything else is refused. `local` is read over `dev`, as the CLI reads it.",
-	"A token read from a layer is checked against what that layer's token should carry (the permission table in the tokens docs): what it should have must be there and what it should not have must not be. A declared token the Environment does not hold is skipped, and fails when that layer is meant to hold it. Any other token is only described. A token is never printed.",
+	"A token read from a layer is checked against what that layer's token should carry (the permission table in the tokens docs): what it should have must be there and what it should not have must not be. A declared token the Environment does not hold is skipped, and fails when that layer is meant to hold it. Any other token is only described. The Environment also supplies the plugin's own visible (not concealed) values for the run, such as a dataset or an account id, ahead of this machine's; what it does not hold comes from the machine as usual. A token or a value is never printed.",
 ].join("\n\n");
 
 export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
@@ -72,7 +72,7 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 		.option("environment", {
 			type: "string",
 			describe:
-				"A probe about a token (`cloudflare token`): check every token of the provider held in this vault Environment (a layer such as `ci` or `dev`, or a name)",
+				"A probe about a token (`cloudflare token`): check every token of the provider held in this vault Environment (a layer such as `ci` or `dev`, or a name), with its visible values (a dataset, an account id) used first",
 		})
 		.option("yes", {
 			type: "boolean",

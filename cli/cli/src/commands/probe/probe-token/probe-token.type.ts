@@ -44,4 +44,9 @@ export interface EnvironmentTokens {
 	}>;
 	/** The `envName` of each declared token the Environment does not hold. */
 	missing: string[];
+	/**
+	 * The Environment's visible (not concealed) variables other than the declared tokens, by name: the plugin's own
+	 * settings, which the probe sees ahead of the machine's. Never printed.
+	 */
+	plain: Record<string, string>;
 }
