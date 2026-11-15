@@ -135,6 +135,9 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 				repos: ["theholocron/holocron"],
 			}
 		);
+		// And (#2210): the daily `check-tokens` workflow reads `HOLOCRON_USER_SYNC_TOKEN`, so the repository-scoped entry syncs it.
+		const repoEntry = sync.find((entry) => entry.scope === undefined)!;
+		repoEntry.keys = [...repoEntry.keys!, "HOLOCRON_USER_SYNC_TOKEN"].sort();
 		expect(afterRest).toEqual(beforeRest);
 		// Guard against a vacuous pass: the moved keys are really there on both sides, and the kept ones too.
 		expect(before).toMatchObject({
