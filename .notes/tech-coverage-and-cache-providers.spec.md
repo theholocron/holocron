@@ -95,9 +95,8 @@ count in AGENTS.md and the docs, and `providers.coverage` / `providers.cache` in
 
 ## Layers
 
-Codecov: `ci` only. Turbo: `ci`, and `dev` and `local` too if a machine uses the remote cache with the token; this is
-declared by what the Environments hold, so it is confirmed when the `dev` Environment is readable (until then the doctor
-skips those rows). A layer that holds the token but is not declared fails the check, which is how a stray copy shows up.
+Codecov and Turbo: `ci` only. `dev` holds no Turbo token today; when one is added, `dev` and `local` are added to Turbo's
+declaration (one change). A layer that holds the token but is not declared fails the check, which is how a stray copy shows up.
 
 ## Out of scope
 
@@ -110,8 +109,7 @@ skips those rows). A layer that holds the token but is not declared fails the ch
 1. What exactly does Turbo's remote-cache API report for a valid token and team (an artifacts status endpoint, and its
    answer for a token with no access to the team)? The probe is written against what the API returns, so this is read
    from the live service before the client is.
-2. Does the `dev` Environment hold a Turbo token today? It decides whether `dev` and `local` are declared layers.
-3. Names: the client packages and the `cache` capability's method names (`checkToken` mirrors `Logs`).
+2. Names: the client packages and the `cache` capability's method names (`checkToken` mirrors `Logs`).
 
 ## Decision log
 
