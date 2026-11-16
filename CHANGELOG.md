@@ -32,6 +32,67 @@
 
 ### Chores
 
+* **release:** 5.0.0-alpha.453 [skip ci] ([805bc57](https://github.com/theholocron/holocron/commit/805bc5775c371d7abdbade27a3ab5ee46d5f3cbb))
+* **release:** 5.0.0-alpha.453 [skip ci] ([6bc6e17](https://github.com/theholocron/holocron/commit/6bc6e17588b4d19cd8ddc0a26e83d37c5bdac7fd))
+* **release:** 5.0.0-alpha.453 [skip ci] ([167a496](https://github.com/theholocron/holocron/commit/167a496170873a9984883a2aeabbf4317a38f4aa))
+* **release:** 5.0.0-alpha.453 [skip ci] ([871c658](https://github.com/theholocron/holocron/commit/871c658d74b31f1fc7a88fd927bd23647a92ecf8))
+* **release:** 5.0.0-alpha.453 [skip ci] ([ec494c6](https://github.com/theholocron/holocron/commit/ec494c60d0f53ad47d26cd107b7f7f366f688701))
+* **release:** 5.0.0-alpha.453 [skip ci] ([d0196d6](https://github.com/theholocron/holocron/commit/d0196d67e769353b88cc4ee9ca8c8b157c3e37f1))
+* **release:** 5.0.0-alpha.453 [skip ci] ([fec71df](https://github.com/theholocron/holocron/commit/fec71df3251d7b236fa5b4cd3884e22f9d7564bb))
+* **release:** 5.0.0-alpha.453 [skip ci] ([409ef79](https://github.com/theholocron/holocron/commit/409ef79de4ab0c62e3efc53c1f65d843805658a0))
+* **release:** 5.0.0-alpha.453 [skip ci] ([ab89426](https://github.com/theholocron/holocron/commit/ab89426693430ce4e74da1ad7dd8ee1019e60420))
+* **release:** 5.0.0-alpha.453 [skip ci] ([9aaef79](https://github.com/theholocron/holocron/commit/9aaef7919b55a6a3513f63ff71d04a0084ecbd5d))
+* **release:** 5.0.0-alpha.453 [skip ci] ([2cf77c3](https://github.com/theholocron/holocron/commit/2cf77c39131d79dbdd9e26626bdb338ab5e0fc42))
+* **release:** 5.0.0-alpha.453 [skip ci] ([5ce7605](https://github.com/theholocron/holocron/commit/5ce7605d296aa51bf4a216fd093d227f802c3ea4))
+* **release:** 5.0.0-alpha.453 [skip ci] ([758ed5b](https://github.com/theholocron/holocron/commit/758ed5bdfaf878160279f8e139575f650298cb90))
+* **release:** 5.0.0-alpha.453 [skip ci] ([9fb090a](https://github.com/theholocron/holocron/commit/9fb090a89e80b521a3994b6c5de5e5b79a45a565))
+* **release:** 5.0.0-alpha.453 [skip ci] ([a1b5800](https://github.com/theholocron/holocron/commit/a1b5800ba2bd7bfe30efdaab1330fad679a7b460))
+* **release:** 5.0.0-alpha.453 [skip ci] ([2895bde](https://github.com/theholocron/holocron/commit/2895bde5355922f10fef836c8ed0c223976a56af))
+* **release:** 5.0.0-alpha.453 [skip ci] ([78ee703](https://github.com/theholocron/holocron/commit/78ee7032afd7e40cc2c81e077ac5ec8be494685e))
+* **release:** 5.0.0-alpha.453 [skip ci] ([246e48b](https://github.com/theholocron/holocron/commit/246e48beb4f7c01f39c942bf29f5dcf8c2664516))
+* **release:** 5.0.0-alpha.453 [skip ci] ([13899b8](https://github.com/theholocron/holocron/commit/13899b8cb2243992d30e3a517b0c564117585081))
+* **release:** 5.0.0-alpha.453 [skip ci] ([7126a2c](https://github.com/theholocron/holocron/commit/7126a2c51c9995cd9004d78b676f8b1a439fa8f4))
+* **release:** 5.0.0-alpha.453 [skip ci] ([3c2e9fe](https://github.com/theholocron/holocron/commit/3c2e9fe32ed27231ecc270018d9be4e19dcc7ef4))
+* **release:** 5.0.0-alpha.453 [skip ci] ([fc753ca](https://github.com/theholocron/holocron/commit/fc753ca40fcc1c5fc3794315c1fac2b24127d654))
+* **specs:** 🔧 🔄 sync spec discussions ([#2255](https://github.com/theholocron/holocron/issues/2255)) ([f0fe383](https://github.com/theholocron/holocron/commit/f0fe383eb2dea31ad5a4ed8b84baccfb07777524))
+* **specs:** 🔧 🔄 sync spec discussions ([#2256](https://github.com/theholocron/holocron/issues/2256)) ([4972c18](https://github.com/theholocron/holocron/commit/4972c18ff0f43dfcc825f2862997f2853da6d0ce))
+* **specs:** 🔧 🔄 sync spec discussions ([#2258](https://github.com/theholocron/holocron/issues/2258)) ([5943901](https://github.com/theholocron/holocron/commit/59439014452382cbad3c61c7c1fb8d8798b56c39))
+* **specs:** 🔧 🔄 sync spec discussions ([#2266](https://github.com/theholocron/holocron/issues/2266)) ([95e4fbb](https://github.com/theholocron/holocron/commit/95e4fbbcb0b955ca6c6d0f1635870e003cb0fd85))
+
+## [5.0.0-alpha.453](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.452...v5.0.0-alpha.453) (2026-11-16)
+
+### Features
+
+* **bruno:** ✨ write one Bruno JSON file per collection, environments inside ([#2259](https://github.com/theholocron/holocron/issues/2259)) ([50b7ade](https://github.com/theholocron/holocron/commit/50b7ade7d4e7ae517fe97086492fb943a196b674))
+* **cli:** ⏰ run sync issues on a schedule and keep assignees across trackers ([#2252](https://github.com/theholocron/holocron/issues/2252)) ([6050db9](https://github.com/theholocron/holocron/commit/6050db9351aad3d6decfca3df17883d1fdbb030b)), closes [#2251](https://github.com/theholocron/holocron/issues/2251) [#2251](https://github.com/theholocron/holocron/issues/2251) [#1859](https://github.com/theholocron/holocron/issues/1859) [#alerts](https://github.com/theholocron/holocron/issues/alerts) [#2251](https://github.com/theholocron/holocron/issues/2251) [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **codecov:** ✨ check a repository's flags and components against its config ([#2237](https://github.com/theholocron/holocron/issues/2237)) ([ca187e1](https://github.com/theholocron/holocron/commit/ca187e1f425ae949623ce8810961440701972bc7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ let probe codecov repo read an Environment ([#2244](https://github.com/theholocron/holocron/issues/2244)) ([26b1c78](https://github.com/theholocron/holocron/commit/26b1c78dc574df1351f247e93e5ba74311eed3f0)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ switch this repo's coverage upload to the plugin command ([#2243](https://github.com/theholocron/holocron/issues/2243)) ([c3b8346](https://github.com/theholocron/holocron/commit/c3b83462164f14a8e8d4e2a9feed4e00afa214bd)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ upload coverage through the plugin ([#2242](https://github.com/theholocron/holocron/issues/2242)) ([630ba40](https://github.com/theholocron/holocron/commit/630ba40d385dd2b6bc78c60e7a2a1f76891b4fd0)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **github:** ✨ write the issue Priority field from sync issues and migrate ([#2254](https://github.com/theholocron/holocron/issues/2254)) ([0547def](https://github.com/theholocron/holocron/commit/0547defb4d437ee51fdcf007c02b695f0e50bdb5)), closes [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **sentinel:** ✨ add dev and prod environments to the requests ([#2270](https://github.com/theholocron/holocron/issues/2270)) ([566e524](https://github.com/theholocron/holocron/commit/566e524c4af69783ab18433dc65f8668debe3936))
+* **setup:** ✨ keep the dcg PreToolUse hook in .claude/settings.json, opt in with agent options ([#2257](https://github.com/theholocron/holocron/issues/2257)) ([19eea89](https://github.com/theholocron/holocron/commit/19eea89581c60f5f52e4233b45169d22bdbac2eb)), closes [#374](https://github.com/theholocron/holocron/issues/374) [#374](https://github.com/theholocron/holocron/issues/374)
+* **vercel:** ✨ check the Vercel token in doctor tokens ([#2245](https://github.com/theholocron/holocron/issues/2245)) ([e4f226a](https://github.com/theholocron/holocron/commit/e4f226a862ea1ff79fbf42846554ff748266e02d)), closes [#2155](https://github.com/theholocron/holocron/issues/2155) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Bug Fixes
+
+* **cli:** 🐛 export each app's requests into its own .export folder ([#2260](https://github.com/theholocron/holocron/issues/2260)) ([e6922a7](https://github.com/theholocron/holocron/commit/e6922a73883b32c23b94476c2e5037b7e37f1d10))
+* **cli:** 🐛 give each app's collection only the environments beside it ([#2268](https://github.com/theholocron/holocron/issues/2268)) ([42df021](https://github.com/theholocron/holocron/commit/42df021923854532f83ed38adfe34b472fcb9efc))
+
+### Refactoring
+
+* **codecov:** ♻️ read the Codecov status contexts from the plugin ([#2246](https://github.com/theholocron/holocron/issues/2246)) ([5820b43](https://github.com/theholocron/holocron/commit/5820b431885149d1ad95e2c5fcc6f89222c9c622)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ♻️ write codecov.yml from the plugin ([#2247](https://github.com/theholocron/holocron/issues/2247)) ([d718ac8](https://github.com/theholocron/holocron/commit/d718ac8611bfdbd633cdf91a37c7c40cadb06764)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **presets:** 🔧 make the docs preset declare the Codecov provider ([#2250](https://github.com/theholocron/holocron/issues/2250)) ([b6568ca](https://github.com/theholocron/holocron/commit/b6568caddf6200dea57c589e015c5748f2166799)), closes [#2248](https://github.com/theholocron/holocron/issues/2248) [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **sentinel:** ♻️ stop posting the eslint, actionlint and typecheck checks ([#2265](https://github.com/theholocron/holocron/issues/2265)) ([5af0996](https://github.com/theholocron/holocron/commit/5af0996f2ce3b56fee0bc5b9caa4e2307731aa08)), closes [#2263](https://github.com/theholocron/holocron/issues/2263) [#2096](https://github.com/theholocron/holocron/issues/2096)
+
+### Documentation
+
+* **specs:** 📝 propose what Sentinel runs and what GitHub Actions runs ([#2264](https://github.com/theholocron/holocron/issues/2264)) ([49da52e](https://github.com/theholocron/holocron/commit/49da52e32211fa9cc66e56e2d2a8d30ab20f2a11)), closes [#2263](https://github.com/theholocron/holocron/issues/2263) [#2096](https://github.com/theholocron/holocron/issues/2096)
+* **specs:** 📦 archive the Codecov and Turbo plugin specs ([#2249](https://github.com/theholocron/holocron/issues/2249)) ([162ebea](https://github.com/theholocron/holocron/commit/162ebea53cd42073397a85616f7367ed2e208985)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2168](https://github.com/theholocron/holocron/issues/2168) [#2238](https://github.com/theholocron/holocron/issues/2238)
+
+### Chores
+
 * **release:** 5.0.0-alpha.453 [skip ci] ([6bc6e17](https://github.com/theholocron/holocron/commit/6bc6e17588b4d19cd8ddc0a26e83d37c5bdac7fd))
 * **release:** 5.0.0-alpha.453 [skip ci] ([167a496](https://github.com/theholocron/holocron/commit/167a496170873a9984883a2aeabbf4317a38f4aa))
 * **release:** 5.0.0-alpha.453 [skip ci] ([871c658](https://github.com/theholocron/holocron/commit/871c658d74b31f1fc7a88fd927bd23647a92ecf8))
