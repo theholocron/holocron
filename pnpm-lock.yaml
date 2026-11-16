@@ -9,12 +9,6 @@ catalogs:
     '@theholocron/holocron-config':
       specifier: ^8.8.2
       version: 8.8.2
-    '@tktco/node-actionlint':
-      specifier: ^1.6.0
-      version: 1.6.0
-    '@vscode-shellcheck/shellcheck-wasm':
-      specifier: ^0.3.1
-      version: 0.3.1
     alex:
       specifier: ^11.0.1
       version: 11.0.1
@@ -27,9 +21,6 @@ catalogs:
     obsidian:
       specifier: ^1.14.4
       version: 1.14.4
-    yaml:
-      specifier: ^2.9.0
-      version: 2.9.1
   cli:
     '@inquirer/prompts':
       specifier: ^8.8.0
@@ -610,15 +601,9 @@ importers:
       '@theholocron/prettier-config':
         specifier: workspace:^
         version: link:../../configs/prettier-config
-      '@tktco/node-actionlint':
-        specifier: catalog:apps
-        version: 1.6.0
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.28(@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)(vitest@5.1.0)
-      '@vscode-shellcheck/shellcheck-wasm':
-        specifier: catalog:apps
-        version: 0.3.1
       alex:
         specifier: catalog:apps
         version: 11.0.1
@@ -640,9 +625,6 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
-      yaml:
-        specifier: catalog:apps
-        version: 2.9.1
     devDependencies:
       '@theholocron/tsconfig':
         specifier: workspace:^
@@ -5248,9 +5230,6 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@bjorn3/browser_wasi_shim@0.4.2':
-    resolution: {integrity: sha512-/iHkCVUG3VbcbmEHn5iIUpIrh7a7WPiwZ3sHy4HZKZzBdSadwdddYDZAII2zBvQYV0Lfi8naZngPCN7WPHI/hA==}
-
   '@blazediff/core@1.10.0':
     resolution: {integrity: sha512-AOQff0zgR7cGsZL+4E7hVkmujoPUpm0J9xzWGWZj5wCjd3gmxESXAPfKyuzs93VdpQNFhHlBhfOjrcZ+XTERtQ==}
 
@@ -8512,11 +8491,6 @@ packages:
     engines: {node: '>=22.0.0'}
     deprecated: 'Retired: the package list is derived from the workspace in theholocron/holocron.'
 
-  '@tktco/node-actionlint@1.6.0':
-    resolution: {integrity: sha512-fk0UKkws3QOnnpwbVtYLW5eZUozktdassXGQYeWvX5sLlPZIby4XRXDnHxaqnfNxH3b3DZJ/xNA23wf2L2Y1JQ==}
-    engines: {node: '>=20.0.0'}
-    hasBin: true
-
   '@tsconfig/node-lts@24.0.1':
     resolution: {integrity: sha512-xo+1KtV5zVb90fyyeglG1n5cqg3cQXLlCkEpLptYlZUNk28xmwhuD5GmxoXwmrVtUTvaMyclun9kAd0TK7H+Pg==}
 
@@ -9002,10 +8976,6 @@ packages:
 
   '@vitest/utils@5.0.5':
     resolution: {integrity: sha512-/rBu7gzLDQI/SC79Tn98b5DwOgaHU/Gt4I9OVeP3YofzNaYtbImRCOJQmT1S6vOJg9gEIlWC+r3QxKkjuSa1nQ==}
-
-  '@vscode-shellcheck/shellcheck-wasm@0.3.1':
-    resolution: {integrity: sha512-QWyWBH912zhRAHjBDiiIUobZMJrSI//y53p7HhiNxngsrfv7+kSM4YB8bZro4vbxx2gX/zqTcD29EKIwDgUnHg==}
-    engines: {node: '>=22'}
 
   '@yuku-toolchain/darwin-arm64@0.28.0':
     resolution: {integrity: sha512-ub1u+JMRrLcuDMN2VofXS1GMau5Irl/HKj8raDUN6hYihe/Ed7IVpT9ycqs7vWxQx1j4BPyXr+UOV3gVXVFooA==}
@@ -16415,8 +16385,6 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@bjorn3/browser_wasi_shim@0.4.2': {}
-
   '@blazediff/core@1.10.0': {}
 
   '@bruits/satteri-android-arm64@0.11.7':
@@ -19444,12 +19412,6 @@ snapshots:
 
   '@theholocron/registry-doc@1.17.0': {}
 
-  '@tktco/node-actionlint@1.6.0':
-    dependencies:
-      '@babel/code-frame': 7.29.7
-      chalk: 5.6.2
-      fast-glob: 3.3.3
-
   '@tsconfig/node-lts@24.0.1': {}
 
   '@turbo/darwin-64@2.11.11':
@@ -20112,10 +20074,6 @@ snapshots:
       '@vitest/pretty-format': 5.0.5
       convert-source-map: 2.0.0
       tinyrainbow: 3.2.0
-
-  '@vscode-shellcheck/shellcheck-wasm@0.3.1':
-    dependencies:
-      '@bjorn3/browser_wasi_shim': 0.4.2
 
   '@yuku-toolchain/darwin-arm64@0.28.0':
     optional: true

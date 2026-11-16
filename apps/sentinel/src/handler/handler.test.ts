@@ -30,10 +30,6 @@ vi.mock("../actions/auto-fix-loop/post-auto-fix-loop-comment/post-auto-fix-loop-
 	postAutoFixLoopComment: vi.fn(),
 }));
 vi.mock("../actions/commit-standards/lint-commits/lint-commits.js", () => ({ lintCommits: vi.fn() }));
-vi.mock("../actions/actionlint/lint-actionlint/lint-actionlint.js", () => ({ lintActionlint: vi.fn() }));
-vi.mock("../actions/actionlint/post-actionlint-check/post-actionlint-check.js", () => ({
-	postActionlintCheck: vi.fn(),
-}));
 vi.mock("../actions/capability-compliance/post-check-run/post-check-run.js", () => ({ postCheckRun: vi.fn() }));
 vi.mock("../actions/commit-standards/post-commit-standards-check/post-commit-standards-check.js", () => ({
 	postCommitStandardsCheck: vi.fn(),
@@ -43,7 +39,6 @@ vi.mock("../actions/capability-compliance/sync-properties/sync-properties.js", (
 }));
 vi.mock("../actions/dco/lint-dco/lint-dco.js", () => ({ lintDco: vi.fn() }));
 vi.mock("../actions/dco/post-dco-check/post-dco-check.js", () => ({ postDcoCheck: vi.fn() }));
-vi.mock("../actions/dispatched-check/dispatch-check/dispatch-check.js", () => ({ dispatchCheck: vi.fn() }));
 vi.mock("../actions/editorconfig/commit-editorconfig-fix/commit-editorconfig-fix.js", () => ({
 	commitEditorConfigFix: vi.fn(),
 }));
@@ -81,12 +76,6 @@ vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presenc
 }));
 vi.mock("../actions/pr-feed/run-pr-feed/run-pr-feed.js", () => ({ runPrFeed: vi.fn() }));
 vi.mock("../actions/role-sync/run-role-sync/run-role-sync.js", () => ({ runRoleSync: vi.fn() }));
-vi.mock("../actions/static-analysis/lint-static-analysis/lint-static-analysis.js", () => ({
-	lintStaticAnalysis: vi.fn(),
-}));
-vi.mock("../actions/static-analysis/post-static-analysis-check/post-static-analysis-check.js", () => ({
-	postStaticAnalysisCheck: vi.fn(),
-}));
 vi.mock("../utils/validate-config/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("../utils/webhook/webhook.js", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("../utils/webhook/webhook.js")>();
@@ -100,16 +89,12 @@ import {
 	commitEditorConfigFix,
 	commitFormattingFix,
 	commitMarkdownLintFix,
-	dispatchCheck,
 	findAutoFixLoop,
-	lintActionlint,
 	lintCommits,
 	lintDco,
 	lintEditorConfig,
 	lintFormatting,
 	lintMarkdown,
-	lintStaticAnalysis,
-	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
 	postAutoFixLoopComment,
@@ -121,7 +106,6 @@ import {
 	postFormattingCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
-	postStaticAnalysisCheck,
 	runPrFeed,
 	runRoleSync,
 	syncPropertiesFromConfig,
@@ -160,7 +144,6 @@ beforeEach(() => {
 	vi.mocked(postCommitStandardsCheck).mockReset();
 	vi.mocked(lintDco).mockReset();
 	vi.mocked(postDcoCheck).mockReset();
-	vi.mocked(dispatchCheck).mockReset();
 	vi.mocked(lintFormatting).mockReset();
 	vi.mocked(postFormattingCheck).mockReset();
 	vi.mocked(lintMarkdown).mockReset();
@@ -168,14 +151,10 @@ beforeEach(() => {
 	vi.mocked(commitFormattingFix).mockReset();
 	vi.mocked(postPrConfigValidationCheck).mockReset();
 	vi.mocked(postAutoFixComment).mockReset();
-	vi.mocked(lintStaticAnalysis).mockReset();
-	vi.mocked(postStaticAnalysisCheck).mockReset();
-	vi.mocked(lintActionlint).mockReset();
 	vi.mocked(validateAdrs).mockReset();
 	vi.mocked(postAdrsCheck).mockReset();
 	vi.mocked(validateDocsPresence).mockReset();
 	vi.mocked(postDocsPresenceCheck).mockReset();
-	vi.mocked(postActionlintCheck).mockReset();
 	vi.mocked(lintEditorConfig).mockReset();
 	vi.mocked(postEditorConfigCheck).mockReset();
 	vi.mocked(commitEditorConfigFix).mockReset();
@@ -809,307 +788,6 @@ describe("handler — markdown lint pipeline (holocron#769/#821)", () => {
 	});
 });
 
-describe("handler — static analysis pipeline (holocron#769/#849)", () => {
-	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
-		return {
-			type,
-			repo: "acme/demo",
-			installationId: 42,
-			raw: {
-				repository: { default_branch: "main" },
-				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
-			},
-		};
-	}
-
-	beforeEach(() => {
-		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
-		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
-		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
-			properties: { holocron_capabilities: [], runtime_environment: "node" },
-		});
-		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-
-	it("runs lintStaticAnalysis with the PR's ref, and posts the result", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-		vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 2, messages: [] });
-		vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-			checkRunId: 30,
-			conclusion: "success",
-			htmlUrl: "https://x/30",
-		});
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(lintStaticAnalysis).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			pullNumber: 9,
-			ref: "pr-head-sha",
-		});
-		expect(postStaticAnalysisCheck).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			pullNumber: 9,
-			headSha: "pr-head-sha",
-			result: { valid: true, fileCount: 2, messages: [] },
-			runId: "test-run-id",
-		});
-		const body = (await res.json()) as { staticAnalysisCheckRun: unknown };
-		expect(body.staticAnalysisCheckRun).toEqual({ checkRunId: 30, conclusion: "success", htmlUrl: "https://x/30" });
-	});
-
-	it("runs on pull_request.synchronize too, not just opened", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
-		vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
-		vi.mocked(postStaticAnalysisCheck).mockResolvedValue({ checkRunId: 31, conclusion: "success", htmlUrl: "" });
-
-		await handleWebhookRequest(req(), ENV);
-
-		expect(lintStaticAnalysis).toHaveBeenCalled();
-	});
-
-	it("soft-skips a lintStaticAnalysis failure -- other checks still post, request still succeeds", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-		vi.mocked(lintStaticAnalysis).mockRejectedValue(new Error("Cannot find module (some unrelated failure)"));
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(res.status).toBe(200);
-		expect(postStaticAnalysisCheck).not.toHaveBeenCalled();
-		expect(syncPropertiesFromConfig).toHaveBeenCalled();
-		expect(postCheckRun).toHaveBeenCalled();
-		const body = (await res.json()) as { staticAnalysisCheckRun: unknown; checkRun: unknown };
-		expect(body.staticAnalysisCheckRun).toBeUndefined();
-		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-
-	describe("runtime_environment gate (unlike every other Bucket 1 check, this one isn't config-free)", () => {
-		it('skips entirely when runtime_environment is explicitly "none" -- a docs-only repo has no JS/TS to lint', async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
-				properties: { holocron_capabilities: [], runtime_environment: "none" },
-			});
-
-			const res = await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).not.toHaveBeenCalled();
-			expect(postStaticAnalysisCheck).not.toHaveBeenCalled();
-			const body = (await res.json()) as { staticAnalysisCheckRun: unknown };
-			expect(body.staticAnalysisCheckRun).toBeUndefined();
-			// Every other check still ran -- this gate is scoped to this one check alone.
-			expect(postCheckRun).toHaveBeenCalled();
-			expect(res.status).toBe(200);
-		});
-
-		it("still runs when runtime_environment is absent entirely -- permissive default, not opt-in", async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 32,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).toHaveBeenCalled();
-		});
-
-		it('still runs for a real, non-"none" runtime_environment value ("browser")', async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
-				properties: { holocron_capabilities: [], runtime_environment: "browser" },
-			});
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 33,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).toHaveBeenCalled();
-		});
-	});
-
-	describe("eslint.browserPackages passthrough (holocron#858)", () => {
-		it("passes holocron.config.ts's eslint.browserPackages through to lintStaticAnalysis", async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(validateConfig).mockResolvedValue({
-				status: "valid",
-				filepath: "x",
-				config: { tasks: [], eslint: { browserPackages: ["packages/github-client/src/app-auth"] } } as never,
-			});
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 34,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).toHaveBeenCalledWith(
-				expect.objectContaining({ browserPackages: ["packages/github-client/src/app-auth"] })
-			);
-		});
-
-		it("passes undefined when holocron.config.ts declares no eslint field -- the common case", async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 35,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).toHaveBeenCalledWith(expect.objectContaining({ browserPackages: undefined }));
-		});
-
-		it("ignores a malformed eslint.browserPackages (non-array) rather than throwing", async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(validateConfig).mockResolvedValue({
-				status: "valid",
-				filepath: "x",
-				config: { tasks: [], eslint: { browserPackages: "not-an-array" } } as never,
-			});
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 36,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			const res = await handleWebhookRequest(req(), ENV);
-
-			expect(res.status).toBe(200);
-			expect(lintStaticAnalysis).toHaveBeenCalledWith(expect.objectContaining({ browserPackages: undefined }));
-		});
-
-		it("filters out non-string entries from a malformed eslint.browserPackages array", async () => {
-			vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-			vi.mocked(validateConfig).mockResolvedValue({
-				status: "valid",
-				filepath: "x",
-				config: { tasks: [], eslint: { browserPackages: ["src/app-auth", 42, null] } } as never,
-			});
-			vi.mocked(lintStaticAnalysis).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-			vi.mocked(postStaticAnalysisCheck).mockResolvedValue({
-				checkRunId: 37,
-				conclusion: "success",
-				htmlUrl: "",
-			});
-
-			await handleWebhookRequest(req(), ENV);
-
-			expect(lintStaticAnalysis).toHaveBeenCalledWith(
-				expect.objectContaining({ browserPackages: ["src/app-auth"] })
-			);
-		});
-	});
-});
-
-describe("handler — actionlint pipeline (holocron#904)", () => {
-	function prEvent(type: "pull_request.opened" | "pull_request.synchronize") {
-		return {
-			type,
-			repo: "acme/demo",
-			installationId: 42,
-			raw: {
-				repository: { default_branch: "main" },
-				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
-			},
-		};
-	}
-
-	beforeEach(() => {
-		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
-		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
-		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
-			properties: { holocron_capabilities: [], runtime_environment: "node" },
-		});
-		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-
-	it("runs lintActionlint with the PR's ref, and posts the result", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-		vi.mocked(lintActionlint).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
-		vi.mocked(postActionlintCheck).mockResolvedValue({
-			checkRunId: 40,
-			conclusion: "success",
-			htmlUrl: "https://x/40",
-		});
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(lintActionlint).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			pullNumber: 9,
-			ref: "pr-head-sha",
-		});
-		expect(postActionlintCheck).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			pullNumber: 9,
-			headSha: "pr-head-sha",
-			result: { valid: true, fileCount: 1, messages: [] },
-			runId: "test-run-id",
-		});
-		const body = (await res.json()) as { actionlintCheckRun: unknown };
-		expect(body.actionlintCheckRun).toEqual({ checkRunId: 40, conclusion: "success", htmlUrl: "https://x/40" });
-	});
-
-	it('still runs when runtime_environment is "none" -- config-free, unlike the eslint half of the task', async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.synchronize") });
-		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({
-			properties: { holocron_capabilities: [], runtime_environment: "none" },
-		});
-		vi.mocked(lintActionlint).mockResolvedValue({ valid: true, fileCount: 0, messages: [] });
-		vi.mocked(postActionlintCheck).mockResolvedValue({ checkRunId: 41, conclusion: "success", htmlUrl: "" });
-
-		await handleWebhookRequest(req(), ENV);
-
-		expect(lintStaticAnalysis).not.toHaveBeenCalled();
-		expect(lintActionlint).toHaveBeenCalled();
-	});
-
-	it("doesn't run on push.default-branch -- no PR files to lint", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({
-			handled: true,
-			event: {
-				type: "push.default-branch",
-				repo: "acme/demo",
-				installationId: 42,
-				raw: { repository: { default_branch: "main" }, after: "push-sha" },
-			},
-		});
-
-		await handleWebhookRequest(req(), ENV);
-
-		expect(lintActionlint).not.toHaveBeenCalled();
-	});
-
-	it("soft-skips a lintActionlint failure -- other checks still post, request still succeeds", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent("pull_request.opened") });
-		vi.mocked(lintActionlint).mockRejectedValue(new Error("shellcheck exited 3: bad args"));
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(res.status).toBe(200);
-		expect(postActionlintCheck).not.toHaveBeenCalled();
-		expect(postCheckRun).toHaveBeenCalled();
-		const body = (await res.json()) as { actionlintCheckRun: unknown };
-		expect(body.actionlintCheckRun).toBeUndefined();
-	});
-});
-
 describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 	function prEvent() {
 		return {
@@ -1411,104 +1089,6 @@ describe("handler — PR Config Validation pipeline (holocron#827)", () => {
 		expect(postCheckRun).toHaveBeenCalled();
 		const body = (await res.json()) as { prConfigValidationCheckRun: unknown; checkRun: unknown };
 		expect(body.prConfigValidationCheckRun).toBeUndefined();
-		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-});
-
-describe("handler — Bucket 2 dispatch pipeline (holocron#769/#794)", () => {
-	function pushEvent() {
-		return {
-			type: "push.default-branch" as const,
-			repo: "acme/demo",
-			installationId: 42,
-			raw: { repository: { default_branch: "main" }, after: "sha-after" },
-		};
-	}
-
-	beforeEach(() => {
-		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
-		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
-		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
-	});
-
-	it("dispatches when the repo's config declares verification.typeSafety", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: ["lint", "verification.typeSafety"] },
-		});
-		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 99, htmlUrl: "https://x/99" });
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(dispatchCheck).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			headSha: "sha-after",
-			ref: "sha-after",
-			task: "verification.typeSafety",
-			checkName: "sentinel:typecheck / Run tsc --noEmit",
-		});
-		const body = (await res.json()) as { dispatchedCheckRun: unknown };
-		expect(body.dispatchedCheckRun).toEqual({ checkRunId: 99, htmlUrl: "https://x/99" });
-	});
-
-	it("also matches the task when declared as an object entry, not just a bare string", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: [{ name: "verification.typeSafety", required: true }] },
-		});
-		vi.mocked(dispatchCheck).mockResolvedValue({ checkRunId: 1, htmlUrl: "" });
-
-		await handleWebhookRequest(req(), ENV);
-
-		expect(dispatchCheck).toHaveBeenCalled();
-	});
-
-	it("does not dispatch when the config has no tasks array at all", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: {} });
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(dispatchCheck).not.toHaveBeenCalled();
-		const body = (await res.json()) as { dispatchedCheckRun: unknown };
-		expect(body.dispatchedCheckRun).toBeUndefined();
-	});
-
-	it("does not dispatch when the repo's config doesn't declare the task", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: ["lint", "verification.unitTests"] },
-		});
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(dispatchCheck).not.toHaveBeenCalled();
-		const body = (await res.json()) as { dispatchedCheckRun: unknown };
-		expect(body.dispatchedCheckRun).toBeUndefined();
-	});
-
-	it("soft-skips a dispatch failure -- capability compliance's own check run still posts, request still succeeds", async () => {
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: pushEvent() });
-		vi.mocked(validateConfig).mockResolvedValue({
-			status: "valid",
-			filepath: "x",
-			config: { tasks: ["verification.typeSafety"] },
-		});
-		vi.mocked(dispatchCheck).mockRejectedValue(new Error("workflow dispatch failed"));
-
-		const res = await handleWebhookRequest(req(), ENV);
-
-		expect(res.status).toBe(200);
-		expect(postCheckRun).toHaveBeenCalled();
-		const body = (await res.json()) as { dispatchedCheckRun: unknown; checkRun: unknown };
-		expect(body.dispatchedCheckRun).toBeUndefined();
 		expect(body.checkRun).toEqual({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
 	});
 });

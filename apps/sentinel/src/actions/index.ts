@@ -1,9 +1,7 @@
-export * from "./actionlint/index.js";
 export * from "./auto-fix-loop/index.js";
 export * from "./capability-compliance/index.js";
 export * from "./commit-standards/index.js";
 export * from "./dco/index.js";
-export * from "./dispatched-check/index.js";
 export * from "./editorconfig/index.js";
 export * from "./formatting/index.js";
 export * from "./inclusive-language/index.js";
@@ -12,4 +10,3 @@ export * from "./pr-config-validation/index.js";
 export * from "./pr-feed/index.js";
 export * from "./repo-validation/index.js";
 export * from "./role-sync/index.js";
-export * from "./static-analysis/index.js";
