@@ -4,6 +4,7 @@ import type {
 	EnsureRootWorkspaceMemberResult,
 	EnsureTurboDependencyResult,
 	OrgContext,
+	StatusContext,
 } from "./generators/index.js";
 import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "./tasks/index.js";
 
@@ -22,6 +23,13 @@ export interface AstromechOptions {
 	 * derive the Cloudflare Pages project / domain when they are not spelt out.
 	 */
 	orgContext?: OrgContext;
+	/**
+	 * The commit statuses a `coverage` provider reports (`Coverage.statusContexts()`, names only), which the CLI passes
+	 * in because astromech imports no provider. {@link Astromech.requiredChecks} adds the required ones and
+	 * {@link Astromech.aggregateCaller} treats them as the aggregate's `statuses`. Left out, a context starting with
+	 * `codecov/` is a status and nothing is added, which is what a run with no provider loaded does.
+	 */
+	statusContexts?: readonly StatusContext[];
 	/** Structured-logging sink. Defaults to a no-op. */
 	logger?: RunLogger;
 	/** User-facing line printer. Defaults to `console.log`. */
@@ -128,7 +136,7 @@ export interface Astromech {
 	requiredChecks(aggregate: boolean): string[];
 	/**
 	 * The thin caller of the `ci` aggregate check (a `pull_request` workflow whose job `ci` calls the `Required checks` job that waits on every
-	 * `required: true` task, the hand-written checks and the `codecov/*` statuses), or `null` when the manifest has
+	 * `required: true` task, the hand-written checks and the coverage statuses), or `null` when the manifest has
 	 * nothing to wait on. Only a repo that hosts the reusable `ci.yml` writes it; the others have no `ci` yet.
 	 */
 	aggregateCaller(): string | null;

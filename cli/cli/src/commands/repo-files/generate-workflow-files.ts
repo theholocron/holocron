@@ -49,6 +49,7 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 		cwd: input.repoRoot,
 		config: { tasks: tasks as TasksConfig["tasks"], extraRequiredChecks: config.extraRequiredChecks },
 		orgContext: { org: config.org, domain: config.domain },
+		...(input.statusContexts ? { statusContexts: input.statusContexts } : {}),
 		logger: input.logger ?? getLogger(),
 	});
 	const files = astromech.thinCallers();

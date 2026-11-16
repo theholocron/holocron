@@ -11,6 +11,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader, type Source } from "../../plugin/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import {
 	generateAgentFiles,
 	generatePrivateDirFiles,
@@ -411,7 +412,17 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 
 		if (stepName === "workflows") {
 			// The same files `setup` writes, from the same function (`generateWorkflowFiles`).
-			const entries = generateWorkflowFiles({ loaded: input.loaded, repoRoot: input.context.repoRoot, logger });
+			const statusContexts = coverageStatusContexts({
+				loader,
+				repoRoot: input.context.repoRoot,
+				docsCoverage: config.repoValidation?.docsCoverage,
+			});
+			const entries = generateWorkflowFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				...(statusContexts ? { statusContexts } : {}),
+				logger,
+			});
 			if ((config.tasks ?? []).length === 0) {
 				steps.push({
 					capability: "local",

@@ -1,6 +1,6 @@
 ---
 id: SPEC-0087
-status: draft
+status: accepted
 issue: theholocron/holocron#2238
 blocked-by: []
 discussion:
@@ -65,7 +65,7 @@ interface Coverage extends ProviderIdentity {
   /** Uploads the reports, one flag per group. Names and counts only; never a token. */
   upload?(input: CoverageUploadInput): Promise<CoverageUploadResult>;
   /** The status contexts the provider reports on a pull request. */
-  statusContexts?(): string[];
+  statusContexts?(input: CoverageStatusInput): CoverageStatusContext[];
   /** The provider's own config files for a repo, from its flags and components. */
   configFiles?(input: CoverageConfigInput): Promise<Record<string, string>>;
 }
@@ -100,3 +100,7 @@ run` and the affected-task logic are astromech's task runner, which is built on 
 
 - Codecov's upload, status names and config belong in the plugin (decided with the user in the session of #2238): do all
   three steps; keep Turbo's task-runner use in astromech and the `setup` warning as it is.
+- Step 1 (upload) shipped in #2242 and #2243. Step 2 (status names) is the pull request that moves this spec to
+  `accepted`: `Coverage.statusContexts?()` takes the components and the documentation mode and returns
+  `{ name, required }` contexts; astromech takes them as an optional argument and keeps the old `codecov/` prefix as
+  its default when no provider is loaded. Step 3 (`codecov.yml`) is still to do, with open question 1 as written.

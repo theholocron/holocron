@@ -254,6 +254,27 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(entry.content).toContain(`      statuses: '["codecov/patch"]'\n`);
 		});
 
+		it("takes its statuses from the coverage provider's contexts when they are given", () => {
+			host();
+			const entries = generateWorkflowFiles({
+				loaded: loadedFrom({
+					name: "x",
+					tasks: ["stale", { name: "typecheck", required: true }],
+					extraRequiredChecks: ["codecov/patch", "Generated files / Check"],
+				}),
+				repoRoot: root,
+				statusContexts: [
+					{ name: "cov/project", required: true },
+					{ name: "cov/patch/a", required: false },
+				],
+				logger: getLogger(),
+			});
+			const entry = entries.find((e) => e.kind === "file" && e.path === ".github/workflows/ci.ci.yml");
+			if (!entry || entry.kind !== "file") throw new Error("expected ci.ci.yml");
+			expect(entry.content).toContain(`      expected: '["typecheck","codecov/patch","Generated files"]'\n`);
+			expect(entry.content).toContain(`      statuses: '["cov/project"]'\n`);
+		});
+
 		it("is not written when nothing is required", () => {
 			host();
 			expect(generate().some((e) => e.kind === "file" && e.path.endsWith("ci.ci.yml"))).toBe(false);

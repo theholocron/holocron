@@ -14,6 +14,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorRepoReport, RepoCheck, RepoCheckResult, RunDoctorRepoInput } from "./doctor-repo.type.js";
@@ -26,7 +27,15 @@ export async function runDoctorRepo(input: RunDoctorRepoInput): Promise<DoctorRe
 	await loader.load();
 	assertPluginsResolvable(loader, "doctor repo");
 
-	const checks = repoChecks(input.loaded.resolved, input.context.repoRoot);
+	const checks = repoChecks(
+		input.loaded.resolved,
+		input.context.repoRoot,
+		coverageStatusContexts({
+			loader,
+			repoRoot: input.context.repoRoot,
+			docsCoverage: input.loaded.resolved.repoValidation?.docsCoverage,
+		})
+	);
 	const rows: CheckRow[] = [];
 	if (!loader.has("source")) {
 		const why = whyMissing(loader, "source", "no `source` provider to read the repository with");

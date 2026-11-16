@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { createAstromech, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, readWorkspacePackages, type StatusContext } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 
 import type { LoadedConfig } from "../../../config/index.js";
@@ -64,13 +64,17 @@ async function generate(input: RepoFilesInput) {
  * are named by the package in the message. CI runs it, so a change to a generator or to the config that was not followed by a run of `setup`
  * or `sync` cannot merge.
  */
-export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginProbes {
+export function generatedProbes(
+	loaded: LoadedConfig,
+	repoRoot: string,
+	statusContexts?: readonly StatusContext[]
+): PluginProbes {
 	return {
 		check: {
 			summary: "Fail for each generated file that differs from the committed copy (CI runs this).",
 			writes: false,
 			async run(ctx) {
-				const input: RepoFilesInput = { loaded, repoRoot };
+				const input: RepoFilesInput = { loaded, repoRoot, ...(statusContexts ? { statusContexts } : {}) };
 				const first = await generate(input);
 				const second = await generate(input);
 				const owned = await generatePackageWorkflows(repoRoot);

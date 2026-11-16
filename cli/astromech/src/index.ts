@@ -84,6 +84,7 @@ export {
 	planTasks,
 	scriptsFor,
 } from "./generators/scripts/index.js";
+export type { StatusContext } from "./generators/task-check-contexts/index.js";
 export type { TsconfigOptions } from "./generators/tsconfig/index.js";
 export { createTsconfig } from "./generators/tsconfig/index.js";
 export type { LocalRunner, TaskDef } from "./registry/index.js";

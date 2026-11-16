@@ -55,14 +55,14 @@ Fix it in the organization's property definitions, not in the repo: a new capabi
 
 **Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that contains the `ci`
 aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
-`ci` waits on every `{ required: true }` task, the hand-written checks and the `codecov/*` statuses of the top-level
-`extraRequiredChecks`, so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
+`ci` waits on every `{ required: true }` task, the hand-written checks and the coverage statuses (the `coverage` provider's required ones, such as Codecov's `codecov/patch`, plus any in the top-level
+`extraRequiredChecks`; with no provider loaded, an entry starting with `codecov/` is the status), so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
 caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
 **The `ci` aggregate.** `setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
 beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
-commit until every expected id has a check run named `<id> / ...` and all of them completed, and every `codecov/*`
+commit until every expected id has a check run named `<id> / ...` and all of them completed, and every coverage
 status reached `success`, or 30 minutes pass. An id that never posted fails as "never posted"; `success`, `skipped` and
 `neutral` pass and anything else fails. The job summary is a table of every expected check with a link, failing ones
 first, and each failure is also an `::error title=<id>::` annotation. Re-running one check that did not succeed does not update `ci`:
