@@ -926,7 +926,8 @@ describe("REUSABLE_WORKFLOWS['sync-repo'] — the summary of a successful sync (
 			writeFileSync(files.log, log);
 			writeFileSync(files.out, "");
 			writeFileSync(files.summary, "");
-			const result = spawnSync("bash", ["-e", "-c", script], {
+			// No profile or rc file: a shell hook that replaces the shell (an `exec` in `~/.bashrc`) would leave the step doing nothing.
+			const result = spawnSync("bash", ["--noprofile", "--norc", "-e", "-c", script], {
 				env: {
 					PATH: process.env.PATH,
 					LOG_FILE: files.log,
