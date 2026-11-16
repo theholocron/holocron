@@ -312,6 +312,31 @@ describe("PluginLoader — repo defaults", () => {
 		expect(captured.repo).toBe("acme/foo");
 	});
 
+	it("hands plugins repoValidation.docsCoverage, and nothing when it is unset", async () => {
+		const seen: Array<Record<string, unknown>> = [];
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return { createPlugin: () => ({ name: "1p", capabilities: { vault: () => ({}) } }) };
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					seen.push(opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		for (const repoValidation of [{ docsCoverage: "warn" as const }, undefined]) {
+			const config = resolveConfig({
+				name: "demo",
+				...(repoValidation ? { repoValidation } : {}),
+				providers: { vault: "1password", source: "github" },
+			});
+			await new PluginLoader(config, { repoRoot: "/tmp" }, importer as unknown as PluginImporter).load();
+		}
+		expect(seen[0]?.docsCoverage).toBe("warn");
+		expect(seen[1]).not.toHaveProperty("docsCoverage");
+	});
+
 	it("context.repo (CLI --repo flag) overrides config.repo", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({

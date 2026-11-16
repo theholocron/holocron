@@ -38,8 +38,10 @@ export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from ".
 export {
 	codecovComponentBlock,
 	codecovConfig,
+	codecovFlagNames,
 	codecovUploads,
 	createCodecovConfig,
+	DOCUMENTATION_FLAG,
 	ensureIfNotFound,
 	mergeCodecovComponents,
 	readWorkspacePackages,

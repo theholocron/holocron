@@ -1,6 +1,7 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
+import { AuthError } from "../auth.js";
 import { createCodecovClient } from "../rest.js";
 import { CodecovCoverage } from "./coverage.js";
 
@@ -61,5 +62,105 @@ describe("CodecovCoverage", () => {
 	it("throws when the options name no repository", async () => {
 		const { cap } = build([], { target: null });
 		await expect(cap.checkToken()).rejects.toThrow(/needs a repository/);
+	});
+});
+
+describe("CodecovCoverage.checkRepo", () => {
+	const expected = { flags: ["a", "b"], components: ["a", "b"] };
+
+	function buildRepo(responses: Parameters<typeof stubFetch>[0], over: { target?: null } = {}) {
+		const { fetch, calls } = stubFetch(responses);
+		const api = createCodecovClient({ token: "api-tok", baseUrl: "https://codecov.test/api/v2", fetch });
+		const upload = createCodecovClient({ token: "up-tok", baseUrl: "https://codecov.test/api/v2", fetch });
+		const cap = new CodecovCoverage(
+			() => upload,
+			over.target === null ? undefined : target,
+			() => api
+		);
+		return { cap, calls };
+	}
+
+	it("reports names missing from and extra on Codecov, reading both lists with the API token", async () => {
+		const { cap, calls } = buildRepo([
+			{ body: { next: null, results: [{ flag_name: "a" }, { flag_name: "old" }] } },
+			{ body: [{ component_id: "b", name: "b" }] },
+		]);
+		await expect(cap.checkRepo(expected)).resolves.toEqual({
+			checked: true,
+			flags: { expected: ["a", "b"], missing: ["b"], extra: ["old"] },
+			components: { expected: ["a", "b"], missing: ["a"], extra: [] },
+		});
+		expect(calls.map((c) => c.url).sort()).toEqual([
+			"https://codecov.test/api/v2/github/theholocron/repos/holocron/components/",
+			"https://codecov.test/api/v2/github/theholocron/repos/holocron/flags/?page=1&page_size=100",
+		]);
+		expect(calls.every((c) => c.headers.authorization === "Bearer api-tok")).toBe(true);
+	});
+
+	it("is not checked, and names the variable, when there is no API token", async () => {
+		const noToken = () => {
+			throw new AuthError("none");
+		};
+		const { fetch, calls } = stubFetch([]);
+		const client = createCodecovClient({ token: "up", fetch });
+		const cap = new CodecovCoverage(() => client, target, noToken);
+		const found = await cap.checkRepo(expected);
+		expect(found.checked).toBe(false);
+		expect(found.reason).toContain("HOLOCRON_CODECOV_API_TOKEN");
+		expect(found.flags).toEqual({ expected: ["a", "b"], missing: [], extra: [] });
+		expect(calls).toHaveLength(0);
+	});
+
+	it("is not checked when the plugin was built with no API client", async () => {
+		const { cap } = build([]);
+		await expect(cap.checkRepo(expected)).resolves.toMatchObject({ checked: false });
+	});
+
+	it("rethrows an error from resolving the API token that is not an AuthError", async () => {
+		const { fetch } = stubFetch([]);
+		const client = createCodecovClient({ token: "up", fetch });
+		const cap = new CodecovCoverage(
+			() => client,
+			target,
+			() => {
+				throw new RangeError("keyring broke");
+			}
+		);
+		await expect(cap.checkRepo(expected)).rejects.toThrow(RangeError);
+	});
+
+	it.each([401, 403])("is not checked, saying so, when Codecov answers %i", async (status) => {
+		const { cap } = buildRepo([
+			{ status, body: {} },
+			{ status, body: {} },
+		]);
+		const found = await cap.checkRepo(expected);
+		expect(found.checked).toBe(false);
+		expect(found.reason).toContain(String(status));
+	});
+
+	it("is not checked when Codecov has no such repository", async () => {
+		const { cap } = buildRepo([
+			{ status: 404, body: {} },
+			{ status: 404, body: {} },
+		]);
+		const found = await cap.checkRepo(expected);
+		expect(found.checked).toBe(false);
+		expect(found.reason).toContain("404");
+	});
+
+	it("throws for an error that says nothing about access, without the token", async () => {
+		const { cap } = buildRepo([
+			{ status: 500, body: {} },
+			{ status: 500, body: {} },
+		]);
+		const err = await cap.checkRepo(expected).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/theholocron\/holocron/);
+		expect((err as Error).message).not.toContain("api-tok");
+	});
+
+	it("throws when the options name no repository", async () => {
+		const { cap } = buildRepo([], { target: null });
+		await expect(cap.checkRepo(expected)).rejects.toThrow(/needs a repository/);
 	});
 });

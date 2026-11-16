@@ -3244,10 +3244,20 @@ export interface Coverage extends ProviderIdentity {
 	 */
 	checkToken(): Promise<CoverageTokenCheck>;
 	/**
-	 * Later, when `doctor coverage` is built: the repo is active, the flags and components `holocron sync` writes exist, the
-	 * required statuses (`codecov/patch`, `codecov/patch/documentation`) are reported.
+	 * Compares the flags and components the repository's config declares (`holocron sync` writes them to `codecov.yml`)
+	 * with what the service has for the repository, by name only. The caller passes the expected names, so the provider
+	 * never reads the config. A service may need a second credential for this read (Codecov's API takes a personal token,
+	 * not the upload token): without it the report says so (`checked: false`) and nothing throws. Read-only.
 	 */
-	checkRepo?(): Promise<CoverageRepoReport>;
+	checkRepo?(expected: CoverageExpectations): Promise<CoverageRepoReport>;
+}
+
+/** The flags and components {@link Coverage.checkRepo} expects the service to have, by name. */
+export interface CoverageExpectations {
+	/** The flag names the config declares. */
+	flags: string[];
+	/** The component ids the config declares. */
+	components: string[];
 }
 
 /** What {@link Coverage.checkToken} found. */
@@ -3264,10 +3274,26 @@ export interface CoverageTokenCheck {
 	status?: number;
 }
 
-/** What {@link Coverage.checkRepo} will report; not built yet. */
+/** One list of names compared with the service's: what was expected, what is missing there and what is extra there. */
+export interface CoverageNameDiff {
+	/** The names the config declares. */
+	expected: string[];
+	/** Declared in the config, absent on the service. */
+	missing: string[];
+	/** On the service, not declared in the config. */
+	extra: string[];
+}
+
+/** What {@link Coverage.checkRepo} found. Names only. */
 export interface CoverageRepoReport {
-	/** Whether the repository has received an upload. */
-	active: boolean;
+	/** `false` when the service could not be asked (no credential for the read); `reason` then says what to set. */
+	checked: boolean;
+	/** Why nothing was checked, naming the variable to set. Set only when `checked` is `false`. */
+	reason?: string;
+	/** The flags compared. */
+	flags: CoverageNameDiff;
+	/** The components compared. */
+	components: CoverageNameDiff;
 }
 
 // ───────────────────────────────────────────────────────────────────────

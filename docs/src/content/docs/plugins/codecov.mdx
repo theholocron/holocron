@@ -10,9 +10,16 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <Installation package={getPlugins()["holocron-plugin-codecov"].package} dev />
 
-<CapabilitiesTable rows={[{ capability: "coverage", token: "HOLOCRON_CODECOV_TOKEN (codecov)" }]} />
+<CapabilitiesTable
+  rows={[
+    {
+      capability: "coverage",
+      token: "HOLOCRON_CODECOV_TOKEN (codecov); HOLOCRON_CODECOV_API_TOKEN (codecov.api) for checkRepo",
+    },
+  ]}
+/>
 
-`coverage` is a provider-neutral capability for the service that holds a repository's coverage, so another service could implement it. The first scope is `checkToken()`: whether the service accepts the configured token for the repository. A later `checkRepo()` (flags, components and required statuses exist) is declared optional and is not built, so there is no `doctor coverage` yet.
+`coverage` is a provider-neutral capability for the service that holds a repository's coverage, so another service could implement it. `checkToken()` asks whether the service accepts the configured token for the repository. `checkRepo()` compares the flags and components the config declares with the ones the service has. Required statuses are not compared yet, and there is no `doctor coverage`; `holocron probe codecov repo` is the way to run the comparison.
 
 :::note
 The organization's `holocron_capabilities` property must allow `coverage` (`holocron apply properties`) before a repo declares `providers.coverage`. Until then the plugin is not loaded by any config; `holocron probe codecov token` needs it to be named under `providers.coverage`.
@@ -52,6 +59,8 @@ providers: {
 
 The token is held in the `ci` layer's Environment and synced to an organization secret. Only `ci` is declared, so a copy in another layer fails `holocron doctor tokens`.
 
+A second, optional token reads flags and components: `HOLOCRON_CODECOV_API_TOKEN` (a Codecov personal API token), read from `HOLOCRON_CODECOV_API_TOKEN`, then the keyring entry `codecov.api` (`--token` is the upload token and is not used for it). There is no fallback to the upload token, which the REST API answers with a 401. It is declared for `ci` only and optional, so a layer without it is not a failure.
+
 ## Two kinds of Codecov token
 
 This is what the Codecov REST API documentation says, and what the plugin does about it:
@@ -79,4 +88,18 @@ It always ends with an `info` row that permissions are not checked: Codecov has 
 ## What `coverage` provides
 
 - `checkToken()` — asks Codecov for the repository with the token; returns `outcome` (`accepted`, `refused` or `not-found`), `repoPrivate` and `status`, and throws for an error that says nothing about the token.
-- `checkRepo()` — optional, not implemented.
+- `checkRepo({ flags, components })` — reads the repository's flags (`GET /{service}/{owner}/repos/{repo}/flags/`, paginated) and components (`GET /{service}/{owner}/repos/{repo}/components/`) with the API token and returns, for each list, the names expected, those missing on Codecov and those on Codecov the config does not declare. The caller passes the expected names, so the plugin never reads the config. Without `HOLOCRON_CODECOV_API_TOKEN` (or when Codecov answers 401, 403 or 404) it returns `checked: false` with a `reason` naming what to set, and does not throw. Names only, never a token.
+
+## Comparing flags and components
+
+`holocron probe codecov repo` compares what `holocron sync` writes to `codecov.yml` (a flag per package, none for `docs`, plus `documentation` when `repoValidation.docsCoverage` is `warn` or `required`; a component per package) with what Codecov has. It reads only.
+
+| Result                                        | Row                                                                                                   |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| a list matches                                | `ok` (`components`, `flags`)                                                                          |
+| a component declared but not on Codecov       | `fail`: `codecov.yml` has not reached the default branch, or Codecov has not read it                  |
+| a flag declared but not on Codecov            | `info`: Codecov knows a flag only after an upload carried it, so a package with no tests yet has none |
+| a flag or component on Codecov, not declared  | `info`: a hand-made or retired name                                                                   |
+| no `HOLOCRON_CODECOV_API_TOKEN`, or a 401/403 | `info`, naming the variable to set; never a failure                                                   |
+
+The expected names come from `coverageExpectations()` (exported by `@theholocron/cli`), which calls the same functions the `codecov.yml` generator uses.
