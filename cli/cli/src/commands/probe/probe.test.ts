@@ -6,6 +6,9 @@ import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, PluginProbes } from "../../plugin/index.js";
 import { runProbeCommand } from "./probe.js";
 
+// The tests' configs carry no workspace; the real lookup reads the package configs from disk.
+vi.mock("../workspace-providers/index.js", () => ({ workspaceProviders: vi.fn(async () => []) }));
+
 const strip = (s: string) => stripVTControlCharacters(s);
 
 const read = vi.fn(async (ctx: { say: (r: { status: "ok"; label: string }) => void }) =>
@@ -105,6 +108,32 @@ describe("runProbeCommand", () => {
 		expect(text()).toContain("demo");
 		expect(text()).toMatch(/look\s+Look at things\./);
 		expect(text()).toMatch(/make\s+Make a thing\.\s+\(changes things\)/);
+	});
+
+	it("finds a provider only a workspace app's config names, loading it by name, for a run and for the list", async () => {
+		read.mockClear();
+		const workspaceProviders = [
+			{ provider: "vercel", packageName: "@theholocron/holocron-plugin-vercel", options: {} },
+		];
+		const built: unknown[] = [];
+		const makeLoader = () => {
+			built.push(1);
+			return {
+				...fakeLoader(),
+				probes: () =>
+					new Map([
+						["demo", probes],
+						["vercel", probes],
+					]),
+			} as unknown as PluginLoader;
+		};
+		const ran = run({ provider: "vercel", probe: "look", workspaceProviders, makeLoader });
+		expect((await ran.promise).status).toBe("ok");
+		expect(read).toHaveBeenCalledTimes(1);
+		const listed = run({ workspaceProviders, makeLoader });
+		await listed.promise;
+		expect(listed.text()).toContain("vercel");
+		expect(built.length).toBe(2);
 	});
 
 	it("lists one provider's probes", async () => {

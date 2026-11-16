@@ -1,6 +1,7 @@
 import type { GitExec } from "@theholocron/git-utils";
 import type { PluginImporter as KyberPluginImporter } from "@theholocron/kyber/plugins";
 
+import type { ResolvedTuple } from "../../config/config/index.js";
 import type { CapabilityImpls, CapabilityKey, CardinalityFor } from "../capabilities/index.js";
 import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderAction } from "../provider-actions/index.js";
@@ -71,4 +72,9 @@ export interface PluginLoaderOptions {
 	env?: Record<string, string | undefined>;
 	/** Replaces the `git` call that reads the repo's `origin` for a derived Environment name, for tests. */
 	gitExec?: GitExec;
+	/**
+	 * Providers to load by name next to the configured ones, with no capability slot: they add their `probes` and their
+	 * `tokens`, nothing else. `workspaceProviders()` finds the ones a workspace app's config names and this one does not.
+	 */
+	extraProviders?: readonly ResolvedTuple[];
 }

@@ -20,6 +20,7 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
+import type { ResolvedTuple } from "../../config/index.js";
 import { ENVIRONMENT_LAYERS } from "../../credentials-environments/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type PluginProbes, type ProbeRow } from "../../plugin/index.js";
@@ -33,7 +34,9 @@ import {
 	withEnvironmentValues,
 } from "../probe/probe-token/index.js";
 import { runProbe } from "../probe/run-probe.js";
+import { providerTuples } from "../provider-tuples/index.js";
 import { type LayerTokenExpectation, tokenExpectations } from "../token-expectations/index.js";
+import { workspaceProviders } from "../workspace-providers/index.js";
 import type { DoctorTokensReport, RunDoctorTokensInput } from "./doctor-tokens.type.js";
 import { summariseProbeRows } from "./summarise-probe-rows.js";
 
@@ -63,7 +66,15 @@ interface Declared {
 export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<DoctorTokensReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
-	const makeLoader = input.makeLoader ?? ((context) => new PluginLoader(input.loaded.resolved, context));
+	// The providers a workspace app's config names that this one does not (Sentinel's `vercel`): loaded by name beside
+	// the configured ones, so their tokens are checked from the root with no key for them in this config.
+	const extras =
+		input.workspaceProviders ??
+		/* v8 ignore next -- reads the workspace's package configs from disk, which tests replace with `workspaceProviders` */
+		(await workspaceProviders(input.context.repoRoot, input.loaded.resolved));
+	const makeLoader =
+		input.makeLoader ??
+		((context) => new PluginLoader(input.loaded.resolved, context, undefined, { extraProviders: extras }));
 	const loader = input.loader ?? makeLoader(input.context);
 	await loader.load();
 	assertPluginsResolvable(loader, "doctor tokens");
@@ -73,7 +84,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	const declared: Declared[] = [];
 	/* v8 ignore next -- the real importer reads installed plugin packages, which tests replace with `providerTokens` */
 	const providerTokens = input.providerTokens ?? defaultProviderTokens(input.loaded);
-	for (const provider of providersOf(input.loaded.resolved.providers)) {
+	for (const provider of providersOf(input.loaded.resolved.providers, extras)) {
 		let tokens: readonly PluginToken[];
 		try {
 			tokens = await providerTokens(provider);
@@ -125,12 +136,12 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	};
 }
 
-/** The provider names the config lists, once each. */
-function providersOf(providers: RunDoctorTokensInput["loaded"]["resolved"]["providers"]): string[] {
-	const names = Object.values(providers).flatMap((entry) =>
-		entry.cardinality === "single" ? [entry.tuple.provider] : entry.tuples.map((t) => t.provider)
-	);
-	return [...new Set(names)];
+/** The provider names the config lists, then the workspace's extra ones, once each. */
+function providersOf(
+	providers: RunDoctorTokensInput["loaded"]["resolved"]["providers"],
+	extras: readonly ResolvedTuple[]
+): string[] {
+	return [...new Set([...providerTuples(providers), ...extras].map((t) => t.provider))];
 }
 
 const usableProbe = (probes: PluginProbes | undefined): boolean => probes?.[PROBE]?.acceptsToken === true;
