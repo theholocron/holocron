@@ -188,7 +188,12 @@ export default defineConfig({
 			"bruno",
 			{
 				collectionFiles: ["apps/sentinel/requests/collection.json", "apps/comlink/requests/collection.json"],
-				envFiles: ["apps/sentinel/requests/environment.json", "apps/comlink/requests/environment.json"],
+				envFiles: [
+					"apps/sentinel/requests/environment.json",
+					"apps/sentinel/requests/environment.dev.json",
+					"apps/sentinel/requests/environment.prod.json",
+					"apps/comlink/requests/environment.json",
+				],
 			},
 		],
 		// Notifications: the Holocron Discord server. `holocron setup notifications`

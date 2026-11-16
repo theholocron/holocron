@@ -711,11 +711,20 @@ App only on the repositories you test with.
 
 ### Sending a delivery by hand
 
-`requests/collection.json` and `requests/environment.json` are a collection of requests and its environment for the
-instance above. Open them in an API client, point `baseUrl` at the dev instance (the default is
-`http://127.0.0.1:3000`, what `holocron dev serve` listens on; never production) and put the dev App's webhook secret in
-`webhookSecret`, a secret-type variable the file leaves empty. A pre-request script signs each body as sent
-(`X-Hub-Signature-256`).
+`requests/collection.json` and the `requests/environment*.json` files are a collection of requests and its environments.
+Open them in an API client, pick an environment and put that instance's webhook secret in `webhookSecret`, a secret-type
+variable the files leave empty. A pre-request script signs each body as sent (`X-Hub-Signature-256`). There are three
+environments, one file each:
+
+| Environment        | File                    | `baseUrl`                              | What it is                                                                                   |
+| ------------------ | ----------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `Sentinel (local)` | `environment.json`      | `http://127.0.0.1:3000`                | The instance on this machine, what `holocron dev serve` listens on                           |
+| `Sentinel (dev)`   | `environment.dev.json`  | `https://sentinel-dev.theholocron.dev` | The same instance through its named tunnel (`dev.tunnel`), reached the way GitHub reaches it |
+| `Sentinel (prod)`  | `environment.prod.json` | `https://sentinel.theholocron.dev`     | The deployed App. Its webhook secret is the production one, not the dev App's                |
+
+Use `Sentinel (prod)` with care: the `Rejected` and `Signed, no effect` folders are harmless there, but `Signed, acts on
+GitHub` runs the real checks and posts as the production App on the repository you name, so leave that folder alone
+unless you mean it.
 
 The folders go from harmless to acting:
 
@@ -729,14 +738,15 @@ The folders go from harmless to acting:
 `src/requests/requests.test.ts` runs the collection's signing script against `parseWebhookEvent()`, so the two cannot
 drift apart.
 
-`holocron sync tooling --cwd apps/sentinel` pushes both files through the `tooling` provider (`providers.tooling` in
-`holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
-is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the step first. It runs nothing else this
+`holocron sync tooling --cwd apps/sentinel` pushes the files through the `tooling` provider (`providers.tooling` in
+`holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and each
+environment is made or updated, keeping a `webhookSecret` set there. Add `--dry-run` to see the step first. It runs nothing else this
 config declares (`holocron setup` would also run the Vercel domain and DNS steps).
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
-`holocron export requests --to bruno --cwd apps/sentinel` writes OpenCollection YAML into the git-ignored
-`requests/.export/bruno/` (`--dry-run` converts and lists without writing).
+`holocron export requests --to bruno --cwd apps/sentinel` writes `collection.bruno.json` (the requests and the three
+environments in one file, which Bruno imports) and an OpenCollection YAML into the git-ignored `requests/.export/bruno/`
+(`--dry-run` converts and lists without writing).
 
 ## Development
 
