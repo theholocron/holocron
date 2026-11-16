@@ -3,11 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const loadConfig = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const runSyncIssues = vi.hoisted(() => vi.fn());
+const readAssignees = vi.hoisted(() => vi.fn());
+const loader = vi.hoisted(() => ({ load: vi.fn(), has: vi.fn(), get: vi.fn() }));
 vi.mock("../../config/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../config/index.js")>()),
 	loadConfig,
 }));
 vi.mock("./run-sync-issues/run-sync-issues.js", () => ({ runSyncIssues }));
+vi.mock("./read-assignees/index.js", () => ({ readAssignees }));
+vi.mock("../../plugin/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../plugin/index.js")>()),
+	PluginLoader: vi.fn(function () {
+		return loader;
+	}),
+}));
 vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({ resolveOrg: (_a: unknown, c: { org?: string }) => c.org }));
@@ -63,6 +72,26 @@ describe("sync issues", () => {
 	it("rejects a --limit it cannot read before doing anything", async () => {
 		await expect(go(...ENDS, "--limit", "-1")).rejects.toThrow(/sync issues: --limit "-1"/);
 		expect(runSyncIssues).not.toHaveBeenCalled();
+	});
+
+	it("hands over a reader of the assignees file that goes through the source provider and the org", async () => {
+		const source = { providerName: "github" };
+		loader.has.mockReturnValue(true);
+		loader.get.mockReturnValue(source);
+		readAssignees.mockResolvedValue([{ login: "octocat", email: "o@acme.dev" }]);
+		await go(...ENDS);
+		const read = runSyncIssues.mock.calls[0]![0].readAssignees as () => Promise<unknown>;
+		await expect(read()).resolves.toEqual([{ login: "octocat", email: "o@acme.dev" }]);
+		expect(loader.load).toHaveBeenCalled();
+		expect(readAssignees).toHaveBeenCalledWith(source, "acme");
+	});
+
+	it("reads the assignees file with no source when none is configured", async () => {
+		loader.has.mockReturnValue(false);
+		readAssignees.mockResolvedValue([]);
+		await go(...ENDS);
+		await (runSyncIssues.mock.calls[0]![0].readAssignees as () => Promise<unknown>)();
+		expect(readAssignees).toHaveBeenCalledWith(undefined, "acme");
 	});
 
 	it("does nothing without tokens, and sets a failing exit code", async () => {

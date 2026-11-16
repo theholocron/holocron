@@ -4,8 +4,8 @@
  * An issue is one a migration or sync made when its body ends with the `holocron:migrated-from` marker, and only such
  * an issue is changed. Title, description, state and labels (so also the `priority: <level>` label, because GitHub's
  * priority is a label) are set to what the source has when they differ; the labels it does not manage (`status:*`)
- * are kept. An assignee is never mapped (a Linear user is not a GitHub login), so it is reported in `dropped` and not
- * compared. Comments the issue lacks are added, oldest first; none is edited or deleted, and one is found again by the
+ * are kept. An assignee is set only when the record carries a GitHub `login` (`sync issues` finds it in the assignees
+ * file); one with none is reported in `dropped` and not compared, and an assignee is never cleared. Comments the issue lacks are added, oldest first; none is edited or deleted, and one is found again by the
  * time in its header, so a comment edited on the source is not copied twice.
  */
 
@@ -110,6 +110,12 @@ async function update(
 	if (sorted(finalLabels) !== sorted(current)) {
 		patch.labels = finalLabels;
 		changes.push("labels");
+	}
+
+	const login = record.assignee?.login;
+	if (login && issue.assignee?.login.toLowerCase() !== login.toLowerCase()) {
+		patch.assignees = [login];
+		changes.push("assignee");
 	}
 
 	const comments = await client.issues.listComments(repo, issue.number);

@@ -68,9 +68,19 @@ tasks: [{ name: "sync-issues", with: { from: "github", to: "linear:team=ENG", bo
 
 The job reads the Linear key from the `HOLOCRON_LINEAR_TOKEN` secret and GitHub's from `HOLOCRON_ISSUES_TOKEN`, or the job's own token when that is not set. A repo with one tracker lists nothing and gets no workflow; this repo does not list it. A failed run reaches `#alerts`.
 
+## The assignees file
+
+A GitHub login and a Linear account are not the same name, so the pairs live in a file in the org's private config repo, next to the Discord links file (`<org>/.github-private`, `issues/assignees.json`). Nobody signs in to write it, since both trackers are readable by the org: a maintainer edits it by hand.
+
+```json
+{ "version": 1, "links": [{ "login": "octocat", "email": "octo@acme.dev" }] }
+```
+
+`sync issues` reads it once, through the `source` provider, and only when a record has an assignee. Going to GitHub, a Linear user is found by email and the issue is assigned to the login; going to Linear, a GitHub login is found and the issue is assigned to the user with that email. A login or an email may appear once. A missing file means nobody is mapped; a file that is not valid fails the run before anything is written, naming the file.
+
 ## Limits
 
-- **Assignees** are matched by email. A Linear user is found by the email on the GitHub account, and a GitHub login cannot be found from a Linear user, so a sync to GitHub keeps no assignee (it says `assignee (not mapped)`). A source with no assignee leaves the target's assignee alone.
+- **Assignees** are carried across by the assignees file (below). A person the file does not name is matched by email on Linear, and on GitHub is left unassigned and reported as `assignee (not mapped)`, since a Linear user carries no GitHub login. A source with no assignee leaves the target's assignee alone, and an assignee is never cleared.
 - **Labels** on the target are set to the source's. A label added by hand to a synced Linear issue is removed by the next run; GitHub `status:*` labels are kept.
 - **Priority** on GitHub is the `priority: <level>` label, as in `migrate`.
 - A comment edited on the source after it was copied is not copied again. A comment deleted on the target is added back.

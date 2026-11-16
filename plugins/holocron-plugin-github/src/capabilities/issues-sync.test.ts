@@ -61,6 +61,41 @@ describe("GitHubIssues.sync", () => {
 		expect(calls[2]?.url).toContain("/issues/12/comments");
 	});
 
+	it("assigns a new issue to the login the record carries, and then does not report the assignee as not mapped", async () => {
+		const { issues, calls } = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }]);
+		const [res] =
+			(await issues.sync?.([record({ assignee: { id: "u", displayName: "U", login: "octocat" } })])) ?? [];
+		expect((calls[1]?.body as { assignees: string[] }).assignees).toEqual(["octocat"]);
+		expect(res?.dropped.join(" ")).not.toContain("assignee");
+	});
+
+	it("sets the assignee of an issue it made to the record's login when it differs, and not when it is the same", async () => {
+		const mapped = record({ assignee: { id: "u", displayName: "U", login: "octocat" } });
+		const differs = make([
+			{ body: [made({ assignee: { login: "chewbacca" } })] },
+			{ body: [comment(HAN)] },
+			{ body: {} },
+		]);
+		const [res] = (await differs.issues.sync?.([mapped])) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["assignee"] });
+		expect(differs.calls[2]?.body).toEqual({ assignees: ["octocat"] });
+
+		const same = make([{ body: [made({ assignee: { login: "OctoCat" } })] }, { body: [comment(HAN)] }]);
+		const [unchanged] = (await same.issues.sync?.([mapped])) ?? [];
+		expect(unchanged).toMatchObject({ updated: false, changes: [] });
+		expect(same.calls).toHaveLength(2);
+	});
+
+	it("never clears an assignee: a record with none mapped leaves the issue's alone", async () => {
+		const { issues, calls } = make([
+			{ body: [made({ assignee: { login: "chewbacca" } })] },
+			{ body: [comment(HAN)] },
+		]);
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ updated: false, changes: [] });
+		expect(calls).toHaveLength(2);
+	});
+
 	it("changes nothing on a dry run, create or update", async () => {
 		const create = make([{ body: [] }]);
 		const [created] = (await create.issues.sync?.([record()], { dryRun: true })) ?? [];

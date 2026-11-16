@@ -396,4 +396,55 @@ describe("runSyncIssues progress", () => {
 			expect.stringContaining("github to linear: created 1, updated 0, unchanged 1, skipped (guard) 0, left 0"),
 		]);
 	});
+
+	describe("the assignees file", () => {
+		const links = [{ login: "octocat", email: "octo@acme.dev" }];
+		const assigned = (key: string) =>
+			record(key, { assignee: { id: "lin-1", displayName: "Octo", emailAddress: "octo@acme.dev" } });
+
+		it("hands the target the GitHub login of an assignee the file names, and reads the file once", async () => {
+			const sync = vi.fn(async () => [
+				result("#1", "#9", { created: true }),
+				result("#2", "#10", { created: true }),
+			]);
+			const { makeLoader } = setup([assigned("#1"), assigned("#2")], sync, true);
+			const readAssignees = vi.fn(async () => links);
+			await run({ makeLoader, readAssignees, from: "linear:team=ENG", to: "github" });
+			expect(readAssignees).toHaveBeenCalledTimes(1);
+			const sent = (sync.mock.calls[0] as unknown as [IssueRecord[]])[0];
+			expect(sent.map((r) => r.assignee?.login)).toEqual(["octocat", "octocat"]);
+		});
+
+		it("does not read the file when no record has an assignee", async () => {
+			const { makeLoader } = setup(
+				[record("#1")],
+				vi.fn(async () => [result("#1", "ENG-1")])
+			);
+			const readAssignees = vi.fn(async () => links);
+			await run({ makeLoader, readAssignees });
+			expect(readAssignees).not.toHaveBeenCalled();
+		});
+
+		it("syncs as before when no reader is given", async () => {
+			const sync = vi.fn(async () => [result("#1", "ENG-1")]);
+			const { makeLoader } = setup([assigned("#1")], sync);
+			await run({ makeLoader });
+			expect((sync.mock.calls[0] as unknown as [IssueRecord[]])[0][0]!.assignee).not.toHaveProperty("login");
+		});
+
+		it("stops, writing nothing, when the file cannot be read", async () => {
+			const sync = vi.fn(async () => []);
+			const { makeLoader } = setup([assigned("#1")], sync);
+			const { report, text } = await run({
+				makeLoader,
+				readAssignees: async () => {
+					throw new Error("acme/.github-private/issues/assignees.json: the assignees file is not valid JSON");
+				},
+			});
+			expect(report).toMatchObject({ status: "fail" });
+			expect(text).toContain("assignees: ");
+			expect(text).toContain("not valid JSON");
+			expect(sync).not.toHaveBeenCalled();
+		});
+	});
 });

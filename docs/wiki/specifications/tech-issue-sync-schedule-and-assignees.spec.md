@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#2251
 blocked-by: []
 related:
@@ -51,8 +51,7 @@ A file of pairs, like the Discord links file, in the org's private config repo, 
   email may appear once, and emails compare lowercased.
 - `sync issues` reads it once, and only when a source record has an assignee, then rewrites each record's assignee before it
   hands the records to the target: to a GitHub target the login from the email, to a Linear target the email from the login.
-  A name with no pair is reported as `assignee (not in the assignees file)`, as before it was `not mapped`, and is never a
-  failure. A file that does not exist is an empty map.
+  A name with no pair is reported as `assignee (not mapped)`, as before, and is never a failure. A file that does not exist is an empty map.
 - A GitHub target sets the assignee only when the record carries a mapped login, and, as for Linear, never clears one.
 
 ### Out of scope
