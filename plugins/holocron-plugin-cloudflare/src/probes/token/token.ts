@@ -130,12 +130,14 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 				for (const row of rotationRows) probe.say(row);
 			};
 
+			// Zones named on the command line win, then the org's own zone, then the first few of the account.
+			const named = wanted.length > 0 ? wanted : ctx.options.zone ? [ctx.options.zone] : [];
 			const tried: Tried[] = [];
 			let zones: CfZone[] = [];
 			const zoneOutcome = await reach(async () => {
 				zones =
-					wanted.length > 0
-						? (await Promise.all(wanted.map((name) => client.zones.list({ name })))).flat()
+					named.length > 0
+						? (await Promise.all(named.map((name) => client.zones.list({ name })))).flat()
 						: await client.zones.list({ per_page: MAX_ZONES });
 				return zones.map((z) => ({ name: z.name }));
 			}, "zones");

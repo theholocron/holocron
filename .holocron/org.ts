@@ -10,8 +10,11 @@ import type { OrgConfig } from "@theholocron/cli";
 // subdirectory (`apps/sentinel`) reads this file too, and its own `.holocron/org.ts` overrides a key set in both
 // (#1829). Keep this file plain data with a type-only import: Sentinel evaluates it remotely, and importers need no
 // runtime code from it.
+const domain = "theholocron.dev";
+
 export default {
-	domain: "theholocron.dev",
+	domain,
+	cloudflare: { zone: domain },
 	checkly: { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" },
 	sentry: { org: "theholocron" },
 } satisfies OrgConfig;

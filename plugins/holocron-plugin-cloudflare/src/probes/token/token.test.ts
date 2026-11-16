@@ -11,13 +11,19 @@ const denied = { status: 403, body: { success: false, errors: [{ code: 10000, me
 const broken = { status: 400, body: { success: false, errors: [{ code: 1, message: "bad request" }] } };
 const zone = { id: "z1", name: "example.dev", status: "active" };
 
-async function check(responses: Parameters<typeof stubFetch>[0], over: { accountId?: string; args?: string[] } = {}) {
+async function check(
+	responses: Parameters<typeof stubFetch>[0],
+	over: { accountId?: string; args?: string[]; zone?: string } = {}
+) {
 	const { fetch, calls } = stubFetch(responses);
 	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch, retryDelayMs: 0 });
 	const rows: ProbeRow[] = [];
 	const secrets: Array<string | undefined> = [];
 	const probe = tokenProbe({
-		options: { accountId: "accountId" in over ? over.accountId : "acct-1" },
+		options: {
+			accountId: "accountId" in over ? over.accountId : "acct-1",
+			...(over.zone ? { zone: over.zone } : {}),
+		},
 		client: () => client,
 		token: () => "cf-tok",
 		now: () => new Date("2026-11-13T12:00:00Z"),
@@ -138,6 +144,24 @@ describe("token probe", () => {
 			args: ["example.dev"],
 		});
 		expect(calls[1]?.url).toContain("name=example.dev");
+	});
+
+	it("reads the organization's own zone, and not the first few of the account, when the plugin has one", async () => {
+		const { calls, rows } = await check([denied, cfOk([zone]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), cfOk([])], {
+			zone: "example.dev",
+		});
+		expect(calls[1]?.url).toContain("name=example.dev");
+		expect(calls[1]?.url).not.toContain("per_page=5");
+		expect(row(rows, "Zone: Read")).toMatchObject({ detail: expect.stringContaining("example.dev") });
+	});
+
+	it("lets a zone named after the probe win over the organization's", async () => {
+		const { calls } = await check([denied, cfOk([zone]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), cfOk([])], {
+			zone: "org.dev",
+			args: ["example.dev"],
+		});
+		expect(calls[1]?.url).toContain("name=example.dev");
+		expect(calls[1]?.url).not.toContain("org.dev");
 	});
 
 	it("shortens a long list of zones and reads DNS and routes for only the first five", async () => {

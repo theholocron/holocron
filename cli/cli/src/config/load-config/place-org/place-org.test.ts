@@ -30,6 +30,15 @@ describe("placeOrg", () => {
 		expect(raw.providers?.deployment).toEqual(["vercel", { domain: "a.dev" }]);
 	});
 
+	it("gives every cloudflare entry the org's zone, beside an account id it already holds", () => {
+		const raw: HolocronConfig = {
+			providers: { dns: "cloudflare", workers: ["cloudflare", { accountId: "acct" }] },
+		};
+		const placed = placeOrg(raw, org({ cloudflare: { zone: "a.dev" } }));
+		expect(placed.providers?.dns).toEqual(["cloudflare", { zone: "a.dev" }]);
+		expect(placed.providers?.workers).toEqual(["cloudflare", { accountId: "acct", zone: "a.dev" }]);
+	});
+
 	it("gives a bare provider name its options", () => {
 		const raw: HolocronConfig = { providers: { monitoring: "checkly" } };
 		expect(placeOrg(raw, org(ORG)).providers?.monitoring).toEqual(["checkly", { accountId: "acc_1" }]);

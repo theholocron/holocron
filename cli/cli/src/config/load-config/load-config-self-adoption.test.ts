@@ -225,8 +225,12 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		for (const key of ["deployment", "workers"]) {
 			const { tuple } = expectedProviders[key] as { tuple: { options: Record<string, unknown> } };
 			expect(tuple.options).toEqual({ accountId: expect.any(String) });
-			tuple.options = {};
+			// And (the `token` probe's zone): `.holocron/org.ts` fills the org's zone into every `cloudflare` entry.
+			tuple.options = { zone: "theholocron.dev" };
 		}
+		const dns = expectedProviders.dns as { tuple: { options: Record<string, unknown> } };
+		expect(dns.tuple.options).toEqual({});
+		dns.tuple.options = { zone: "theholocron.dev" };
 		const { tuples } = expectedProviders.credentials as { tuples: unknown[] };
 		// And (#2063): the two literal Environments are one entry with none; the names are derived from the remote.
 		tuples.splice(0, tuples.length, {
