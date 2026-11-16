@@ -1,3 +1,9 @@
+## [1.58.0-alpha.37](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.36...clients-v1.58.0-alpha.37) (2026-11-16)
+
+### Features
+
+* **github:** ✨ write the issue Priority field from sync issues and migrate ([#2254](https://github.com/theholocron/holocron/issues/2254)) ([0547def](https://github.com/theholocron/holocron/commit/0547defb4d437ee51fdcf007c02b695f0e50bdb5)), closes [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#1859](https://github.com/theholocron/holocron/issues/1859)
+
 ## [1.58.0-alpha.36](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.35...clients-v1.58.0-alpha.36) (2026-11-16)
 
 ### Features
