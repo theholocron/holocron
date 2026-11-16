@@ -2,10 +2,12 @@ import { join } from "node:path";
 
 import { commandFailureMessage, statusRow, style } from "@theholocron/kyber/ui";
 
+import type { ResolvedTuple } from "../../config/index.js";
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
 import { ownerEnvironments } from "../owner-environments/index.js";
 import { tokenExpectations } from "../token-expectations/index.js";
+import { workspaceProviders } from "../workspace-providers/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
@@ -27,7 +29,12 @@ import { realTasksIo, TASKS_PROVIDER, tasksProbes } from "./tasks/index.js";
 export async function runProbeCommand(input: RunProbeCommandInput): Promise<ProbeCommandReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
-	const makeLoader = input.makeLoader ?? ((context) => new PluginLoader(input.loaded.resolved, context));
+	// Providers a workspace app's config names that this one does not (Sentinel's `vercel`), set below when the probe asked
+	// for is not found among the configured ones; every loader built after that carries them.
+	let extras: readonly ResolvedTuple[] = [];
+	const makeLoader =
+		input.makeLoader ??
+		((context) => new PluginLoader(input.loaded.resolved, context, undefined, { extraProviders: extras }));
 	const loader = input.loader ?? makeLoader(input.context);
 	await loader.load();
 
@@ -53,6 +60,18 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	groups.set(CI_PROVIDER, ciProbes(input.context.org));
 	groups.set(SPECS_PROVIDER, specsProbes(realSpecsIo(input.context.repoRoot)));
 	groups.set(TASKS_PROVIDER, tasksProbes(realTasksIo(input.context.repoRoot)));
+
+	if (!input.provider || !groups.has(input.provider)) {
+		extras =
+			input.workspaceProviders ??
+			/* v8 ignore next -- reads the workspace's package configs from disk, which tests replace with `workspaceProviders` */
+			(await workspaceProviders(input.context.repoRoot, input.loaded.resolved));
+		if (extras.length > 0) {
+			const extended = makeLoader(input.context);
+			await extended.load();
+			for (const [provider, found] of extended.probes()) if (!groups.has(provider)) groups.set(provider, found);
+		}
+	}
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);

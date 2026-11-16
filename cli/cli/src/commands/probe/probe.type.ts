@@ -1,4 +1,4 @@
-import type { LoadedConfig } from "../../config/index.js";
+import type { LoadedConfig, ResolvedTuple } from "../../config/index.js";
 import type { PluginLoader, PluginProbes, ProbeRow, RuntimeContext } from "../../plugin/index.js";
 import type { PluginToken } from "../auth/index.js";
 import type { MeasureDocsCoverageInput } from "./docs-coverage/index.js";
@@ -61,6 +61,11 @@ export interface RunProbeCommandInput {
 	loader?: PluginLoader;
 	/** Builds the loader again for a context with another token in it; tests inject one that returns their mock plugins. */
 	makeLoader?: (context: RuntimeContext) => PluginLoader;
+	/**
+	 * The providers a workspace app's config names that the loaded one does not, loaded by name when the provider asked
+	 * for is not configured. Defaults to what `workspaceProviders()` reads from the workspace's package configs.
+	 */
+	workspaceProviders?: readonly ResolvedTuple[];
 	/** `--environment`: a layer word or Environment name to read the provider's token from, for a probe that accepts a token. */
 	environment?: string;
 	/** Asks which token to check; given only on a terminal, and used when neither `--token` nor `--environment` was. */

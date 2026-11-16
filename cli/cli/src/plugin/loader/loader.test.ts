@@ -767,6 +767,48 @@ describe("PluginLoader — a provider the config does not name", () => {
 	});
 });
 
+describe("PluginLoader — extra providers", () => {
+	const probes = { token: { summary: "s", writes: false, run: async () => undefined } };
+	const vercel = (seen?: (opts: Record<string, unknown>) => void) => ({
+		"@theholocron/holocron-plugin-vercel": {
+			createPlugin: (opts: Record<string, unknown>) => {
+				seen?.(opts);
+				return { name: "vercel", probes, capabilities: { deployment: () => ({}) } };
+			},
+		},
+	});
+	const tuple = {
+		provider: "vercel",
+		packageName: "@theholocron/holocron-plugin-vercel",
+		options: { teamId: "team_1" },
+	};
+	const build = (extraProviders: Array<typeof tuple>, modules: Record<string, unknown>) =>
+		new PluginLoader(
+			resolveConfig({ name: "demo", providers: {} }),
+			{ repoRoot: "/tmp/test-repo", cliTokens: { vercel: "tok" } },
+			(async (pkg: string) => {
+				if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+				return modules[pkg];
+			}) as PluginImporter,
+			{ extraProviders }
+		);
+
+	it("loads them by name with their options and token, offers their probes and takes no capability slot", async () => {
+		const seen = vi.fn();
+		const loader = build([tuple], vercel(seen));
+		await loader.load();
+		expect(loader.probes().get("vercel")).toBe(probes);
+		expect(loader.loadedKeys()).toEqual([]);
+		expect(seen).toHaveBeenCalledWith(expect.objectContaining({ teamId: "team_1", cliToken: "tok" }));
+	});
+
+	it("leaves out one that cannot be imported", async () => {
+		const loader = build([tuple], {});
+		await loader.load();
+		expect(loader.probes().size).toBe(0);
+	});
+});
+
 describe("PluginLoader — credentials", () => {
 	afterEach(clearCredentials);
 

@@ -24,13 +24,20 @@ import {
 	credentialsEnvironment,
 	type ProviderOptions,
 	type ResolvedHolocronConfig,
+	type ResolvedTuple,
 } from "../../config/config/index.js";
 import { derivesEnvironment, resolveEnvironments, tryEnvironments } from "../../credentials-environments/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
 import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderActions } from "../provider-actions/index.js";
 import { WorkspaceContextError } from "../workspace/index.js";
-import type { HolocronCapabilities, PluginExtras, PluginLoaderOptions, RuntimeContext } from "./loader.type.js";
+import type {
+	HolocronCapabilities,
+	PluginExtras,
+	PluginImporter,
+	PluginLoaderOptions,
+	RuntimeContext,
+} from "./loader.type.js";
 
 export { LoaderError };
 
@@ -118,6 +125,30 @@ const system = createPluginSystem<
 
 /** The Holocron plugin loader: `new PluginLoader(config, context, importer?, options?)`, then `load()`, `get(key)`. */
 export class PluginLoader extends system.PluginLoader {
+	private readonly extraProviders: readonly ResolvedTuple[];
+
+	constructor(
+		config: ResolvedHolocronConfig,
+		context: RuntimeContext,
+		importer?: PluginImporter,
+		options?: PluginLoaderOptions
+	) {
+		super(config, context, importer, options);
+		this.extraProviders = options?.extraProviders ?? [];
+	}
+
+	/**
+	 * Loads the configured providers, then each of `options.extraProviders` by name with no capability slot, so a plugin
+	 * a workspace app configures (`vercel`, for Sentinel) is found for its probes and tokens although this config does not
+	 * name it. A provider that fails to load is left out, as one that is not installed is: `probes()` does not list it.
+	 */
+	override async load(): Promise<void> {
+		await super.load();
+		for (const tuple of this.extraProviders) {
+			await this.loadProvider(tuple).catch(() => undefined);
+		}
+	}
+
 	/** The probes each loaded provider offers, by provider name. Empty for a provider that offers none. */
 	probes(): ReadonlyMap<string, PluginProbes> {
 		const found = new Map<string, PluginProbes>();

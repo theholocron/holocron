@@ -2,7 +2,7 @@ import type { GitExec } from "@theholocron/git-utils";
 import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/index.js";
+import type { LoadedConfig, ResolvedTuple } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
 import type { PluginToken } from "../auth/index.js";
 
@@ -17,6 +17,11 @@ export interface RunDoctorTokensInput {
 	makeLoader?: (context: RuntimeContext) => PluginLoader;
 	/** The tokens a provider's plugin lists; the real one imports the plugin package. */
 	providerTokens?: (provider: string) => Promise<readonly PluginToken[]>;
+	/**
+	 * The providers a workspace app's config names that `loaded` does not, loaded by name for their tokens and probes.
+	 * Defaults to what `workspaceProviders()` reads from the workspace's package configs.
+	 */
+	workspaceProviders?: readonly ResolvedTuple[];
 	/** Reads the remote a layer word is resolved from; tests inject one. */
 	gitExec?: GitExec;
 	/** Where the rows and the closing count go. Defaults to the console. */

@@ -56,6 +56,8 @@ A probe about a token (it declares `acceptsToken`) tries what the token can do a
 3. On a terminal with neither, a question: the token this repo is configured to use, one from an Environment, or one you type or paste (hidden as you type).
 4. Without a terminal, the token the provider normally resolves.
 
+A provider the repo's config does not name is still found when a workspace package's own config does (here Sentinel's `vercel`): when the provider asked for is not among the configured ones, the packages' configs are read for the providers they name, and those plugins are loaded by name for their probes. So `holocron probe vercel token --environment ci` works from the repo root. Nothing is written and the root config needs no key for it.
+
 The token is never printed.
 
 ## Cloudflare

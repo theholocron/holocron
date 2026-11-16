@@ -28,6 +28,8 @@ interface Fakes {
 	body?: Body;
 	vault?: "none" | "cannot-read";
 	providers?: Record<string, unknown>;
+	/** Providers a workspace app's config names, loaded by name next to the configured ones. */
+	workspaceProviders?: Array<{ provider: string; packageName: string; options: Record<string, unknown> }>;
 }
 
 async function run(fakes: Fakes = {}) {
@@ -83,6 +85,7 @@ async function run(fakes: Fakes = {}) {
 		context: { repoRoot: "/tmp" },
 		loader: loaderFor(),
 		makeLoader: (context) => loaderFor(context),
+		...(fakes.workspaceProviders ? { workspaceProviders: fakes.workspaceProviders } : {}),
 		providerTokens: async (provider) => {
 			if (fakes.tokens instanceof Error) throw fakes.tokens;
 			return provider === "demo" ? (fakes.tokens ?? [TOKEN()]) : [];
@@ -303,6 +306,26 @@ describe("doctor tokens", () => {
 		expect(report.rows.filter((r) => r.id.startsWith("tokens:ci:demo")).length).toBe(1);
 	});
 
+	it("checks a provider only a workspace app names, as one of the configured ones", async () => {
+		const { report } = await run({
+			providers: { vault: "1password" },
+			workspaceProviders: [{ provider: "demo", packageName: "@theholocron/holocron-plugin-demo", options: {} }],
+		});
+		expect(report.status).toBe("ok");
+		expect(report.rows.map((r) => r.id)).toEqual([
+			"tokens:1password",
+			"tokens:dev:demo:HOLOCRON_DEMO_TOKEN",
+			"tokens:ci:demo:HOLOCRON_DEMO_TOKEN",
+		]);
+	});
+
+	it("counts a provider the config and a workspace app both name once", async () => {
+		const { report } = await run({
+			workspaceProviders: [{ provider: "demo", packageName: "@theholocron/holocron-plugin-demo", options: {} }],
+		});
+		expect(report.rows.filter((r) => r.id.startsWith("tokens:ci:demo")).length).toBe(1);
+	});
+
 	it("builds the default loader from the config and prints through the console by default", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const { PluginLoader } = await import("../../plugin/index.js");
@@ -318,6 +341,7 @@ describe("doctor tokens", () => {
 				filepath: "/tmp/x",
 			},
 			context: { repoRoot: "/tmp" },
+			workspaceProviders: [],
 			providerTokens: async () => [],
 		});
 		expect(spy).toHaveBeenCalled();
