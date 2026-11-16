@@ -18,8 +18,8 @@ packages:
 #   - used by one group: that group's named catalog, e.g. `catalog:configs`
 #   - peerDependencies keep their own compatibility ranges and are not in a catalog
 catalog:
-  "@astrojs/react": ^7.1.2
-  "@astrojs/starlight": ^0.42.9
+  "@astrojs/react": ^7.1.8
+  "@astrojs/starlight": ^0.42.11
   "@axiomhq/pino": ^2.0.0
   "@commitlint/cli": ^21.2.0
   "@commitlint/config-conventional": ^21.2.3
@@ -38,28 +38,28 @@ catalog:
   astro: ^7.4.7
   chalk: ^6.0.1
   conventional-changelog-conventionalcommits: 9.3.1
-  dotenv: ^18.0.9
+  dotenv: ^18.0.10
   eslint: ^10.14.0
   eslint-plugin-n: ^18.5.0
   eslint-plugin-simple-import-sort: ^14.0.0
   globals: ^17.14.0
   husky: ^9.1.7
-  knip: ^6.44.1
+  knip: ^6.45.1
   lint-staged: ^17.6.0
   pino: ^10.4.0
   pino-pretty: ^13.2.0
-  posthog-node: ^5.64.0
-  prettier: ^3.9.10
+  posthog-node: ^5.71.0
+  prettier: ^3.10.1
   semantic-release: ^25.0.9
   sort-package-json: ^4.1.0
   starlight-typedoc: ^0.23.2
-  tsdown: ^0.23.5
+  tsdown: ^0.23.7
   tsx: 4.23.15
-  turbo: ^2.11.10
+  turbo: ^2.11.11
   typedoc: ^0.28.20
   typedoc-plugin-markdown: ^4.14.1
   typescript: ^5.9.3
-  typescript-eslint: ^8.72.1
+  typescript-eslint: ^8.72.2
   vitest: ^5.1.0
 
 catalogs:
@@ -70,14 +70,14 @@ catalogs:
     "@vscode-shellcheck/shellcheck-wasm": ^0.3.1
     alex: ^11.0.1
     editorconfig: ^3.0.2
-    markdownlint: ^0.42.0
+    markdownlint: ^0.42.1
     obsidian: ^1.14.4
     yaml: ^2.9.0
 
   # cli: dependencies only cli/ uses
   cli:
-    "@inquirer/prompts": ^8.7.5
-    "@inquirer/search": ^4.3.6
+    "@inquirer/prompts": ^8.8.0
+    "@inquirer/search": ^4.4.0
     "@types/yargs": ^17.0.35
     clipboardy: ^5.3.2
     ora: ^10.0.0
@@ -86,7 +86,7 @@ catalogs:
   # clients: dependencies only clients/ uses
   clients:
     "@types/server-destroy": ^1.0.4
-    google-auth-library: ^11.3.3
+    google-auth-library: ^11.3.4
     googleapis: ^188.0.0
     open: ^11.0.0
     server-destroy: ^1.0.1
@@ -101,13 +101,13 @@ catalogs:
     eslint-package-json: ^3.0.0
     react: ^19.3.1
     react-dom: ^19.3.1
-    vite: ^8.3.6
+    vite: ^8.3.8
 
   # observability: dependencies only observability/ uses (the browser and edge adapters' SDKs)
   observability:
-    "@sentry/browser": ^11.10.0
-    "@sentry/vercel-edge": ^11.10.0
-    posthog-js: ^1.447.7
+    "@sentry/browser": ^11.12.0
+    "@sentry/vercel-edge": ^11.12.0
+    posthog-js: ^1.447.15
 
   # plugins: dependencies only plugins/ uses
   plugins:
