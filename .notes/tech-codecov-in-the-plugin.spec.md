@@ -1,7 +1,10 @@
 ---
+id: SPEC-0087
 status: draft
 issue: theholocron/holocron#2238
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571709166207246468
 ---
 
 # Codecov code lives in the Codecov plugin
