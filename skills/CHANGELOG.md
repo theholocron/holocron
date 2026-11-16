@@ -1,3 +1,9 @@
+## [1.12.1-alpha.5](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.4...skills-v1.12.1-alpha.5) (2026-11-16)
+
+### Refactoring
+
+* **codecov:** ♻️ write codecov.yml from the plugin ([#2247](https://github.com/theholocron/holocron/issues/2247)) ([d718ac8](https://github.com/theholocron/holocron/commit/d718ac8611bfdbd633cdf91a37c7c40cadb06764)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [1.12.1-alpha.4](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.3...skills-v1.12.1-alpha.4) (2026-11-12)
 
 ### Bug Fixes
