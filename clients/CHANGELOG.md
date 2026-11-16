@@ -1,3 +1,9 @@
+## [1.58.0-alpha.36](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.35...clients-v1.58.0-alpha.36) (2026-11-16)
+
+### Features
+
+* **codecov:** ✨ check a repository's flags and components against its config ([#2237](https://github.com/theholocron/holocron/issues/2237)) ([ca187e1](https://github.com/theholocron/holocron/commit/ca187e1f425ae949623ce8810961440701972bc7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [1.58.0-alpha.35](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.34...clients-v1.58.0-alpha.35) (2026-11-16)
 
 ### Bug Fixes
