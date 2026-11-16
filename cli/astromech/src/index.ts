@@ -155,3 +155,4 @@ export type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from 
 export { createHeader } from "./utils/create-header/index.js";
 export { defaultListDirs } from "./utils/default-list-dirs/index.js";
 export { defaultReadJson } from "./utils/default-read-json/index.js";
+export { formatJson } from "./utils/format-json/index.js";

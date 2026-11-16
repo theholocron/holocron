@@ -290,6 +290,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		holocronScript: raw.holocronScript,
 		extraRequiredChecks: raw.extraRequiredChecks,
 		hooks: raw.hooks,
+		claude: raw.claude,
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},

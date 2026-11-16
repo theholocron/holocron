@@ -241,6 +241,12 @@ export interface RepoSecretsSync {
 	repos?: string[];
 }
 
+/** What `holocron setup` and `holocron sync` keep in `.claude/settings.json`; nothing is written unless an option opts in. */
+export interface ClaudeConfig {
+	/** Wire the destructive command guard (`dcg`) as a `PreToolUse` hook on Bash calls. Needs the `dcg` binary on each machine. */
+	dcg?: boolean;
+}
+
 /** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */
 export interface RepoValidationConfig {
 	/**
@@ -759,6 +765,12 @@ export interface HolocronConfig {
 	 * off otherwise. `--hooks` / `--no-hooks` on `holocron setup` override.
 	 */
 	hooks?: boolean | { prePush?: boolean };
+	/**
+	 * Claude Code settings `holocron setup` and `holocron sync` keep in `.claude/settings.json`. Opt-in: with nothing
+	 * set no file is written. `dcg: true` merges in the `PreToolUse` hook that runs the destructive command guard
+	 * (`dcg`) before every Bash call, and `probe generated check` fails when it is missing.
+	 */
+	claude?: ClaudeConfig;
 	/** Which provider backs each capability. */
 	providers: RawProvidersConfig;
 	/** Applications in the repo. */
@@ -927,6 +939,8 @@ export interface ResolvedHolocronConfig {
 	extraRequiredChecks?: string[];
 	/** Git hooks `holocron setup` installs. */
 	hooks?: boolean | { prePush?: boolean };
+	/** Claude Code settings kept in `.claude/settings.json`. */
+	claude?: ClaudeConfig;
 	/** Resolved provider entries by capability. */
 	providers: ResolvedProvidersConfig;
 	/** Applications in the repo; empty when none are declared. */

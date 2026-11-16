@@ -21,10 +21,11 @@ do. Running it again only changes what is missing.
 1. **Installs the tools in the Brewfile** that are not already on your `PATH` (see below).
 2. **Installs the Postman CLI** (`postman`, the Homebrew cask `postman-cli`) when it is missing, in a step of its own
    rather than the Brewfile. See below.
-3. **Checks Node** against the strictest `engines.node` in the workspace, and turns pnpm on through corepack.
-4. **Checks your git identity.**
-5. **Checks `gh` and `op` are signed in.** It reports; it never signs in for you.
-6. **Runs `pnpm install` and `pnpm build`.**
+3. **Checks the destructive command guard** (`dcg`), only in a repo whose `.claude/settings.json` runs it. See below.
+4. **Checks Node** against the strictest `engines.node` in the workspace, and turns pnpm on through corepack.
+5. **Checks your git identity.**
+6. **Checks `gh` and `op` are signed in.** It reports; it never signs in for you.
+7. **Runs `pnpm install` and `pnpm build`.**
 
 `doctor` does the same checks and installs, enables and builds nothing.
 
@@ -43,6 +44,12 @@ do. Running it again only changes what is missing.
 | Tool          | Command   | Why                                                                                                                                                                                                                                                                 |
 | ------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `postman-cli` | `postman` | `holocron export requests --to postman` runs `postman collection migrate` to write a collection in Postman's schema 3.0 YAML. It is installed by its own step in `setup.sh`, not from the Brewfile, so a machine that never exports collections is not asked for it |
+
+### Needed when the repo wires in the destructive command guard
+
+| Tool  | Command | Why                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dcg` | `dcg`   | A repo with `claude: { dcg: true }` in `holocron.config.ts` has a `PreToolUse` hook in `.claude/settings.json` that runs `dcg` before every Bash call Claude Code makes. It is not in Homebrew, and its installer is a script from the tool's own repository, so `setup.sh` prints the command and leaves running it to you (`doctor` fails when it is missing). A repo that does not opt in is not asked for it |
 
 ### Needed to run `holocron run ci` locally
 
