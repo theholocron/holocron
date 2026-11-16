@@ -8,6 +8,7 @@
  *    author go in the text;
  *  - an import does not set parent or blocked-by links (they need GraphQL node ids of issues made in the same run);
  *  - an assignee is not mapped (a Linear user is not a GitHub login).
+ *  - the organization's `Priority` issue field is set from the priority (`issue-priority.ts`), beside the label.
  * A migrated issue ends with `<!-- holocron:migrated-from <url> -->`, which is how a second run finds it.
  */
 
@@ -26,6 +27,8 @@ import {
 	type StatusCategory,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
+
+import { createPrioritySetter } from "./issue-priority.js";
 
 export const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
 const PRIORITY_LABEL = /^priority\s*[:/-]\s*(urgent|high|medium|low)$/i;
@@ -213,6 +216,7 @@ export async function importIssues(
 		if (url) existing.set(url, issue.number);
 	}
 
+	const priority = createPrioritySetter(client, repo);
 	const results: ImportResult[] = [];
 	const tick = () => reportProgress(options.onProgress, results.length, records.length);
 	for (const record of records) {
@@ -229,6 +233,8 @@ export async function importIssues(
 			continue;
 		}
 		const number = await createFromRecord(client, repo, record, options);
+		const field = await priority.set(number, record.priority, { isNew: true });
+		if (field.note) dropped.push(field.note);
 		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
 		tick();
 	}

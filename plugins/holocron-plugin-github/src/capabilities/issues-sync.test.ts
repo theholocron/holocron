@@ -3,15 +3,21 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
+import { type FakeIssueFields, PRIORITY_FIELD, withIssueFields } from "./issue-fields.testing.js";
 import { GitHubIssues } from "./issues.js";
 import { isRateLimited } from "./issues-sync.js";
 
 const REPO = "theholocron/holocron";
 const URL_1 = "https://linear.app/x/issue/ENG-1";
 
-function make(responses: Parameters<typeof stubFetch>[0]) {
-	const { fetch, calls } = stubFetch(responses);
-	return { issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }), calls };
+function make(responses: Parameters<typeof stubFetch>[0], fields: FakeIssueFields = {}) {
+	const stub = stubFetch(responses);
+	const { fetch, calls: fieldCalls } = withIssueFields(stub.fetch, fields);
+	return {
+		issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }),
+		calls: stub.calls,
+		fieldCalls,
+	};
 }
 
 const record = (over: Partial<IssueRecord> = {}): IssueRecord => ({
@@ -94,6 +100,50 @@ describe("GitHubIssues.sync", () => {
 		const [res] = (await issues.sync?.([record()])) ?? [];
 		expect(res).toMatchObject({ updated: false, changes: [] });
 		expect(calls).toHaveLength(2);
+	});
+
+	it("sets the Priority field of a new issue, and says so in `dropped` when the org has none", async () => {
+		const withField = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }], {
+			fields: [PRIORITY_FIELD],
+		});
+		const [res] = (await withField.issues.sync?.([record()])) ?? [];
+		expect(withField.fieldCalls.map((c) => c.method)).toEqual(["GET", "POST"]);
+		expect(withField.fieldCalls[1]?.body).toEqual({
+			issue_field_values: [{ field_id: PRIORITY_FIELD.id, value: "Urgent" }],
+		});
+		expect(res?.dropped.join(" ")).not.toContain("priority field");
+
+		const without = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }]);
+		const [bare] = (await without.issues.sync?.([record()])) ?? [];
+		expect(bare?.dropped).toContain("priority field (theholocron has no Priority issue field)");
+	});
+
+	it("sets the Priority field of an issue it made when it differs, and counts that as a change", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], {
+			fields: [PRIORITY_FIELD],
+			values: {
+				30: [
+					{
+						issue_field_id: PRIORITY_FIELD.id,
+						data_type: "single_select",
+						value: "Low",
+						single_select_option: { id: 4, name: "Low", color: "green" },
+					},
+				],
+			},
+		});
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["priority field"] });
+		expect(fieldCalls.map((c) => c.method)).toEqual(["GET", "GET", "DELETE", "POST"]);
+	});
+
+	it("only says it would set the Priority field on a dry run", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], {
+			fields: [PRIORITY_FIELD],
+		});
+		const [res] = (await issues.sync?.([record()], { dryRun: true })) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["priority field"] });
+		expect(fieldCalls.map((c) => c.method)).toEqual(["GET", "GET"]);
 	});
 
 	it("changes nothing on a dry run, create or update", async () => {

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#2253
 blocked-by: []
 related:
@@ -27,11 +27,13 @@ A priority copied from Linear therefore lands only as a label.
 The GitHub provider sets the issue field from the record's priority, in every repo, with or without a board. The label
 stays for now, and the board's own `Priority` field is left alone (a board may keep its own meaning for it).
 
-- **Write.** `PUT /repos/{owner}/{repo}/issues/{number}/issue-field-values` with
-  `{ "issue_field_values": [{ "field_id": <id>, "value": "<Option name>" }] }`. `PUT` replaces every field value of the
-  issue, so the call sends the issue's other values back unchanged: the provider first reads them with
-  `GET .../issue-field-values` and sends the Priority one changed. (`POST` adds a value without replacing, but it is not
-  documented to change one already set, so it is not used.)
+- **Write.** `POST /repos/{owner}/{repo}/issues/{number}/issue-field-values` with
+  `{ "issue_field_values": [{ "field_id": <id>, "value": "<Option name>" }] }` adds a value and leaves the issue's other
+  field values alone. `PUT` on the same path replaces every field value of the issue, and a multi-select value read back
+  cannot be sent again with certainty (the docs list no multi-select for `PUT`), so it is not used. A value that differs is
+  first removed with `DELETE .../issue-field-values/{field_id}`; the provider reads the issue's values
+  (`GET .../issue-field-values`) to know which. (If the `POST` then fails, the issue is left with no value until the next
+  run sets it.)
 - **The field id** comes from `GET /orgs/{org}/issue-fields`, found by name (`Priority`), once per run. The option is
   found by name, case-insensitively, from the neutral level: `urgent` to `Urgent`, `high`, `medium`, `low`. No mapping table
   is needed because the names are the levels.
@@ -45,10 +47,11 @@ stays for now, and the board's own `Priority` field is left alone (a board may k
 
 ## Interfaces
 
-- `@theholocron/github-client`: `issueFields.list(org)`, `issueFieldValues.list(repo, number)` and
-  `issueFieldValues.set(repo, number, values)`, one function each, no behaviour of their own.
-- GitHub plugin: `setIssuePriority(client, repo, number, level)` in one file, used by `createFromRecord()` and the update
-  path of `syncIssues()`; `droppedFor()` gains the reason it was not set.
+- `@theholocron/github-client`: `issueFields.list(org)`, `issueFields.values(repo, number)`,
+  `issueFields.addValues(repo, number, values)` and `issueFields.deleteValue(repo, number, fieldId)`, one call each, no
+  behaviour of their own.
+- GitHub plugin: `createPrioritySetter(client, repo)` in `issue-priority.ts` (the field list read once per run), used by
+  the create and update paths of `syncIssues()` and by `importIssues()`; the reason a value was not set goes in `dropped`.
 - No change to the neutral capability types, the CLI, the config or the org's `holocron_capabilities`.
 
 ## Authorization
@@ -60,7 +63,7 @@ permission added (the three places together: the table, the layer that holds the
 
 ## Testing
 
-Each client function against `stubFetch`; `setIssuePriority()` for set, same value (no call), changed value, other values
+Each client function against `stubFetch`; `createPrioritySetter()` for set, same value (no call), changed value, other values
 kept, no field, no option, a 403 and a user-owned repository; the create and update paths of `syncIssues()` and `import`;
 `droppedFor()`.
 
