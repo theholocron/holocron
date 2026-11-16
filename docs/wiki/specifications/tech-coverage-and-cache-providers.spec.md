@@ -1,6 +1,6 @@
 ---
 id: SPEC-0086
-status: draft
+status: archived
 issue: theholocron/holocron#2167
 blocked-by: []
 discussion:
@@ -117,3 +117,4 @@ declaration (one change). A layer that holds the token but is not declared fails
 
 - Capability: `coverage` and `cache`, both `single` (decided in the session of #2220; `tooling` rejected as too generic).
 - Names: `@theholocron/codecov-client`, `@theholocron/turbo-client`, `@theholocron/holocron-plugin-codecov`, `@theholocron/holocron-plugin-turbo`, and `checkToken()` on both capabilities (agreed).
+- Shipped: the Codecov plugin (#2228, token probe, then #2237, repo check) and the Turbo plugin (#2227), both as plugins behind the `coverage` and `cache` capabilities. The Turbo API answers for a valid token and team were read from the live service by the probe (open question 1). `dev` now holds a Codecov API token, so the repo check runs there too. The spec is archived; what followed is `tech-codecov-in-the-plugin`.

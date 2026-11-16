@@ -1,6 +1,6 @@
 ---
 id: SPEC-0087
-status: accepted
+status: archived
 issue: theholocron/holocron#2238
 blocked-by: []
 discussion:
@@ -113,5 +113,5 @@ run` and the affected-task logic are astromech's task runner, which is built on 
   generator in astromech as the default) would have left the file in two places and defeated the move, so it was not
   taken. Astromech keeps `readWorkspacePackages()`, `codecovFlagNames()`, `codecovUploads()`, `packageLocation()` and
   `DOCUMENTATION_FLAG`, which the uploads list, `coverageExpectations()` and the status contexts read. This repo's
-  `codecov.yml` is unchanged byte for byte. All three steps are done: the spec can move to `docs/wiki/specifications/` as
-  `archived` (the user decides).
+  `codecov.yml` is unchanged byte for byte. All three steps are done (#2242, #2243, #2246, #2247), and the spec is
+  archived. A repo that spreads `docsPreset()` still needs the provider declared: that is #2248.
