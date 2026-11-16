@@ -51,6 +51,23 @@ and the same `not carried across` list as `migrate`, with one line per loss and 
 
 A failure part-way leaves every finished issue correct, and the next run continues. A provider rate limit stops the run cleanly: the issues not reached are the `left` count, and running it again does them. A write that errored is not repeated inside the run, so an errored create cannot become two issues.
 
+## Running it on a schedule
+
+The `sync-issues` task runs this command every hour (`ci.sync-issues.yml`, from the reusable `sync-issues.yml`) in a repo whose `tasks:` lists it. Its `with:` inputs are the command's endpoints:
+
+```ts
+tasks: [{ name: "sync-issues", with: { from: "github", to: "linear:team=ENG", both: true } }];
+```
+
+| Input   | Meaning                                                                           |
+| ------- | --------------------------------------------------------------------------------- |
+| `from`  | where the issues are read from (required)                                         |
+| `to`    | where they are written (required)                                                 |
+| `since` | only issues changed since then (default `2d`)                                     |
+| `both`  | also run the swapped direction after the first, in the same job (default `false`) |
+
+The job reads the Linear key from the `HOLOCRON_LINEAR_TOKEN` secret and GitHub's from `HOLOCRON_ISSUES_TOKEN`, or the job's own token when that is not set. A repo with one tracker lists nothing and gets no workflow; this repo does not list it. A failed run reaches `#alerts`.
+
 ## Limits
 
 - **Assignees** are matched by email. A Linear user is found by the email on the GitHub account, and a GitHub login cannot be found from a Linear user, so a sync to GitHub keeps no assignee (it says `assignee (not mapped)`). A source with no assignee leaves the target's assignee alone.
@@ -58,6 +75,6 @@ A failure part-way leaves every finished issue correct, and the next run continu
 - **Priority** on GitHub is the `priority: <level>` label, as in `migrate`.
 - A comment edited on the source after it was copied is not copied again. A comment deleted on the target is added back.
 - A source issue that is deleted leaves its copy in place. An issue moved between teams on Linear is new on the next run.
-- Two syncs running at once on the same pair can make a duplicate; schedule them apart. Scheduling itself (a reusable workflow and a thin caller) is not part of this command yet.
+- Two syncs running at once on the same pair can make a duplicate, so the scheduled task runs the two directions one after the other in one job.
 
 A provider takes part as a source with `export` and as a target with the optional `sync` method of the `issues` capability. GitHub and Linear have both.

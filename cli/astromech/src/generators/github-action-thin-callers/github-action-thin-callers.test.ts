@@ -374,6 +374,23 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 	});
 });
 
+describe("WORKFLOW_TEMPLATES['sync-issues']", () => {
+	it("is a known workflow, scheduled hourly and on demand, that calls the reusable sync with the caller's secrets", () => {
+		expect(KNOWN_WORKFLOWS.has("sync-issues")).toBe(true);
+		const yaml = generateThinCallerContent("sync-issues");
+		expect(yaml).toContain("cron:");
+		expect(yaml).toContain("workflow_dispatch");
+		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/sync-issues.yml@main");
+		expect(yaml).toContain("secrets: inherit");
+		expect(yaml).toContain("issues: write");
+	});
+
+	it("passes the task's endpoints to the reusable as its inputs", () => {
+		const yaml = generateThinCallerContent("sync-issues", { from: "github", to: "linear:team=ENG", both: true });
+		expect(yaml).toMatch(/with:\n\s+from: github\n\s+to: linear:team=ENG\n\s+both: true\n\s+secrets: inherit/);
+	});
+});
+
 describe("WORKFLOW_TEMPLATES['check-notify']", () => {
 	it("is a known workflow", () => {
 		expect(KNOWN_WORKFLOWS.has("check-notify")).toBe(true);

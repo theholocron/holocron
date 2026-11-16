@@ -284,6 +284,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.
 	// Scheduled hourly by its workflow; never part of `holocron run ci` (it writes to a live board with a GitHub App token).
 	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "reconcile project" } },
+	// Runs `holocron sync issues --from <a> --to <b>` hourly, and with `both` the swapped direction after it (spec
+	// `tech-issue-sync-schedule-and-assignees`, #2251). The endpoints are the task's `with:` inputs, so a repo with one
+	// tracker never lists it, and it has no local runner (the command needs them as flags).
+	"sync-issues": { group: "Platform", scope: "repo", local: null },
 
 	// ── Knowledge — published content, not software ───────────────────────
 	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull

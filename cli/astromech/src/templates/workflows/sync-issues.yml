@@ -1,0 +1,16 @@
+name: sync-issues
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync-issues:
+    name: sync-issues
+    uses: theholocron/.github/.github/workflows/sync-issues.yml@main
+    secrets: inherit
