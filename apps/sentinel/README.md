@@ -224,12 +224,12 @@ inside `{/* a comment */}` is ignored: markdownlint does not parse MDX, read the
 inside emphasis, and its fix and prettier's undid each other, holocron#1950; real emphasis and every other rule are
 still reported), and repo validation (holocron#913 — two checks, gated on the
 repo's `holocron.config` declaring `validate`:
-`sentinel:validate:specs / Validate ADRs and specs` ports
+`validate:specs / Validate ADRs and specs` ports
 the frontmatter rules of `holocron probe specs check` (`checkSpecs()` in
 `@theholocron/astromech/repo-validation`, one implementation for both) to the PR's own changed
 `docs/wiki/decisions/*.md` and `*.spec.md` files — errors fail the check
 and post a review, warnings are annotations on a `neutral` check — and
-`sentinel:validate:docs / Validate docs` runs the same shared
+`validate:docs / Validate docs` runs the same shared
 rules as `holocron probe docs presence`
 (`@theholocron/astromech/repo-validation`, holocron#929): it flags an added
 `<dir>/src/index.ts` (any workspace layout) of a non-private package shipped
@@ -246,10 +246,10 @@ actions — `commitFormattingFix`, `commitEditorConfigFix`,
 same task (`format`, or its alias `sourceQuality.formatting`); default-on (holocron#864 follow-up), opt out via the repo's <!-- holocron-allow-old-name -->
  <!-- holocron-allow-old-name -->merged config or fresh in a PR's own branch, either way), and the
 
-advisory PR Config Validation check (holocron#827 — posted as `sentinel:validate:config / Run Holocron config compatibility (pull_request)`, a
+advisory PR Config Validation check (holocron#827 — posted as `validate:config / Run Holocron config compatibility (pull_request)`, a
 "(pull_request)" suffix on the same concept, not a distinct name;
 validates a PR's own branch immediately, without waiting for merge,
-kept separate from the required `sentinel:validate:config / Run Holocron
+kept separate from the required `validate:config / Run Holocron
 config compatibility` check above), and a PR comment
 explaining what auto-fix-commit changed (holocron#674/#834, executes
 only when a fix was actually committed), all through an

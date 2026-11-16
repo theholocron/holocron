@@ -30,7 +30,7 @@ import type {
  * `alex` does, confirmed directly (`markdown(value, config)` /
  * `mdx(value, config)`, both returning a `VFile` with real `.messages`).
  *
- * Named `sentinel:lint:language / Run alex` (`sentinelCheckName()`,
+ * Named `lint:language / Run alex` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`): the group is the concern, the
  * action is the tool.
  */

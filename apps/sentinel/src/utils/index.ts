@@ -3,6 +3,7 @@ export * from "./axiom-config/index.js";
 export * from "./check-name-problem/index.js";
 export * from "./commit-files/index.js";
 export * from "./constants/index.js";
+export * from "./declares-repo-validation/index.js";
 export * from "./decode-contents/index.js";
 export * from "./fetch-config-dir/index.js";
 export * from "./github-app-credentials/index.js";
