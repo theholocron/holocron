@@ -93,6 +93,69 @@ describe("runRequestsExport", () => {
 		expect(postman.mock.calls[0]![0].outDir).toBe("/repo/build/postman");
 	});
 
+	describe("collections in different folders", () => {
+		const TWO_APPS = {
+			collectionFiles: ["apps/a/requests/collection.json", "apps/b/requests/collection.json"],
+			envFiles: ["apps/a/requests/environment.json", "apps/b/requests/environment.json"],
+		};
+
+		it("exports each folder beside its own files, never into the first folder", async () => {
+			const exp = vi.fn(async (_input: ToolingExportInput) => result());
+			const { report, text } = await run([tool("bruno", exp)], [["bruno", TWO_APPS]]);
+			expect(exp).toHaveBeenCalledTimes(2);
+			expect(exp.mock.calls.map(([call]) => [call.collectionFiles, call.outDir])).toEqual([
+				[["apps/a/requests/collection.json"], "/repo/apps/a/requests/.export/bruno"],
+				[["apps/b/requests/collection.json"], "/repo/apps/b/requests/.export/bruno"],
+			]);
+			expect(exp.mock.calls[1]![0].envFiles).toEqual(TWO_APPS.envFiles);
+			expect(report.status).toBe("ok");
+			expect(text).toContain("bruno: apps/a/requests");
+			expect(text).toContain("bruno: apps/b/requests");
+			expect(text).toContain("/repo/apps/b/requests/.export/bruno/collection.yml");
+		});
+
+		it("keeps collection files of one folder in a single call", async () => {
+			const exp = vi.fn(async (_input: ToolingExportInput) => result());
+			const same = { collectionFiles: ["requests/one.json", "requests/two.json"], envFiles: [] };
+			const { text } = await run([tool("bruno", exp)], [["bruno", same]]);
+			expect(exp).toHaveBeenCalledTimes(1);
+			expect(exp.mock.calls[0]![0].collectionFiles).toEqual(same.collectionFiles);
+			expect(text).not.toContain("bruno: requests");
+		});
+
+		it("puts them all in one call under --out", async () => {
+			const exp = vi.fn(async (_input: ToolingExportInput) => result());
+			await run([tool("bruno", exp)], [["bruno", TWO_APPS]], { out: "build" });
+			expect(exp).toHaveBeenCalledTimes(1);
+			expect(exp.mock.calls[0]![0]).toMatchObject({
+				collectionFiles: TWO_APPS.collectionFiles,
+				outDir: "/repo/build/bruno",
+			});
+		});
+
+		it("names the folder whose export failed and goes on with the next", async () => {
+			const exp = vi
+				.fn<(input: ToolingExportInput) => Promise<ToolingExportResult>>()
+				.mockRejectedValueOnce(new Error("boom"))
+				.mockResolvedValueOnce(result());
+			const { report, text } = await run([tool("bruno", exp)], [["bruno", TWO_APPS]]);
+			expect(report.status).toBe("fail");
+			expect(text).toContain("bruno: apps/a/requests");
+			expect(text).toContain("boom");
+			expect(text).toContain("1 ok, 1 fail");
+		});
+
+		it("asks once for the provider, not once per folder", async () => {
+			const confirmed = vi.fn(async () => true);
+			await run([tool("bruno", async () => result())], [["bruno", TWO_APPS]], {
+				yes: false,
+				interactive: true,
+				confirm: confirmed,
+			});
+			expect(confirmed).toHaveBeenCalledWith("Write the exports for bruno?");
+		});
+	});
+
 	it("exports only for --to", async () => {
 		const bruno = vi.fn(async (_input: ToolingExportInput) => result());
 		const postman = vi.fn(async (_input: ToolingExportInput) => result());

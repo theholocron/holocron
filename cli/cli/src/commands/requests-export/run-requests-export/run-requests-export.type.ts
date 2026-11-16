@@ -11,7 +11,7 @@ export interface RunRequestsExportInput {
 	context: RuntimeContext;
 	/** Export only for this provider. */
 	to?: string;
-	/** The folder to write under, one folder per provider. Defaults to `.export` beside the first collection file. */
+	/** The folder to write under, one folder per provider. Defaults to `.export` beside each folder of collection files. */
 	out?: string;
 	/** Write without asking. */
 	yes?: boolean;
