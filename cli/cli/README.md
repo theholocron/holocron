@@ -414,10 +414,10 @@ setup --hooks` / `--no-hooks` override per run. Bypass one push with `git push
 ### Claude Code settings
 
 ```ts
-claude: { dcg: true },
+agent: ["claude", { dcg: true }],
 ```
 
-Opt-in. With `dcg: true`, `holocron setup` and `holocron sync` merge a `PreToolUse` hook for Bash calls into `.claude/settings.json`, so the [destructive command guard](/holocron/skills/destructive-command-guard/) (`dcg`) checks each command before Claude Code runs it. The file already there is read and merged, so a repo's own `permissions` and hooks stay, and a second run changes nothing. A file that is not valid JSON, or whose `hooks` is not an object, fails the step and is left as it is. `holocron probe generated check` fails when the hook is missing. A repo that sets nothing gets no file.
+Opt-in, in the same form a provider takes: `agent` is a name, or a name with its options. With `dcg: true`, `holocron setup` and `holocron sync` merge a `PreToolUse` hook for Bash calls into `.claude/settings.json`, so the [destructive command guard](/holocron/skills/destructive-command-guard/) (`dcg`) checks each command before Claude Code runs it. The file already there is read and merged, so a repo's own `permissions` and hooks stay, and a second run changes nothing. A file that is not valid JSON, or whose `hooks` is not an object, fails the step and is left as it is. `holocron probe generated check` fails when the hook is missing. A repo that sets nothing gets no file.
 
 Each machine needs the `dcg` binary on its `PATH`. It is not in Homebrew; `./.humans/setup.sh` checks for it in a repo that wires it in and prints the install command, and `./.humans/setup.sh doctor` fails when it is missing.
 

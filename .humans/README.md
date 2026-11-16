@@ -18,6 +18,8 @@ holds what a coding agent needs.
 It runs these steps in order, prints a line for each, and ends with a list of what failed (exit 1) and what only you can
 do. Running it again only changes what is missing.
 
+<!-- alex ignore postman-postwoman -->
+
 1. **Installs the tools in the Brewfile** that are not already on your `PATH` (see below).
 2. **Installs the Postman CLI** (`postman`, the Homebrew cask `postman-cli`) when it is missing, in a step of its own
    rather than the Brewfile. See below.
@@ -47,9 +49,9 @@ do. Running it again only changes what is missing.
 
 ### Needed when the repo wires in the destructive command guard
 
-| Tool  | Command | Why                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dcg` | `dcg`   | A repo with `claude: { dcg: true }` in `holocron.config.ts` has a `PreToolUse` hook in `.claude/settings.json` that runs `dcg` before every Bash call Claude Code makes. It is not in Homebrew, and its installer is a script from the tool's own repository, so `setup.sh` prints the command and leaves running it to you (`doctor` fails when it is missing). A repo that does not opt in is not asked for it |
+| Tool  | Command | Why                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dcg` | `dcg`   | A repo with `agent: ["claude", { dcg: true }]` in `holocron.config.ts` has a `PreToolUse` hook in `.claude/settings.json` that runs `dcg` before every Bash call Claude Code makes. It is not in Homebrew, and its installer is a script from the tool's own repository, so `setup.sh` prints the command and leaves running it to you (`doctor` fails when it is missing). A repo that does not opt in is not asked for it |
 
 ### Needed to run `holocron run ci` locally
 

@@ -11,11 +11,13 @@ import { generateRepoFiles } from "./generate-repo-files.js";
 
 let root: string;
 
-function loadedFrom(claude?: { dcg?: boolean }): LoadedConfig {
+function loadedFrom(options?: { dcg?: boolean }): LoadedConfig {
 	return {
-		resolved: resolveConfig({ name: "x", providers: {}, ...(claude ? { claude } : {}) } as Parameters<
-			typeof resolveConfig
-		>[0]),
+		resolved: resolveConfig({
+			name: "x",
+			providers: {},
+			...(options ? { agent: ["claude", options] } : {}),
+		} as Parameters<typeof resolveConfig>[0]),
 		filepath: join(root, "holocron.config.json"),
 	};
 }

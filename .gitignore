@@ -100,8 +100,9 @@ super-linter-output
 docs/.astro/
 docs/dist/
 
-# Claude Code project settings (machine-local)
-.claude/
+# Claude Code project settings (machine-local), except the shared settings file `holocron sync` keeps (the dcg hook)
+.claude/*
+!.claude/settings.json
 
 # Generated test output — not useful in version control
 test-report.junit.xml

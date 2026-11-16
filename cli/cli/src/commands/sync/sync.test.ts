@@ -1037,6 +1037,72 @@ describe("runSync", () => {
 		});
 	});
 
+	describe("sync claude settings", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		const OPTED_IN = { name: "demo", providers: {}, agent: ["claude", { dcg: true }] } as Parameters<
+			typeof loadedFrom
+		>[0];
+
+		async function runClaudeStep(repoRoot: string, raw: Parameters<typeof loadedFrom>[0], dryRun = false) {
+			const loaded = loadedFrom(raw);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["claude"], print: () => {} });
+		}
+
+		it("does nothing, and reports no step, for a repo that does not opt in", async () => {
+			const report = await runClaudeStep(tmpDir, { name: "demo", providers: {}, agent: "claude" });
+			expect(report.steps).toEqual([]);
+			await expect(readFile(join(tmpDir, ".claude/settings.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("writes the dcg hook into .claude/settings.json, keeping what was there, and the same bytes again", async () => {
+			await mkdir(join(tmpDir, ".claude"));
+			await writeFile(
+				join(tmpDir, ".claude/settings.json"),
+				JSON.stringify({ permissions: { allow: ["Bash(ls)"] } })
+			);
+			const report = await runClaudeStep(tmpDir, OPTED_IN);
+			expect(report.steps.map((s) => [s.step, s.status])).toEqual([["write .claude/settings.json", "ok"]]);
+			const first = await readFile(join(tmpDir, ".claude/settings.json"), "utf8");
+			expect(JSON.parse(first).permissions).toEqual({ allow: ["Bash(ls)"] });
+			expect(JSON.parse(first).hooks.PreToolUse[0].hooks[0].command).toBe("dcg");
+			await runClaudeStep(tmpDir, OPTED_IN);
+			expect(await readFile(join(tmpDir, ".claude/settings.json"), "utf8")).toBe(first);
+		});
+
+		it("writes nothing on a dry run", async () => {
+			await runClaudeStep(tmpDir, OPTED_IN, true);
+			await expect(readFile(join(tmpDir, ".claude/settings.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("fails the step, and leaves the file, when it is not JSON", async () => {
+			await mkdir(join(tmpDir, ".claude"));
+			await writeFile(join(tmpDir, ".claude/settings.json"), "{ nope");
+			const step = (await runClaudeStep(tmpDir, OPTED_IN)).steps[0];
+			expect(step).toMatchObject({ status: "fail", message: ".claude/settings.json is not valid JSON" });
+			expect(await readFile(join(tmpDir, ".claude/settings.json"), "utf8")).toBe("{ nope");
+		});
+
+		it("skips when --cwd is a monorepo subpackage, and says nothing for a repo that does not opt in", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const step = (await runClaudeStep(subpackage, OPTED_IN)).steps.find(
+				(s) => s.step === "sync claude settings"
+			);
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect((await runClaudeStep(subpackage, { name: "demo", providers: {} })).steps).toEqual([]);
+		});
+	});
+
 	describe("sync turbo.json", () => {
 		let tmpDir: string;
 		beforeEach(async () => {

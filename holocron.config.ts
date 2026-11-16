@@ -214,6 +214,6 @@ export default defineConfig({
 		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", layer: "prod" },
 		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", layer: "dev" },
 	],
-	agent: "claude",
+	agent: ["claude", { dcg: true }],
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
 } satisfies HolocronConfig);

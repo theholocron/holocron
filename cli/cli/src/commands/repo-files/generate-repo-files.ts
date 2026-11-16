@@ -8,7 +8,7 @@ import type { RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
 
 /**
  * Every file `holocron setup` writes to disk from the config alone, in the order it writes them: the thin-caller
- * workflows, the config files, the agent instructions block, `.claude/settings.json` (only when `claude.dcg` opts in), the private directory (`.holocron/.private/.gitkeep` and its `.gitignore` block), then
+ * workflows, the config files, the agent instructions block, `.claude/settings.json` (only when `agent: ["claude", { dcg: true }]` opts in), the private directory (`.holocron/.private/.gitkeep` and its `.gitignore` block), then
  * `turbo.json` and its follow-up edits. No provider and no network, so a job without
  * a token can produce them, and `sync` takes the files it shares from here too. What setup reads from a provider
  * (CODEOWNERS, which needs the org, the installed skills, the agent prompts) is not here.

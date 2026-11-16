@@ -110,7 +110,7 @@ else
 fi
 
 step "Destructive command guard"
-# A repo that opts in with `claude: { dcg: true }` in holocron.config.ts has a `PreToolUse` hook in .claude/settings.json
+# A repo that opts in with `agent: ["claude", { dcg: true }]` in holocron.config.ts has a `PreToolUse` hook in .claude/settings.json
 # that runs `dcg` before every Bash call (#374), so each clone needs the binary. It is not in Homebrew and its installer
 # is a script from the tool's own repository, which this script does not pipe into a shell for you: read it, then run it.
 if ! grep -qs '"command": *"[^"]*dcg' .claude/settings.json; then
