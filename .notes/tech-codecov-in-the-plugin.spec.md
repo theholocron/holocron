@@ -92,7 +92,7 @@ run` and the affected-task logic are astromech's task runner, which is built on 
    needs the `coverage` provider to write `codecov.yml`. Either the plugin exports the generator as a pure function that
    `generateRepoFiles()` is handed through an optional argument (the generator stays provider-free), or the check loads
    the provider. Recommendation: the optional argument, so nothing that runs without a provider changes.
-2. Does the upload command also belong to `measure:bundle`, which sends bundle stats with `HOLOCRON_CODECOV_TOKEN`? It
+2. Does the upload command also belong to `measure:bundle`, which sends bundle stats with `HOLOCRON_CODECOV_UPLOAD_TOKEN`? It
    uploads through the Codecov CLI as well. Recommendation: not in the first PR; add `Coverage.uploadBundle?()` when this
    one has shipped.
 

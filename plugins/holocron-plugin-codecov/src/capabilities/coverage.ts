@@ -21,10 +21,10 @@ import { AuthError, ProviderApiError } from "@theholocron/cli";
 
 import type { CodecovClient } from "../rest.js";
 import { type CodecovTarget, describeTarget } from "../target.js";
-import { diffNames } from "./diff-names.js";
 import { defaultUploadDeps } from "../upload/default-deps.js";
 import type { UploadDeps } from "../upload/upload.type.js";
 import { uploadCoverage } from "../upload/upload-coverage.js";
+import { diffNames } from "./diff-names.js";
 
 const NO_API_TOKEN =
 	"set HOLOCRON_CODECOV_API_TOKEN to a Codecov personal API token to compare flags and components (the upload token HOLOCRON_CODECOV_UPLOAD_TOKEN is not accepted by Codecov's REST API)";
