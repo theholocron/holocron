@@ -1,3 +1,9 @@
+## [5.0.0-alpha.449](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.448...v5.0.0-alpha.449) (2026-11-16)
+
+### Features
+
+* **turbo:** ✨ add the cache capability, a Turbo client and plugin with a token probe ([#2227](https://github.com/theholocron/holocron/issues/2227)) ([6c41043](https://github.com/theholocron/holocron/commit/6c41043b9797839561715cb8b65b3c70fb6fec88)), closes [#2168](https://github.com/theholocron/holocron/issues/2168)
+
 ## [5.0.0-alpha.448](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.447...v5.0.0-alpha.448) (2026-11-15)
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-sentry",
-  "version": "5.0.0-alpha.448",
+  "version": "5.0.0-alpha.449",
   "description": "Holocron plugin for Sentry. Implements the errors capability against Sentry's management API — project provisioning and DSN retrieval.",
   "keywords": [
     "errors",
