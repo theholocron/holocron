@@ -71,7 +71,7 @@ export default {
 				repos: ["theholocron/holocron"],
 				keys: [
 					"HOLOCRON_CLOUDFLARE_TOKEN",
-					"HOLOCRON_CODECOV_TOKEN",
+					"HOLOCRON_CODECOV_UPLOAD_TOKEN",
 					"HOLOCRON_SENTRY_RELEASE_TOKEN",
 					"HOLOCRON_TURBO_TOKEN",
 					"SENTINEL_GITHUB_APP_PRIVATE_KEY",

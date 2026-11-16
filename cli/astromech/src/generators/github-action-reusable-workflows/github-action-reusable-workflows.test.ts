@@ -1155,7 +1155,7 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	const cases: [string, string, string][] = [
 		["release", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
 		["deploy-preview", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
-		["measure:bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_TOKEN"],
+		["measure:bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_UPLOAD_TOKEN"],
 		["preview", "CLOUDFLARE_API_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"],
 		["test:perf", "LHCI_GITHUB_APP_TOKEN", "HOLOCRON_LIGHTHOUSE_TOKEN"],
 	];

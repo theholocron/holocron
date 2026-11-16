@@ -171,7 +171,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const secretRenames: Record<string, string> = {
 			AXIOM_TOKEN: "HOLOCRON_AXIOM_TOKEN",
 			CLOUDFLARE_API_TOKEN: "HOLOCRON_CLOUDFLARE_TOKEN",
-			CODECOV_TOKEN: "HOLOCRON_CODECOV_TOKEN",
+			CODECOV_TOKEN: "HOLOCRON_CODECOV_UPLOAD_TOKEN",
 			FERN_TOKEN: "HOLOCRON_FERN_TOKEN",
 			VERCEL_PROTECTION_BYPASS_SECRET: "HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
 			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
@@ -196,7 +196,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// frozen reusables in `.github`; the second only by holocron's own workflows.
 		const onlyHolocron = [
 			"HOLOCRON_CLOUDFLARE_TOKEN",
-			"HOLOCRON_CODECOV_TOKEN",
+			"HOLOCRON_CODECOV_UPLOAD_TOKEN",
 			"HOLOCRON_SENTRY_RELEASE_TOKEN",
 			"HOLOCRON_TURBO_TOKEN",
 			"SENTINEL_GITHUB_APP_PRIVATE_KEY",

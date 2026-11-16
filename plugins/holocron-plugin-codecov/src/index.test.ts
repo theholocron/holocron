@@ -8,16 +8,16 @@ describe("tokens export", () => {
 	it("declares the upload token and the optional API token for the ci layer only", () => {
 		expect(tokens).toEqual([
 			{
-				envName: "HOLOCRON_CODECOV_TOKEN",
+				envName: "HOLOCRON_CODECOV_UPLOAD_TOKEN",
 				vendorEnvName: "CODECOV_TOKEN",
-				keyringKey: "codecov",
+				keyringKey: "codecov.upload",
 				expect: { layers: ["ci"] },
 			},
 			{
 				envName: "HOLOCRON_CODECOV_API_TOKEN",
 				keyringKey: "codecov.api",
 				optional: true,
-				expect: { layers: ["ci"] },
+				expect: { layers: ["dev", "ci"] },
 			},
 		]);
 	});
@@ -28,7 +28,10 @@ describe("resolveApiToken", () => {
 		expect(resolveApiToken({ env: { HOLOCRON_CODECOV_API_TOKEN: "api" }, keyring: () => null })).toBe("api");
 		expect(resolveApiToken({ env: {}, keyring: (a) => (a === "codecov.api" ? "kr" : null) })).toBe("kr");
 		expect(() =>
-			resolveApiToken({ env: { HOLOCRON_CODECOV_TOKEN: "upload", CODECOV_TOKEN: "upload" }, keyring: () => null })
+			resolveApiToken({
+				env: { HOLOCRON_CODECOV_UPLOAD_TOKEN: "upload", CODECOV_TOKEN: "upload" },
+				keyring: () => null,
+			})
 		).toThrow(/HOLOCRON_CODECOV_API_TOKEN/);
 	});
 });
@@ -36,12 +39,12 @@ describe("resolveApiToken", () => {
 describe("resolveToken", () => {
 	const noKeyring = () => null;
 
-	it("prefers --token, then HOLOCRON_CODECOV_TOKEN, then CODECOV_TOKEN, then the keyring", () => {
-		const env = { HOLOCRON_CODECOV_TOKEN: "hlc", CODECOV_TOKEN: "vendor" };
+	it("prefers --token, then HOLOCRON_CODECOV_UPLOAD_TOKEN, then CODECOV_TOKEN, then the keyring", () => {
+		const env = { HOLOCRON_CODECOV_UPLOAD_TOKEN: "hlc", CODECOV_TOKEN: "vendor" };
 		expect(resolveToken({ cliToken: "flag", env, keyring: noKeyring })).toBe("flag");
 		expect(resolveToken({ env, keyring: noKeyring })).toBe("hlc");
 		expect(resolveToken({ env: { CODECOV_TOKEN: "vendor" }, keyring: noKeyring })).toBe("vendor");
-		expect(resolveToken({ env: {}, keyring: (a) => (a === "codecov" ? "kr" : null) })).toBe("kr");
+		expect(resolveToken({ env: {}, keyring: (a) => (a === "codecov.upload" ? "kr" : null) })).toBe("kr");
 	});
 
 	it("throws an AuthError naming both variables when none is set", () => {
@@ -53,7 +56,7 @@ describe("resolveToken", () => {
 			}
 		})();
 		expect(err).toBeInstanceOf(AuthError);
-		expect((err as AuthError).message).toMatch(/HOLOCRON_CODECOV_TOKEN \/ CODECOV_TOKEN/);
+		expect((err as AuthError).message).toMatch(/HOLOCRON_CODECOV_UPLOAD_TOKEN \/ CODECOV_TOKEN/);
 	});
 });
 

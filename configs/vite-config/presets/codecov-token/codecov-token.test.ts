@@ -9,9 +9,9 @@ describe("codecovToken", () => {
 		expect(codecovToken({ CODECOV_TOKEN: "abc" })).toBe("abc");
 	});
 
-	it("prefers HOLOCRON_CODECOV_TOKEN over the bare name", () => {
-		expect(codecovToken({ HOLOCRON_CODECOV_TOKEN: "prefixed", CODECOV_TOKEN: "bare" })).toBe("prefixed");
-		expect(codecovToken({ HOLOCRON_CODECOV_TOKEN: "", CODECOV_TOKEN: "bare" })).toBe("bare");
+	it("prefers HOLOCRON_CODECOV_UPLOAD_TOKEN over the bare name", () => {
+		expect(codecovToken({ HOLOCRON_CODECOV_UPLOAD_TOKEN: "prefixed", CODECOV_TOKEN: "bare" })).toBe("prefixed");
+		expect(codecovToken({ HOLOCRON_CODECOV_UPLOAD_TOKEN: "", CODECOV_TOKEN: "bare" })).toBe("bare");
 	});
 
 	it("is undefined when the token is unset or empty", () => {

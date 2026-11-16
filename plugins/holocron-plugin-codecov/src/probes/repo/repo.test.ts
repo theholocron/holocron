@@ -84,6 +84,26 @@ describe("repo probe", () => {
 		expect(rows).toEqual([{ status: "fail", label: "Codecov API", detail: "offline" }]);
 	});
 
+	it("describes a thrown value that is not an Error", async () => {
+		const rows: ProbeRow[] = [];
+		const coverage: Coverage = {
+			key: "coverage",
+			providerName: "codecov",
+			checkToken: async () => ({ outcome: "accepted" }),
+			checkRepo: () => Promise.reject("plain text"),
+		};
+		await repoProbe({ coverage: () => coverage, expected: () => ({ flags: [], components: [] }), repo: "a/b" }).run(
+			{
+				dryRun: false,
+				say: (r) => void rows.push(r),
+				secret: () => {},
+				write: async () => undefined,
+				cleanup: () => {},
+			}
+		);
+		expect(rows).toEqual([{ status: "fail", label: "Codecov API", detail: "plain text" }]);
+	});
+
 	it("is info when the provider has no repository check", async () => {
 		const rows = await run("no-method");
 		expect(rows[0]?.status).toBe("info");

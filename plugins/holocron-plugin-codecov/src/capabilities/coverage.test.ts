@@ -159,6 +159,21 @@ describe("CodecovCoverage.checkRepo", () => {
 		expect((err as Error).message).not.toContain("api-tok");
 	});
 
+	it("wraps an error that is not an API error, without the token", async () => {
+		const failing = {
+			flags: { list: () => Promise.reject(new TypeError("offline")) },
+			components: { list: async () => [] },
+		};
+		const cap = new CodecovCoverage(
+			() => ({}) as never,
+			target,
+			() => failing as never
+		);
+		const err = await cap.checkRepo(expected).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/theholocron\/holocron.*offline/);
+		expect((err as Error).cause).toBeInstanceOf(TypeError);
+	});
+
 	it("throws when the options name no repository", async () => {
 		const { cap } = buildRepo([], { target: null });
 		await expect(cap.checkRepo(expected)).rejects.toThrow(/needs a repository/);

@@ -2,7 +2,7 @@
  * `coverage` capability for Codecov.
  *
  * `checkToken()` and `checkRepo()`. Codecov has two kinds of token: the repository upload token (what `measure:bundle`
- * sends as `HOLOCRON_CODECOV_TOKEN`), which Codecov's REST API v2 does not document as accepted, and an API token (a
+ * sends as `HOLOCRON_CODECOV_UPLOAD_TOKEN`), which Codecov's REST API v2 does not document as accepted, and an API token (a
  * personal access token), which it takes as a bearer token. `GET /{service}/{owner}/repos/{repo}/` is the one read that
  * fits both questions, so `checkToken()` reports what that read answered and never turns a 401 into a verdict on the
  * token: an upload token, a revoked one and one with no access all look alike. `checkRepo()` lists the repository's flags
@@ -17,7 +17,7 @@ import { type CodecovTarget, describeTarget } from "../target.js";
 import { diffNames } from "./diff-names.js";
 
 const NO_API_TOKEN =
-	"set HOLOCRON_CODECOV_API_TOKEN to a Codecov personal API token to compare flags and components (the upload token HOLOCRON_CODECOV_TOKEN is not accepted by Codecov's REST API)";
+	"set HOLOCRON_CODECOV_API_TOKEN to a Codecov personal API token to compare flags and components (the upload token HOLOCRON_CODECOV_UPLOAD_TOKEN is not accepted by Codecov's REST API)";
 
 /** The `coverage` capability for Codecov. */
 export class CodecovCoverage implements Coverage {
