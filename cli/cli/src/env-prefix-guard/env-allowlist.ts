@@ -14,6 +14,8 @@ export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	"ENV",
 	"GH_TOKEN",
 	"GITHUB_EVENT_NAME",
+	// The file GitHub Actions names for a step's outputs; `upload coverage` appends `uploaded=<n>` to it.
+	"GITHUB_OUTPUT",
 	"GITHUB_REF_NAME",
 	"GITHUB_TOKEN",
 	"NO_UPDATE_NOTIFIER",

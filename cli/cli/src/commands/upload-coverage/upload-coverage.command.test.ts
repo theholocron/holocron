@@ -1,3 +1,7 @@
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.hoisted(() => vi.fn());
@@ -27,6 +31,22 @@ beforeEach(() => {
 afterEach(() => void (process.exitCode = undefined));
 
 describe("upload coverage", () => {
+	it("appends uploaded=<n> to GITHUB_OUTPUT when it is set", async () => {
+		const file = join(mkdtempSync(join(tmpdir(), "upload-out-")), "out");
+		vi.stubEnv("GITHUB_OUTPUT", file);
+		runUploadCoverage.mockResolvedValue({ status: "ok", rows: [], uploaded: 2 });
+		await go("--uploads", UPLOADS);
+		vi.unstubAllEnvs();
+		expect(readFileSync(file, "utf8")).toBe("uploaded=2\n");
+	});
+
+	it("writes no output file without GITHUB_OUTPUT", async () => {
+		vi.stubEnv("GITHUB_OUTPUT", "");
+		await go("--uploads", UPLOADS);
+		vi.unstubAllEnvs();
+		expect(runUploadCoverage).toHaveBeenCalled();
+	});
+
 	it("passes the config, the context, --uploads and --allow-empty", async () => {
 		await go("--uploads", UPLOADS, "--allow-empty");
 		expect(runUploadCoverage).toHaveBeenCalledWith(

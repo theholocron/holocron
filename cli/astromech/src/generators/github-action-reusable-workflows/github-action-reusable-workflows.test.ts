@@ -370,8 +370,11 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const unit = REUSABLE_WORKFLOWS["test:unit"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
 		expect(unit).toContain("if: ${{ inputs.uploads != '' }}");
-		expect(unit).toContain("uses: theholocron/.github/.github/actions/codecov-upload@main");
-		expect(unit).toContain("allow-empty: ${{ inputs.affected }}");
+		// the coverage provider's command, with the JSON list in the environment so it stays one argument
+		expect(unit).not.toContain("actions/codecov-upload");
+		expect(unit).toContain("UPLOADS: ${{ inputs.uploads }}");
+		expect(unit).toContain("ALLOW_EMPTY: ${{ inputs.affected }}");
+		expect(unit).toContain('set -- upload coverage --uploads "$UPLOADS"');
 		expect(unit).toContain(
 			"if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}"
 		);
