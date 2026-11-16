@@ -6,7 +6,8 @@
  * them and an output folder, `<out>/<provider>`; by default `.export` beside the collection files, which is
  * git-ignored (`resolveExportDir()` refuses a folder that is, or holds, the folder of a source file). Collection files in
  * different folders are exported in separate calls, each into the `.export` beside its own folder (one app's files never
- * land in another app's folder); `--out` puts them all in one call under the one folder. A provider with
+ * land in another app's folder), and each call gets the environment files beside its collections (all of them when none
+ * sits there); `--out` puts everything in one call under the one folder, with every environment file. A provider with
  * no `export`, or an entry with no `collectionFiles`, is a skipped row. What the conversion could not carry across is
  * listed under the provider's row and does not fail the run. It writes files, so it asks first unless `--dry-run` (the
  * files are converted and listed, nothing is written) or `--yes` (without a terminal it refuses instead).
@@ -47,6 +48,16 @@ function groupByFolder(files: string[]): string[][] {
 	const groups = new Map<string, string[]>();
 	for (const file of files) groups.set(dirname(file), [...(groups.get(dirname(file)) ?? []), file]);
 	return [...groups.values()];
+}
+
+/**
+ * The environment files that sit in the same folder as a group of collection files, so an app's collection carries
+ * its own environments. When none sits there, all of them: an environment kept elsewhere is shared by every collection.
+ */
+function envFilesBeside(group: string[], envFiles: string[]): string[] {
+	const folder = dirname(group[0] as string);
+	const beside = envFiles.filter((file) => dirname(file) === folder);
+	return beside.length > 0 ? beside : envFiles;
 }
 
 /** One provider to export for: its tuple, the files it names and the folder it goes to. */
@@ -131,10 +142,13 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 		const groups = input.out === undefined ? groupByFolder(collectionFiles) : [collectionFiles];
 		for (const group of groups) {
 			const label = groups.length > 1 ? `${id}: ${dirname(group[0] as string)}` : id;
+			// A folder's collections get the environments beside them (an app's own), not every app's; under --out
+			// everything is one call and keeps them all.
+			const envs = input.out === undefined ? envFilesBeside(group, envFiles) : envFiles;
 			const dir = resolveExportDir({
 				repoRoot,
 				provider: id,
-				files: [...group, ...envFiles],
+				files: [...group, ...envs],
 				...(input.out !== undefined ? { out: input.out } : {}),
 			});
 			if (!dir.ok) {
@@ -145,7 +159,7 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 				provider: id,
 				label,
 				collectionFiles: group,
-				envFiles,
+				envFiles: envs,
 				outDir: dir.dir,
 				tool: tool as Tooling & Required<Pick<Tooling, "export">>,
 			});

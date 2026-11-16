@@ -107,7 +107,11 @@ describe("runRequestsExport", () => {
 				[["apps/a/requests/collection.json"], "/repo/apps/a/requests/.export/bruno"],
 				[["apps/b/requests/collection.json"], "/repo/apps/b/requests/.export/bruno"],
 			]);
-			expect(exp.mock.calls[1]![0].envFiles).toEqual(TWO_APPS.envFiles);
+			// Each folder's collection carries the environments beside it, not the other app's.
+			expect(exp.mock.calls.map(([call]) => call.envFiles)).toEqual([
+				["apps/a/requests/environment.json"],
+				["apps/b/requests/environment.json"],
+			]);
 			expect(report.status).toBe("ok");
 			expect(text).toContain("bruno: apps/a/requests");
 			expect(text).toContain("bruno: apps/b/requests");
@@ -123,12 +127,40 @@ describe("runRequestsExport", () => {
 			expect(text).not.toContain("bruno: requests");
 		});
 
+		it("hands a folder every environment file beside it, however many there are", async () => {
+			const exp = vi.fn(async (_input: ToolingExportInput) => result());
+			const many = {
+				collectionFiles: TWO_APPS.collectionFiles,
+				envFiles: [
+					"apps/a/requests/environment.json",
+					"apps/a/requests/environment.dev.json",
+					"apps/b/requests/environment.json",
+				],
+			};
+			await run([tool("bruno", exp)], [["bruno", many]]);
+			expect(exp.mock.calls.map(([call]) => call.envFiles)).toEqual([
+				["apps/a/requests/environment.json", "apps/a/requests/environment.dev.json"],
+				["apps/b/requests/environment.json"],
+			]);
+		});
+
+		it("hands a folder with no environment file beside it all of them", async () => {
+			const exp = vi.fn(async (_input: ToolingExportInput) => result());
+			const shared = { collectionFiles: TWO_APPS.collectionFiles, envFiles: ["shared/environment.json"] };
+			await run([tool("bruno", exp)], [["bruno", shared]]);
+			expect(exp.mock.calls.map(([call]) => call.envFiles)).toEqual([
+				["shared/environment.json"],
+				["shared/environment.json"],
+			]);
+		});
+
 		it("puts them all in one call under --out", async () => {
 			const exp = vi.fn(async (_input: ToolingExportInput) => result());
 			await run([tool("bruno", exp)], [["bruno", TWO_APPS]], { out: "build" });
 			expect(exp).toHaveBeenCalledTimes(1);
 			expect(exp.mock.calls[0]![0]).toMatchObject({
 				collectionFiles: TWO_APPS.collectionFiles,
+				envFiles: TWO_APPS.envFiles,
 				outDir: "/repo/build/bruno",
 			});
 		});
