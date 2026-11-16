@@ -1,3 +1,9 @@
+## [8.9.0-alpha.18](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.17...configs-v8.9.0-alpha.18) (2026-11-16)
+
+### Features
+
+* **codecov:** ✨ check a repository's flags and components against its config ([#2237](https://github.com/theholocron/holocron/issues/2237)) ([ca187e1](https://github.com/theholocron/holocron/commit/ca187e1f425ae949623ce8810961440701972bc7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
 ## [8.9.0-alpha.17](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.16...configs-v8.9.0-alpha.17) (2026-11-12)
 
 ### Refactoring
