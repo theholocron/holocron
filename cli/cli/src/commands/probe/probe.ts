@@ -28,13 +28,14 @@ import { realTasksIo, TASKS_PROVIDER, tasksProbes } from "./tasks/index.js";
  */
 export async function runProbeCommand(input: RunProbeCommandInput): Promise<ProbeCommandReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
-	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	// Providers a workspace app's config names that this one does not (Sentinel's `vercel`), set below when the probe asked
 	// for is not found among the configured ones; every loader built after that carries them.
 	let extras: readonly ResolvedTuple[] = [];
+	/* v8 ignore start -- the real loader is only built outside tests, which always inject one */
 	const makeLoader =
 		input.makeLoader ??
 		((context) => new PluginLoader(input.loaded.resolved, context, undefined, { extraProviders: extras }));
+	/* v8 ignore stop */
 	const loader = input.loader ?? makeLoader(input.context);
 	await loader.load();
 

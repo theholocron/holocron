@@ -2,10 +2,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { readWorkspacePackages } from "@theholocron/astromech";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadConfig, resolveConfig } from "../../config/index.js";
 import { workspaceProviders } from "./workspace-providers.js";
+
+vi.mock("@theholocron/astromech", async (importOriginal) => {
+	const original = await importOriginal<typeof import("@theholocron/astromech")>();
+	return { ...original, readWorkspacePackages: vi.fn(original.readWorkspacePackages) };
+});
 
 vi.mock("../../config/index.js", async (importOriginal) => ({
 	...(await importOriginal<typeof import("../../config/index.js")>()),
@@ -58,6 +64,14 @@ describe("workspaceProviders", () => {
 	it("skips a package whose config cannot be loaded", async () => {
 		vi.mocked(loadConfig).mockRejectedValue(new Error("boom"));
 		expect(await workspaceProviders(root, rootConfig)).toEqual([]);
+	});
+
+	it("is empty when the workspace's packages cannot be read", async () => {
+		vi.mocked(readWorkspacePackages).mockImplementationOnce(() => {
+			throw new Error("bad pnpm-workspace.yaml");
+		});
+		expect(await workspaceProviders(root, rootConfig)).toEqual([]);
+		expect(vi.mocked(loadConfig)).not.toHaveBeenCalled();
 	});
 
 	it("is empty where there is no workspace", async () => {
