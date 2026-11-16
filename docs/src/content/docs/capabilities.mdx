@@ -189,6 +189,15 @@ Log aggregation — ships structured log output to an external service. Implemen
 | `readDataset()`   | Read a dataset without changing it (`doctor logs`) |
 | `checkToken()`    | Ask the provider whether it accepts the token      |
 
+### `coverage`
+
+The service that holds a repository's coverage, and the token that uploads to it. Optional. Implemented by: [Codecov](./plugins/codecov).
+
+| Method                             | Description                                                                                                                                                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkToken()`                     | Does the service accept the token for the repository? Returns an `outcome` (`accepted`, `refused`, `not-found`); never the token                                                                                                      |
+| `checkRepo({ flags, components })` | Optional. Compares the flags and components the config declares (the caller passes them) with the service's, by name: `expected`, `missing` and `extra` for each. `checked: false` and a `reason` when the service could not be asked |
+
 ### `cache`
 
 A remote build cache and the token that reaches it, in a vocabulary no cache service owns. Optional: a repo with no `cache` provider is not affected. Implemented by: [Turbo](./plugins/turbo).

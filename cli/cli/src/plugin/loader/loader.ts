@@ -54,6 +54,8 @@ const system = createPluginSystem<
 		// the map never reaches plugins. See `docs/wiki/specifications/tech-setup-and-config.spec.md` §Design.
 		return {
 			...(config.repo?.name ? { repo: config.repo.name } : {}),
+			// What `holocron sync` writes to `codecov.yml` depends on it, so a coverage provider's repo check needs it too.
+			...(config.repoValidation?.docsCoverage ? { docsCoverage: config.repoValidation.docsCoverage } : {}),
 			...context,
 			...(effectiveToken !== undefined ? { cliToken: effectiveToken } : {}),
 			cliTokens: undefined,

@@ -18,7 +18,7 @@ Codecov- or Turbo-specific.
 
 - **Codecov.** `holocron setup` and `holocron sync` write `codecov.yml` (`generators/codecov`: flags and components, one
   per release group) and the `codecov/patch*` statuses; the `codecov-upload` composite action uploads coverage with the
-  job's OIDC token (no stored secret); `measure:bundle` uploads bundle stats with `HOLOCRON_CODECOV_TOKEN`. Nothing reads
+  job's OIDC token (no stored secret); `measure:bundle` uploads bundle stats with `HOLOCRON_CODECOV_UPLOAD_TOKEN`. Nothing reads
   that token's permissions or checks that the flags, components and required statuses exist on the service.
 - **Turbo.** The `setup` composite action maps `HOLOCRON_TURBO_TOKEN` and `HOLOCRON_TURBO_TEAM` onto the names turbo
   reads, and warns when a token has no team (the remote cache then turns off without a word). Nothing checks that the

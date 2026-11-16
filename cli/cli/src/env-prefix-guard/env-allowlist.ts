@@ -6,6 +6,9 @@
  */
 export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	"CI",
+	// What Codecov's own uploader reads; the vite-config preset falls back to it after `HOLOCRON_CODECOV_UPLOAD_TOKEN`.
+	// It cannot go through `holocronEnv()`, which would also read the prefixed name of a different credential.
+	"CODECOV_TOKEN",
 	"DEBUG",
 	// A convention many tools set for their own reasons; `environment.get()` reads it only after the Holocron names.
 	"ENV",

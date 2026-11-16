@@ -43,4 +43,40 @@ describe("createCodecovClient", () => {
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as ProviderApiError).status).toBe(401);
 	});
+
+	it("lists every flag, following the pages", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { next: "https://api.codecov.io/api/v2/x?page=2", results: [{ flag_name: "a" }] } },
+			{ body: { next: null, results: [{ flag_name: "b" }] } },
+		]);
+		const found = await createCodecovClient({ token: TOKEN, fetch }).flags.list(
+			"github",
+			"theholocron",
+			"holocron"
+		);
+		expect(found.map((f) => f.flag_name)).toEqual(["a", "b"]);
+		expect(calls[0]?.url).toBe(
+			"https://api.codecov.io/api/v2/github/theholocron/repos/holocron/flags/?page=1&page_size=100"
+		);
+		expect(calls[1]?.url).toContain("page=2");
+	});
+
+	it("lists no flags for an empty body", async () => {
+		const { fetch } = stubFetch([{ body: {} }]);
+		expect(await createCodecovClient({ token: TOKEN, fetch }).flags.list("github", "o", "r")).toEqual([]);
+	});
+
+	it("lists components from a plain array", async () => {
+		const { fetch, calls } = stubFetch([{ body: [{ component_id: "a", name: "a" }] }]);
+		const found = await createCodecovClient({ token: TOKEN, fetch }).components.list("github", "o", "r");
+		expect(found.map((c) => c.component_id)).toEqual(["a"]);
+		expect(calls[0]?.url).toBe("https://api.codecov.io/api/v2/github/o/repos/r/components/");
+	});
+
+	it("lists components from a paginated body", async () => {
+		const { fetch } = stubFetch([{ body: { results: [{ component_id: "b", name: "b" }] } }, { body: {} }]);
+		const client = createCodecovClient({ token: TOKEN, fetch });
+		expect((await client.components.list("github", "o", "r")).map((c) => c.component_id)).toEqual(["b"]);
+		expect(await client.components.list("github", "o", "r")).toEqual([]);
+	});
 });

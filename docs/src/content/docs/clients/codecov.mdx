@@ -3,7 +3,7 @@ title: Codecov Client
 description: A TypeScript client for the Codecov REST API.
 ---
 
-A TypeScript client for the Codecov REST API v2 — wraps the owner and repository endpoints.
+A TypeScript client for the Codecov REST API v2 — wraps the owner, repository, flag and component endpoints.
 
 ## Installation
 
@@ -25,7 +25,9 @@ The token is a Codecov API (personal access) token, sent as a bearer token. A re
 
 ## Namespaces
 
-| Namespace | Covers                                 |
-| --------- | -------------------------------------- |
-| `owners`  | `GET /{service}/{owner}/`              |
-| `repos`   | `GET /{service}/{owner}/repos/{repo}/` |
+| Namespace    | Covers                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| `components` | `GET /{service}/{owner}/repos/{repo}/components/` (an array of `{ component_id, name, coverage }`) |
+| `flags`      | `GET /{service}/{owner}/repos/{repo}/flags/?page=&page_size=` (`flags.list()` follows every page)  |
+| `owners`     | `GET /{service}/{owner}/`                                                                          |
+| `repos`      | `GET /{service}/{owner}/repos/{repo}/`                                                             |

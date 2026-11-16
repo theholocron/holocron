@@ -111,14 +111,14 @@ describe("token probe", () => {
 	it("accepts the layer that holds the token, and the token name", async () => {
 		const { rows } = await check(
 			{ outcome: "accepted" },
-			{ args: ["--layer", "ci", "--token-name", "HOLOCRON_CODECOV_TOKEN"] }
+			{ args: ["--layer", "ci", "--token-name", "HOLOCRON_CODECOV_UPLOAD_TOKEN"] }
 		);
 		expect(row(rows, "ci")).toMatchObject({ status: "ok" });
 	});
 
 	it("only describes a layer the token is not declared for", async () => {
-		const { rows } = await check({ outcome: "accepted" }, { args: ["--layer=dev"] });
-		expect(row(rows, "dev")).toMatchObject({ status: "info" });
+		const { rows } = await check({ outcome: "accepted" }, { args: ["--layer=local"] });
+		expect(row(rows, "local")).toMatchObject({ status: "info" });
 	});
 });
 
