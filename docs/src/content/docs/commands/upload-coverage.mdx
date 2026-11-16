@@ -34,11 +34,15 @@ A group whose glob matches nothing is skipped with a note, not an error. `--allo
 
 One row per group: `ok` with the number of files uploaded, `skip` with the reason, or `fail`. A report left out is listed under its group's row. The exit code is 1 when a group failed, the provider could not start (no OIDC token, a Codecov CLI that does not verify), the config has no `coverage` provider, or nothing was uploaded without `--allow-empty`. `--dry-run` lists the groups and uploads nothing, and loads no provider.
 
+## Step output
+
+When `GITHUB_OUTPUT` is set (GitHub Actions), the command appends `uploaded=<n>`, the number of flags uploaded, so a later step reads `steps.<id>.outputs.uploaded` as it did from the old action (`0` when no group had a report). Nothing is written when the variable is unset.
+
 ## Rules
 
 - **It needs the plugin.** It is a workspace command: the `coverage` provider's package must resolve. A provider without an `upload` method is a failing row.
 - **Names and counts only.** No token, bearer or file content is printed.
-- **The old action stays.** `ci/actions/codecov-upload` is still what the frozen reusable workflows in `theholocron/.github` call, until `CI_HOME` moves.
+- **The old action stays.** `ci/actions/codecov-upload` is still what the frozen reusable workflows in `theholocron/.github` call, and what `measure:docs` calls, until `CI_HOME` moves. This repo's own `test:unit` calls the command instead.
 
 ## See also
 

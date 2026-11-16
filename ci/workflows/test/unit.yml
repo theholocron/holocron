@@ -104,10 +104,19 @@ jobs:
       - id: flags
         name: Upload coverage to Codecov, one flag per group
         if: ${{ inputs.uploads != '' }}
-        uses: theholocron/.github/.github/actions/codecov-upload@main
-        with:
-          uploads: ${{ inputs.uploads }}
-          allow-empty: ${{ inputs.affected }}
+        # The coverage provider's own command (`providers.coverage`), not the codecov-upload action. It is run
+        # from the built CLI the test step above resolved, as the holocron action does, and not through that
+        # action, so the JSON list reaches it as one argument (the action splits `args` on spaces) and the
+        # `uploaded` output below stays a step output of this job. The job's OIDC token needs `id-token: write`.
+        shell: bash
+        env:
+          UPLOADS: ${{ inputs.uploads }}
+          ALLOW_EMPTY: ${{ inputs.affected }}
+        run: |
+          cli="$(dirname "$(node -e 'process.stdout.write(require.resolve("@theholocron/cli"))')")/cli.mjs"
+          set -- upload coverage --uploads "$UPLOADS"
+          [ "$ALLOW_EMPTY" = "true" ] && set -- "$@" --allow-empty
+          node "$cli" "$@"
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload test results to Codecov

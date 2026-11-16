@@ -6,6 +6,7 @@ import type { GlobalArgs } from "../global-args/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runUploadCoverage } from "./run-upload-coverage/index.js";
+import { writeStepOutput } from "./write-step-output/index.js";
 
 type Args = GlobalArgs & { uploads: string; allowEmpty?: boolean };
 
@@ -36,6 +37,7 @@ export const uploadCoverageCommand: CommandModule<GlobalArgs, Args> = {
 			uploads: argv.uploads,
 			...(argv.allowEmpty ? { allowEmpty: true } : {}),
 		});
+		writeStepOutput("uploaded", report.uploaded);
 		if (report.status === "fail") process.exitCode = 1;
 	},
 };
