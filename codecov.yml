@@ -41,6 +41,7 @@ coverage:
           - postman-client
           - sentry-client
           - slack-client
+          - turbo-client
           - vercel-client
           - zendesk-client
           - astro-config
@@ -79,6 +80,7 @@ coverage:
           - holocron-plugin-postman
           - holocron-plugin-sentry
           - holocron-plugin-slack
+          - holocron-plugin-turbo
           - holocron-plugin-vercel
           - docs-theme
           - array-utils
@@ -140,6 +142,7 @@ coverage:
           - postman-client
           - sentry-client
           - slack-client
+          - turbo-client
           - vercel-client
           - zendesk-client
           - astro-config
@@ -178,6 +181,7 @@ coverage:
           - holocron-plugin-postman
           - holocron-plugin-sentry
           - holocron-plugin-slack
+          - holocron-plugin-turbo
           - holocron-plugin-vercel
           - docs-theme
           - array-utils
@@ -243,6 +247,7 @@ flag_management:
     - name: postman-client
     - name: sentry-client
     - name: slack-client
+    - name: turbo-client
     - name: vercel-client
     - name: zendesk-client
     - name: astro-config
@@ -281,6 +286,7 @@ flag_management:
     - name: holocron-plugin-postman
     - name: holocron-plugin-sentry
     - name: holocron-plugin-slack
+    - name: holocron-plugin-turbo
     - name: holocron-plugin-vercel
     - name: docs-theme
     - name: array-utils
@@ -457,6 +463,11 @@ component_management:
       name: "slack-client"
       paths:
         - clients/slack-client/**
+
+    - component_id: turbo-client
+      name: "turbo-client"
+      paths:
+        - clients/turbo-client/**
 
     - component_id: vercel-client
       name: "vercel-client"
@@ -666,6 +677,11 @@ component_management:
       name: "holocron-plugin-slack"
       paths:
         - plugins/holocron-plugin-slack/**
+
+    - component_id: holocron-plugin-turbo
+      name: "holocron-plugin-turbo"
+      paths:
+        - plugins/holocron-plugin-turbo/**
 
     - component_id: holocron-plugin-vercel
       name: "holocron-plugin-vercel"

@@ -36,7 +36,8 @@ export type CapabilityKey =
 	| "credentials"
 	| "projects"
 	| "ideas"
-	| "coverage";
+	| "coverage"
+	| "cache";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
@@ -1559,6 +1560,39 @@ export interface LogsDataset {
 	exists: boolean;
 	/** Days the provider keeps data in the dataset, when it reports one. One setting for the whole dataset. */
 	retentionDays?: number;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// cache — a remote build cache and the token that reaches it
+// ───────────────────────────────────────────────────────────────────────
+
+/** What {@link Cache.checkToken} found. Names and states only; never the token. */
+export interface CacheTokenCheck {
+	/** `true` when the token is accepted for the team and the remote cache is on and reachable with it. */
+	ok: boolean;
+	/** Why `ok` is `false`, or a note when it is `true`. */
+	reason?: string;
+	/** The remote cache's own word for its state (`enabled`, `disabled`, `over_limit`, `paused`), when it answered one. */
+	status?: string;
+	/** `true` when the token can read the cache but not write to it, where the provider reports it. */
+	readOnly?: boolean;
+	/**
+	 * Which part failed, when `ok` is `false`: the provider refused the `token`, the token has no access to the
+	 * configured `team`, or the cache answered but is not usable. Absent when the cache answered a state `ok` can say.
+	 */
+	problem?: "token" | "team" | "cache";
+}
+
+/** A remote build cache: whether a token is accepted for the configured team and the cache answers with it. */
+export interface Cache extends ProviderIdentity {
+	/** Identifies this provider as the `cache` capability. */
+	readonly key: "cache";
+	/**
+	 * Is the token valid for the configured team, and is the remote cache reachable with it? `ok: false` only for what
+	 * the provider answered (a refused token, a team the token cannot reach, a cache that is off); a network failure or
+	 * a missing token throws.
+	 */
+	checkToken(): Promise<CacheTokenCheck>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -3288,6 +3322,8 @@ export interface CapabilityImpls {
 	ideas: Ideas;
 	/** The `coverage` provider. */
 	coverage: Coverage;
+	/** The `cache` provider. */
+	cache: Cache;
 }
 
 /** The cardinality (`"single"` or `"many"`) of the capability `K`. */

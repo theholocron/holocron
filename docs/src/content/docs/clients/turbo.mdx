@@ -1,0 +1,25 @@
+---
+title: Turbo Client
+description: A TypeScript client for Turborepo's Remote Cache API, served by Vercel.
+---
+
+A TypeScript client for Turborepo's Remote Cache. Vercel serves it, so the token is a Vercel token (`TURBO_TOKEN`).
+
+## Installation
+
+```bash
+pnpm add @theholocron/turbo-client
+```
+
+## Usage
+
+```ts
+import { createTurboClient } from "@theholocron/turbo-client";
+
+const turbo = createTurboClient({ token: process.env.TURBO_TOKEN! });
+
+// Is Remote Caching on for the team? `status` is "enabled", "disabled", "over_limit" or "paused".
+const { status, readOnly } = await turbo.cache.status("acme");
+```
+
+The full [API reference](/holocron/clients/turbo-client/api/readme/) is generated from the package's TSDoc comments.
