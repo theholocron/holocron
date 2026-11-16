@@ -16,7 +16,7 @@ interface Setup {
 	tokenFailsOn?: number[];
 }
 
-function setup(over: Setup = {}) {
+function setup(over: Setup) {
 	const spawn = stubSpawn(over.cli ?? []);
 	const cli = new CodecovCli({ binary: "/cli/codecov", spawn: spawn.spawn, env: {} });
 	const written: Record<string, string> = {};
