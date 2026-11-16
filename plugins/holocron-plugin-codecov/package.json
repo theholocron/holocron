@@ -36,6 +36,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/codecov-client": "workspace:^",

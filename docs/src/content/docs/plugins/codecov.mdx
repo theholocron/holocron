@@ -89,6 +89,7 @@ It always ends with an `info` row that permissions are not checked: Codecov has 
 
 - `checkToken()` — asks Codecov for the repository with the token; returns `outcome` (`accepted`, `refused` or `not-found`), `repoPrivate` and `status`, and throws for an error that says nothing about the token.
 - `checkRepo({ flags, components })` — reads the repository's flags (`GET /{service}/{owner}/repos/{repo}/flags/`, paginated) and components (`GET /{service}/{owner}/repos/{repo}/components/`) with the API token and returns, for each list, the names expected, those missing on Codecov and those on Codecov the config does not declare. The caller passes the expected names, so the plugin never reads the config. Without `HOLOCRON_CODECOV_API_TOKEN` (or when Codecov answers 401, 403 or 404) it returns `checked: false` with a `reason` naming what to set, and does not throw. Names only, never a token.
+- `upload(input)` — optional; uploads coverage reports, one flag per group, with the Codecov CLI. It is what [`holocron upload coverage`](/holocron/commands/upload-coverage/) calls. See below.
 
 ## Comparing flags and components
 
@@ -103,3 +104,14 @@ It always ends with an `info` row that permissions are not checked: Codecov has 
 | no `HOLOCRON_CODECOV_API_TOKEN`, or a 401/403 | `info`, naming the variable to set; never a failure                                                   |
 
 The expected names come from `coverageExpectations()` (exported by `@theholocron/cli`), which calls the same functions the `codecov.yml` generator uses.
+
+## Uploading coverage
+
+`upload()` replaces the shell in `ci/actions/codecov-upload`. It needs no token of its own: it asks the Actions runtime for the job's OIDC token (the job needs `permissions: id-token: write`), a fresh one before every upload, and masks it in the log. In order, it:
+
+- downloads the Codecov CLI and checks the signature of its checksum file with `gpg` (Codecov's published key, imported into a private keyring) and the binary's SHA-256, making it executable only when both hold;
+- runs `create-commit` and `create-report`, then one `do-upload` per group; the token reaches the CLI in `CODECOV_TOKEN`, never in argv;
+- leaves out a report that names no source file, and uploads each other report as a copy whose relative `SF:` paths start at the repo root (the package is the report's folder less a trailing `coverage`; a report at the repo root is left as it is);
+- tries each upload four times, waiting 15 seconds times the attempt between tries.
+
+It returns, per flag, the files uploaded or why a group was skipped or failed, and the number of flags uploaded: names and counts only. Each step is a small function with its own test, and the Codecov CLI is run through an injected `spawnSync`, so the tests start no process. Nothing here has run against the live service from a developer machine: the upload is proven by a real pull request's `codecov/patch`.

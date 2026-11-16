@@ -1,7 +1,7 @@
 /**
  * `coverage` capability for Codecov.
  *
- * `checkToken()` and `checkRepo()`. Codecov has two kinds of token: the repository upload token (what `measure:bundle`
+ * `upload()` runs the Codecov CLI (see `../upload/`). The rest is `checkToken()` and `checkRepo()`. Codecov has two kinds of token: the repository upload token (what `measure:bundle`
  * sends as `HOLOCRON_CODECOV_UPLOAD_TOKEN`), which Codecov's REST API v2 does not document as accepted, and an API token (a
  * personal access token), which it takes as a bearer token. `GET /{service}/{owner}/repos/{repo}/` is the one read that
  * fits both questions, so `checkToken()` reports what that read answered and never turns a 401 into a verdict on the
@@ -9,12 +9,22 @@
  * and components, which needs the API token (`HOLOCRON_CODECOV_API_TOKEN`) and says so, without failing, when it is unset.
  */
 
-import type { Coverage, CoverageExpectations, CoverageRepoReport, CoverageTokenCheck } from "@theholocron/cli";
+import type {
+	Coverage,
+	CoverageExpectations,
+	CoverageRepoReport,
+	CoverageTokenCheck,
+	CoverageUploadInput,
+	CoverageUploadResult,
+} from "@theholocron/cli";
 import { AuthError, ProviderApiError } from "@theholocron/cli";
 
 import type { CodecovClient } from "../rest.js";
 import { type CodecovTarget, describeTarget } from "../target.js";
 import { diffNames } from "./diff-names.js";
+import { defaultUploadDeps } from "../upload/default-deps.js";
+import type { UploadDeps } from "../upload/upload.type.js";
+import { uploadCoverage } from "../upload/upload-coverage.js";
 
 const NO_API_TOKEN =
 	"set HOLOCRON_CODECOV_API_TOKEN to a Codecov personal API token to compare flags and components (the upload token HOLOCRON_CODECOV_UPLOAD_TOKEN is not accepted by Codecov's REST API)";
@@ -34,7 +44,8 @@ export class CodecovCoverage implements Coverage {
 	constructor(
 		private readonly client: () => CodecovClient,
 		private readonly target: CodecovTarget | undefined,
-		private readonly apiClient?: () => CodecovClient
+		private readonly apiClient?: () => CodecovClient,
+		private readonly uploadDeps: () => UploadDeps = defaultUploadDeps
 	) {}
 
 	async checkRepo(expected: CoverageExpectations): Promise<CoverageRepoReport> {
@@ -112,5 +123,13 @@ export class CodecovCoverage implements Coverage {
 				cause: err,
 			});
 		}
+	}
+
+	/**
+	 * Uploads the reports, one flag per group, authenticated with the job's OIDC token (no stored token, so the plugin
+	 * needs none for this). The Codecov CLI does the upload; see `uploadCoverage()`.
+	 */
+	upload(input: CoverageUploadInput): Promise<CoverageUploadResult> {
+		return uploadCoverage(input, this.uploadDeps());
 	}
 }
