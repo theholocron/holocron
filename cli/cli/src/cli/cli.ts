@@ -39,6 +39,7 @@ import { showCommand } from "../commands/show/index.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
 import { updateCommand } from "../commands/update/index.js";
 import { upgradeCommand } from "../commands/upgrade/index.js";
+import { uploadCommand } from "../commands/upload/index.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
 import { ownPackageJson } from "./own-package-json.js";
@@ -152,6 +153,7 @@ try {
 		.command(showCommand as never)
 		.command(checkCommand as never)
 		.command(exportCommand as never)
+		.command(uploadCommand as never)
 		.command(menuCommand(CLI_VERSION) as never)
 		.command(setupCommand as never)
 		.command(upgradeCommand as never)
