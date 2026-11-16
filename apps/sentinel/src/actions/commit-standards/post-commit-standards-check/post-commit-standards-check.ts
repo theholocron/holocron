@@ -7,7 +7,7 @@
  * Sentinel isn't a plugin, and this is a single REST call with nothing
  * else to wrap.
  *
- * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `sentinel:lint:commits / Run commitlint`
+ * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `lint:commits / Run commitlint`
  * (`sentinelCheckName()`, `.notes/ci-sentinel-check-names.spec.md`). The
  * task id is `lint:commits`, as on the Actions side: a repo still on the frozen
  * reusables posts "Commit Standards / Run commitlint" from Actions, and an

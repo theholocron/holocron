@@ -882,6 +882,16 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 		expect(body.docsPresenceCheckRun).toEqual({ checkRunId: 51, conclusion: "success", htmlUrl: "https://x/51" });
 	});
 
+	it("runs both checks for a config that names the flat ids, as this repo's does (validate:specs, validate:docs)", async () => {
+		withTasks(["lint:code", { name: "validate:specs" }, { name: "validate:docs" }]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(validateAdrs).toHaveBeenCalled();
+		expect(validateDocsPresence).toHaveBeenCalled();
+	});
+
 	it("skips both when the config doesn't declare platform.repoValidation", async () => {
 		withTasks(["lint"]);
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
