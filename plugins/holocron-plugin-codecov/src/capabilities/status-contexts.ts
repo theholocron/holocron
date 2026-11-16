@@ -1,7 +1,7 @@
 import type { CoverageStatusContext, CoverageStatusInput } from "@theholocron/cli";
 
 /** The flag whose statuses are the doc-comment gate (`repoValidation.docsCoverage`); the name `codecov.yml` gives it. */
-const DOCUMENTATION = "documentation";
+export const DOCUMENTATION_FLAG = "documentation";
 
 /**
  * The commit statuses Codecov posts for a repository, by name, sorted. `codecov/project` and `codecov/patch` count the
@@ -17,8 +17,8 @@ export function statusContexts(input: CoverageStatusInput): CoverageStatusContex
 	];
 	if (input.documentation !== "off") {
 		contexts.push(
-			{ name: `codecov/patch/${DOCUMENTATION}`, required: input.documentation === "required" },
-			{ name: `codecov/project/${DOCUMENTATION}`, required: false }
+			{ name: `codecov/patch/${DOCUMENTATION_FLAG}`, required: input.documentation === "required" },
+			{ name: `codecov/project/${DOCUMENTATION_FLAG}`, required: false }
 		);
 	}
 	const byName = new Map(contexts.map((context) => [context.name, context]));

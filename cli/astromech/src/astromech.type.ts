@@ -1,6 +1,5 @@
 import type { TasksConfig } from "./config/schema/index.js";
 import type {
-	CodecovConfigOptions,
 	EnsureRootWorkspaceMemberResult,
 	EnsureTurboDependencyResult,
 	OrgContext,
@@ -140,14 +139,6 @@ export interface Astromech {
 	 * nothing to wait on. Only a repo that hosts the reusable `ci.yml` writes it; the others have no `ci` yet.
 	 */
 	aggregateCaller(): string | null;
-	/**
-	 * This repo's `codecov.yml` — component `paths` derived from the workspace packages.
-	 * Pass the current file's content (`null` if none exists yet) to either
-	 * merge the component list in or scaffold a fresh file. Policy-free same
-	 * as {@link requiredChecks} — `holocron setup` owns writing the result.
-	 * `options.docsCoverage` adds the `documentation` flag and its statuses.
-	 */
-	codecovConfig(existing: string | null, options?: CodecovConfigOptions): string;
 	/**
 	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
 	 * write directly, no merge. In a pnpm workspace it also holds the suite aggregator tasks and a `//#<id>` root task

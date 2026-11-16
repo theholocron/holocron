@@ -67,14 +67,20 @@ async function generate(input: RepoFilesInput) {
 export function generatedProbes(
 	loaded: LoadedConfig,
 	repoRoot: string,
-	statusContexts?: readonly StatusContext[]
+	statusContexts?: readonly StatusContext[],
+	coverageFiles?: () => Record<string, string>
 ): PluginProbes {
 	return {
 		check: {
 			summary: "Fail for each generated file that differs from the committed copy (CI runs this).",
 			writes: false,
 			async run(ctx) {
-				const input: RepoFilesInput = { loaded, repoRoot, ...(statusContexts ? { statusContexts } : {}) };
+				const input: RepoFilesInput = {
+					loaded,
+					repoRoot,
+					...(statusContexts ? { statusContexts } : {}),
+					...(coverageFiles ? { coverageConfigFiles: coverageFiles } : {}),
+				};
 				const first = await generate(input);
 				const second = await generate(input);
 				const owned = await generatePackageWorkflows(repoRoot);

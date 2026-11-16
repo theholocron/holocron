@@ -1,13 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import {
-	aggregateChecks,
-	codecovComponentBlock,
-	codecovUploads,
-	readWorkspacePackages,
-	requiredChecks,
-} from "@theholocron/astromech";
+import { aggregateChecks, codecovUploads, readWorkspacePackages, requiredChecks } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { describe, expect, it } from "vitest";
 
@@ -72,7 +66,6 @@ describe("this repo's required checks (#1727, B6)", () => {
 	it("lists a codecov component and a flag for every workspace package in codecov.yml", async () => {
 		const packages = readWorkspacePackages(REPO_ROOT);
 		const yaml = await readFile(`${REPO_ROOT}codecov.yml`, "utf8");
-		expect(yaml).toContain(codecovComponentBlock(packages));
 		const ids = [...yaml.matchAll(/^ {4}- component_id: (\S+)/gm)].map((m) => m[1]);
 		expect(ids).toEqual(packages.map((p) => p.slug));
 		const flags = (JSON.parse(codecovUploads(packages)) as { flag: string }[]).map((u) => u.flag);

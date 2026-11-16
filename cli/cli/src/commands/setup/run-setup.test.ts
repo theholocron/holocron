@@ -4205,7 +4205,7 @@ describe("runSetup — 403 handling", () => {
 
 // ── setup: write codecov.yml ──────────────────────────────────────────────────
 
-describe("setup: write codecov.yml", () => {
+describe("setup: config files from the coverage provider", () => {
 	let tmpDir: string;
 	beforeEach(async () => {
 		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-"));
@@ -4231,6 +4231,51 @@ describe("setup: write codecov.yml", () => {
 			importer as unknown as PluginImporter
 		);
 	}
+
+	it("writes the config files a loaded coverage provider makes, merging into the file that is there", async () => {
+		await writeFile(join(tmpDir, "codecov.yml"), "comment: false\n");
+		const written: Record<string, string> = {};
+		const configFiles = vi.fn((input: { existing(path: string): string | null }) => ({
+			"codecov.yml": `${input.existing("codecov.yml")}merged\n`,
+		}));
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["test:unit"],
+			providers: { source: "github", coverage: "codecov" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-codecov": makePlugin("cc", { coverage: { configFiles } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					listWorkflowFiles: async () => [],
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toBe("comment: false\nmerged\n");
+		expect(report.steps.find((s) => s.step === "write codecov.yml")?.status).toBe("ok");
+	});
+
+	it("writes no coverage config without a coverage provider, and says so", async () => {
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["test:unit"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === "write coverage config")).toMatchObject({
+			status: "skip",
+			message: "no coverage provider configured",
+		});
+	});
 
 	it("writes turbo.json when the manifest has a fan-out-eligible task", async () => {
 		const written: Record<string, string> = {};
@@ -4448,248 +4493,6 @@ describe("setup: write codecov.yml", () => {
 
 		expect(report.steps.find((s) => s.step === "add turbo devDependency")).toBeUndefined();
 		expect(written["package.json"]).toBeUndefined();
-	});
-
-	it("writes codecov.yml with discovered packages", async () => {
-		const pkgsDir = join(tmpDir, "packages");
-		await mkdir(join(pkgsDir, "foo"), { recursive: true });
-		await mkdir(join(pkgsDir, "bar"), { recursive: true });
-		await writeFile(join(pkgsDir, "foo", "package.json"), JSON.stringify({ name: "@acme/foo" }));
-		await writeFile(join(pkgsDir, "bar", "package.json"), JSON.stringify({ name: "@acme/bar" }));
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({
-				name: "demo",
-				tasks: ["verification.unitTests"],
-				providers: { source: "github" },
-			}),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toBeDefined();
-		expect(written["codecov.yml"]).toContain("component_id: bar");
-		expect(written["codecov.yml"]).toContain("component_id: foo");
-		const step = (await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} })).steps.find(
-			(s) => s.step === "write codecov.yml"
-		);
-		expect(step?.message).toBe("2 components");
-	});
-
-	it("skips writing codecov.yml when no test workflow and no existing file", async () => {
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toBeUndefined();
-		const step = report.steps.find((s) => s.step === "write codecov.yml");
-		expect(step?.status).toBe("skip");
-		expect(step?.message).toBe("no test workflow configured");
-	});
-
-	it("writes base codecov.yml when test workflow is configured and no packages/ exists", async () => {
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({
-				name: "demo",
-				tasks: ["verification.unitTests"],
-				providers: { source: "github" },
-			}),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toBeDefined();
-		expect(written["codecov.yml"]).toContain("Scaffolded by holocron setup");
-		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
-		const step = report.steps.find((s) => s.step === "write codecov.yml");
-		expect(step?.status).toBe("ok");
-		expect(step?.message).toBe("no components");
-	});
-
-	it("merges existing codecov.yml even when packages/ is absent", async () => {
-		const existingCodecov = [
-			"codecov:",
-			"  require_ci_to_pass: true",
-			"",
-			"component_management:",
-			"  individual_components: []",
-			"",
-		].join("\n");
-		await writeFile(join(tmpDir, "codecov.yml"), existingCodecov);
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toBeDefined();
-		const step = report.steps.find((s) => s.step === "write codecov.yml");
-		expect(step?.status).toBe("ok");
-		expect(step?.message).toBe("no components");
-	});
-
-	it("skips package dirs without a package.json", async () => {
-		const pkgsDir = join(tmpDir, "packages");
-		await mkdir(join(pkgsDir, "foo"), { recursive: true });
-		await mkdir(join(pkgsDir, "no-pkg"), { recursive: true });
-		await writeFile(join(pkgsDir, "foo", "package.json"), JSON.stringify({ name: "@acme/foo" }));
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({
-				name: "demo",
-				tasks: ["verification.unitTests"],
-				providers: { source: "github" },
-			}),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toContain("component_id: foo");
-		expect(written["codecov.yml"]).not.toContain("no-pkg");
-	});
-
-	it("skips non-directory entries (files) inside packages/", async () => {
-		const pkgsDir = join(tmpDir, "packages");
-		await mkdir(join(pkgsDir, "real-pkg"), { recursive: true });
-		await writeFile(join(pkgsDir, "real-pkg", "package.json"), JSON.stringify({ name: "@acme/real-pkg" }));
-		// A plain file sitting directly in packages/ — should be ignored
-		await writeFile(join(pkgsDir, "README.md"), "# packages");
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({
-				name: "demo",
-				tasks: ["verification.unitTests"],
-				providers: { source: "github" },
-			}),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toContain("component_id: real-pkg");
-		expect(written["codecov.yml"]).not.toContain("README");
-	});
-
-	it("skips package dirs whose package.json has no name field", async () => {
-		const pkgsDir = join(tmpDir, "packages");
-		await mkdir(join(pkgsDir, "named"), { recursive: true });
-		await mkdir(join(pkgsDir, "unnamed"), { recursive: true });
-		await writeFile(join(pkgsDir, "named", "package.json"), JSON.stringify({ name: "@acme/named" }));
-		await writeFile(join(pkgsDir, "unnamed", "package.json"), JSON.stringify({ version: "1.0.0" }));
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({
-				name: "demo",
-				tasks: ["verification.unitTests"],
-				providers: { source: "github" },
-			}),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toContain("component_id: named");
-		expect(written["codecov.yml"]).not.toContain("unnamed");
-	});
-
-	it("merges components into an existing codecov.yml without overwriting custom settings", async () => {
-		const existingCodecov = [
-			"codecov:",
-			"  require_ci_to_pass: true",
-			"",
-			"coverage:",
-			'  range: "70...100"',
-			"  status:",
-			"    patch:",
-			"      default:",
-			"        threshold: 2%",
-			"",
-			"component_management:",
-			"  default_rules:",
-			"    statuses:",
-			"      - type: patch",
-			"        target: 80%",
-			"  individual_components:",
-			"    - component_id: old-pkg",
-			'      name: "old-pkg"',
-			"      paths:",
-			"        - packages/old-pkg/**",
-			"",
-		].join("\n");
-		await writeFile(join(tmpDir, "codecov.yml"), existingCodecov);
-
-		const pkgsDir = join(tmpDir, "packages");
-		await mkdir(join(pkgsDir, "new-pkg"), { recursive: true });
-		await writeFile(join(pkgsDir, "new-pkg", "package.json"), JSON.stringify({ name: "@acme/new-pkg" }));
-
-		const written: Record<string, string> = {};
-		const loader = makeLoaderWithSource(tmpDir, {
-			writeRepoFile: async (path: string, content: string) => {
-				written[path] = content;
-			},
-		});
-		const loaded: LoadedConfig = {
-			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
-			filepath: join(tmpDir, "holocron.config.json"),
-		};
-
-		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
-
-		expect(written["codecov.yml"]).toContain('range: "70...100"');
-		expect(written["codecov.yml"]).toContain("threshold: 2%");
-		expect(written["codecov.yml"]).toContain("component_id: new-pkg");
-		expect(written["codecov.yml"]).not.toContain("old-pkg");
-		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
 	});
 });
 

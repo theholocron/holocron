@@ -15,6 +15,11 @@ export interface RepoFilesInput {
 	 * out when no provider is loaded (the generators need none), and the task runner then keeps its default.
 	 */
 	statusContexts?: readonly StatusContext[];
+	/**
+	 * Makes the config files a `coverage` provider writes (`coverageConfigFiles()`), as text by path. Left out when no
+	 * provider is loaded: no coverage config is then written (a skipped step), so this function still needs no provider.
+	 */
+	coverageConfigFiles?: () => Record<string, string>;
 	logger?: Logger;
 }
 

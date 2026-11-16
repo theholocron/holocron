@@ -32,6 +32,18 @@ describe("CodecovCoverage", () => {
 		]);
 	});
 
+	it("writes codecov.yml from its config files without a token or a repository", () => {
+		const { cap } = build([], { target: null });
+		const files = cap.configFiles({
+			components: [{ id: "a", path: "libs/a" }],
+			flags: ["a"],
+			documentation: "off",
+			existing: () => null,
+		});
+		expect(Object.keys(files)).toEqual(["codecov.yml"]);
+		expect(files["codecov.yml"]).toContain("component_id: a");
+	});
+
 	it("is accepted when Codecov answers for the repository, and says whether it is private", async () => {
 		const { cap, calls } = build([{ body: { name: "holocron", private: true } }]);
 		await expect(cap.checkToken()).resolves.toEqual({ outcome: "accepted", repoPrivate: true });

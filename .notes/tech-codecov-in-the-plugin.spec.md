@@ -103,4 +103,15 @@ run` and the affected-task logic are astromech's task runner, which is built on 
 - Step 1 (upload) shipped in #2242 and #2243. Step 2 (status names) is the pull request that moves this spec to
   `accepted`: `Coverage.statusContexts?()` takes the components and the documentation mode and returns
   `{ name, required }` contexts; astromech takes them as an optional argument and keeps the old `codecov/` prefix as
-  its default when no provider is loaded. Step 3 (`codecov.yml`) is still to do, with open question 1 as written.
+  its default when no provider is loaded. Step 3 (`codecov.yml`) shipped (the pull request that closes open question 1 with the recommended optional
+  argument): `Coverage.configFiles?(input)` takes `{ components: { id, path }[], flags, documentation, existing(path) }` and
+  returns `Record<path, text>`; it is synchronous (pure, nothing to await), where the sketch above says `Promise`.
+  `generateRepoFiles()` takes the files as an optional `coverageConfigFiles` function (`coverageConfigFiles()` in the CLI
+  builds it from the provider) and, **with none supplied (no provider loaded or no method), writes no coverage config**: a
+  skipped `write coverage config` step, an existing `codecov.yml` left as it is. A repo that declares no `coverage`
+  provider therefore no longer gets a scaffolded `codecov.yml` from `setup`; the alternative (keeping a second copy of the
+  generator in astromech as the default) would have left the file in two places and defeated the move, so it was not
+  taken. Astromech keeps `readWorkspacePackages()`, `codecovFlagNames()`, `codecovUploads()`, `packageLocation()` and
+  `DOCUMENTATION_FLAG`, which the uploads list, `coverageExpectations()` and the status contexts read. This repo's
+  `codecov.yml` is unchanged byte for byte. All three steps are done: the spec can move to `docs/wiki/specifications/` as
+  `archived` (the user decides).

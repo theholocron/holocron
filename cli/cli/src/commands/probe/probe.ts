@@ -5,6 +5,7 @@ import { commandFailureMessage, statusRow, style } from "@theholocron/kyber/ui";
 import type { ResolvedTuple } from "../../config/index.js";
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
+import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { ownerEnvironments } from "../owner-environments/index.js";
 import { tokenExpectations } from "../token-expectations/index.js";
@@ -64,6 +65,11 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 			input.loaded,
 			input.context.repoRoot,
 			coverageStatusContexts({
+				loader,
+				repoRoot: input.context.repoRoot,
+				docsCoverage: input.loaded.resolved.repoValidation?.docsCoverage,
+			}),
+			coverageConfigFiles({
 				loader,
 				repoRoot: input.context.repoRoot,
 				docsCoverage: input.loaded.resolved.repoValidation?.docsCoverage,

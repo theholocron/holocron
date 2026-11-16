@@ -3264,6 +3264,37 @@ export interface Coverage extends ProviderIdentity {
 	 * no provider); without a provider, the task runner keeps its default (a context starting with `codecov/` is a status).
 	 */
 	statusContexts?(input: CoverageStatusInput): CoverageStatusContext[];
+	/**
+	 * The service's own config files for the repository (Codecov: `codecov.yml`), as text by path relative to the
+	 * repository root, from the repo's flags and components. A file that already exists comes in through
+	 * `input.existing`, so the provider can merge into it and keep every hand edit. Pure and offline: it reads and
+	 * writes nothing, so `setup`, `sync` and `probe generated check` can share it. The CLI writes the files (or compares
+	 * them with the committed copies); without a provider (or a provider without this method) it writes none.
+	 */
+	configFiles?(input: CoverageConfigInput): Record<string, string>;
+}
+
+/** What {@link Coverage.configFiles} takes: names, paths and a mode, never a credential. */
+export interface CoverageConfigInput {
+	/** One component per workspace package, in the order the file lists them. */
+	components: CoverageConfigComponent[];
+	/** The flag names (the ids of the components that get one), in order. */
+	flags: string[];
+	/** `repoValidation.docsCoverage`: whether the documentation flag and its statuses are in the file. */
+	documentation: CoverageStatusInput["documentation"];
+	/** The text of a file already in the repository, or `null` when there is none. The path is relative to the repo root. */
+	existing(path: string): string | null;
+}
+
+/** The mode of {@link CoverageConfigInput.documentation}. */
+export type CoverageConfigDocumentation = CoverageConfigInput["documentation"];
+
+/** One workspace package as the config file lists it. */
+export interface CoverageConfigComponent {
+	/** The component id (the package's slug, which is also its flag name). */
+	id: string;
+	/** The package's directory, relative to the repository root, `/`-separated, no trailing slash. */
+	path: string;
 }
 
 /** What {@link Coverage.statusContexts} takes: names and a mode, never a credential. */

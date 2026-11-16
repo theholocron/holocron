@@ -49,6 +49,7 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
+import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
@@ -87,6 +88,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const effectivePreset = repo?.protection;
 	// What the `coverage` provider posts, for the `ci` aggregate and the ruleset; none keeps the task runner's default.
 	const statusContexts = coverageStatusContexts({
+		loader,
+		repoRoot: input.context.repoRoot,
+		docsCoverage: config.repoValidation?.docsCoverage,
+	});
+	// What the `coverage` provider writes (`codecov.yml`); none means no coverage config is written.
+	const coverageFiles = coverageConfigFiles({
 		loader,
 		repoRoot: input.context.repoRoot,
 		docsCoverage: config.repoValidation?.docsCoverage,
@@ -191,6 +198,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			repoRoot: input.context.repoRoot,
 			hooks: input.hooks,
 			...(statusContexts ? { statusContexts } : {}),
+			...(coverageFiles ? { coverageConfigFiles: coverageFiles } : {}),
 			logger,
 		})) {
 			if (entry.kind === "skip") {

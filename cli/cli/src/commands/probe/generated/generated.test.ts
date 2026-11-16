@@ -247,6 +247,19 @@ describe("generatedProbes", () => {
 		generate.mockReset();
 	});
 
+	it("generates with the coverage provider's config files when it is given them", async () => {
+		const coverageFiles = () => ({ "codecov.yml": "x\n" });
+		generate.mockResolvedValue([file("a.json", "{}\n")]);
+		await generatedProbes(
+			{ resolved: { tasks: [] } } as unknown as LoadedConfig,
+			root,
+			undefined,
+			coverageFiles
+		).check!.run({ say: () => {} } as never);
+		expect(generate.mock.calls.map((call) => call[0].coverageConfigFiles)).toEqual([coverageFiles, coverageFiles]);
+		generate.mockReset();
+	});
+
 	it("says how many files match", async () => {
 		const rows = await run([
 			file("a.json", "{}\n"),

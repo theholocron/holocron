@@ -15,7 +15,7 @@ import type { RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
 export async function generateRepoFiles(input: RepoFilesInput): Promise<RepoFileEntry[]> {
 	return [
 		...generateWorkflowFiles(input),
-		...(await generateConfigFiles(input)),
+		...generateConfigFiles(input),
 		...(await generateAgentFiles(input)),
 		...(await generatePrivateDirFiles(input)),
 		...(await generateTurboFiles(input)),

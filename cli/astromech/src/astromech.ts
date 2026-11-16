@@ -12,8 +12,6 @@ import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/s
 import {
 	aggregateCaller as resolveAggregateCaller,
 	aggregateChecks,
-	codecovConfig as resolveCodecovConfig,
-	type CodecovConfigOptions,
 	deriveDeployPaths,
 	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
 	ensureTurboDependency as resolveEnsureTurboDependency,
@@ -201,9 +199,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const checks = aggregateChecks(options.config ?? {}, options.statusContexts);
 			return checks.expected.length === 0 && checks.statuses.length === 0 ? null : resolveAggregateCaller(checks);
 		},
-
-		codecovConfig: (existing: string | null, codecov?: CodecovConfigOptions) =>
-			resolveCodecovConfig(options.cwd, existing, codecov),
 
 		turboConfig: () => resolveTurboConfig(options.config ?? {}, { monorepo: hasWorkspaceFile() }),
 

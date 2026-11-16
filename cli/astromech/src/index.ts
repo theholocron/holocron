@@ -34,16 +34,12 @@ export {
 	localizeActions,
 	TEMPLATE_HOME,
 } from "./generators/ci-ref/index.js";
-export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
+export type { DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
-	codecovComponentBlock,
-	codecovConfig,
 	codecovFlagNames,
 	codecovUploads,
-	createCodecovConfig,
 	DOCUMENTATION_FLAG,
-	ensureIfNotFound,
-	mergeCodecovComponents,
+	packageLocation,
 	readWorkspacePackages,
 } from "./generators/codecov/index.js";
 export {
