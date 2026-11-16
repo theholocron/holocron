@@ -1,3 +1,9 @@
+## [1.58.0-alpha.34](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.33...clients-v1.58.0-alpha.34) (2026-11-16)
+
+### Features
+
+* **turbo:** ✨ add the cache capability, a Turbo client and plugin with a token probe ([#2227](https://github.com/theholocron/holocron/issues/2227)) ([6c41043](https://github.com/theholocron/holocron/commit/6c41043b9797839561715cb8b65b3c70fb6fec88)), closes [#2168](https://github.com/theholocron/holocron/issues/2168)
+
 ## [1.58.0-alpha.33](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.32...clients-v1.58.0-alpha.33) (2026-11-15)
 
 ### Features
