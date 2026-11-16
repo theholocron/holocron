@@ -1,10 +1,13 @@
 ---
+id: SPEC-0088
 status: archived
 issue: theholocron/holocron#2251
 blocked-by: []
 related:
   - theholocron/holocron#1859
   - theholocron/holocron#1744
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571934843040964669
 ---
 
 # Schedule the issue sync and map assignees between trackers
