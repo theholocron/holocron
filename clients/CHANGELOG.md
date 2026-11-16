@@ -1,3 +1,9 @@
+## [1.58.0-alpha.35](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.34...clients-v1.58.0-alpha.35) (2026-11-16)
+
+### Bug Fixes
+
+* **github-client:** 🐛 send only writable fields when a custom property definition is written ([#2234](https://github.com/theholocron/holocron/issues/2234)) ([c0d59c1](https://github.com/theholocron/holocron/commit/c0d59c14acde780ffdcbc6bba08a230f59b851b1))
+
 ## [1.58.0-alpha.34](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.33...clients-v1.58.0-alpha.34) (2026-11-16)
 
 ### Features
