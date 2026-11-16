@@ -1,3 +1,17 @@
+## [5.0.0-alpha.452](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.451...v5.0.0-alpha.452) (2026-11-16)
+
+### Bug Fixes
+
+* **cloudflare:** 🔧 check a token on the organization's own zone, not the account's first five ([#2241](https://github.com/theholocron/holocron/issues/2241)) ([8a5aa6c](https://github.com/theholocron/holocron/commit/8a5aa6c0f2c2a7a80736a874c5d4df929f0cccba))
+
+### Documentation
+
+* **specs:** 📝 draft moving the Codecov upload, statuses and config into the plugin ([#2239](https://github.com/theholocron/holocron/issues/2239)) ([c913595](https://github.com/theholocron/holocron/commit/c913595ce4e9a44a6a6a2c5cb89eb0d4c60f87c4)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2240](https://github.com/theholocron/holocron/issues/2240)) ([3e42996](https://github.com/theholocron/holocron/commit/3e4299687019d6b77ef0f63c65f271a3c4d4de1b))
+
 ## [5.0.0-alpha.451](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.450...v5.0.0-alpha.451) (2026-11-16)
 
 ### Chores
