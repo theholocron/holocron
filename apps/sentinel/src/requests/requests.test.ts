@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 
@@ -121,5 +121,47 @@ describe("Sentinel's requests", () => {
 			handled: true,
 			event: { type: "pull_request.opened", repo: "theholocron/sandbox", pullNumbers: [1], installationId: 1 },
 		});
+	});
+});
+
+describe("the environment files", () => {
+	interface EnvironmentFile {
+		name: string;
+		values: Array<{ key: string; value: string; type: string }>;
+	}
+	const dir = fileURLToPath(new URL("../../requests/", import.meta.url));
+	const files = readdirSync(dir)
+		.filter((file) => /^environment(\.[a-z]+)?\.json$/.test(file))
+		.sort();
+	const load = (file: string) => JSON.parse(readFileSync(`${dir}${file}`, "utf8")) as EnvironmentFile;
+	const byName = Object.fromEntries(files.map((file) => [load(file).name, load(file)]));
+
+	it("are a local, a dev and a prod environment", () => {
+		expect(files).toEqual(["environment.dev.json", "environment.json", "environment.prod.json"]);
+		expect(Object.keys(byName).sort()).toEqual(["Sentinel (dev)", "Sentinel (local)", "Sentinel (prod)"]);
+	});
+
+	it("define the same variables, so a request runs in any of them", () => {
+		const keys = files.map((file) => load(file).values.map((value) => value.key));
+		for (const names of keys) expect(names).toEqual(keys[0]);
+	});
+
+	it("hold the webhook secret as an empty secret-type variable, never a value", () => {
+		for (const file of files) {
+			const secret = load(file).values.find((value) => value.key === "webhookSecret");
+			expect([secret?.type, secret?.value]).toEqual(["secret", ""]);
+		}
+	});
+
+	it("point baseUrl at this machine, the dev tunnel and production", () => {
+		const base = (name: string) => byName[name]?.values.find((value) => value.key === "baseUrl")?.value;
+		expect(base("Sentinel (local)")).toBe("http://127.0.0.1:3000");
+		expect(base("Sentinel (dev)")).toBe("https://sentinel-dev.theholocron.dev");
+		expect(base("Sentinel (prod)")).toBe("https://sentinel.theholocron.dev");
+	});
+
+	it("are the ones the root config exports for Sentinel", () => {
+		const config = readFileSync(fileURLToPath(new URL("../../../../holocron.config.ts", import.meta.url)), "utf8");
+		for (const file of files) expect(config).toContain(`apps/sentinel/requests/${file}`);
 	});
 });

@@ -10,9 +10,10 @@ import { describe, expect, it } from "vitest";
  * `.holocron/<area>.ts` (spec `tech-holocron-directory`), not back in the index. If a real addition needs more, raise
  * this number in the same PR and say why; the point is that growing the file is a decision, not a drift. Raised from
  * 200 for the `doctor.manualSecrets` list (#2183): a declaration of names that is not an area, so it stays here, and to
- * 220 for the `tooling` provider, which names the apps' request files (#2172).
+ * 220 for the `tooling` provider, which names the apps' request files (#2172), and to 230 for the environment files
+ * Sentinel's requests gained (a local, a dev and a prod one).
  */
-const MAX_LINES = 220;
+const MAX_LINES = 230;
 
 const CONFIG = fileURLToPath(new URL("../../../../holocron.config.ts", import.meta.url));
 

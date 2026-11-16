@@ -264,7 +264,12 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 							"apps/sentinel/requests/collection.json",
 							"apps/comlink/requests/collection.json",
 						],
-						envFiles: ["apps/sentinel/requests/environment.json", "apps/comlink/requests/environment.json"],
+						envFiles: [
+							"apps/sentinel/requests/environment.json",
+							"apps/sentinel/requests/environment.dev.json",
+							"apps/sentinel/requests/environment.prod.json",
+							"apps/comlink/requests/environment.json",
+						],
 					},
 				},
 			],

@@ -1,0 +1,35 @@
+{
+  "name": "Sentinel (dev)",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "https://sentinel-dev.theholocron.dev",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "webhookSecret",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "repo",
+      "value": "theholocron/sandbox",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "pullNumber",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "installationId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    }
+  ]
+}
