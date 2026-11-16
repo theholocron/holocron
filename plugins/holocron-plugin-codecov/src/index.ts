@@ -66,6 +66,13 @@ export function createContext(options: CodecovPluginOptions = {}): PluginContext
 	};
 }
 
+/** Builds the `coverage` capability from a plugin context; `apiToken` replaces the resolved API token for this one capability. */
+export function coverageWithApiToken(ctx: PluginContext, apiToken: string): Coverage {
+	return new CodecovCoverage(ctx.client, resolveTarget(ctx.options), () =>
+		createCodecovClient({ token: apiToken, baseUrl: ctx.options.baseUrl, fetch: ctx.options.fetch })
+	);
+}
+
 /** Builds the `coverage` capability from a plugin context. */
 export function coverage(ctx: PluginContext): Coverage {
 	return new CodecovCoverage(ctx.client, resolveTarget(ctx.options), ctx.apiClient);
@@ -88,7 +95,9 @@ export function createPlugin(options: CodecovPluginOptions = {}) {
 				}),
 			}),
 			repo: repoProbe({
-				coverage: () => coverage(ctx),
+				coverage: (apiToken) => (apiToken ? coverageWithApiToken(ctx, apiToken) : coverage(ctx)),
+				apiTokenName: resolveApiToken.token.envName,
+				cliToken: options.cliToken,
 				expected: () =>
 					options.expected
 						? options.expected()

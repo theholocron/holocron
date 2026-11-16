@@ -134,9 +134,61 @@ describe("createPlugin", () => {
 		});
 		expect(calls.every((c) => c.headers.authorization === "Bearer api")).toBe(true);
 		expect(rows).toEqual([
+			{ status: "info", label: "--token", detail: expect.stringContaining("upload token") },
 			{ status: "ok", label: "components", detail: "1 declared, all on Codecov for a/b" },
 			{ status: "info", label: "flag b", detail: expect.any(String) },
 			{ status: "info", label: "flag stray", detail: expect.any(String) },
+		]);
+	});
+
+	it("its repo probe checks with the token an Environment handed over for --token-name, and keeps it out of the output", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { next: null, results: [{ flag_name: "a" }] } },
+			{ body: [{ component_id: "a", name: "a" }] },
+		]);
+		const plugin = createPlugin({
+			cliToken: "from-environment",
+			env: { HOLOCRON_CODECOV_API_TOKEN: "shell" },
+			keyring: () => null,
+			repo: "a/b",
+			fetch,
+			expected: () => ({ flags: ["a"], components: ["a"] }),
+		});
+		const rows: Array<{ status: string; label: string }> = [];
+		const secrets: Array<string | undefined> = [];
+		await plugin.probes.repo.run({
+			args: ["--token-name", "HOLOCRON_CODECOV_API_TOKEN", "--layer", "ci"],
+			dryRun: false,
+			say: (r) => void rows.push(r),
+			secret: (v) => void secrets.push(v),
+			write: async () => undefined,
+			cleanup: () => {},
+		});
+		expect(calls.length).toBe(2);
+		expect(calls.every((c) => c.headers.authorization === "Bearer from-environment")).toBe(true);
+		expect(secrets).toEqual(["from-environment"]);
+		expect(rows.map((r) => r.status)).toEqual(["ok", "ok"]);
+	});
+
+	it("its repo probe does not check the upload token an Environment holds", async () => {
+		const { fetch, calls } = stubFetch([]);
+		const plugin = createPlugin({ cliToken: "upload", env: {}, keyring: () => null, repo: "a/b", fetch });
+		const rows: Array<{ status: string; label: string; detail?: string }> = [];
+		await plugin.probes.repo.run({
+			args: ["--token-name", "HOLOCRON_CODECOV_UPLOAD_TOKEN"],
+			dryRun: false,
+			say: (r) => void rows.push(r),
+			secret: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+		});
+		expect(calls).toEqual([]);
+		expect(rows).toEqual([
+			{
+				status: "info",
+				label: "HOLOCRON_CODECOV_UPLOAD_TOKEN",
+				detail: expect.stringContaining("does not check it"),
+			},
 		]);
 	});
 

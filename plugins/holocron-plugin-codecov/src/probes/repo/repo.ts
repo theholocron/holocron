@@ -1,5 +1,6 @@
 import type { CoverageRepoReport, Probe } from "@theholocron/cli";
 
+import { parseTokenArgs } from "../token/parse-token-args.js";
 import type { RepoProbeContext } from "./repo.type.js";
 
 /**
@@ -14,13 +15,39 @@ import type { RepoProbeContext } from "./repo.type.js";
  *
  * Codecov's REST API takes a personal API token, not the upload token, so without `HOLOCRON_CODECOV_API_TOKEN` the probe
  * reports `info` naming the variable and never fails. It only reads.
+ *
+ * It accepts `--environment <layer or name>` like the `token` probes: the CLI runs it once per Codecov token the
+ * Environment holds and passes `--token-name <VARIABLE>`. For `HOLOCRON_CODECOV_API_TOKEN` the probe checks with that
+ * token; for any other (the upload token) it says it does not check it. A bare `--token`, which is the upload token for
+ * this plugin, is never used here and the probe says so.
  */
 export function repoProbe(ctx: RepoProbeContext): Probe {
 	return {
 		summary:
 			"Compare the flags and components `holocron sync` writes to codecov.yml with the ones Codecov has for the repository. Needs HOLOCRON_CODECOV_API_TOKEN (a personal API token). Read-only.",
 		writes: false,
+		acceptsToken: true,
 		async run(probe) {
+			const { tokenName } = parseTokenArgs(probe.args ?? []);
+			if (tokenName !== undefined && tokenName !== ctx.apiTokenName) {
+				probe.say({
+					status: "info",
+					label: tokenName,
+					detail: `not the API token (${ctx.apiTokenName}), so this probe does not check it`,
+				});
+				return;
+			}
+			let apiToken: string | undefined;
+			if (tokenName !== undefined) {
+				apiToken = ctx.cliToken;
+				if (apiToken !== undefined) probe.secret(apiToken);
+			} else if (ctx.cliToken !== undefined) {
+				probe.say({
+					status: "info",
+					label: "--token",
+					detail: `a token given with --token is the upload token, which the REST API does not take, so it is not used; use --environment for ${ctx.apiTokenName}`,
+				});
+			}
 			if (!ctx.repo) {
 				probe.say({
 					status: "info",
@@ -31,7 +58,7 @@ export function repoProbe(ctx: RepoProbeContext): Probe {
 			}
 			let report: CoverageRepoReport | undefined;
 			try {
-				report = await ctx.coverage().checkRepo?.(ctx.expected());
+				report = await ctx.coverage(apiToken).checkRepo?.(ctx.expected());
 			} catch (err) {
 				probe.say({
 					status: "fail",

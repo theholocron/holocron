@@ -103,6 +103,14 @@ It always ends with an `info` row that permissions are not checked: Codecov has 
 | a flag or component on Codecov, not declared  | `info`: a hand-made or retired name                                                                   |
 | no `HOLOCRON_CODECOV_API_TOKEN`, or a 401/403 | `info`, naming the variable to set; never a failure                                                   |
 
+`probe codecov repo --environment ci` (or `dev`, `local`, or an Environment name the config names) reads that Environment in memory, the way the `token` probes do, and checks with its `HOLOCRON_CODECOV_API_TOKEN`. The probe runs once per Codecov token the Environment holds and is told which with `--token-name`: for the API token it asks Codecov with it, and for `HOLOCRON_CODECOV_UPLOAD_TOKEN` it says it does not check that token (`info`). An Environment with no API token gets the same `info` row as before, since the API token is optional. A bare `--token codecov=<value>` is still the upload token, which the REST API does not take, so this probe never uses it and says so; use `--environment`. Without `--environment` the API token is read from `HOLOCRON_CODECOV_API_TOKEN` or the keyring as before. The token is never printed.
+
+```sh
+holocron probe codecov repo                    # the API token from the shell or keyring
+holocron probe codecov repo --environment ci   # the ci layer's API token
+holocron probe codecov repo --environment dev
+```
+
 The expected names come from `coverageExpectations()` (exported by `@theholocron/cli`), which calls the same functions the `codecov.yml` generator uses.
 
 ## Uploading coverage

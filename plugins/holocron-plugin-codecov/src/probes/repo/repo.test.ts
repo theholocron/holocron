@@ -1,13 +1,20 @@
 import type { Coverage, CoverageNameDiff, CoverageRepoReport, ProbeRow } from "@theholocron/cli";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { repoProbe } from "./repo.js";
+
+const given: Array<string | undefined> = [];
+const secrets: Array<string | undefined> = [];
+beforeEach(() => {
+	given.length = 0;
+	secrets.length = 0;
+});
 
 const same = (names: string[]): CoverageNameDiff => ({ expected: names, missing: [], extra: [] });
 
 async function run(
 	result: CoverageRepoReport | Error | "no-method",
-	over: { repo?: string | null } = {}
+	over: { repo?: string | null; args?: string[]; cliToken?: string } = {}
 ): Promise<ProbeRow[]> {
 	const rows: ProbeRow[] = [];
 	const coverage: Coverage = {
@@ -24,15 +31,22 @@ async function run(
 				}),
 	};
 	const probe = repoProbe({
-		coverage: () => coverage,
+		coverage: (token) => {
+			given.push(token);
+			return coverage;
+		},
+		apiTokenName: "HOLOCRON_CODECOV_API_TOKEN",
+		cliToken: over.cliToken,
 		expected: () => ({ flags: ["a"], components: ["a"] }),
 		repo: over.repo === null ? undefined : (over.repo ?? "theholocron/holocron"),
 	});
 	expect(probe.writes).toBe(false);
+	expect(probe.acceptsToken).toBe(true);
 	await probe.run({
+		...(over.args ? { args: over.args } : {}),
 		dryRun: false,
 		say: (r) => void rows.push(r),
-		secret: () => {},
+		secret: (v) => void secrets.push(v),
 		write: async () => undefined,
 		cleanup: () => {},
 	});
@@ -92,15 +106,19 @@ describe("repo probe", () => {
 			checkToken: async () => ({ outcome: "accepted" }),
 			checkRepo: () => Promise.reject("plain text"),
 		};
-		await repoProbe({ coverage: () => coverage, expected: () => ({ flags: [], components: [] }), repo: "a/b" }).run(
-			{
-				dryRun: false,
-				say: (r) => void rows.push(r),
-				secret: () => {},
-				write: async () => undefined,
-				cleanup: () => {},
-			}
-		);
+		await repoProbe({
+			coverage: () => coverage,
+			apiTokenName: "X",
+			cliToken: undefined,
+			expected: () => ({ flags: [], components: [] }),
+			repo: "a/b",
+		}).run({
+			dryRun: false,
+			say: (r) => void rows.push(r),
+			secret: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+		});
 		expect(rows).toEqual([{ status: "fail", label: "Codecov API", detail: "plain text" }]);
 	});
 
@@ -112,5 +130,45 @@ describe("repo probe", () => {
 	it("is info when the options name no repository", async () => {
 		const rows = await run({ checked: true, flags: same([]), components: same([]) }, { repo: null });
 		expect(rows).toEqual([expect.objectContaining({ status: "info", label: "repository" })]);
+	});
+
+	it("checks with the token --environment handed over for the API token, and hides it", async () => {
+		const rows = await run(
+			{ checked: true, flags: same(["a"]), components: same(["a"]) },
+			{ args: ["--token-name", "HOLOCRON_CODECOV_API_TOKEN", "--layer", "ci"], cliToken: "api-secret" }
+		);
+		expect(given).toEqual(["api-secret"]);
+		expect(secrets).toEqual(["api-secret"]);
+		expect(rows.map((r) => r.status)).toEqual(["ok", "ok"]);
+	});
+
+	it("falls back to the plugin's own token when the Environment run carries none", async () => {
+		await run(
+			{ checked: true, flags: same(["a"]), components: same(["a"]) },
+			{ args: ["--token-name", "HOLOCRON_CODECOV_API_TOKEN"] }
+		);
+		expect(given).toEqual([undefined]);
+		expect(secrets).toEqual([]);
+	});
+
+	it("says it does not check any other declared token, such as the upload token", async () => {
+		const rows = await run(
+			{ checked: true, flags: same(["a"]), components: same(["a"]) },
+			{ args: ["--token-name", "HOLOCRON_CODECOV_UPLOAD_TOKEN"], cliToken: "upload" }
+		);
+		expect(given).toEqual([]);
+		expect(rows).toEqual([
+			{
+				status: "info",
+				label: "HOLOCRON_CODECOV_UPLOAD_TOKEN",
+				detail: expect.stringContaining("does not check it"),
+			},
+		]);
+	});
+
+	it("never uses a bare --token, which is the upload token, and says so", async () => {
+		const rows = await run({ checked: true, flags: same(["a"]), components: same(["a"]) }, { cliToken: "upload" });
+		expect(given).toEqual([undefined]);
+		expect(rows[0]).toEqual({ status: "info", label: "--token", detail: expect.stringContaining("upload token") });
 	});
 });
