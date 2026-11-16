@@ -1,10 +1,13 @@
 ---
+id: SPEC-0089
 status: archived
 issue: theholocron/holocron#2253
 blocked-by: []
 related:
   - theholocron/holocron#1859
   - theholocron/holocron#2251
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571951020005662761
 ---
 
 # Write GitHub's issue Priority field from sync and migrate
