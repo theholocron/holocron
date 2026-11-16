@@ -29,10 +29,10 @@ providers: {
 
 ### Options
 
-| Option            | Required | Description                                                                                                                      |
-| ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repository root. Each becomes one YAML file                                    |
-| `envFiles`        | No       | The environment JSON files, relative to the repository root. Every exported collection gets all of them, inside its own document |
+| Option            | Required | Description                                                                                                                                                         |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repository root. Each becomes one YAML file                                                                       |
+| `envFiles`        | No       | The environment JSON files, relative to the repository root. A collection gets the ones in its own folder (all of them when none is there), inside its own document |
 
 ## What `tooling` provides
 

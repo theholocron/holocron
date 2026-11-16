@@ -44,7 +44,8 @@ generated from it, so no tool's file is edited by hand and none drifts.
    - **One file per collection**, named after the source (`collection.json` is `collection.yml`; two files of the same
      name use their whole path joined with `-`).
    - **Environments live inside the OpenCollection document** (`environments:`), not in a file of their own, so every
-     environment file goes into every exported collection. The converter takes an environment's name from its `.bru`
+     environment file goes into the collections it is handed with: the command gives a folder's collections the
+     environment files beside them (all of them when none sits there, or under `--out`). The converter takes an environment's name from its `.bru`
      file name, so the plugin sets it to `<name>.bru` first (otherwise it is `Unnamed Environment`). A secret-type
      variable becomes `transient: true`.
    - **`sync()` is a no-op that succeeds.** Bruno holds no state to reconcile, `holocron setup` calls `sync` on every

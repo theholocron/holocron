@@ -28,10 +28,10 @@ providers: {
 
 ### Options
 
-| Option            | Required | Description                                                                                         |
-| ----------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repo root. Each becomes one YAML file.            |
-| `envFiles`        | No       | The environment JSON files, relative to the repo root. Every exported collection holds all of them. |
+| Option            | Required | Description                                                                                                                    |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repo root. Each becomes one YAML file.                                       |
+| `envFiles`        | No       | The environment JSON files, relative to the repo root. A collection holds the ones in its own folder (all when none is there). |
 
 ## What it does
 

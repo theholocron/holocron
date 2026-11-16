@@ -29,7 +29,7 @@ import { outputNames } from "../output-names.js";
 export interface BrunoToolingOptions {
 	/** Collection JSON files (v2.1), relative to `repoRoot`. */
 	collectionFiles?: string[];
-	/** Environment JSON files, relative to `repoRoot`; each goes into every exported collection. */
+	/** Environment JSON files, relative to `repoRoot`; each goes into every collection it is exported with (`export requests` hands a folder's collections the files beside them). */
 	envFiles?: string[];
 	/** Working repo root. Defaults to `process.cwd()`. */
 	repoRoot?: string;
