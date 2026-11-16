@@ -1,3 +1,15 @@
+## [5.0.0-alpha.450](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.449...v5.0.0-alpha.450) (2026-11-16)
+
+### Features
+
+* **config:** 🔌 wire Codecov and Turbo as this repo's coverage and cache providers ([#2235](https://github.com/theholocron/holocron/issues/2235)) ([316ba93](https://github.com/theholocron/holocron/commit/316ba93539cd90bac0473bab2cda60a172cdad50)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2167](https://github.com/theholocron/holocron/issues/2167) [#2168](https://github.com/theholocron/holocron/issues/2168)
+
+### Chores
+
+* **deps:** bump @semantic-release/changelog from 6.0.3 to 7.0.0 ([#2231](https://github.com/theholocron/holocron/issues/2231)) ([eb7625f](https://github.com/theholocron/holocron/commit/eb7625f65b10d86d14afa9828aa0fdaed633c73a))
+* **deps:** bump @sentry/node from 10.75.2 to 11.12.0 ([#2233](https://github.com/theholocron/holocron/issues/2233)) ([bc3e897](https://github.com/theholocron/holocron/commit/bc3e8970762ae54e6ebe6645b6b15f14e3a007c6))
+* **deps:** bump the all-actions group across 2 directories with 2 updates ([#2232](https://github.com/theholocron/holocron/issues/2232)) ([a3aa094](https://github.com/theholocron/holocron/commit/a3aa094eaf31d9f3ee957ae838be06da93288255))
+
 ## [5.0.0-alpha.449](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.448...v5.0.0-alpha.449) (2026-11-16)
 
 ### Features
