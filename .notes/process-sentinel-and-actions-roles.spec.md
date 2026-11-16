@@ -1,4 +1,5 @@
 ---
+id: SPEC-0091
 status: draft
 issue: theholocron/holocron#2263
 blocked-by: []
@@ -8,6 +9,8 @@ related:
   - theholocron/holocron#2037
   - theholocron/holocron#2203
   - theholocron/holocron#945
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571991764489736344
 ---
 
 # What Sentinel runs, and what GitHub Actions runs
