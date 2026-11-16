@@ -4,7 +4,7 @@
  * An issue is one a migration or sync made when its body ends with the `holocron:migrated-from` marker, and only such
  * an issue is changed. Title, description, state and labels (so also the `priority: <level>` label, because GitHub's
  * priority is a label) are set to what the source has when they differ; the labels it does not manage (`status:*`)
- * are kept. An assignee is set only when the record carries a GitHub `login` (`sync issues` finds it in the assignees
+ * are kept. The organization's `Priority` issue field is set from the record's priority (`issue-priority.ts`). An assignee is set only when the record carries a GitHub `login` (`sync issues` finds it in the assignees
  * file); one with none is reported in `dropped` and not compared, and an assignee is never cleared. Comments the issue lacks are added, oldest first; none is edited or deleted, and one is found again by the
  * time in its header, so a comment edited on the source is not copied twice.
  */
@@ -13,6 +13,7 @@ import type { ImportOptions, IssueRecord, SyncResult } from "@theholocron/cli";
 import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { createPrioritySetter, type PrioritySetter } from "./issue-priority.js";
 import {
 	createFromRecord,
 	droppedFor,
@@ -53,12 +54,15 @@ export async function syncIssues(
 		if (url) existing.set(url, issue);
 	}
 
+	const priority = createPrioritySetter(client, repo);
 	const results: SyncResult[] = [];
 	for (const record of records) {
 		try {
 			const found = existing.get(record.url);
 			results.push(
-				found ? await update(client, repo, found, record, options) : await create(client, repo, record, options)
+				found
+					? await update(client, repo, found, record, options, priority)
+					: await create(client, repo, record, options, priority)
 			);
 			reportProgress(options.onProgress, results.length, records.length);
 		} catch (err) {
@@ -73,11 +77,14 @@ async function create(
 	client: GitHubClient,
 	repo: string,
 	record: IssueRecord,
-	options: ImportOptions
+	options: ImportOptions,
+	priority: PrioritySetter
 ): Promise<SyncResult> {
 	const dropped = droppedFor(record);
 	if (options.dryRun) return { source: record.key, created: true, updated: false, changes: [], dropped };
 	const number = await createFromRecord(client, repo, record, options);
+	const field = await priority.set(number, record.priority, { isNew: true });
+	if (field.note) dropped.push(field.note);
 	return { source: record.key, key: `#${number}`, created: true, updated: false, changes: [], dropped };
 }
 
@@ -86,7 +93,8 @@ async function update(
 	repo: string,
 	issue: GitHubIssue,
 	record: IssueRecord,
-	options: ImportOptions
+	options: ImportOptions,
+	priority: PrioritySetter
 ): Promise<SyncResult> {
 	const patch: Record<string, unknown> = {};
 	const changes: string[] = [];
@@ -118,6 +126,9 @@ async function update(
 		changes.push("assignee");
 	}
 
+	const field = await priority.set(issue.number, record.priority, { dryRun: options.dryRun });
+	if (field.changed) changes.push("priority field");
+
 	const comments = await client.issues.listComments(repo, issue.number);
 	const seen = new Set(comments.map((c) => COMMENT_HEADER.exec(c.body)?.[1]));
 	const missing = record.comments.filter((c) => !seen.has(c.createdAt));
@@ -133,6 +144,6 @@ async function update(
 		created: false,
 		updated: changes.length > 0,
 		changes,
-		dropped: droppedFor(record),
+		dropped: [...droppedFor(record), ...(field.note ? [field.note] : [])],
 	};
 }

@@ -3,13 +3,19 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
+import { type FakeIssueFields, PRIORITY_FIELD, withIssueFields } from "./issue-fields.testing.js";
 import { GitHubIssues } from "./issues.js";
 
 const REPO = "theholocron/holocron";
 
-function make(responses: Parameters<typeof stubFetch>[0]) {
-	const { fetch, calls } = stubFetch(responses);
-	return { issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }), calls };
+function make(responses: Parameters<typeof stubFetch>[0], fields: FakeIssueFields = {}) {
+	const stub = stubFetch(responses);
+	const { fetch, calls: fieldCalls } = withIssueFields(stub.fetch, fields);
+	return {
+		issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }),
+		calls: stub.calls,
+		fieldCalls,
+	};
 }
 
 const raw = (over: Record<string, unknown> = {}) => ({
@@ -327,6 +333,18 @@ describe("GitHubIssues.import", () => {
 		expect(create.body).toContain("<!-- holocron:migrated-from https://linear.app/x/issue/ENG-1 -->");
 		expect((calls[4]?.body as { body: string }).body).toContain("**Han** commented on 2026-01-02");
 		expect(calls[5]?.body).toEqual({ state: "closed", state_reason: "completed" });
+	});
+
+	it("sets the Priority field of the issue it makes, and reports an org with no such field", async () => {
+		const queue = () => [{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }];
+		const withField = make(queue(), { fields: [PRIORITY_FIELD] });
+		const [res] = await withField.issues.import([record()]);
+		expect(withField.fieldCalls.map((c) => c.method)).toEqual(["GET", "POST"]);
+		expect(res?.dropped.join(" ")).not.toContain("priority field");
+
+		const without = make(queue());
+		const [bare] = await without.issues.import([record()]);
+		expect(bare?.dropped).toContain("priority field (theholocron has no Priority issue field)");
 	});
 
 	it("skips what an earlier run made", async () => {
