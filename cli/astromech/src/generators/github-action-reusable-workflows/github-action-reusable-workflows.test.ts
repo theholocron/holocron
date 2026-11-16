@@ -895,6 +895,73 @@ describe("REUSABLE_WORKFLOWS['sync-repo'] — the role id comes from a secret", 
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['sync-repo'] — the summary of a successful sync (#457)", () => {
+	const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
+
+	it("takes the log of the sync step and posts the counts with the sync PR", () => {
+		expect(wf).toMatch(/- name: Run holocron sync\n\s+id: sync\n/);
+		expect(wf).toContain("LOG_FILE: ${{ steps.sync.outputs.log-file }}");
+		expect(wf).toContain("steps.summary.outputs.counts != '' && format(' ({0})', steps.summary.outputs.counts)");
+	});
+
+	it("posts to the sync channel when the run changed nothing, so a successful sync is not silent", () => {
+		expect(wf).toMatch(
+			/name: Notify that the sync had nothing to change\n\s+if: steps\.auto-commit\.outputs\.changes-detected != 'true' && steps\.summary\.outputs\.counts != ''\n\s+with:\n\s+webhook: \$\{\{ secrets\.HOLOCRON_NOTIFY_WEBHOOK_SYNC \}\}/
+		);
+	});
+
+	describe("the summary step's shell", () => {
+		/** The "Summarise the sync" script, run over a sample log; returns the `counts` output and the step summary. */
+		function summarise(log: string) {
+			const start = wf.indexOf("      - name: Summarise the sync\n");
+			const script = wf
+				.slice(start)
+				.split("        run: |\n")[1]!
+				.split("\n")
+				.filter((line, i, all) => i < all.findIndex((l) => l !== "" && !l.startsWith("          ")))
+				.map((line) => line.slice(10))
+				.join("\n");
+			const dir = mkdtempSync(join(tmpdir(), "astromech-sync-summary-"));
+			const files = { log: join(dir, "log"), out: join(dir, "out"), summary: join(dir, "summary") };
+			writeFileSync(files.log, log);
+			writeFileSync(files.out, "");
+			writeFileSync(files.summary, "");
+			const result = spawnSync("bash", ["-e", "-c", script], {
+				env: {
+					PATH: process.env.PATH,
+					LOG_FILE: files.log,
+					GITHUB_OUTPUT: files.out,
+					GITHUB_STEP_SUMMARY: files.summary,
+				},
+				encoding: "utf8",
+			});
+			return {
+				status: result.status,
+				out: readFileSync(files.out, "utf8"),
+				summary: readFileSync(files.summary, "utf8"),
+			};
+		}
+
+		it("takes the closing line of the sync, with the colour codes and the indent stripped", () => {
+			const plain = summarise("→ source\n    ✓ write README.md\n\n  80 ok, 0 fail, 3 skipped\n");
+			expect(plain).toEqual({
+				status: 0,
+				out: "counts=80 ok, 0 fail, 3 skipped\n",
+				summary: "Sync: 80 ok, 0 fail, 3 skipped\n",
+			});
+			const coloured = summarise("  \u001b[1m12 ok, 1 fail, 0 skipped\u001b[0m\n");
+			expect(coloured.out).toBe("counts=12 ok, 1 fail, 0 skipped\n");
+		});
+
+		it("uses the last such line, and gives an empty count, without failing the step, when there is none", () => {
+			expect(summarise("1 ok, 0 fail, 0 skipped\n2 ok, 0 fail, 0 skipped\n").out).toBe(
+				"counts=2 ok, 0 fail, 0 skipped\n"
+			);
+			expect(summarise("nothing useful\n")).toEqual({ status: 0, out: "counts=\n", summary: "" });
+		});
+	});
+});
+
 describe("delivery.publish.yml version groups", () => {
 	const wf = REUSABLE_WORKFLOWS["release"]!;
 

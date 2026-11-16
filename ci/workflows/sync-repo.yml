@@ -97,6 +97,7 @@ jobs:
         name: Setup
 
       - name: Run holocron sync
+        id: sync
         # The `holocron` action resolves @theholocron/cli from node_modules (or
         # builds the workspace when it's an unbuilt checkout — the holocron repo
         # itself). `inputs.steps` is a space-separated list or empty; the
@@ -186,12 +187,33 @@ jobs:
           HAS_PAT: ${{ secrets.HOLOCRON_SYNC_TOKEN != '' || secrets.GH_TOKEN != '' }}
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
 
+      # The closing line of `holocron sync` ("80 ok, 0 fail, 0 skipped"), for the run's summary and the posts below. A log
+      # with no such line gives an empty count, and the posts leave it out.
+      - name: Summarise the sync
+        id: summary
+        if: ${{ !cancelled() && steps.sync.outputs.log-file != '' }}
+        env:
+          LOG_FILE: ${{ steps.sync.outputs.log-file }}
+        run: |
+          esc=$(printf '\033')
+          counts=$(sed "s/${esc}\[[0-9;]*m//g" "$LOG_FILE" | grep -E '^ *[0-9]+ ok, [0-9]+ fail' | tail -1 | sed 's/^ *//' || true)
+          echo "counts=$counts" >> "$GITHUB_OUTPUT"
+          if [ -n "$counts" ]; then echo "Sync: $counts" >> "$GITHUB_STEP_SUMMARY"; fi
+
       - uses: theholocron/.github/.github/actions/notify@main
         name: Notify of the sync PR
         if: steps.pr.outputs.url != '' && steps.pr.outputs.attention != 'true'
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_SYNC }}
-          message: "🔄 ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
+          message: "🔄 ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}${{ steps.summary.outputs.counts != '' && format(' ({0})', steps.summary.outputs.counts) || '' }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
+
+      # A run that changed nothing opens no PR, so without this post a successful sync is silent.
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify that the sync had nothing to change
+        if: steps.auto-commit.outputs.changes-detected != 'true' && steps.summary.outputs.counts != ''
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_SYNC }}
+          message: "✅ ${{ github.repository }}: sync ran and found nothing to change (${{ steps.summary.outputs.counts }})${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: Notify that a sync PR needs attention
