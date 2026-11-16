@@ -1,9 +1,12 @@
 ---
+id: SPEC-0090
 status: archived
 issue: theholocron/holocron#374
 blocked-by: []
 related:
   - theholocron/holocron#1704
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1571971216544370779
 ---
 
 # Keep the destructive command guard hook in `.claude/settings.json`
