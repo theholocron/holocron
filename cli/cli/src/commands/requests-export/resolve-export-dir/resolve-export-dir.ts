@@ -10,7 +10,7 @@ const within = (path: string, folder: string): boolean => {
 
 /**
  * The folder one provider's export is written to: `<out>/<provider>`, where `out` is `--out`, else `.export` beside the
- * first collection file (`requests/.export/postman`, git-ignored). The folder is refused when it is, or contains, a
+ * first of `files` (`requests/.export/postman`, git-ignored; the caller passes one folder's files at a time). The folder is refused when it is, or contains, a
  * source file's folder: an export never writes where the source files are, so it cannot overwrite the one source.
  * A folder below the source folder is fine.
  */

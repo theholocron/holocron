@@ -30,7 +30,8 @@ generated from it, so no tool's file is edited by hand and none drifts.
    It is a `workspace` command. It takes each `tooling` provider's `collectionFiles` and `envFiles` options as the list
    of source files (the same two option names every tooling provider uses for the repo's request files), calls `export`
    on every provider that has it (or only `--to`), and writes to `<out>/<provider>`; `<out>` defaults to `.export`
-   beside the first collection file (`requests/.export/<provider>/`), which `.gitignore` leaves out. It refuses a folder
+   beside the collection files (`requests/.export/<provider>/`), which `.gitignore` leaves out; collection files in
+   different folders are exported separately, each beside its own folder, and `--out` puts them all in one. It refuses a folder
    that is, or contains, the folder of a source file ("never writes inside the source folder"; a folder below it, the
    default, is allowed). It asks first unless `--dry-run` or `--yes`, and refuses without a terminal. A conversion issue
    is a line under the provider's row and is not a failure; a provider that throws is a failing row, and the run goes on
