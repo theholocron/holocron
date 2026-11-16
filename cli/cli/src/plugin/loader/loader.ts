@@ -28,6 +28,7 @@ import {
 } from "../../config/config/index.js";
 import { derivesEnvironment, resolveEnvironments, tryEnvironments } from "../../credentials-environments/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
+import { hintingImporter } from "../missing-plugin-hint/index.js";
 import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderActions } from "../provider-actions/index.js";
 import { WorkspaceContextError } from "../workspace/index.js";
@@ -133,7 +134,7 @@ export class PluginLoader extends system.PluginLoader {
 		importer?: PluginImporter,
 		options?: PluginLoaderOptions
 	) {
-		super(config, context, importer, options);
+		super(config, context, hintingImporter(importer), options);
 		this.extraProviders = options?.extraProviders ?? [];
 	}
 

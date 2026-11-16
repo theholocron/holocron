@@ -270,8 +270,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			],
 		};
 
-		// And (#2167, #2168): the `coverage` provider (Codecov) and the `cache` provider (Turbo's remote cache), so
-		// `probe codecov token`, `probe turbo token` and `doctor tokens` find their plugins.
+		// And (#2167, #2168): the `coverage` provider (Codecov, from `docsPreset()` since #2248, so the config has no line
+		// of its own for it) and the `cache` provider (Turbo's remote cache), so `probe codecov token`,
+		// `probe turbo token` and `doctor tokens` find their plugins.
 		expect(expectedProviders.coverage).toBeUndefined();
 		expect(expectedProviders.cache).toBeUndefined();
 		expectedProviders.coverage = {

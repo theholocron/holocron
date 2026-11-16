@@ -571,6 +571,22 @@ describe("PluginLoader — capability config packages (#75 Level 1)", () => {
 		expect(impls[0]).toBe(slackImpl);
 	});
 
+	it("names a missing coverage plugin and how to add it (the docs preset declares it)", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github", coverage: "codecov" } },
+			{ "@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }) }
+		);
+		await loader.load();
+		expect(loader.has("coverage")).toBe(false);
+		const failure = loader.loadFailures().find((f) => f.key === "coverage");
+		expect(failure!.error).toBeInstanceOf(LoaderError);
+		const message = failure!.error.message;
+		expect(message).toContain("failed to import `@theholocron/holocron-plugin-codecov`");
+		expect(message).toContain("catalogs.holocron");
+		expect(message).toContain('"@theholocron/holocron-plugin-codecov": "catalog:holocron"');
+		expect(message).toContain("pnpm install");
+	});
+
 	it("errors when a config package exports an unresolvable provider", async () => {
 		const { loader } = loaderWith(
 			{

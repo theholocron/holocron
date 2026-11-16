@@ -60,6 +60,10 @@ aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DC
 caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
+:::caution[Upgrade: the docs presets declare the Codecov provider]
+A repo that spreads `docsPreset()` or `docsSitePreset()` now has `providers.coverage: "codecov"`, and the presets no longer list `codecov/patch` and `codecov/project` in `extraRequiredChecks` (the provider supplies them). Add `@theholocron/holocron-plugin-codecov` to the `holocron` catalog in `pnpm-workspace.yaml` and to `devDependencies` as `catalog:holocron`, and have the organization's `holocron_capabilities` allow `coverage`. Without the package, `setup` names it in the load error and says where to add it; with no `coverage` provider loaded it writes no `codecov.yml`.
+:::
+
 **The `ci` aggregate.** `setup` and `sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
 beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
 commit until every expected id has a check run named `<id> / ...` and all of them completed, and every coverage

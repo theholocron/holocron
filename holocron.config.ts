@@ -170,7 +170,6 @@ export default defineConfig({
 		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts. The account id
 		// comes from .holocron/org.ts.
 		monitoring: "checkly",
-		coverage: "codecov",
 		cache: "turbo",
 		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",

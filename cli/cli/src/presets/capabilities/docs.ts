@@ -5,8 +5,8 @@ import { DEFAULT_DOMAIN } from "../constants.js";
 
 /**
  * Adds a documentation site deployed to Cloudflare Pages with PR previews.
- * Sets org/domain, wires Cloudflare + DNS providers, and adds the codecov
- * `extraRequiredChecks` (enabled for all docs repos).
+ * Sets org/domain, wires Cloudflare + DNS providers and the Codecov `coverage` provider (which supplies the
+ * `codecov/patch` and `codecov/project` required statuses).
  * Requires: node
  */
 export function docs(): Capability {
@@ -22,10 +22,12 @@ export function docs(): Capability {
 			deployment: "cloudflare",
 			dns: "cloudflare",
 			workers: "cloudflare",
+			// The Codecov plugin writes `codecov.yml` and says which statuses it posts (`Coverage.statusContexts()`), so
+			// `codecov/patch` and `codecov/project` need no `extraRequiredChecks` entry here (#2248). The repo needs
+			// `@theholocron/holocron-plugin-codecov` in its `holocron` catalog and `coverage` in the org's
+			// `holocron_capabilities`.
+			coverage: "codecov",
 		},
 		tasks: [{ name: "deploy-docs", with: { preview: true } }],
-		// Not task-backed — codecov gates. `holocron setup` appends these to the
-		// `{ required: true }` task contexts.
-		extraRequiredChecks: ["codecov/patch", "codecov/project"],
 	};
 }
