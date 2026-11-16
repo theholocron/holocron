@@ -3,7 +3,8 @@
  *
  * Bruno has no HTTP API and no account to push to: it reads a folder of files. So this provider works on files only,
  * with no token and no network, and its one real job is `export()`: it writes each of the repo's collection files as
- * an OpenCollection YAML document (with the environments inside it), for `holocron export requests`.
+ * an OpenCollection YAML document and a Bruno JSON file, each with the environments inside it, for
+ * `holocron export requests`.
  *
  * `sync()` has nothing to reconcile, so it does nothing and succeeds: `holocron setup` calls it on every `tooling`
  * provider, and the files are written by `export()`, which is the person's call, never a side effect of `setup`.
@@ -83,6 +84,7 @@ export class BrunoTooling implements Tooling {
 		const { collectionFiles, envFiles, outDir, repoRoot } = input;
 		const environments = await Promise.all(envFiles.map((file) => readJson(repoRoot, file)));
 		const names = outputNames(collectionFiles);
+		const jsonNames = outputNames(collectionFiles, ".bruno.json");
 		const files: string[] = [];
 		const issues: ToolingExportIssue[] = [];
 		for (const [index, file] of collectionFiles.entries()) {
@@ -93,11 +95,13 @@ export class BrunoTooling implements Tooling {
 			);
 			for (const issue of converted.issues) issues.push({ file, message: issue });
 			const name = names[index] as string;
+			const jsonName = jsonNames[index] as string;
 			if (!input.dryRun) {
 				await mkdir(outDir, { recursive: true });
 				await writeFile(join(outDir, name), converted.text);
+				await writeFile(join(outDir, jsonName), converted.json);
 			}
-			files.push(name);
+			files.push(name, jsonName);
 		}
 		return { files, issues };
 	}

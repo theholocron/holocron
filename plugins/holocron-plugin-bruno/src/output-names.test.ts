@@ -15,6 +15,11 @@ describe("outputNames", () => {
 		]);
 	});
 
+	it("takes the extension it is given", () => {
+		expect(outputNames(["requests/collection.json"], ".bruno.json")).toEqual(["collection.bruno.json"]);
+		expect(outputNames(["a/x.json", "b/x.json"], ".bruno.json")).toEqual(["a-x.bruno.json", "b-x.bruno.json"]);
+	});
+
 	it("keeps a file with no extension whole", () => {
 		expect(outputNames(["a/x", "b/x"])).toEqual(["a-x.yml", "b-x.yml"]);
 	});

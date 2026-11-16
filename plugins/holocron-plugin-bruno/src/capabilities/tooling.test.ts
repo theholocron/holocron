@@ -43,21 +43,54 @@ describe("BrunoTooling", () => {
 	describe("export", () => {
 		it("writes one YAML file per collection, into the folder it is given", async () => {
 			const result = await new BrunoTooling().export(input());
-			expect(result).toEqual({ files: ["collection.yml"], issues: [] });
+			expect(result).toEqual({ files: ["collection.yml", "collection.bruno.json"], issues: [] });
 			const text = readFileSync(join(root, "requests/.export/bruno/collection.yml"), "utf8");
 			expect(text).toContain("name: Demo");
 			expect(text).toContain("name: Env");
 		});
 
+		it("also writes one Bruno JSON file per collection, with the environments inside it", async () => {
+			await new BrunoTooling().export(
+				input({
+					envFiles: ["requests/environment.json"],
+				})
+			);
+			const doc = JSON.parse(
+				readFileSync(join(root, "requests/.export/bruno/collection.bruno.json"), "utf8")
+			) as {
+				name: string;
+				version: string;
+				items: { name: string }[];
+				environments: { name: string; filename?: string; variables: { name: string; secret: boolean }[] }[];
+				brunoConfig: { type: string };
+			};
+			expect([doc.name, doc.version, doc.brunoConfig.type]).toEqual(["Demo", "1", "collection"]);
+			expect(doc.items.map((item) => item.name)).toEqual(["ping"]);
+			expect(doc.environments).toHaveLength(1);
+			expect(doc.environments[0]?.name).toBe("Env");
+			expect(doc.environments[0]?.variables.map((variable) => variable.name)).toEqual(["baseUrl"]);
+			expect(doc.environments[0]).not.toHaveProperty("filename");
+		});
+
+		it("writes an empty environments list when there is no environment file", async () => {
+			await new BrunoTooling().export(input({ envFiles: [] }));
+			const doc = JSON.parse(
+				readFileSync(join(root, "requests/.export/bruno/collection.bruno.json"), "utf8")
+			) as {
+				environments: unknown[];
+			};
+			expect(doc.environments).toEqual([]);
+		});
+
 		it("converts and lists the files but writes none on a dry run", async () => {
 			const result = await new BrunoTooling().export(input({ dryRun: true }));
-			expect(result.files).toEqual(["collection.yml"]);
+			expect(result.files).toEqual(["collection.yml", "collection.bruno.json"]);
 			expect(readdirSync(join(root, "requests"))).not.toContain(".export");
 		});
 
 		it("exports a collection with no environment file", async () => {
 			const result = await new BrunoTooling().export(input({ envFiles: [] }));
-			expect(result.files).toEqual(["collection.yml"]);
+			expect(result.files).toEqual(["collection.yml", "collection.bruno.json"]);
 			expect(readFileSync(join(root, "requests/.export/bruno/collection.yml"), "utf8")).not.toContain(
 				"environments"
 			);
@@ -69,7 +102,12 @@ describe("BrunoTooling", () => {
 			const result = await new BrunoTooling().export(
 				input({ collectionFiles: ["requests/collection.json", "other/collection.json"] })
 			);
-			expect(result.files).toEqual(["requests-collection.yml", "other-collection.yml"]);
+			expect(result.files).toEqual([
+				"requests-collection.yml",
+				"requests-collection.bruno.json",
+				"other-collection.yml",
+				"other-collection.bruno.json",
+			]);
 		});
 
 		it("names the file that cannot be read", async () => {
