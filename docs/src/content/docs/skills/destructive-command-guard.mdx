@@ -3,7 +3,7 @@ title: destructive-command-guard
 description: Guard rails for destructive shell, git, database, and infrastructure commands.
 ---
 
-Prevents irreversible damage from commands that delete, reset, drop, prune, or truncate. Pairs with the [`dcg` PreToolUse hook](https://github.com/Dicklesworthstone/destructive_command_guard).
+Prevents irreversible damage from commands that delete, reset, drop, prune, or truncate. Pairs with the [`dcg` PreToolUse hook](https://github.com/Dicklesworthstone/destructive_command_guard), which a repo opts in to with `agent: ["claude", { dcg: true }]` in `holocron.config.ts` (see [Claude Code settings](/holocron/config/#claude-code-settings)).
 
 **Invoke as:** `/destructive-command-guard`
 

@@ -109,6 +109,20 @@ else
 	todo "Install the Postman CLI: https://learning.postman.com/docs/postman-cli/postman-cli-installation/ (macOS: brew install --cask postman-cli)"
 fi
 
+step "Destructive command guard"
+# A repo that opts in with `agent: ["claude", { dcg: true }]` in holocron.config.ts has a `PreToolUse` hook in .claude/settings.json
+# that runs `dcg` before every Bash call (#374), so each clone needs the binary. It is not in Homebrew and its installer
+# is a script from the tool's own repository, which this script does not pipe into a shell for you: read it, then run it.
+if ! grep -qs '"command": *"[^"]*dcg' .claude/settings.json; then
+	ok "dcg is not wired into this repo's Claude settings"
+elif have dcg; then
+	ok "dcg"
+elif [ "$CHECK" -eq 1 ]; then
+	bad "dcg is not installed, and .claude/settings.json runs it before every Bash call (see .humans/README.md)"
+else
+	todo "Install dcg (its installer is at https://github.com/Dicklesworthstone/destructive_command_guard, read it before you run it): curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/destructive_command_guard/main/install.sh | bash -s -- --easy-mode"
+fi
+
 step "Node and pnpm"
 need="$(node_minimum)"
 if ! have node; then

@@ -241,6 +241,18 @@ export interface RepoSecretsSync {
 	repos?: string[];
 }
 
+/** The agent runtimes a repo can name in `agent`. */
+export type AgentName = "claude" | "codex" | "gemini";
+
+/** What `holocron setup` and `holocron sync` do for the agent beyond installing its skills; nothing is written unless an option opts in. */
+export interface AgentOptions {
+	/**
+	 * Wire the destructive command guard (`dcg`) into `.claude/settings.json` as a `PreToolUse` hook on Bash calls. Only
+	 * for `"claude"` (any other agent with `dcg` is a `ConfigError`). Needs the `dcg` binary on each machine.
+	 */
+	dcg?: boolean;
+}
+
 /** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */
 export interface RepoValidationConfig {
 	/**
@@ -771,8 +783,12 @@ export interface HolocronConfig {
 	 * relative symlink at the agent-specific path:
 	 * - `"claude"` → `.claude/skills/<name>` → `../../.agents/skills/<name>`
 	 * - `"codex"` | `"gemini"` → logged as unsupported; skipped gracefully.
+	 *
+	 * A name, or a name with options in the form providers use: `["claude", { dcg: true }]`. `dcg: true` makes `setup` and
+	 * `sync` merge a `PreToolUse` hook that runs the destructive command guard into `.claude/settings.json`, and
+	 * `probe generated check` fails when it is missing. With no options nothing is written.
 	 */
-	agent?: "claude" | "codex" | "gemini";
+	agent?: AgentName | [AgentName, AgentOptions];
 	/**
 	 * Skill names from `@theholocron/skills` to install during `holocron setup`.
 	 * Installed paths are gitignored and managed by setup — do not commit them.
@@ -933,8 +949,10 @@ export interface ResolvedHolocronConfig {
 	apps: AppConfig[];
 	/** Settings for `holocron doctor`; empty when none are declared. */
 	doctor: DoctorConfig;
-	/** The agent runtime skills are installed for. */
-	agent?: "claude" | "codex" | "gemini";
+	/** The agent runtime skills are installed for (the name, whichever form `agent` was written in). */
+	agent?: AgentName;
+	/** The options given with the agent, when it was written as `[name, options]`. */
+	agentOptions?: AgentOptions;
 	/** Names of the agent skills to install. */
 	skills?: string[];
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */

@@ -14,6 +14,7 @@ import { PluginLoader, type Source } from "../../plugin/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import {
 	generateAgentFiles,
+	generateClaudeFiles,
 	generatePrivateDirFiles,
 	generateTurboFiles,
 	generateWorkflowFiles,
@@ -48,6 +49,7 @@ export const SYNC_STEPS = [
 	"turbo",
 	"agents",
 	"private",
+	"claude",
 	"wiki",
 ] as const;
 
@@ -62,6 +64,7 @@ const LOCAL_STEPS = new Set<SyncStep>([
 	"turbo",
 	"agents",
 	"private",
+	"claude",
 	"wiki",
 ]);
 
@@ -302,6 +305,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		"turbo",
 		"agents",
 		"private",
+		"claude",
 		"wiki",
 	] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
@@ -583,6 +587,39 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
 					})
 				);
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "claude") {
+			// `.claude/settings.json` with the dcg hook, only for a repo that opts in with `agent: ["claude", { dcg: true }]`: repo-wide, at the checkout root.
+			if (resolvedRepoRoot !== gitRoot) {
+				if (input.loaded.resolved.agentOptions?.dcg === true) {
+					steps.push({
+						capability: "local",
+						step: "sync claude settings",
+						status: "skip",
+						message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+					});
+					print(formatSyncStep(steps[steps.length - 1]!));
+				}
+				continue;
+			}
+			for (const entry of await generateClaudeFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				if (entry.kind === "error") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "fail", message: entry.message });
+				} else {
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await mkdir(dirname(join(gitRoot, entry.path)), { recursive: true });
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
+					);
+				}
 				print(formatSyncStep(steps[steps.length - 1]!));
 			}
 		}

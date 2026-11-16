@@ -338,6 +338,11 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"SENTINEL_WEBHOOK_SECRET",
 		];
 
+		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
+		// "claude", and the option is kept beside it.
+		expect((expected as { agentOptions?: unknown }).agentOptions).toBeUndefined();
+		(expected as { agentOptions?: unknown }).agentOptions = { dcg: true };
+
 		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
 		expect(normalise(resolved)).toEqual(expected);
 	});

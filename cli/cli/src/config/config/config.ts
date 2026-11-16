@@ -10,6 +10,7 @@ import {
 	type TeamEntry,
 	type TeamPermission,
 } from "../../plugin/capabilities/index.js";
+import { splitAgent } from "../split-agent/index.js";
 import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 import { validateSecretsDeploy } from "../validate-secrets-deploy/index.js";
 import { validateSecretsSync } from "../validate-secrets-sync/index.js";
@@ -277,6 +278,8 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	// Derive homepage from docs.domain when not explicitly set
 	const homepage = raw.homepage ?? (docs?.domain ? `https://${docs.domain}/` : undefined);
 
+	const { agent, agentOptions } = splitAgent(raw.agent);
+
 	return {
 		name: raw.name,
 		description: raw.description,
@@ -293,7 +296,8 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		providers,
 		apps: raw.apps ?? [],
 		doctor: raw.doctor ?? {},
-		agent: raw.agent,
+		agent,
+		...(agentOptions ? { agentOptions } : {}),
 		skills: raw.skills,
 		docs,
 		env: raw.env,
