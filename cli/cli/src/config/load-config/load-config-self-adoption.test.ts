@@ -266,6 +266,19 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			],
 		};
 
+		// And (#2167, #2168): the `coverage` provider (Codecov) and the `cache` provider (Turbo's remote cache), so
+		// `probe codecov token`, `probe turbo token` and `doctor tokens` find their plugins.
+		expect(expectedProviders.coverage).toBeUndefined();
+		expect(expectedProviders.cache).toBeUndefined();
+		expectedProviders.coverage = {
+			cardinality: "single",
+			tuple: { provider: "codecov", packageName: "@theholocron/holocron-plugin-codecov", options: {} },
+		};
+		expectedProviders.cache = {
+			cardinality: "single",
+			tuple: { provider: "turbo", packageName: "@theholocron/holocron-plugin-turbo", options: {} },
+		};
+
 		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
 		(expected as unknown as { githubApps: unknown }).githubApps = [
 			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: `${SLUG} - prod` },
