@@ -6,6 +6,23 @@
 * **codecov:** ✨ let probe codecov repo read an Environment ([#2244](https://github.com/theholocron/holocron/issues/2244)) ([26b1c78](https://github.com/theholocron/holocron/commit/26b1c78dc574df1351f247e93e5ba74311eed3f0)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
 * **codecov:** ✨ switch this repo's coverage upload to the plugin command ([#2243](https://github.com/theholocron/holocron/issues/2243)) ([c3b8346](https://github.com/theholocron/holocron/commit/c3b83462164f14a8e8d4e2a9feed4e00afa214bd)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
 * **codecov:** ✨ upload coverage through the plugin ([#2242](https://github.com/theholocron/holocron/issues/2242)) ([630ba40](https://github.com/theholocron/holocron/commit/630ba40d385dd2b6bc78c60e7a2a1f76891b4fd0)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **vercel:** ✨ check the Vercel token in doctor tokens ([#2245](https://github.com/theholocron/holocron/issues/2245)) ([e4f226a](https://github.com/theholocron/holocron/commit/e4f226a862ea1ff79fbf42846554ff748266e02d)), closes [#2155](https://github.com/theholocron/holocron/issues/2155) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+### Chores
+
+* **release:** 5.0.0-alpha.453 [skip ci] ([13899b8](https://github.com/theholocron/holocron/commit/13899b8cb2243992d30e3a517b0c564117585081))
+* **release:** 5.0.0-alpha.453 [skip ci] ([7126a2c](https://github.com/theholocron/holocron/commit/7126a2c51c9995cd9004d78b676f8b1a439fa8f4))
+* **release:** 5.0.0-alpha.453 [skip ci] ([3c2e9fe](https://github.com/theholocron/holocron/commit/3c2e9fe32ed27231ecc270018d9be4e19dcc7ef4))
+* **release:** 5.0.0-alpha.453 [skip ci] ([fc753ca](https://github.com/theholocron/holocron/commit/fc753ca40fcc1c5fc3794315c1fac2b24127d654))
+
+## [5.0.0-alpha.453](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.452...v5.0.0-alpha.453) (2026-11-16)
+
+### Features
+
+* **codecov:** ✨ check a repository's flags and components against its config ([#2237](https://github.com/theholocron/holocron/issues/2237)) ([ca187e1](https://github.com/theholocron/holocron/commit/ca187e1f425ae949623ce8810961440701972bc7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ let probe codecov repo read an Environment ([#2244](https://github.com/theholocron/holocron/issues/2244)) ([26b1c78](https://github.com/theholocron/holocron/commit/26b1c78dc574df1351f247e93e5ba74311eed3f0)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ switch this repo's coverage upload to the plugin command ([#2243](https://github.com/theholocron/holocron/issues/2243)) ([c3b8346](https://github.com/theholocron/holocron/commit/c3b83462164f14a8e8d4e2a9feed4e00afa214bd)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
+* **codecov:** ✨ upload coverage through the plugin ([#2242](https://github.com/theholocron/holocron/issues/2242)) ([630ba40](https://github.com/theholocron/holocron/commit/630ba40d385dd2b6bc78c60e7a2a1f76891b4fd0)), closes [#2238](https://github.com/theholocron/holocron/issues/2238) [#2147](https://github.com/theholocron/holocron/issues/2147)
 
 ### Chores
 
