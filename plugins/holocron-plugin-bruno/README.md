@@ -38,6 +38,8 @@ providers: {
 - `export` converts each collection with Bruno's collection reader (`@usebruno/converters`, which rewrites `pm.*` scripts to
   `bru.*` / `req.*`) and the OpenCollection writer (`@opencollection/converters`), dumped with `js-yaml`, and writes
   `<name>.yml` under the folder it is given. Environments are inside the document; a secret-type variable is marked `transient`.
+  The same collection is also written as `<name>.bruno.json`, Bruno's own collection export with the environments inside,
+  which is the file to import in Bruno (one file for the requests and the environments).
   Converter issues are returned, not thrown. A dry run converts and writes nothing.
 - `sync` does nothing and succeeds: Bruno keeps no state, and the files are written by `export`.
 - `doctor` checks `collectionFiles` is set and every file exists and parses as JSON.

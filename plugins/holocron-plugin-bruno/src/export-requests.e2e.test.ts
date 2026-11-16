@@ -42,7 +42,7 @@ describe.each([
 			outDir: out,
 			repoRoot: REPO_ROOT,
 		});
-		expect(result).toEqual({ files: ["collection.yml"], issues: [] });
+		expect(result).toEqual({ files: ["collection.yml", "collection.bruno.json"], issues: [] });
 		const text = readFileSync(join(out, "collection.yml"), "utf8");
 		const doc = load(text) as Doc;
 
@@ -62,5 +62,12 @@ describe.each([
 		expect(requests(doc.items)).toHaveLength(count(source.item));
 		expect(doc.environments).toHaveLength(1);
 		expect(doc.environments[0]?.variables.find((variable) => variable.name === secret)?.transient).toBe(true);
+
+		// The one-file Bruno JSON carries the same environment, the secret marked.
+		const json = JSON.parse(readFileSync(join(out, "collection.bruno.json"), "utf8")) as {
+			environments: { variables: { name: string; secret: boolean }[] }[];
+		};
+		expect(json.environments).toHaveLength(1);
+		expect(json.environments[0]?.variables.find((variable) => variable.name === secret)?.secret).toBe(true);
 	});
 });
