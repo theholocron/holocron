@@ -91,6 +91,7 @@ It always ends with an `info` row that permissions are not checked: Codecov has 
 - `checkRepo({ flags, components })` — reads the repository's flags (`GET /{service}/{owner}/repos/{repo}/flags/`, paginated) and components (`GET /{service}/{owner}/repos/{repo}/components/`) with the API token and returns, for each list, the names expected, those missing on Codecov and those on Codecov the config does not declare. The caller passes the expected names, so the plugin never reads the config. Without `HOLOCRON_CODECOV_API_TOKEN` (or when Codecov answers 401, 403 or 404) it returns `checked: false` with a `reason` naming what to set, and does not throw. Names only, never a token.
 - `upload(input)` — optional; uploads coverage reports, one flag per group, with the Codecov CLI. It is what [`holocron upload coverage`](/holocron/commands/upload-coverage/) calls. See below.
 - `statusContexts({ components, documentation })` — optional, pure and offline: the commit statuses Codecov posts on a pull request, as `{ name, required }` and sorted. `codecov/patch` and `codecov/project` are always there and required; each component adds an informational `codecov/patch/<component>`; with `documentation` at `warn` or `required` there are also `codecov/patch/documentation` and `codecov/project/documentation`, and only the patch one is required, and only at `required`. The CLI passes the result to the task runner, so which contexts the `ci` aggregate polls and the ruleset requires is Codecov's to say, not the generators'. No token and no repository are needed.
+- `configFiles({ components, flags, documentation, existing })` — optional, pure and offline: the files Codecov reads its config from, as text by path. Today that is `codecov.yml`: a new file is scaffolded (a header, the base template, the flags, the scoped aggregate statuses, informational component statuses, `if_not_found: success`, the ignored `**/*.mdx`, and the `documentation` flag and its statuses when `documentation` is `warn` or `required`), and a file that is already there (`existing("codecov.yml")`) is merged into, so every hand edit stays. `holocron setup` writes the result and `holocron probe generated check` compares it with the committed copy. Without a `coverage` provider no `codecov.yml` is written or changed. No token and no repository are needed.
 
 ## Comparing flags and components
 
@@ -112,7 +113,7 @@ holocron probe codecov repo --environment ci   # the ci layer's API token
 holocron probe codecov repo --environment dev
 ```
 
-The expected names come from `coverageExpectations()` (exported by `@theholocron/cli`), which calls the same functions the `codecov.yml` generator uses.
+The expected names come from `coverageExpectations()` (exported by `@theholocron/cli`), which calls the same functions that decide the flags and components `configFiles()` is given.
 
 ## Uploading coverage
 

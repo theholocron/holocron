@@ -5,13 +5,7 @@
  */
 export type DocsCoverageMode = "off" | "warn" | "required";
 
-/** Per-repo choices that change what the `codecov.yml` generator writes. */
-export interface CodecovConfigOptions {
-	/** Adds the `documentation` flag and its statuses to `codecov.yml`. Default `off`: nothing is added. */
-	docsCoverage?: DocsCoverageMode;
-}
-
-/** A workspace package as the `codecov.yml` generator sees it: the flag and component it gets, and where it lives. */
+/** A workspace package as the flag, upload and component lists see it: the flag and component it gets, and where it lives. */
 export interface WorkspacePackage {
 	/** The package's folder name, used as its Codecov flag and component id. */
 	slug: string;

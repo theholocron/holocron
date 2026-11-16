@@ -11,6 +11,7 @@
 
 import type {
 	Coverage,
+	CoverageConfigInput,
 	CoverageExpectations,
 	CoverageRepoReport,
 	CoverageStatusContext,
@@ -26,6 +27,7 @@ import { type CodecovTarget, describeTarget } from "../target.js";
 import { defaultUploadDeps } from "../upload/default-deps.js";
 import type { UploadDeps } from "../upload/upload.type.js";
 import { uploadCoverage } from "../upload/upload-coverage.js";
+import { configFiles } from "./config-files.js";
 import { diffNames } from "./diff-names.js";
 import { statusContexts } from "./status-contexts.js";
 
@@ -139,5 +141,10 @@ export class CodecovCoverage implements Coverage {
 	/** The commit statuses Codecov posts, by name: see `statusContexts()`. Offline, so it needs no token and no repository. */
 	statusContexts(input: CoverageStatusInput): CoverageStatusContext[] {
 		return statusContexts(input);
+	}
+
+	/** The files Codecov reads its config from (`codecov.yml`): see `configFiles()`. Offline, so it needs no token and no repository. */
+	configFiles(input: CoverageConfigInput): Record<string, string> {
+		return configFiles(input);
 	}
 }

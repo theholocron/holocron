@@ -12,8 +12,6 @@ import { generateTurboFiles } from "./generate-turbo-files.js";
 import { generateWorkflowFiles } from "./generate-workflow-files.js";
 import { hooksEnabled } from "./hooks-enabled.js";
 
-// `codecovConfig` is tolerant of a bad file on disk, so a failure in it is made on demand.
-const codecov = vi.hoisted(() => ({ fail: false }));
 // The legacy-name gate is shut while `CI_HOME` points at the frozen copies; a test opens it as `ci-v1` will.
 const gate = vi.hoisted(() => ({ open: false }));
 vi.mock("@theholocron/astromech", async (importOriginal) => {
@@ -21,16 +19,6 @@ vi.mock("@theholocron/astromech", async (importOriginal) => {
 	return {
 		...real,
 		legacyGate: () => !gate.open,
-		createAstromech: (...args: Parameters<typeof real.createAstromech>) => {
-			const astromech = real.createAstromech(...args);
-			return {
-				...astromech,
-				codecovConfig: (existing: string | null, options?: Parameters<typeof astromech.codecovConfig>[1]) => {
-					if (codecov.fail) throw new Error("cannot merge codecov.yml");
-					return astromech.codecovConfig(existing, options);
-				},
-			};
-		},
 	};
 });
 
@@ -48,7 +36,6 @@ beforeEach(() => {
 	mkdirSync(join(root, ".git"));
 });
 afterEach(() => {
-	codecov.fail = false;
 	gate.open = false;
 	rmSync(root, { recursive: true, force: true });
 });
@@ -67,7 +54,7 @@ describe("hooksEnabled", () => {
 
 describe("generateConfigFiles", () => {
 	it("generates the lint, editor and hook files, and skips the hooks when they are off", async () => {
-		const entries = await generateConfigFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });
+		const entries = generateConfigFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });
 		const steps = entries.map((e) => e.step);
 		expect(steps).toContain("write .alexrc.json");
 		expect(steps).toContain("write .husky/commit-msg");
@@ -76,15 +63,15 @@ describe("generateConfigFiles", () => {
 			kind: "skip",
 			message: "git hooks disabled",
 		});
-		expect(entries.find((e) => e.step === "write codecov.yml")).toMatchObject({
+		expect(entries.find((e) => e.step === "write coverage config")).toMatchObject({
 			kind: "skip",
-			message: "no test workflow configured",
+			message: "no coverage provider configured",
 		});
 	});
 
 	it("writes the hooks, the labeler and the DCO config when they apply", async () => {
 		const loaded = loadedFrom({ name: "x", tasks: ["bookkeeping"], repo: { protection: "strict" } });
-		const entries = await generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
+		const entries = generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
 		const file = (path: string) => entries.find((e) => e.kind === "file" && e.path === path);
 		expect(file(".github/labeler.yml")).toBeDefined();
 		expect(file(".github/dependabot.yml")).toBeDefined();
@@ -98,7 +85,7 @@ describe("generateConfigFiles", () => {
 	it("watches the workflow sources in Dependabot only in a repo that hosts the reusables", async () => {
 		const loaded = loadedFrom({ name: "x", repo: { protection: "strict" } });
 		const dependabot = async () => {
-			const entries = await generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
+			const entries = generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
 			return entries.find((e) => e.kind === "file" && e.path === ".github/dependabot.yml");
 		};
 		expect(await dependabot()).toMatchObject({ content: expect.not.stringContaining("/ci/workflows") });
@@ -109,36 +96,55 @@ describe("generateConfigFiles", () => {
 	});
 
 	it("leaves the Dependabot and DCO files out for protection: none", async () => {
-		const entries = await generateConfigFiles({
+		const entries = generateConfigFiles({
 			loaded: loadedFrom({ name: "x", repo: { protection: "none" } }),
 			repoRoot: root,
 		});
 		expect(entries.map((e) => e.step)).not.toContain("write .github/dco.yml");
 	});
 
-	it("adds the documentation flag to codecov.yml only when repoValidation.docsCoverage asks for it", async () => {
-		writeFileSync(join(root, "codecov.yml"), "comment: false\n");
-		const content = async (raw: Parameters<typeof loadedFrom>[0]) => {
-			const entries = await generateConfigFiles({ loaded: loadedFrom(raw), repoRoot: root });
-			return (entries.find((e) => e.step === "write codecov.yml") as { content: string }).content;
-		};
-		expect(await content({ name: "x" })).not.toContain("documentation");
-		expect(await content({ name: "x", repoValidation: { docsCoverage: "off" } })).not.toContain("documentation");
-		expect(await content({ name: "x", repoValidation: { docsCoverage: "required" } })).toContain(
-			"- name: documentation"
-		);
-	});
+	describe("with a coverage provider's config files", () => {
+		const files = () => ({ "codecov.yml": "flags: []\n" });
+		const tasks = ["test:unit"];
 
-	it("merges into the codecov.yml already there, and reports a codecov.yml it cannot read as a failed step", async () => {
-		writeFileSync(join(root, "codecov.yml"), "comment: false\n");
-		const ok = await generateConfigFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });
-		expect(ok.find((e) => e.step === "write codecov.yml")).toMatchObject({ kind: "file", note: "no components" });
+		it("writes what the provider makes, by its path", () => {
+			const entries = generateConfigFiles({
+				loaded: loadedFrom({ name: "x", tasks }),
+				repoRoot: root,
+				coverageConfigFiles: files,
+			});
+			expect(entries.find((e) => e.step === "write codecov.yml")).toMatchObject({
+				kind: "file",
+				path: "codecov.yml",
+				content: "flags: []\n",
+			});
+			expect(entries.map((e) => e.step)).not.toContain("write coverage config");
+		});
 
-		codecov.fail = true;
-		const bad = await generateConfigFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });
-		expect(bad.find((e) => e.step === "write codecov.yml")).toMatchObject({
-			kind: "error",
-			message: "cannot merge codecov.yml",
+		it("writes no new file for a repo with no test workflow, but keeps one that is there up to date", () => {
+			const loaded = loadedFrom({ name: "x" });
+			const without = generateConfigFiles({ loaded, repoRoot: root, coverageConfigFiles: files });
+			expect(without.find((e) => e.step === "write codecov.yml")).toMatchObject({
+				kind: "skip",
+				message: "no test workflow configured",
+			});
+			writeFileSync(join(root, "codecov.yml"), "comment: false\n");
+			const present = generateConfigFiles({ loaded, repoRoot: root, coverageConfigFiles: files });
+			expect(present.find((e) => e.step === "write codecov.yml")).toMatchObject({ kind: "file" });
+		});
+
+		it("reports a provider that throws as a failed step", () => {
+			const entries = generateConfigFiles({
+				loaded: loadedFrom({ name: "x", tasks }),
+				repoRoot: root,
+				coverageConfigFiles: () => {
+					throw new Error("cannot merge codecov.yml");
+				},
+			});
+			expect(entries.find((e) => e.step === "write coverage config")).toMatchObject({
+				kind: "error",
+				message: "cannot merge codecov.yml",
+			});
 		});
 	});
 });

@@ -1,10 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import {
 	createAlexignore,
 	createAlexrc,
-	createAstromech,
 	createCommitMsg,
 	createDco,
 	createDependabot,
@@ -18,11 +17,9 @@ import {
 	createYamlignore,
 	createYamllint,
 	isTask,
-	readWorkspacePackages,
 } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getLogger } from "../../observability/logger/index.js";
 import { ownCatalogPackages } from "../setup/own-catalog-packages/index.js";
 import { hooksEnabled } from "./hooks-enabled.js";
 import { hostsReusables } from "./hosted-reusables.js";
@@ -36,12 +33,37 @@ function file(path: string, content: string, note?: string): GeneratedRepoFile {
 	return { kind: "file", path, content, step, syncStep: step, ...(note === undefined ? {} : { note }) };
 }
 
+/** The step `setup` and `sync` report when the coverage provider's files are not written, whichever file that is. */
+const COVERAGE_STEP = "write coverage config";
+
+/**
+ * The files the `coverage` provider writes (`codecov.yml`), from `input.coverageConfigFiles`. Without one (no provider
+ * is loaded, or it writes none) the step is skipped and no file is written or changed. A file that is not there yet is
+ * only written when a `test:unit` task is configured: a repo with no test workflow has nothing to report coverage for.
+ * A provider that throws is a failed step.
+ */
+function coverageConfigEntries(input: RepoFilesInput, taskNames: string[]): RepoFileEntry[] {
+	const skip = (step: string, message: string): RepoFileEntry => ({ kind: "skip", step, syncStep: step, message });
+	if (input.coverageConfigFiles === undefined) return [skip(COVERAGE_STEP, "no coverage provider configured")];
+	let files: Record<string, string>;
+	try {
+		files = input.coverageConfigFiles();
+	} catch (error) {
+		return [{ kind: "error", step: COVERAGE_STEP, syncStep: COVERAGE_STEP, message: errorMessage(error) }];
+	}
+	const hasTests = taskNames.some((name) => isTask(name, "test:unit"));
+	return Object.entries(files).map(([path, content]) =>
+		!hasTests && !existsSync(join(input.repoRoot, path))
+			? skip(`write ${path}`, "no test workflow configured")
+			: file(path, content)
+	);
+}
+
 /**
  * The config files that are not workflows: the labeler, Dependabot and DCO configs, the lint and editor configs, the
- * git hooks and `codecov.yml`, in the order `setup` writes them. `codecov.yml` is merged into the copy already on
- * disk, so the file is read here.
+ * git hooks and the coverage provider's config (`codecov.yml`), in the order `setup` writes them.
  */
-export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFileEntry[]> {
+export function generateConfigFiles(input: RepoFilesInput): RepoFileEntry[] {
 	const config = input.loaded.resolved;
 	const taskNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
 	const entries: RepoFileEntry[] = [];
@@ -93,32 +115,6 @@ export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFi
 		}
 	}
 
-	const existing = await readFile(join(input.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-	if (!taskNames.some((name) => isTask(name, "test:unit")) && existing == null) {
-		entries.push({
-			kind: "skip",
-			step: "write codecov.yml",
-			syncStep: "write codecov.yml",
-			message: "no test workflow configured",
-		});
-	} else {
-		try {
-			const content = createAstromech({ cwd: input.repoRoot, logger: input.logger ?? getLogger() }).codecovConfig(
-				existing,
-				{ docsCoverage: config.repoValidation?.docsCoverage ?? "off" }
-			);
-			const packageCount = readWorkspacePackages(input.repoRoot).length;
-			entries.push(
-				file("codecov.yml", content, packageCount > 0 ? `${packageCount} components` : "no components")
-			);
-		} catch (error) {
-			entries.push({
-				kind: "error",
-				step: "write codecov.yml",
-				syncStep: "write codecov.yml",
-				message: errorMessage(error),
-			});
-		}
-	}
+	entries.push(...coverageConfigEntries(input, taskNames));
 	return entries;
 }

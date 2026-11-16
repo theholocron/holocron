@@ -157,7 +157,6 @@ astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-e
 astromech.packageScripts(); // single package: { holocron: "holocron", "test:unit": "holocron run test unit --", … }; workspace: { "test:unit": "turbo run test:unit", … }
 astromech.requiredChecks(true); // ["ci / Required checks", "DCO"]  — branch-protection contexts (false: "DCO", then the per-task contexts, then extras)
 astromech.aggregateCaller(); // the thin caller of the `ci` aggregate check, or null when nothing is required
-astromech.codecovConfig(existing); // codecov.yml content — merges into `existing`, or scaffolds fresh when null
 astromech.ci({ scope: "required" }); // CiReport — run the gating checks locally, in CI order
 ```
 
@@ -226,17 +225,12 @@ rename changes them here and costs no ruleset edit.
 
 ### `codecov.yml`
 
-`codecovConfig(existing)` generates this repo's `codecov.yml` — component
-`paths` derived from `packages/*` **and** `apps/*` (monorepo templates ship
-user-facing code under `apps/` alongside library code under `packages/`;
-`readWorkspacePackages()` scans both and tags each result with the `dir` it
-came from), same manifest-derived category as `thinCallers()`. Pass the
-current file's content (or `null`) and it either merges the
-`individual_components` list in (preserving everything else in the file —
-thresholds, flags, custom rules) or scaffolds a fresh file from the base
-template. `holocron setup` writes the result via the `source` capability;
-this method never touches the filesystem beyond reading `packages/*` and
-`apps/*` under `cwd`.
+Astromech no longer writes `codecov.yml`: the `coverage` provider does, through its optional `Coverage.configFiles()`
+(`@theholocron/holocron-plugin-codecov`), and astromech imports no plugin. What stayed here is what other code reads from
+the workspace: `readWorkspacePackages()` (every package the `pnpm-workspace.yaml` declares, sorted by location, each with
+its `slug`, `dir` or `path`), `packageLocation()` (where one lives), `codecovFlagNames()` (one flag per package, none for
+`docs`), `codecovUploads()` (the `uploads` input of the unit-test workflow) and `DOCUMENTATION_FLAG`. The CLI turns them
+into the provider's input; `holocron setup` writes the result and `holocron probe generated check` compares it.
 
 ## Release-time deploys — `deployOnRelease`
 

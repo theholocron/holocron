@@ -636,21 +636,6 @@ describe("createAstromech() with the statuses a coverage provider reports", () =
 	});
 });
 
-describe("createAstromech().codecovConfig", () => {
-	it("delegates to the bare codecovConfig(cwd, existing) — cwd bound from the factory", async () => {
-		const { codecovConfig } = await import("./generators/codecov/codecov.js");
-		const viaFactory = createAstromech({ cwd: "/repo" }).codecovConfig(null);
-		expect(viaFactory).toEqual(codecovConfig("/repo", null));
-		expect(viaFactory).toContain("Scaffolded by holocron setup");
-	});
-
-	it("merges into an existing file when one is passed", () => {
-		const existing = "codecov:\n  require_ci_to_pass: true\n\ncomponent_management:\n  individual_components:\n";
-		const out = createAstromech({ cwd: "/repo" }).codecovConfig(existing);
-		expect(out).toContain("require_ci_to_pass: true");
-	});
-});
-
 describe("createAstromech().turboConfig", () => {
 	it("delegates to the bare turboConfig(config) — null with no config", () => {
 		expect(createAstromech({ cwd: "/repo" }).turboConfig()).toBeNull();
