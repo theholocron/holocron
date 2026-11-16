@@ -71,6 +71,7 @@ import { syncToolingEntry } from "../../commands/sync-tooling/sync-tooling.entry
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
 import { upgradeNodeEntry } from "../../commands/upgrade-node/upgrade-node.entry.js";
+import { uploadCoverageEntry } from "../../commands/upload-coverage/upload-coverage.entry.js";
 
 /**
  * The full command surface for the interactive menu. Each entry lives next to the command it describes
@@ -148,6 +149,7 @@ const registry = createCommandRegistry(
 		authListEntry,
 		authExportEntry,
 		requestsExportEntry,
+		uploadCoverageEntry,
 		githubAppCreateEntry,
 		tunnelUpEntry,
 		// project: one entry per subcommand of `holocron project`; add new ones here.

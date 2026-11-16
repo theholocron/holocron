@@ -24,6 +24,8 @@ export const COMMAND_CONTEXTS = {
 	"export tokens": "workspace",
 	// `export requests` loads the `tooling` providers to convert the repo's request files, so their packages must be resolvable.
 	"export requests": "workspace",
+	// `upload coverage` loads the `coverage` provider and calls its `upload`, so its package must be resolvable.
+	"upload coverage": "workspace",
 	// `new github-app` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
 	"new github-app": "global",
 	// `check token` loads a plugin to verify, but degrades to "token present,

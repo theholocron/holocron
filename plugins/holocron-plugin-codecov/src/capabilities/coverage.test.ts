@@ -63,6 +63,28 @@ describe("CodecovCoverage", () => {
 		const { cap } = build([], { target: null });
 		await expect(cap.checkToken()).rejects.toThrow(/needs a repository/);
 	});
+
+	it("uploads through the plugin's upload dependencies, which stop a run with no OIDC token before any upload", async () => {
+		const { fetch } = stubFetch([]);
+		const client = createCodecovClient({ token: "cc-tok", baseUrl: "https://codecov.test/api/v2", fetch });
+		const deps = { env: () => undefined } as never;
+		const cap = new CodecovCoverage(
+			() => client,
+			target,
+			() => deps
+		);
+		await expect(cap.upload({ uploads: [{ flag: "a", files: ["a"] }], repoRoot: "/r" })).rejects.toThrow(
+			/id-token: write/
+		);
+	});
+
+	it("builds the real upload dependencies when none are given", async () => {
+		const { cap } = build([]);
+		// No Actions environment here, so the real dependencies stop the run at the OIDC check.
+		await expect(cap.upload({ uploads: [{ flag: "a", files: ["a"] }], repoRoot: "/r" })).rejects.toThrow(
+			/id-token: write/
+		);
+	});
 });
 
 describe("CodecovCoverage.checkRepo", () => {

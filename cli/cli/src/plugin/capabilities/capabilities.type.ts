@@ -3250,6 +3250,13 @@ export interface Coverage extends ProviderIdentity {
 	 * not the upload token): without it the report says so (`checked: false`) and nothing throws. Read-only.
 	 */
 	checkRepo?(expected: CoverageExpectations): Promise<CoverageRepoReport>;
+	/**
+	 * Uploads coverage reports to the service, one flag per group, authenticated the way the service allows from the job
+	 * it runs in (Codecov: the job's OIDC token, so no stored secret). It reports names and counts only, never a token.
+	 * A group that has no report is skipped with a note; a failed upload is a `failed` group and stops the run. A setup
+	 * problem (no way to authenticate, a client that cannot be trusted) throws.
+	 */
+	upload?(input: CoverageUploadInput): Promise<CoverageUploadResult>;
 }
 
 /** The flags and components {@link Coverage.checkRepo} expects the service to have, by name. */
@@ -3258,6 +3265,49 @@ export interface CoverageExpectations {
 	flags: string[];
 	/** The component ids the config declares. */
 	components: string[];
+}
+
+/** One group of {@link Coverage.upload}: the files that carry one flag. */
+export interface CoverageUploadGroup {
+	/** The flag the group's reports are uploaded under. */
+	flag: string;
+	/** Glob patterns, relative to the repository root, for the group's reports (an lcov file each). */
+	files: string[];
+}
+
+/** What {@link Coverage.upload} takes. */
+export interface CoverageUploadInput {
+	/** The groups to upload, in order. */
+	uploads: CoverageUploadGroup[];
+	/** The repository root the `files` patterns are relative to. */
+	repoRoot: string;
+	/**
+	 * Lets a run with no report in any group finish quietly (an affected run that selected nothing). Otherwise that is a
+	 * problem, so a missing report is not mistaken for a pass.
+	 */
+	allowEmpty?: boolean;
+}
+
+/** What {@link Coverage.upload} did for one group. */
+export interface CoverageUploadFlagResult {
+	/** The group's flag. */
+	flag: string;
+	/** `uploaded`, `skipped` (no usable report), or `failed` (the service rejected the upload after every try). */
+	outcome: "failed" | "skipped" | "uploaded";
+	/** How many report files were uploaded. */
+	files: number;
+	/** Why a report was left out, or why the group was skipped or failed. Names and counts only. */
+	notes: string[];
+}
+
+/** What {@link Coverage.upload} did. */
+export interface CoverageUploadResult {
+	/** One entry per group that was reached, in order; a failed group ends the list. */
+	flags: CoverageUploadFlagResult[];
+	/** How many flags were uploaded. */
+	uploaded: number;
+	/** Set when the run as a whole did not succeed: a failed group, or nothing uploaded without `allowEmpty`. */
+	problem?: string;
 }
 
 /** What {@link Coverage.checkToken} found. */
