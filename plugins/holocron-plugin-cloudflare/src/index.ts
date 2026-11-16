@@ -18,6 +18,11 @@ export interface CloudflarePluginOptions extends ResolveTokenInput {
 	 * optional for DNS-only use.
 	 */
 	accountId?: string;
+	/**
+	 * The zone the organization's own DNS lives in. The `token` probe reads this one zone when no zone is named on the
+	 * command line; without it the probe reads the first few zones of the account.
+	 */
+	zone?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
 	/** The `fetch` to use instead of the global one, for tests. */

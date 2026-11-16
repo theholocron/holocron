@@ -53,7 +53,11 @@ describe("the org area in this repo (#1820)", () => {
 		// command run from here (`holocron dev`) finds the Cloudflare token before the keyring.
 		const { tuple } = expected.providers.tunnels as { tuple: { options: Record<string, unknown> } };
 		expect(tuple.options).toEqual({ accountId: expect.any(String) });
-		tuple.options = {};
+		// And the org's zone, which the root `.holocron/org.ts` fills into every `cloudflare` entry, Sentinel's included.
+		tuple.options = { zone: "theholocron.dev" };
+		const dns = expected.providers.dns as { tuple: { options: Record<string, unknown> } };
+		expect(dns.tuple.options).toEqual({});
+		dns.tuple.options = { zone: "theholocron.dev" };
 		// And (#2063): the two literal Environments are one entry with none; the names are derived from the remote.
 		expected.providers.credentials = {
 			cardinality: "many",

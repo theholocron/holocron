@@ -270,6 +270,12 @@ export interface OrgConfig {
 	cloudflare?: {
 		/** The Cloudflare account id (an identifier, not a credential). */
 		accountId?: string;
+		/**
+		 * The zone the organization's own DNS lives in (`theholocron.dev`). The `token` probe reads this zone's DNS and
+		 * Workers routes instead of the first few zones of the account, so a token rightly scoped to it is not judged on
+		 * zones it was never meant to reach.
+		 */
+		zone?: string;
 	};
 	/** Options filled into every `vercel` provider entry. */
 	vercel?: {

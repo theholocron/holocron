@@ -41,6 +41,7 @@ The `deployment` capability is enabled automatically when `HOLOCRON_CLOUDFLARE_A
 | Option      | Required | Description                                                                                                                                                                                                                                       |
 | ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `accountId` | No       | Cloudflare account ID. Falls back to `HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, then `CLOUDFLARE_ACCOUNT_ID`, in the environment, then in the variables a `credentials` provider (a 1Password Environment) returned. Required for `deployment` capability. |
+| `zone`      | No       | The zone the organization's own DNS lives in. `.holocron/org.ts` fills it into every Cloudflare entry. `holocron probe cloudflare token` reads this zone when none is named on the command line.                                                  |
 
 ## Authentication
 
@@ -74,7 +75,7 @@ Or keep it in the 1Password Environment a `providers.credentials` entry names, a
 
 ## Checking a token
 
-`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
+`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Without a zone on the command line it reads the plugin's `zone` option, the organization's own zone (`.holocron/org.ts` fills it into every Cloudflare entry); with neither it reads the first few zones of the account, which a token scoped to one zone rightly cannot edit. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
 
 ## What `dns` provides
 

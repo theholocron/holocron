@@ -5,7 +5,7 @@ import type { HolocronConfig, OrgConfig, ProviderOptions, RawProviderEntry } fro
 
 /** The options each provider key of `.holocron/org.*` may hold. Checked against `OrgConfig` by the type. */
 const ORG_OPTIONS: Record<Exclude<keyof OrgConfig, "domain">, readonly string[]> = {
-	cloudflare: ["accountId"],
+	cloudflare: ["accountId", "zone"],
 	vercel: ["teamId"],
 	checkly: ["accountId"],
 	sentry: ["org"],
