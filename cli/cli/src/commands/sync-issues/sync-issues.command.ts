@@ -1,7 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
 import { loadConfig } from "../../config/index.js";
-import type { IssueOrder } from "../../plugin/index.js";
+import { type IssueOrder, PluginLoader, type Source } from "../../plugin/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../global-args/index.js";
 import { type LimitArgs, limitOptions } from "../migrate/limit-options/index.js";
@@ -9,6 +9,7 @@ import { parseLimit } from "../migrate/parse-limit/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { parseSince } from "./parse-since/index.js";
+import { readAssignees } from "./read-assignees/index.js";
 import { runSyncIssues } from "./run-sync-issues/index.js";
 
 type Args = GlobalArgs & LimitArgs & { from: string; to: string; since?: string; yes?: boolean };
@@ -38,9 +39,15 @@ export const syncIssuesCommand: CommandModule<GlobalArgs, Args> = {
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		const org = resolveOrg(argv, loaded.resolved);
+		const context = { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org };
 		const report = await runSyncIssues({
 			loaded,
-			context: { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org },
+			context,
+			readAssignees: async () => {
+				const loader = new PluginLoader(loaded.resolved, context);
+				await loader.load();
+				return readAssignees(loader.has("source") ? (loader.get("source") as Source) : undefined, org);
+			},
 			from: argv.from,
 			to: argv.to,
 			...(since ? { since } : {}),

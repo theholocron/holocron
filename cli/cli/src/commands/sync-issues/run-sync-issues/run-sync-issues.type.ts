@@ -3,6 +3,7 @@ import type { Progress } from "@theholocron/kyber/ui";
 import type { LoadedConfig } from "../../../config/index.js";
 import type { IssueOrder, PluginLoader, RuntimeContext, SyncResult } from "../../../plugin/index.js";
 import type { DroppedTally } from "../../migrate/tally-dropped/index.js";
+import type { AssigneeLink } from "../parse-assignees/index.js";
 
 /** What {@link runSyncIssues} needs. */
 export interface RunSyncIssuesInput {
@@ -22,6 +23,11 @@ export interface RunSyncIssuesInput {
 	order?: IssueOrder;
 	/** Sync without asking. */
 	yes?: boolean;
+	/**
+	 * Reads the assignees file (the GitHub login and Linear email of each person). Called once, and only when a record has
+	 * an assignee. Tests pass one; the command reads the file through the `source` provider.
+	 */
+	readAssignees?: () => Promise<AssigneeLink[]>;
 	/** Builds a loader for a side; tests pass one. */
 	makeLoader?: (resolved: LoadedConfig["resolved"], context: RuntimeContext) => PluginLoader;
 	/** Whether a terminal can be asked. Defaults to whether stdin is one. */

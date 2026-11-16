@@ -1,0 +1,82 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/sync-issues.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Sync Issues
+
+# Keeps the issues of one tracker up to date from another (SPEC-0071 section 4, #1859, spec
+# `tech-issue-sync-schedule-and-assignees`, #2251): runs `holocron sync issues --from <from> --to <to>`, which creates what the
+# target is missing, updates what an earlier sync made and adds the comments it lacks. With `both` it then runs the swapped
+# direction, after the first and in the same job, so two runs never touch the same issue at once (each direction never
+# echoes what the other made).
+#
+# `from` and `to` are the command's endpoints: `github`, or `provider:key=value,...` (`linear:team=ENG`). Only a repo whose
+# `tasks:` lists `sync-issues` (with these inputs under `with:`) gets the caller, so a repo with one tracker is untouched.
+#
+# Tokens reach the job in its environment, never on a command line: `HOLOCRON_LINEAR_TOKEN` from the secret of that name and
+# GitHub's from `HOLOCRON_ISSUES_TOKEN` (the job's own token when that is not set). Scheduled hourly by the caller; a failed
+# run reaches #alerts through `platform.notifications.yml`.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      from:
+        description: Where the issues are read from (`github`, or `provider:key=value,...`).
+        type: string
+        required: true
+      to:
+        description: Where they are written, in the same form.
+        type: string
+        required: true
+      since:
+        description: Only issues changed since this date or span back from now (2026-03-01, 7d, 12h).
+        type: string
+        required: false
+        default: 2d
+      both:
+        description: Also run the swapped direction after the first.
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      HOLOCRON_LINEAR_TOKEN:
+        description: The Linear API key, when an endpoint is Linear.
+        required: false
+      HOLOCRON_ISSUES_TOKEN:
+        description: A GitHub token that can read and write issues; the job's own token is used when it is not set.
+        required: false
+
+jobs:
+  sync-issues:
+    name: Sync issues between trackers
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Two runs could each create the same issue on the target, so a second waits for the first.
+    concurrency:
+      group: sync-issues
+      cancel-in-progress: false
+    env:
+      HOLOCRON_LINEAR_TOKEN: ${{ secrets.HOLOCRON_LINEAR_TOKEN }}
+      HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Sync issues
+        with:
+          command: sync issues --yes --from ${{ inputs.from }} --to ${{ inputs.to }} --since ${{ inputs.since }}
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Sync issues, the other way
+        if: ${{ inputs.both }}
+        with:
+          command: sync issues --yes --from ${{ inputs.to }} --to ${{ inputs.from }} --since ${{ inputs.since }}

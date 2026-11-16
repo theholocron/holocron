@@ -92,7 +92,7 @@ found. Without `text`, `search` makes one request as before.
 
 ### Migrating and syncing
 
-`export`, `import` and `sync` let `holocron migrate` and `holocron sync issues` move issues to and from another tracker. A copy carries a `<!-- holocron:migrated-from <url> -->` marker at the end of its body, which is how a later run finds it and how the reverse sync knows to skip it. `sync` updates title, description, state and labels (priority is the `priority: <level>` label) of a copy, keeps its `status:*` labels, and adds the comments it lacks; an assignee is not mapped, because a Linear user is not a GitHub login. A 429, or a 403 that names the rate limit, stops the run with the rest left for the next one. See [sync issues](/holocron/commands/sync-issues/).
+`export`, `import` and `sync` let `holocron migrate` and `holocron sync issues` move issues to and from another tracker. A copy carries a `<!-- holocron:migrated-from <url> -->` marker at the end of its body, which is how a later run finds it and how the reverse sync knows to skip it. `sync` updates title, description, state and labels (priority is the `priority: <level>` label) of a copy, keeps its `status:*` labels, and adds the comments it lacks; an assignee is set only when `sync issues` found the person's GitHub login in the assignees file (a Linear user is not a GitHub login), and is never cleared. A 429, or a 403 that names the rate limit, stops the run with the rest left for the next one. See [sync issues](/holocron/commands/sync-issues/).
 
 ## What `projects` provides
 

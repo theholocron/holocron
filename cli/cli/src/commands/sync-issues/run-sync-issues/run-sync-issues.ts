@@ -18,6 +18,7 @@ import { describeLimit } from "../../migrate/describe-limit/index.js";
 import { openSide } from "../../migrate/open-side/index.js";
 import { parseEndpoint } from "../../migrate/parse-endpoint/index.js";
 import { tallyDropped } from "../../migrate/tally-dropped/index.js";
+import { applyAssignees } from "../apply-assignees/index.js";
 import type { RunSyncIssuesInput, SyncCounts, SyncIssuesReport } from "./run-sync-issues.type.js";
 
 export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssuesReport> {
@@ -67,8 +68,17 @@ export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssu
 
 	// The loop guard, on the source and before any write: an issue that is itself a copy is not copied back.
 	const guarded = records.filter((r) => r.migratedFrom !== undefined);
-	const toSync = records.filter((r) => r.migratedFrom === undefined);
+	let toSync = records.filter((r) => r.migratedFrom === undefined);
 	for (const r of guarded) row("skip", `${r.key} is a copy of ${r.migratedFrom}; not synced back`);
+
+	// The assignees file is read once, and only when an assignee has to be carried across.
+	if (input.readAssignees && toSync.some((r) => r.assignee)) {
+		try {
+			toSync = applyAssignees(toSync, await input.readAssignees());
+		} catch (err) {
+			return stop("fail", `assignees: ${describeError(err)}`);
+		}
+	}
 
 	const dryRun = Boolean(input.context.dryRun);
 	let results: SyncResult[] = [];

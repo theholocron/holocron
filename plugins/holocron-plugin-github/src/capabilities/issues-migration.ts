@@ -238,7 +238,7 @@ export async function importIssues(
 /** What GitHub cannot hold of this record, for the report. */
 export function droppedFor(record: IssueRecord): string[] {
 	const dropped = ["createdAt (GitHub sets it; the original date is in the text)"];
-	if (record.assignee) dropped.push("assignee (not mapped)");
+	if (record.assignee && !record.assignee.login) dropped.push("assignee (not mapped)");
 	if (record.parent) dropped.push("parent (not set on GitHub)");
 	if (record.blockedBy.length > 0) dropped.push("blockedBy (not set on GitHub)");
 	return dropped;
@@ -273,6 +273,7 @@ export async function createFromRecord(
 		body: withProvenance(record),
 		...(labels.length > 0 ? { labels } : {}),
 		...(milestone !== undefined ? { milestone } : {}),
+		...(record.assignee?.login ? { assignees: [record.assignee.login] } : {}),
 	});
 	for (const comment of record.comments) {
 		await client.issues.createComment(repo, created.number, renderComment(comment));

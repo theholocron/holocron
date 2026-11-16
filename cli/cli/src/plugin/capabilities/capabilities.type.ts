@@ -662,6 +662,8 @@ export interface TrackerUser {
 	displayName: string;
 	/** Their email address, when the tracker shares it. */
 	emailAddress?: string;
+	/** Their GitHub login, when `sync issues` found it in the assignees file (a source that is not GitHub knows none). */
+	login?: string;
 }
 
 /** An issue in the tracker, in a shape that does not depend on the provider. */

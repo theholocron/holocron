@@ -1,6 +1,6 @@
 ---
 id: SPEC-0071
-status: draft
+status: archived
 issue: theholocron/holocron#1859
 blocked-by: []
 related:
@@ -289,8 +289,9 @@ a GitHub board target with a missing option; a rate limit mid-run.
    a sync keep assignees; not decided.
    _Sync keeps email matching: a Linear target matches the source assignee by email and never clears one; a GitHub
    target cannot map a Linear user to a login, so it keeps no assignee and reports `assignee (not mapped)`._
+   _Built later (#2251, `tech-issue-sync-schedule-and-assignees`): an assignees file in the org's private config repo pairs a login with a Linear email, so a GitHub target keeps the assignee of a mapped person._
 4. **Scheduling.** A reusable workflow plus a thin caller (as `reconcile-projects`), or only a local command for the trial.
-   _Not built: `sync issues` is a local command with `--yes` for a scheduled run; the workflow is a follow-up._
+   _Built later (#2251): the `sync-issues` task, a reusable workflow and an hourly thin caller, with `from`, `to`, `since` and `both` as its inputs._
 5. **GitHub priority.** Priority is a `priority: <level>` label on GitHub issues today. A sync to a board target would set
    the Priority field instead; whether to also keep the label is open.
    _Sync keeps today's `priority: <level>` label on GitHub; the board field belongs to #1860._

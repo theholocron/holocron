@@ -1062,6 +1062,39 @@ describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project boa
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['sync-issues'] — the scheduled issue sync", () => {
+	const wf = REUSABLE_WORKFLOWS["sync-issues"]!;
+
+	it("takes the two endpoints (required), `since` (default 2d) and `both` (default false) as inputs", () => {
+		expect(wf).toContain("workflow_call:");
+		for (const name of ["from", "to"]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+type: string\\n\\s+required: true`));
+		}
+		expect(wf).toMatch(/since:\n\s+description: .+\n\s+type: string\n\s+required: false\n\s+default: 2d/);
+		expect(wf).toMatch(/both:\n\s+description: .+\n\s+type: boolean\n\s+required: false\n\s+default: false/);
+	});
+
+	it("syncs one way, then the swapped way only when `both` is set, in the same job", () => {
+		expect(wf).toContain("command: sync issues --yes --from ${{ inputs.from }} --to ${{ inputs.to }}");
+		expect(wf).toMatch(
+			/name: Sync issues, the other way\n\s+if: \$\{\{ inputs\.both \}\}\n\s+with:\n\s+command: sync issues --yes --from \$\{\{ inputs\.to \}\} --to \$\{\{ inputs\.from \}\}/
+		);
+		expect(wf.match(/^ {2}[a-z-]+:\n {4}name:/gm)).toHaveLength(1);
+	});
+
+	it("hands the tokens over in the environment, never on the command line", () => {
+		expect(wf).toContain("HOLOCRON_LINEAR_TOKEN: ${{ secrets.HOLOCRON_LINEAR_TOKEN }}");
+		expect(wf).toContain("HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN || github.token }}");
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("runs one at a time and may write issues", () => {
+		expect(wf).toContain("group: sync-issues");
+		expect(wf).toContain("cancel-in-progress: false");
+		expect(wf).toContain("issues: write");
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () => {
 	const wf = REUSABLE_WORKFLOWS["check-tokens"]!;
 
