@@ -56,4 +56,23 @@ describe("aggregateChecks", () => {
 			})
 		).toEqual({ expected: ["tsdown (every workspace)", "Generated files"], statuses: [] });
 	});
+
+	it("takes the statuses from the provider when it reports them, and adds its required ones", () => {
+		expect(
+			aggregateChecks(
+				{
+					tasks: [{ name: "verification.typeSafety", required: true }],
+					extraRequiredChecks: ["cov/patch", "codecov/patch", "Generated files / Check"],
+				},
+				[
+					{ name: "cov/patch", required: true },
+					{ name: "cov/project", required: true },
+					{ name: "cov/patch/a", required: false },
+				]
+			)
+		).toEqual({
+			expected: ["typecheck", "codecov/patch", "Generated files"],
+			statuses: ["cov/patch", "cov/project"],
+		});
+	});
 });

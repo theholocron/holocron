@@ -617,6 +617,25 @@ describe("createAstromech().aggregateCaller", () => {
 	});
 });
 
+describe("createAstromech() with the statuses a coverage provider reports", () => {
+	const statusContexts = [
+		{ name: "cov/patch", required: true },
+		{ name: "cov/patch/docs", required: false },
+	];
+
+	it("adds the required statuses to the ruleset list and the aggregate", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["cov/patch/docs"] },
+			statusContexts,
+		});
+		expect(astromech.requiredChecks(false)).toEqual(["DCO", "cov/patch/docs", "cov/patch"]);
+		const caller = astromech.aggregateCaller();
+		expect(caller).toContain(`expected: '[]'`);
+		expect(caller).toContain(`statuses: '["cov/patch/docs","cov/patch"]'`);
+	});
+});
+
 describe("createAstromech().codecovConfig", () => {
 	it("delegates to the bare codecovConfig(cwd, existing) — cwd bound from the factory", async () => {
 		const { codecovConfig } = await import("./generators/codecov/codecov.js");

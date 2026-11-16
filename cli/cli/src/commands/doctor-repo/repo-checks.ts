@@ -1,4 +1,4 @@
-import { createAstromech, isTask } from "@theholocron/astromech";
+import { createAstromech, isTask, type StatusContext } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { declaredVsActual } from "@theholocron/kyber/ui";
 
@@ -22,7 +22,11 @@ const onOff = (value: boolean): string => (value ? "on" : "off");
  * declares it (labels and security toggles are always written, so they are always checked). Variables, secrets and
  * environments are separate checks. Pages, `CODEOWNERS` and the generated files are not compared here.
  */
-export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): RepoCheck[] {
+export function repoChecks(
+	config: ResolvedHolocronConfig,
+	repoRoot: string,
+	statusContexts?: readonly StatusContext[]
+): RepoCheck[] {
 	const repo = config.repo;
 	const preset = repo?.protection && repo.protection !== "none" ? repo.protection : undefined;
 	const checks: RepoCheck[] = [];
@@ -226,7 +230,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 				const found = rulesets.find((r) => r.name === RULESET_NAME);
 				if (!found) return { problems: [`missing ruleset ${RULESET_NAME}`], checked: 1 };
 				const detail = await source.getRulesetDetail!(found.id);
-				const required = preset === "strict" ? strictChecks(config, repoRoot) : [];
+				const required = preset === "strict" ? strictChecks(config, repoRoot, statusContexts) : [];
 				const rules = [
 					"deletion",
 					"non_fast_forward",
@@ -308,10 +312,17 @@ function declaredProperties(config: ResolvedHolocronConfig): Map<string, string>
 }
 
 /** The status checks a `strict` ruleset requires, derived from the task manifest exactly as `setup` does. */
-function strictChecks(config: ResolvedHolocronConfig, repoRoot: string): string[] {
+function strictChecks(
+	config: ResolvedHolocronConfig,
+	repoRoot: string,
+	statusContexts: readonly StatusContext[] | undefined
+): string[] {
 	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
-	return createAstromech({ cwd: repoRoot, config: tasksConfig, logger: getLogger() }).requiredChecks(
-		hostsReusables(repoRoot)
-	);
+	return createAstromech({
+		cwd: repoRoot,
+		config: tasksConfig,
+		logger: getLogger(),
+		...(statusContexts ? { statusContexts } : {}),
+	}).requiredChecks(hostsReusables(repoRoot));
 }

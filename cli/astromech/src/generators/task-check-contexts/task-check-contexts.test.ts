@@ -109,4 +109,14 @@ describe("taskCheckContexts", () => {
 			"X",
 		]);
 	});
+
+	it("appends the required statuses a coverage provider reports once, after the extras", () => {
+		expect(
+			taskCheckContexts({ extraRequiredChecks: ["X", "cov/patch"] }, [
+				{ name: "cov/project", required: true },
+				{ name: "cov/patch", required: true },
+				{ name: "cov/patch/a", required: false },
+			])
+		).toEqual(["X", "cov/patch", "cov/project"]);
+	});
 });

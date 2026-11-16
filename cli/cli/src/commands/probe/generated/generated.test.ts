@@ -237,6 +237,16 @@ describe("generatedProbes", () => {
 		);
 	}
 
+	it("generates with the coverage provider's status contexts when it is given them", async () => {
+		const statusContexts = [{ name: "cov/patch", required: true }];
+		generate.mockResolvedValue([file("a.json", "{}\n")]);
+		await generatedProbes({ resolved: { tasks: [] } } as unknown as LoadedConfig, root, statusContexts).check!.run({
+			say: () => {},
+		} as never);
+		expect(generate.mock.calls.map((call) => call[0].statusContexts)).toEqual([statusContexts, statusContexts]);
+		generate.mockReset();
+	});
+
 	it("says how many files match", async () => {
 		const rows = await run([
 			file("a.json", "{}\n"),

@@ -5,6 +5,7 @@ import { commandFailureMessage, statusRow, style } from "@theholocron/kyber/ui";
 import type { ResolvedTuple } from "../../config/index.js";
 import { isEnvironmentLayer } from "../../credentials-environments/index.js";
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { ownerEnvironments } from "../owner-environments/index.js";
 import { tokenExpectations } from "../token-expectations/index.js";
 import { workspaceProviders } from "../workspace-providers/index.js";
@@ -57,7 +58,18 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	);
 
 	groups.set(DEPS_PROVIDER, depsProbes(input.context.repoRoot, print));
-	groups.set(GENERATED_PROVIDER, generatedProbes(input.loaded, input.context.repoRoot));
+	groups.set(
+		GENERATED_PROVIDER,
+		generatedProbes(
+			input.loaded,
+			input.context.repoRoot,
+			coverageStatusContexts({
+				loader,
+				repoRoot: input.context.repoRoot,
+				docsCoverage: input.loaded.resolved.repoValidation?.docsCoverage,
+			})
+		)
+	);
 	groups.set(CI_PROVIDER, ciProbes(input.context.org));
 	groups.set(SPECS_PROVIDER, specsProbes(realSpecsIo(input.context.repoRoot)));
 	groups.set(TASKS_PROVIDER, tasksProbes(realTasksIo(input.context.repoRoot)));

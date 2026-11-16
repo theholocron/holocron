@@ -194,10 +194,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		reusableTemplates: () => resolveReusableTemplates(),
 
-		requiredChecks: (aggregate: boolean) => resolveRequiredChecks(options.config ?? {}, aggregate),
+		requiredChecks: (aggregate: boolean) =>
+			resolveRequiredChecks(options.config ?? {}, aggregate, options.statusContexts),
 
 		aggregateCaller: () => {
-			const checks = aggregateChecks(options.config ?? {});
+			const checks = aggregateChecks(options.config ?? {}, options.statusContexts);
 			return checks.expected.length === 0 && checks.statuses.length === 0 ? null : resolveAggregateCaller(checks);
 		},
 

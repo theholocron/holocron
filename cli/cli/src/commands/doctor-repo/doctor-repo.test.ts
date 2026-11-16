@@ -452,6 +452,51 @@ describe("doctor repo — branch protection", () => {
 		expect(byId(report.rows, "repo-protection").status).toBe("ok");
 	});
 
+	it("requires the statuses a loaded coverage provider says are required", async () => {
+		const loaded = loadedWith({
+			providers: { source: "github", coverage: "codecov" },
+			tasks: ["verification.unitTests"],
+			repo: { protection: "strict" },
+		});
+		const importer = vi.fn(async (pkg: string) => {
+			const capability =
+				pkg === "@theholocron/holocron-plugin-github"
+					? {
+							source: () => ({
+								providerName: "github",
+								listLabels: async () => labels(),
+								getSecurity: async () => ALL_ON,
+								getProperties: async () => ({}),
+								listRulesets: async () => [RULESET],
+								getRulesetDetail: async () => ({
+									name: RULESET.name,
+									enforcement: "active",
+									ruleTypes: [],
+									requiredChecks: [],
+								}),
+							}),
+						}
+					: {
+							coverage: () => ({
+								providerName: "codecov",
+								key: "coverage",
+								statusContexts: () => [{ name: "cov/patch", required: true }],
+							}),
+						};
+			return { createPlugin: () => ({ name: pkg, capabilities: capability }) } as unknown as Awaited<
+				ReturnType<PluginImporter>
+			>;
+		});
+		const report = await runDoctorRepo({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter),
+			print: () => {},
+			logger: fakeLogger(),
+		});
+		expect(byId(report.rows, "repo-protection").problems).toContain("missing required check cov/patch");
+	});
+
 	it("skips, with the reason, when the plan has no rulesets API, and fails on any other error", async () => {
 		const forbidden = await run(loadedWith({ repo: { protection: "balanced" } }), {
 			...base,

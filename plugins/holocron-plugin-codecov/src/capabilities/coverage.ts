@@ -13,6 +13,8 @@ import type {
 	Coverage,
 	CoverageExpectations,
 	CoverageRepoReport,
+	CoverageStatusContext,
+	CoverageStatusInput,
 	CoverageTokenCheck,
 	CoverageUploadInput,
 	CoverageUploadResult,
@@ -25,6 +27,7 @@ import { defaultUploadDeps } from "../upload/default-deps.js";
 import type { UploadDeps } from "../upload/upload.type.js";
 import { uploadCoverage } from "../upload/upload-coverage.js";
 import { diffNames } from "./diff-names.js";
+import { statusContexts } from "./status-contexts.js";
 
 const NO_API_TOKEN =
 	"set HOLOCRON_CODECOV_API_TOKEN to a Codecov personal API token to compare flags and components (the upload token HOLOCRON_CODECOV_UPLOAD_TOKEN is not accepted by Codecov's REST API)";
@@ -131,5 +134,10 @@ export class CodecovCoverage implements Coverage {
 	 */
 	upload(input: CoverageUploadInput): Promise<CoverageUploadResult> {
 		return uploadCoverage(input, this.uploadDeps());
+	}
+
+	/** The commit statuses Codecov posts, by name: see `statusContexts()`. Offline, so it needs no token and no repository. */
+	statusContexts(input: CoverageStatusInput): CoverageStatusContext[] {
+		return statusContexts(input);
 	}
 }

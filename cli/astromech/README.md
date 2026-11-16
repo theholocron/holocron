@@ -217,10 +217,10 @@ applies the list for `protection: "strict"` repos. Policy-free — manifest only
 
 ### The `ci` aggregate
 
-`aggregateChecks(config)` derives what the reusable `ci.yml` (in `ci/workflows/`) waits on, from the same list: the
+`aggregateChecks(config, statusContexts?)` derives what the reusable `ci.yml` (in `ci/workflows/`) waits on, from the same list: the
 `expected` ids are the part before `/` of each required task's context and of each `extraRequiredChecks` entry that
-is not a `codecov/` status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
-the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
+is not a coverage status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
+the coverage entries. Astromech imports no provider, so a `coverage` provider's contexts (`{ name, required }[]`, from the CLI) come in as the optional `statusContexts` argument (of `aggregateChecks()`, `requiredChecks()`, `taskCheckContexts()`, and `createAstromech({ statusContexts })`): a context is a status when the provider names it, and the provider's required ones are added after `extraRequiredChecks`. Without it, a context starting with `codecov/` is a status and nothing is added, which is what runs with no provider loaded do. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
 `holocron sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 

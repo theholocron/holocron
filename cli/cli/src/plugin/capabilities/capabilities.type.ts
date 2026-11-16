@@ -3257,6 +3257,29 @@ export interface Coverage extends ProviderIdentity {
 	 * problem (no way to authenticate, a client that cannot be trusted) throws.
 	 */
 	upload?(input: CoverageUploadInput): Promise<CoverageUploadResult>;
+	/**
+	 * The commit statuses the service posts on a pull request, so the code that decides which statuses the `ci`
+	 * aggregate and a ruleset wait on does not spell the service's names. Pure and offline: names only, from the
+	 * components and the documentation mode the caller passes. The CLI hands the result to the task runner (which imports
+	 * no provider); without a provider, the task runner keeps its default (a context starting with `codecov/` is a status).
+	 */
+	statusContexts?(input: CoverageStatusInput): CoverageStatusContext[];
+}
+
+/** What {@link Coverage.statusContexts} takes: names and a mode, never a credential. */
+export interface CoverageStatusInput {
+	/** The component ids the config declares (one per workspace package, the names of the flags). */
+	components: string[];
+	/** `repoValidation.docsCoverage`: whether the documentation statuses exist (`warn`, `required`) and gate (`required`). */
+	documentation: "off" | "warn" | "required";
+}
+
+/** One commit status the service posts, as {@link Coverage.statusContexts} lists it. */
+export interface CoverageStatusContext {
+	/** The context GitHub shows. */
+	name: string;
+	/** Whether a pull request must see it reach `success` before it merges. */
+	required: boolean;
 }
 
 /** The flags and components {@link Coverage.checkRepo} expects the service to have, by name. */

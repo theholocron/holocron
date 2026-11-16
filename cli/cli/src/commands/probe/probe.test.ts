@@ -24,6 +24,7 @@ function fakeLoader(over: { failures?: Array<{ key: string; provider: string; er
 		load: async () => {},
 		probes: () => new Map([["demo", probes]]),
 		loadedKeys: () => ["source", "ci"],
+		has: () => false,
 		get: (key: string) => (key === "source" ? { providerName: "github" } : [{ providerName: "demo" }, {}]),
 		loadFailures: () => over.failures ?? [],
 	} as unknown as PluginLoader;
@@ -84,6 +85,21 @@ describe("runProbeCommand", () => {
 		expect(read.mock.calls[0]![0]).toMatchObject({ lcov: "coverage/docs.lcov" });
 		await run({ provider: "demo", probe: "look" }).promise;
 		expect(read.mock.calls[1]![0]).not.toHaveProperty("lcov");
+	});
+
+	it("asks a loaded coverage provider for its status contexts, for the generated-files check", async () => {
+		const statusContexts = vi.fn(() => [{ name: "cov/patch", required: true }]);
+		const loader = {
+			...(fakeLoader() as object),
+			has: (key: string) => key === "coverage",
+			get: () => ({ providerName: "cov", statusContexts }),
+		} as unknown as PluginLoader;
+		const { promise } = run({
+			loader,
+			loaded: { resolved: { repoValidation: { docsCoverage: "required" } } } as LoadedConfig,
+		});
+		await promise;
+		expect(statusContexts).toHaveBeenCalledWith({ components: [], documentation: "required" });
 	});
 
 	it("runs docs patch as off unless the config says otherwise", async () => {

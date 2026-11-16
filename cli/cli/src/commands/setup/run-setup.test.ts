@@ -1437,6 +1437,53 @@ describe("runSetup", () => {
 		});
 	});
 
+	it("takes the required contexts from a loaded coverage provider", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-coverage-statuses-"));
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const statusContexts = vi.fn(() => [
+			{ name: "cov/patch", required: true },
+			{ name: "cov/patch/a", required: false },
+		]);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+			providers: { vault: "1password", source: "github", coverage: "codecov" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-codecov": makePlugin("cc", { coverage: { statusContexts } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: dir }, loader, print: () => {} });
+		await rm(dir, { recursive: true, force: true });
+
+		expect(statusContexts).toHaveBeenCalledWith({ components: [], documentation: "off" });
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		expect(rules.find((r) => r.type === "required_status_checks")?.parameters).toMatchObject({
+			required_status_checks: [
+				{ context: "DCO" },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
+				{ context: "cov/patch" },
+			],
+		});
+	});
+
 	it("deduplicates workflow names when building required checks", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({

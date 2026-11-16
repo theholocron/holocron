@@ -49,6 +49,7 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
@@ -84,6 +85,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const steps: SetupStepResult[] = [];
 	const repo = config.repo;
 	const effectivePreset = repo?.protection;
+	// What the `coverage` provider posts, for the `ci` aggregate and the ruleset; none keeps the task runner's default.
+	const statusContexts = coverageStatusContexts({
+		loader,
+		repoRoot: input.context.repoRoot,
+		docsCoverage: config.repoValidation?.docsCoverage,
+	});
 	// Stamped into every workflow thin caller written below, same marker
 	// `holocron sync` uses (holocron#1026) and checked the same way
 	// via assertNoPackageCollision -- before writing, read the file back
@@ -164,6 +171,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							cwd: input.context.repoRoot,
 							config: tasksConfig,
 							logger,
+							...(statusContexts ? { statusContexts } : {}),
 						}).requiredChecks(hostsReusables(input.context.repoRoot))
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
@@ -182,6 +190,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			loaded: input.loaded,
 			repoRoot: input.context.repoRoot,
 			hooks: input.hooks,
+			...(statusContexts ? { statusContexts } : {}),
 			logger,
 		})) {
 			if (entry.kind === "skip") {

@@ -1,3 +1,4 @@
+import type { StatusContext } from "@theholocron/astromech";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
@@ -9,6 +10,11 @@ export interface RepoFilesInput {
 	repoRoot: string;
 	/** `--hooks` / `--no-hooks`; `undefined` defers to `config.hooks`, then to `protection: "strict"`. */
 	hooks?: boolean;
+	/**
+	 * The commit statuses a `coverage` provider posts (`coverageStatusContexts()`), for the `ci` aggregate caller. Left
+	 * out when no provider is loaded (the generators need none), and the task runner then keeps its default.
+	 */
+	statusContexts?: readonly StatusContext[];
 	logger?: Logger;
 }
 

@@ -123,11 +123,12 @@ export default defineConfig({
 
   // Required status-check contexts **not** backed by a `{ required: true }` task
   // — codecov gates, a docs/storybook publish job, etc. The `ci` aggregate waits on
-  // them: a `codecov/` entry is polled as a commit status, any other entry
+  // them: a coverage provider's status (`codecov/...`, as its `statusContexts()` names them; with no provider loaded, anything starting with `codecov/`) is polled as a commit status, any other entry
   // (`"Generated files / Check"`) as a check run named `<id> / ...`. List the aggregate
   // `codecov/patch` and `codecov/project` only: a ruleset takes no wildcards, and a
   // package a PR does not touch posts no `codecov/patch/<package>` status, so
-  // per-package contexts neither scale nor reliably appear.
+  // per-package contexts neither scale nor reliably appear. A loaded `coverage` provider
+  // also adds the statuses it says are required, so these two are the default when none is loaded.
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
   // `holocron sync` reconciles package.json#scripts (merge, never clobber): the

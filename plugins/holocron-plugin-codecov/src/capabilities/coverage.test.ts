@@ -21,6 +21,17 @@ describe("CodecovCoverage", () => {
 		expect(cap.providerName).toBe("codecov");
 	});
 
+	it("reports its status contexts without a token or a repository", () => {
+		const { cap } = build([], { target: null });
+		expect(cap.statusContexts({ components: ["a"], documentation: "required" }).map((c) => c.name)).toEqual([
+			"codecov/patch",
+			"codecov/patch/a",
+			"codecov/patch/documentation",
+			"codecov/project",
+			"codecov/project/documentation",
+		]);
+	});
+
 	it("is accepted when Codecov answers for the repository, and says whether it is private", async () => {
 		const { cap, calls } = build([{ body: { name: "holocron", private: true } }]);
 		await expect(cap.checkToken()).resolves.toEqual({ outcome: "accepted", repoPrivate: true });

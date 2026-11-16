@@ -32,6 +32,20 @@ describe("requiredChecks", () => {
 		).toEqual(["DCO", "typecheck / Run tsc --noEmit", "codecov/patch"]);
 	});
 
+	it("adds the required statuses a coverage provider reports, after the extras, and not the others", () => {
+		const statusContexts = [
+			{ name: "cov/patch", required: true },
+			{ name: "cov/patch/a", required: false },
+		];
+		expect(requiredChecks({ extraRequiredChecks: ["X", "cov/patch"] }, false, statusContexts)).toEqual([
+			"DCO",
+			"X",
+			"cov/patch",
+		]);
+		expect(requiredChecks({}, false, statusContexts)).toEqual(["DCO", "cov/patch"]);
+		expect(requiredChecks({}, true, statusContexts)).toEqual(["ci / Required checks", "DCO"]);
+	});
+
 	it("lists `DCO` once when an extra repeats it", () => {
 		expect(requiredChecks({ extraRequiredChecks: ["DCO", "X"] }, false)).toEqual(["DCO", "X"]);
 	});
