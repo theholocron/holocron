@@ -66,30 +66,6 @@
  *   for why most of the rules that would otherwise overlap with
  *   Prettier are disabled in this org's config, narrowing what's left to
  *   auto-fix).
- * - **Static analysis** (`lintStaticAnalysis → postStaticAnalysisCheck`,
- *   holocron#769/#849): `pull_request.*` only, same reason and same
- *   check-run shape as the other Bucket 1 checks — reads
- *   `@theholocron/eslint-config`'s `library()` bundle directly, via
- *   eslint's real `Linter.verify()` API against fetched file content, no
- *   checkout. **Not** config-free like its four siblings, though — skipped
- *   entirely when this repo's `runtime_environment` property (resolved by
- *   capability compliance's `syncPropertiesFromConfig()` call above, reused
- *   here rather than refetched) is explicitly `"none"`, since a docs-only
- *   repo has no JS/TS to lint at all. Same **not purely check-run
- *   advisory** treatment as Documentation above (holocron#860) — an
- *   error-severity eslint finding posts as a PR review comment via the
- *   same shared `postErrorReview()`, scoped separately so a re-push never
- *   resolves the sibling check's own threads.
- * - **actionlint** (`lintActionlint → postActionlintCheck`, holocron#904):
- *   `pull_request.*` only, the actionlint half of the same
- *   `sourceQuality.staticAnalysis` task as static analysis above, but
- *   config-free unlike it — any repo can carry workflow files, so no
- *   `runtime_environment` gate. Real actionlint and real ShellCheck (over
- *   every step's `run:` script, the integration the actionlint binary gets
- *   from a `shellcheck` on PATH), both as WASM against fetched workflow
- *   content, no checkout. Same error-review / warning-annotation split as
- *   static analysis, via the same shared `postErrorReview()` under its own
- *   `checkKey`.
  * - **Repo validation** (`validateAdrs → postAdrsCheck`,
  *   `validateDocsPresence → postDocsPresenceCheck`, holocron#913):
  *   `pull_request.*` only, and only for a repo whose valid config declares
@@ -102,13 +78,6 @@
  *   holocron#929): new public packages and the `feat` rule with its
  *   `[skip docs] <reason>` marker. Editing a PR's title or description
  *   (`pull_request.edited`) re-runs that one check and nothing else.
- * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
- *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
- *   capability compliance, but only when the repo's *valid* config declares
- *   `SENTINEL_DISPATCHABLE_TASK` — one hardcoded task for this prototype
- *   phase, not a general Bucket-2-task sweep. Runs *alongside* the existing
- *   GitHub Actions thin-caller for that same task, not instead of it, until
- *   this mechanism is trusted enough to replace it.
  * - **PR Config Validation** (`validateConfig` against the PR's own head
  *   ref, holocron#827): posted as `sentinel:validate:config / Run Holocron
  *   config compatibility (pull_request)` — a "(pull_request)" suffix, not
@@ -214,9 +183,7 @@ import {
 	commitEditorConfigFix,
 	commitFormattingFix,
 	commitMarkdownLintFix,
-	dispatchCheck,
 	findAutoFixLoop,
-	lintActionlint,
 	lintCommits,
 	lintDco,
 	lintEditorConfig,
@@ -226,8 +193,6 @@ import {
 	lintInclusiveLanguage,
 	lintMarkdown,
 	type LintMarkdownResult,
-	lintStaticAnalysis,
-	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
 	postAutoFixLoopComment,
@@ -240,7 +205,6 @@ import {
 	postInclusiveLanguageCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
-	postStaticAnalysisCheck,
 	type PrFeedTrigger,
 	runPrFeed,
 	type RunPrFeedResult,
@@ -255,13 +219,10 @@ import {
 	parseWebhookEvent,
 	readAutoFix,
 	resolveAxiomConfig,
-	SENTINEL_ACTIONLINT_LOG_MSG,
 	SENTINEL_ADRS_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DCO_LOG_MSG,
-	SENTINEL_DISPATCHABLE_TASK,
-	SENTINEL_DISPATCHED_CHECK_NAME,
 	SENTINEL_DOCS_PRESENCE_LOG_MSG,
 	SENTINEL_EDITORCONFIG_FIX_LOG_MSG,
 	SENTINEL_EDITORCONFIG_LOG_MSG,
@@ -274,7 +235,6 @@ import {
 	SENTINEL_PR_FEED_LOG_MSG,
 	SENTINEL_REPO_VALIDATION_TASK,
 	SENTINEL_ROLE_SYNC_LOG_MSG,
-	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 	type SentinelEvent,
 	validateConfig,
 	type ValidateConfigResult,
@@ -586,8 +546,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 
 	// Same PR-only scoping and soft-skip reasoning as commit standards above.
 	// Runs alongside the existing probot/dcoapp installation, not instead of
-	// it yet (same "prove it out before replacing" posture Bucket 2 dispatch
-	// already established) -- see lint-dco.ts's own module docstring for why
+	// it yet -- see lint-dco.ts's own module docstring for why
 	// this exists at all.
 	let dcoCheckRun;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
@@ -833,127 +792,17 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// details_url is a query filtered to find this precise line.
 	logger.info({ repo, conclusion: checkRun.conclusion }, SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG);
 
-	// Bucket 2 dispatch prototype (holocron#769/#794, tech-sentinel-ci-runner.spec.md):
-	// fires only for a repo that actually declares the one dispatchable task
-	// this phase covers -- every other repo untouched. Runs alongside the
-	// existing GitHub Actions thin-caller for the same task, not instead of
-	// it, until this mechanism is trusted enough to replace it.
-	// Soft-skip over hard-fail, same reasoning as commit standards above: a
-	// dispatch failure must never take capability compliance down with it.
-	let dispatchedCheckRun;
+	// Eslint, actionlint and the typecheck are not Sentinel's: the Actions `lint:code` and `typecheck` run them with the
+	// repo's own config, and two checks of one task id from two apps would disagree (`process-sentinel-and-actions-roles`,
+	// #2263).
 	const normalizedTasks = (configResult.config.tasks ?? []).map(normalizeTaskEntry);
 	const taskNames = normalizedTasks.map((t) => t.name);
-	if (taskNames.includes(SENTINEL_DISPATCHABLE_TASK)) {
-		try {
-			dispatchedCheckRun = await dispatchCheck({
-				client,
-				repo,
-				headSha: context.headSha,
-				ref: context.headSha,
-				task: SENTINEL_DISPATCHABLE_TASK,
-				checkName: SENTINEL_DISPATCHED_CHECK_NAME,
-			});
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "dispatchCheck: failed, continuing without it");
-		}
-	}
-
-	// Fifth Bucket 1 static-analysis check (holocron#769/#849) -- unlike its
-	// four siblings above, NOT config-free: skipped entirely when this repo's
-	// own `runtime_environment` property is explicitly "none" (a docs-only
-	// repo has no JS/TS to lint at all). `properties` was already resolved
-	// for capability compliance above -- reusing it here costs nothing extra.
-	// Same PR-only scoping and soft-skip reasoning as every Bucket 1 check
-	// above.
-	let staticAnalysisCheckRun;
-	if (
-		event.type !== "push.default-branch" &&
-		context.pullNumber !== undefined &&
-		properties["runtime_environment"] !== "none"
-	) {
-		try {
-			// TasksConfig has no `eslint` field (astromech's own concern is just
-			// the task manifest) -- same loose-read-by-design cast
-			// syncPropertiesFromConfig's own call above already uses for
-			// repo/providers.
-			const rawConfig = configResult.config as unknown as { eslint?: { browserPackages?: unknown } };
-			const browserPackages = Array.isArray(rawConfig.eslint?.browserPackages)
-				? rawConfig.eslint.browserPackages.filter((p): p is string => typeof p === "string")
-				: undefined;
-			const lintResult = await lintStaticAnalysis({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				ref: context.headSha,
-				browserPackages,
-			});
-			staticAnalysisCheckRun = await postStaticAnalysisCheck({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				headSha: context.headSha,
-				result: lintResult,
-				runId,
-			});
-			// Matches SENTINEL_STATIC_ANALYSIS_LOG_MSG exactly -- the check's own
-			// details_url is a query filtered to find this precise line.
-			logger.info(
-				{
-					repo,
-					valid: lintResult.valid,
-					fileCount: lintResult.fileCount,
-					messageCount: lintResult.messages.length,
-				},
-				SENTINEL_STATIC_ANALYSIS_LOG_MSG
-			);
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "lintStaticAnalysis: failed, continuing without it");
-		}
-	}
-
-	// The actionlint half of sourceQuality.staticAnalysis (holocron#904) --
-	// config-free, unlike eslint above: workflow files exist regardless of
-	// `runtime_environment`. Same PR-only scoping and soft-skip reasoning as
-	// every Bucket 1 check above.
-	let actionlintCheckRun;
-	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
-		try {
-			const lintResult = await lintActionlint({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				ref: context.headSha,
-			});
-			actionlintCheckRun = await postActionlintCheck({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				headSha: context.headSha,
-				result: lintResult,
-				runId,
-			});
-			// Matches SENTINEL_ACTIONLINT_LOG_MSG exactly -- the check's own
-			// details_url is a query filtered to find this precise line.
-			logger.info(
-				{
-					repo,
-					valid: lintResult.valid,
-					fileCount: lintResult.fileCount,
-					messageCount: lintResult.messages.length,
-				},
-				SENTINEL_ACTIONLINT_LOG_MSG
-			);
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "lintActionlint: failed, continuing without it");
-		}
-	}
 
 	// Repo validation (holocron#913): Sentinel's ports of the
 	// platform.repoValidation CI jobs, kept as separate checks -- ADRs and
 	// specs can fail, docs presence is advisory
 	// only. Unlike the config-free Bucket 1 checks above, both only run for a repo whose
-	// valid config declares that task (the same gate the Bucket 2 dispatch
-	// uses): a repo that doesn't keep ADRs, specs or a packages/ monorepo has
+	// valid config declares that task: a repo that doesn't keep ADRs, specs or a packages/ monorepo has
 	// nothing for them to check. Same PR-only scoping and soft-skip reasoning
 	// as every Bucket 1 check above, each in its own try.
 	let adrsCheckRun;
@@ -1188,9 +1037,6 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 		autoFixCommentResult,
 		editorConfigFixResult,
 		markdownLintFixResult,
-		dispatchedCheckRun,
-		staticAnalysisCheckRun,
-		actionlintCheckRun,
 		adrsCheckRun,
 		docsPresenceCheckRun,
 	});

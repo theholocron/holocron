@@ -55,7 +55,7 @@ check (holocron#820), which needs to see what a PR's _own_ branch
 currently declares. Safe because this function only ever validates —
 never persists or writes anything — so nothing derived from an
 unreviewed PR branch can leak into anything that does (properties sync,
-the capability-compliance check, Bucket 2 dispatch gating all stay on the
+the capability-compliance check all stay on the
 ref-less, default-branch call). Same-repo only either way (D6): a fork's
 branch is never a valid `ref` here. Returns one of:
 
@@ -222,23 +222,7 @@ deliberate, narrow exception to "never reimplement a tool's rules"),
 markdown lint (markdownlint, holocron#821; `.md` and `.mdx`, but in an `.mdx` file a `no-space-in-emphasis` finding
 inside `{/* a comment */}` is ignored: markdownlint does not parse MDX, read the spaces inside the comment as spaces
 inside emphasis, and its fix and prettier's undid each other, holocron#1950; real emphasis and every other rule are
-still reported), and static analysis (eslint,
-holocron#849 — the one Bucket 1 check that isn't config-free: skipped
-entirely when a repo's `runtime_environment` property is explicitly
-`"none"`, since a docs-only repo has no JS/TS to lint; honors
-`holocron.config.ts`'s own `eslint.browserPackages`, holocron#858, since
-it's the one `library()` option this check needs to match a package's
-local `eslint.config.ts` exactly), actionlint (holocron#904 — the
-actionlint half of the same `lint:code` task, posted
-as its own `sentinel:lint:code / Run actionlint` check;
-config-free, since any repo can carry workflow files. Real actionlint
-v1.7.7 (`@tktco/node-actionlint`) and real ShellCheck 0.11
-(`@vscode-shellcheck/shellcheck-wasm`), both WASM, linting each changed
-`.github/workflows/*.{yml,yaml}` file. The `run:`-script ShellCheck pass
-the actionlint binary gets from a `shellcheck` on PATH is ported by hand
-from actionlint's own `rule_shellcheck.go`, since WASM can't spawn
-processes — see `src/actions/actionlint/lint-actionlint/lint-actionlint.ts`'s own module
-docstring), and repo validation (holocron#913 — two checks, gated on the
+still reported), and repo validation (holocron#913 — two checks, gated on the
 repo's `holocron.config` declaring `validate`:
 `sentinel:validate:specs / Validate ADRs and specs` ports
 the frontmatter rules of `holocron probe specs check` (`checkSpecs()` in
@@ -254,8 +238,7 @@ subjects) that changes a public package's source without a README change, a
 docs page named after it or an added doc comment, unless `[skip docs]
 <reason>` (or `[skip docs: <package>] <reason>`) is in the PR description or a
 commit message; advisory, `neutral` at worst, never `failure`, and re-run
-when the PR title or description is edited; see `src/actions/repo-validation/`) — the Bucket 2
-dispatch prototype, the auto-fix-commit
+when the PR title or description is edited; see `src/actions/repo-validation/`) — the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
 the `format` task backing three independent commit
 actions — `commitFormattingFix`, `commitEditorConfigFix`,
@@ -489,15 +472,15 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 
 ### Repository permissions
 
-| Permission        | Access | Why                                                                                                                                                                                                                                                                         |
-| ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#864)                                                                     |
-| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run; `checks.listCheckRunsForRef()` — the failing checks the `#prs` feed lists                                                                                                                                  |
-| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                                                                                             |
-| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                                                                                       |
-| Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write is consumed by `pulls.createReview()`/`listReviewThreads()`/`resolveReviewThread()` — error-severity eslint/markdownlint/actionlint findings post as a PR review, not only a check-run annotation (holocron#860) |
-| Actions           | Write  | `actions.createWorkflowDispatch()` — the Bucket 2 dispatch prototype (holocron#769/#794, `tech-sentinel-ci-runner.spec.md`)                                                                                                                                                 |
-| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                                                                                          |
+| Permission        | Access | Why                                                                                                                                                                                                                                                       |
+| ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#864)                                                   |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run; `checks.listCheckRunsForRef()` — the failing checks the `#prs` feed lists                                                                                                                |
+| Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                                                                           |
+| Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                                                                     |
+| Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write is consumed by `pulls.createReview()`/`listReviewThreads()`/`resolveReviewThread()` — error-severity markdownlint findings post as a PR review, not only a check-run annotation (holocron#860) |
+| Actions           | Write  | unused since Sentinel stopped dispatching the typecheck (#2263); narrow it in the App's settings when convenient                                                                                                                                          |
+| Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                                                                        |
 
 No other repository permissions — never touches Administration.
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import * as actions from "../../actions/index.js";
-import { SENTINEL_DISPATCHED_CHECK_NAME } from "../constants/index.js";
 import { SENTINEL_CHECK_PREFIX } from "../sentinel-check-name/index.js";
 import { CHECK_ACTION_VERBS, checkNameProblem } from "./check-name-problem.js";
 
@@ -76,11 +75,10 @@ describe("every check Sentinel posts", () => {
 		...Object.entries(actions)
 			.filter(([key]) => key.endsWith("CHECK_RUN_NAME"))
 			.map(([key, value]) => [key, value as string] as const),
-		["SENTINEL_DISPATCHED_CHECK_NAME", SENTINEL_DISPATCHED_CHECK_NAME] as const,
 	];
 
-	it("finds all thirteen, so a new check cannot skip the rule", () => {
-		expect(names).toHaveLength(13);
+	it("finds all ten, so a new check cannot skip the rule", () => {
+		expect(names).toHaveLength(10);
 	});
 
 	it.each(names)("%s has the prefix, a task id and the action rule", (_key, name) => {

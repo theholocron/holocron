@@ -67,17 +67,14 @@
     "@theholocron/observability": "workspace:^",
     "@theholocron/pkg-utils": "workspace:^",
     "@theholocron/prettier-config": "workspace:^",
-    "@tktco/node-actionlint": "catalog:apps",
     "@vitest/eslint-plugin": "catalog:",
-    "@vscode-shellcheck/shellcheck-wasm": "catalog:apps",
     "alex": "catalog:apps",
     "editorconfig": "catalog:apps",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "markdownlint": "catalog:apps",
     "prettier": "catalog:",
-    "tsx": "catalog:",
-    "yaml": "catalog:apps"
+    "tsx": "catalog:"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:^",

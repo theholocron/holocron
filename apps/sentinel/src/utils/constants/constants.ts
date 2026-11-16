@@ -1,8 +1,6 @@
-import { DOT_GITHUB_REPO, legacyFile, TEMPLATE_HOME } from "@theholocron/astromech";
 import { createEnvLookup, type EnvLookup, PREFIX, withEnvPrefix } from "@theholocron/env-utils/lookup";
 
 import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
-import { sentinelCheckName } from "../sentinel-check-name/index.js";
 
 /**
  * This App's brand name. No longer prefixed onto check-run names — GitHub's
@@ -63,10 +61,6 @@ export const SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG = "postPrConfigValidationChec
 export const SENTINEL_MARKDOWN_LINT_LOG_MSG = "postMarkdownLintCheck: posted";
 /** Logged once `commitMarkdownLintFix()` actually commits a fix — never hand-copy this string elsewhere. */
 export const SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG = "commitMarkdownLintFix: committed";
-/** Logged (and linked to) once `postStaticAnalysisCheck()` actually posts (holocron#849) — never hand-copy this string elsewhere. */
-export const SENTINEL_STATIC_ANALYSIS_LOG_MSG = "postStaticAnalysisCheck: posted";
-/** Logged (and linked to) once `postActionlintCheck()` actually posts (holocron#904) — never hand-copy this string elsewhere. */
-export const SENTINEL_ACTIONLINT_LOG_MSG = "postActionlintCheck: posted";
 /** Logged (and linked to) once `postAdrsCheck()` actually posts (holocron#913) — never hand-copy this string elsewhere. */
 export const SENTINEL_ADRS_LOG_MSG = "postAdrsCheck: posted";
 /** Logged (and linked to) once `postDocsPresenceCheck()` actually posts (holocron#913) — never hand-copy this string elsewhere. */
@@ -83,37 +77,8 @@ export const SENTINEL_EDITORCONFIG_LOG_MSG = "postEditorConfigCheck: posted";
 export const SENTINEL_EDITORCONFIG_FIX_LOG_MSG = "commitEditorConfigFix: committed";
 
 /**
- * Where the Bucket 2 dispatch mechanism's shared workflow lives
- * (holocron#769, holocron#794, `tech-sentinel-ci-runner.spec.md`) — one
- * `workflow_dispatch`-triggered workflow in `theholocron/.github`, always
- * dispatched against its own default branch. Never the *target* repo the
- * dispatch checks out — that's a per-call `repo`/`ref` input, not this.
- */
-export const SENTINEL_DISPATCH_REPO = DOT_GITHUB_REPO;
-/** The old file name of the `check-dispatched` reusable: the frozen copy in `.github` keeps it, and Sentinel dispatches it by name. */
-export const SENTINEL_DISPATCH_WORKFLOW_FILE = legacyFile("check-dispatched.yml");
-/** The frozen home's ref, from astromech's `ci-ref` (not `CI_HOME`, which follows the reusables when they move). */
-export const SENTINEL_DISPATCH_REF = TEMPLATE_HOME.ref;
-
-/**
- * The one Bucket 2 task this prototype phase dispatches (holocron#769,
- * `tech-sentinel-ci-runner.spec.md`'s explicit scope: "one Bucket 2 tool
- * prototype against tsc"). Only fires for a repo whose `holocron.config`
- * actually declares this task — every other repo is untouched. Runs
- * *alongside* the existing GitHub Actions thin-caller for the same task,
- * not instead of it, until this mechanism is trusted enough to replace it.
- *
- * Check name matches the same `sentinel:<task id> / <Action>` shape every other
- * Sentinel-posted check uses (`sentinelCheckName()`), and mirrors the native
- * thin-caller check's own command name ("Run tsc --noEmit") for a task that
- * only ever has one dispatchable command today.
- */
-export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
-/**
  * The astromech task whose checks the repo-validation pipeline mirrors
  * (holocron#913) — `Validate ADRs and specs` and `Validate docs`
- * only run for a repo whose valid config declares it, the same gate the
- * Bucket 2 dispatch uses for `SENTINEL_DISPATCHABLE_TASK`.
+ * only run for a repo whose valid config declares it.
  */
 export const SENTINEL_REPO_VALIDATION_TASK = "platform.repoValidation";
-export const SENTINEL_DISPATCHED_CHECK_NAME = sentinelCheckName("typecheck", "Run tsc --noEmit");
