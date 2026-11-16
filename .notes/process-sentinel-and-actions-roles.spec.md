@@ -62,10 +62,13 @@ It also keeps what is not a check: the custom-properties sync, role sync, the `#
 
 ### What Sentinel stops posting
 
-`lint:code / Run eslint`, `lint:code / Run actionlint` and `typecheck / Run tsc --noEmit` (three of the 13). Eslint needs the
-repo's installed dependencies and its own config, and the Actions `lint:code` already runs eslint and actionlint; the
-typecheck is already a workflow Sentinel dispatches. Leaving them with Sentinel would put two checks under one task id
-(`lint:code`, `typecheck`) from two apps. A repo that wants these checks takes the thin callers, as every other repo does.
+`lint:code / Run eslint`, `lint:code / Run actionlint` and `typecheck / Run tsc --noEmit` (three of the 13). Sentinel's eslint
+is a real, in-memory pass over the changed files with the org's `library()` bundle and nothing else, so it needs no checkout;
+but it cannot know the repo's own config (a browser or React profile, a package's overrides), while the Actions `lint:code`
+runs the repo's own eslint, actionlint and prettier. Two answers to one question under one task id is the problem, not the
+cost of either. The typecheck is already a workflow that Sentinel dispatches. A repo that wants these checks takes the thin
+callers, as every other repo does. If Sentinel's eslint is later shown to agree with the repo's own, it can return under an
+id of its own.
 
 ## Cutover
 
