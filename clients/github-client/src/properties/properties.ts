@@ -19,6 +19,16 @@ export interface OrgProperty {
 	values_editable_by?: string | null;
 }
 
+/** The keys of an {@link OrgProperty} that GitHub accepts when a definition is written. */
+const WRITABLE_FIELDS = [
+	"value_type",
+	"required",
+	"default_value",
+	"description",
+	"allowed_values",
+	"values_editable_by",
+] as const satisfies ReadonlyArray<keyof OrgProperty>;
+
 /** One custom property value set on a repository. */
 export interface RepoPropertyValue {
 	/** The property's name. */
@@ -46,8 +56,12 @@ export function properties(rest: RestClient) {
 		 * The token needs write access to the organization's custom properties (`Custom properties: admin`).
 		 */
 		setOrgProperty: (org: string, property: OrgProperty): Promise<OrgProperty> => {
-			const { property_name, ...definition } = property;
-			const body = Object.fromEntries(Object.entries(definition).filter(([, v]) => v !== undefined));
+			// Only the fields GitHub accepts on a write: a definition read back carries read-only keys (`url`,
+			// `source_type`) that the PUT refuses with a 422.
+			const { property_name } = property;
+			const body = Object.fromEntries(
+				WRITABLE_FIELDS.map((key) => [key, property[key]] as const).filter(([, v]) => v !== undefined)
+			);
 			return rest.request<OrgProperty>(`/orgs/${segment(org)}/properties/schema/${segment(property_name)}`, {
 				method: "PUT",
 				body,

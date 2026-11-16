@@ -86,4 +86,21 @@ describe("properties", () => {
 			description: null,
 		});
 	});
+
+	it("leaves out the read-only keys of a definition read back from GitHub", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { property_name: "holocron_capabilities", value_type: "multi_select" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const readBack = {
+			property_name: "holocron_capabilities",
+			value_type: "multi_select",
+			required: false,
+			allowed_values: ["ci"],
+			url: "https://api.github.com/orgs/theholocron/properties/schema/holocron_capabilities",
+			source_type: "organization",
+		};
+		await client.properties.setOrgProperty("theholocron", readBack);
+		expect(calls[0]?.body).toEqual({ value_type: "multi_select", required: false, allowed_values: ["ci"] });
+	});
 });
