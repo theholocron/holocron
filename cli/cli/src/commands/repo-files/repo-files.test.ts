@@ -369,6 +369,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		it("still writes it for lint:markdown alone, calling the frozen reusable, unless the task has ci: false", () => {
 			expect(tasks(["lint:markdown"])).toEqual([".github/workflows/sourceQuality.formatting.yml"]);
 			expect(tasks([{ name: "lint:markdown", ci: false }])).toEqual([]);
+			expect(tasks([{ name: "lint:markdown", sentinel: true }])).toEqual([]);
 			// `format` alone has never written one
 			expect(tasks(["format"])).toEqual([]);
 		});

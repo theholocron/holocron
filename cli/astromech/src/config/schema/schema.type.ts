@@ -11,6 +11,13 @@ export interface TaskEntry {
 	 */
 	ci?: boolean;
 	/**
+	 * Sentinel posts this task's check, so no Actions workflow does (`process-sentinel-and-actions-roles`, #2263). No thin
+	 * caller is written, but the task stays in the manifest: `holocron run ci` runs it locally, and with `required: true` the
+	 * `ci` aggregate still waits for a check named `<id> / ...`, which Sentinel's check supplies. Unlike `ci: false`, which
+	 * also takes the task out of `holocron run ci`. Default `false`.
+	 */
+	sentinel?: boolean;
+	/**
 	 * Write a `"<name>": "holocron run <name>"` script to `package.json` and
 	 * let `holocron run <name>` resolve the task. Default `true`.
 	 * `false` → `holocron run <name>` prints "CI-only task" and exits 0.

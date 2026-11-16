@@ -128,7 +128,12 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				const isDocsSite = key === "deploy-docs";
 				const isComponents = key === "deploy-components";
 				if (resolveTaskName(entry.name).every(({ id }) => TASKS[id]?.workflow === false)) continue;
-				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(key) && !isDocsSite && !isComponents)) continue;
+				if (
+					entry.ci === false ||
+					entry.sentinel === true ||
+					(!KNOWN_WORKFLOWS.has(key) && !isDocsSite && !isComponents)
+				)
+					continue;
 				// A release-time deploy (`with.on: "release"`) runs from the publish
 				// job (`holocron deploy-on-release`), not a push/PR workflow.
 				if (key === "deploy" && entry.with?.["on"] === "release") continue;

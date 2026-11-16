@@ -79,21 +79,26 @@ The risk is a required check that waits for a name nothing posts, or two checks 
 (#2171). This repo's ruleset requires `ci / Required checks` and `DCO`, so only the aggregate's `expected` list matters
 here.
 
-1. **Say which tasks Sentinel runs.** A task whose check Sentinel posts keeps its place in `tasks:` (so `holocron run ci`
-   still runs it locally, and the aggregate still expects `lint:commits /`) but gets no workflow. `ci: false` already drops the
-   caller; whether `required: true` still feeds the aggregate with it needs checking, and if it does not, the task needs a
-   marker for "run by Sentinel".
-2. **Sentinel, in one change:** `SENTINEL_CHECK_PREFIX` becomes `""`, the eslint, actionlint and typecheck checks are
-   removed, and the docs that quote the names are updated. This needs a Sentinel deploy (#2203).
-3. **This repo, once that is deployed:** the five twins' callers and reusables go (`lint-commits`, `lint-editorconfig`,
-   `lint-markdown`, `validate-specs`, `validate-docs`), and the aggregate's `expected` list is checked on a fresh pull request.
-4. **The private repos' rulesets** were never read. Check them for a required check that uses a `sentinel:` name before
-   step 2.
-5. **Other repos** are on the legacy gate and keep their old Actions check names, so the bare names do not clash there.
-   Confirm on one repo before step 2.
+1. **Say which tasks Sentinel runs.** A task entry takes `sentinel: true` (`TaskEntry.sentinel`): no thin caller is written,
+   but the task stays in `holocron run ci` and, with `required: true`, in the aggregate's `expected` list. `ci: false` was
+   not enough: it also takes the task out of `holocron run ci`, so the pre-push hook would stop running it.
+2. **Make Sentinel post what it is meant to post here.** Sentinel posted neither `validate:specs` nor `validate:docs` for this
+   repo: its gate was the exact task name `platform.repoValidation`, and this repo's config names the flat ids. The gate
+   (`declaresRepoValidation()`) now accepts `validate`, `validate:specs`, `validate:docs` and the old name. Without this the
+   aggregate would wait for two names nothing posts.
+3. **Sentinel, in one change:** the `sentinel:` prefix goes (the constant itself, not just its value, since nothing is left to
+   tell apart), and the docs that quote the names are updated. The eslint, actionlint and typecheck checks were removed
+   first (#2265), so the prefix change cannot make two checks share a task id.
+4. **This repo, in the same pull request:** the five tasks are marked `sentinel: true` and their callers are removed
+   (`lint:commits`, `lint:editorconfig`, `lint:markdown`, `validate:specs`, `validate:docs`). The reusables stay: other repos
+   and a later `ci-v1` use them. Merge and deploy back to back: between the merge and the deploy the aggregate waits for
+   names the old Sentinel posts with a prefix.
+5. **The private repos' rulesets** were never read. Check them for a required check that uses a `sentinel:` name.
+6. **Other repos** are on the legacy gate and keep their old Actions check names, so the bare names do not clash there.
+   Confirm on one repo.
 
-Between steps 2 and 3 the five names exist twice. The aggregate only needs each id to have completed and passed, so a
-twin that errors shows red, but a newer passing run of the same name could hide it. Keep that window short.
+A Sentinel check that is `neutral` (the docs check at worst) satisfies the aggregate, which accepts success, skipped and
+neutral.
 
 ## Out of scope
 
@@ -106,5 +111,6 @@ twin that errors shows red, but a newer passing run of the same name could hide 
 - Sentinel posts ten checks under bare task ids, none under `sentinel:`.
 - This repo has no Actions workflow for the five twins, and a fresh pull request passes `ci / Required checks`.
 - `lint:code` and `typecheck` are posted once each, by Actions.
+- Sentinel posts `validate:specs` and `validate:docs` for this repo.
 - `holocron run ci` still runs the five tasks locally.
 - The `ci-sentinel-check-names` spec's "Removing the prefix" section points at this one.

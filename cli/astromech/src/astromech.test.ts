@@ -10,6 +10,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { createAstromech } from "./astromech.js";
+import { aggregateChecks } from "./generators/aggregate-checks/index.js";
 
 const PKG = JSON.stringify({ name: "@scope/x" });
 
@@ -298,6 +299,19 @@ describe("createAstromech().thinCallers", () => {
 			},
 		});
 		expect([...astromech.thinCallers().keys()]).toEqual(["lint:code.yml"]);
+	});
+
+	it("writes no caller for a task Sentinel runs, but the ci aggregate still expects its check (#2263)", () => {
+		const tasks = [
+			{ name: "lint:code", required: true },
+			{ name: "lint:commits", required: true, sentinel: true },
+			{ name: "lint:markdown", required: true, sentinel: true },
+		];
+		const astromech = createAstromech({ cwd: "/repo", config: { tasks } });
+		expect([...astromech.thinCallers().keys()]).toEqual(["lint:code.yml"]);
+		expect(aggregateChecks({ tasks }).expected).toEqual(
+			expect.arrayContaining(["lint:code", "lint:commits", "lint:markdown"])
+		);
 	});
 
 	it("emits the combined deploy+preview caller when preview resolves", () => {

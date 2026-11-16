@@ -89,7 +89,7 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 			flat === undefined &&
 			legacy &&
 			key !== workflowKey(name) &&
-			!(typeof entry === "object" && entry.ci === false)
+			!(typeof entry === "object" && (entry.ci === false || entry.sentinel === true))
 		) {
 			flat = generateThinCallerContent(key);
 		}

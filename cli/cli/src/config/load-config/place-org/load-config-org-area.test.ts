@@ -118,6 +118,10 @@ describe("the org area in this repo (#1820)", () => {
 			],
 		});
 		delete providers.tooling;
+		// The tasks whose checks Sentinel posts carry `sentinel: true` (#2263); here, the two the root `astromech.config.ts` adds.
+		for (const task of (expected as unknown as { tasks: { name?: string; sentinel?: boolean }[] }).tasks) {
+			if (task.name === "validate:specs" || task.name === "validate:docs") task.sentinel = true;
+		}
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.
 		expect(resolved.domain).toBe("theholocron.dev");

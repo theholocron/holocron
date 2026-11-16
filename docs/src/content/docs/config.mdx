@@ -281,6 +281,16 @@ dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.
 None of these earn their own task; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
+### Tasks Sentinel runs
+
+A task entry can say that [Sentinel](/holocron/sentinel/) posts its check, so no Actions workflow does:
+
+```ts
+tasks: [{ name: "lint:commits", required: true, sentinel: true }];
+```
+
+`sentinel: true` writes no thin caller, but the task stays in the manifest: `holocron run ci` still runs it locally, and with `required: true` the `ci / Required checks` aggregate still waits for a check named `lint:commits / ...`, which Sentinel posts under the bare task id. `ci: false` is different: it also takes the task out of `holocron run ci`. Sentinel posts `lint:commits`, `lint:editorconfig`, `lint:markdown`, `validate:specs`, `validate:docs`, `format`, `validate:config`, `validate:dco` and `lint:language`; `lint:code` and `typecheck` stay with Actions. A repo that sets `sentinel: true` needs Sentinel installed on it. See `process-sentinel-and-actions-roles`.
+
 ### Switching docs presence off
 
 `validate:specs` and `validate:docs` are two tasks of the `validate` suite, each with its own workflow and its own check.
