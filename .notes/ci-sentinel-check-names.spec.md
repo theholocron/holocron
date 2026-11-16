@@ -135,6 +135,9 @@ results`, `Static Analysis`) is rejected, so a new verb is a deliberate edit of 
 
 ### Removing the prefix
 
+`process-sentinel-and-actions-roles` (#2263) decides which of these checks Sentinel keeps and which Actions owns, and its
+"Cutover" section is the order to follow; what is below is the original plan.
+
 When the Actions checks for these tasks are removed from the repo:
 
 1. Delete the callers and reusables of the tasks Sentinel now runs.
