@@ -103,6 +103,11 @@ describe("docsPreset()", () => {
 			expect(providers.dns).toBe("cloudflare");
 		});
 
+		it("declares the codecov coverage provider", () => {
+			expect(docsPreset().providers.coverage).toBe("codecov");
+			expect(docsSitePreset().providers.coverage).toBe("codecov");
+		});
+
 		it("inherits github source and ci from withNode()", () => {
 			const { providers } = docsPreset();
 			expect(providers.source).toBe("github");
@@ -118,11 +123,11 @@ describe("docsPreset()", () => {
 			expect(byName.get("typecheck")).toMatchObject({ required: true });
 		});
 
-		it("carries audit / Conclusion + the codecov gates as extraRequiredChecks", () => {
+		it("carries audit / Conclusion as an extraRequiredCheck; the codecov gates come from the coverage provider", () => {
 			const { extraRequiredChecks } = docsPreset();
 			expect(extraRequiredChecks).toContain("audit / Conclusion");
-			expect(extraRequiredChecks).toContain("codecov/patch");
-			expect(extraRequiredChecks).toContain("codecov/project");
+			expect(extraRequiredChecks).not.toContain("codecov/patch");
+			expect(extraRequiredChecks).not.toContain("codecov/project");
 		});
 	});
 

@@ -25,6 +25,10 @@ import { getPlugins } from "../../../lib/registry.ts";
 The organization's `holocron_capabilities` property must allow `coverage` (`holocron apply properties`) before a repo declares `providers.coverage`. Until then the plugin is not loaded by any config; `holocron probe codecov token` needs it to be named under `providers.coverage`.
 :::
 
+:::caution[Upgrade: the docs presets declare this provider]
+`docsPreset()` and `docsSitePreset()` set `providers.coverage` to `"codecov"` and no longer list `codecov/patch` and `codecov/project` in `extraRequiredChecks`: this plugin supplies them. A repo that spreads either preset must add `@theholocron/holocron-plugin-codecov` to the `holocron` catalog in `pnpm-workspace.yaml` (the version of `@theholocron/holocron-plugin-github`) and to its `devDependencies` as `catalog:holocron`, then run `pnpm install`. If the package does not resolve, the load error names it and says where to add it. The organization's `holocron_capabilities` must also allow `coverage`.
+:::
+
 ## Config
 
 ```ts
