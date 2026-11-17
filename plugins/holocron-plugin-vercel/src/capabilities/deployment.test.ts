@@ -554,3 +554,102 @@ describe("VercelDeployment.expectedDomainRecord", () => {
 		expect(await deployment.expectedDomainRecord("prj_123", "theholocron.dev")).toBeNull();
 	});
 });
+
+// ──────────────────────────────────────────────────────────────────────
+// preview cleanup (holocron#1021)
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.deployFunction meta", () => {
+	it("tags the deployment with the given meta, and sends none when there is none", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_1", url: "a.vercel.app", readyState: "QUEUED" } },
+			{ status: 201, body: { id: "dpl_2", url: "b.vercel.app", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "index.js": "x" },
+			meta: { holocronPreview: "holocron-pr-7" },
+		});
+		await deployment.deployFunction("sentinel", { files: { "index.js": "x" } });
+		expect(calls[0]?.body).toMatchObject({ meta: { holocronPreview: "holocron-pr-7" } });
+		expect(calls[1]?.body).not.toHaveProperty("meta");
+	});
+});
+
+describe("VercelDeployment.listPreviewDeployments", () => {
+	const page = (deployments: unknown[], next?: number) => ({
+		status: 200,
+		body: { deployments, pagination: next ? { next } : {} },
+	});
+	const dpl = (id: string, meta: Record<string, string>, extra: Record<string, unknown> = {}) => ({
+		id,
+		url: `${id}.vercel.app`,
+		readyState: "READY",
+		createdAt: 1700000000000,
+		meta,
+		...extra,
+	});
+
+	it("reads only the given project's deployments and keeps those tagged for the branch alias", async () => {
+		const { deployment, calls } = makeDeployment([
+			page([
+				dpl("a", { holocronPreview: "holocron-pr-7" }),
+				dpl("b", { holocronPreview: "holocron-pr-8" }),
+				dpl("c", { githubCommitRef: "main" }),
+			]),
+		]);
+		const found = await deployment.listPreviewDeployments("sentinel", "holocron-pr-7");
+		expect(calls[0]?.url).toContain("/v6/deployments");
+		expect(calls[0]?.url).toContain("projectId=sentinel");
+		expect(found.map((d) => d.id)).toEqual(["a"]);
+		expect(found[0]).toMatchObject({ url: "a.vercel.app", status: "ready", createdAt: "2023-11-14T22:13:20.000Z" });
+	});
+
+	it("never offers a production or staging deployment, whatever its tag", async () => {
+		const { deployment } = makeDeployment([
+			page([dpl("p", { holocronPreview: "holocron-pr-7" }, { target: "production" })]),
+		]);
+		expect(await deployment.listPreviewDeployments("sentinel", "holocron-pr-7")).toEqual([]);
+	});
+
+	it("follows the pages until there is no next one", async () => {
+		const { deployment, calls } = makeDeployment([
+			page([dpl("a", { holocronPreview: "holocron-pr-7" })], 1699999999999),
+			page([dpl("b", { holocronPreview: "holocron-pr-7" })]),
+		]);
+		const found = await deployment.listPreviewDeployments("sentinel", "holocron-pr-7");
+		expect(found.map((d) => d.id)).toEqual(["a", "b"]);
+		expect(calls[1]?.url).toContain("until=1699999999999");
+	});
+
+	it("finds nothing for a project with no deployments", async () => {
+		const { deployment } = makeDeployment([page([])]);
+		expect(await deployment.listPreviewDeployments("sentinel", "holocron-pr-7")).toEqual([]);
+	});
+});
+
+describe("VercelDeployment.deletePreviewDeployments", () => {
+	it("deletes each deployment and counts them", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { uid: "a", state: "DELETED" } },
+			{ status: 200, body: { uid: "b", state: "DELETED" } },
+		]);
+		expect(await deployment.deletePreviewDeployments("sentinel", ["a", "b"])).toBe(2);
+		expect(calls.map((c) => c.method)).toEqual(["DELETE", "DELETE"]);
+		expect(calls[1]?.url).toContain("/v13/deployments/b");
+	});
+
+	it("does not count, and does not fail on, a deployment that is already gone", async () => {
+		const { deployment } = makeDeployment([
+			{ status: 404, body: { error: { code: "not_found" } } },
+			{ status: 200, body: { uid: "b", state: "DELETED" } },
+		]);
+		expect(await deployment.deletePreviewDeployments("sentinel", ["a", "b"])).toBe(1);
+	});
+
+	it("fails on any other error", async () => {
+		const { deployment } = makeDeployment([{ status: 403, body: { error: { code: "forbidden" } } }]);
+		const err = await deployment.deletePreviewDeployments("sentinel", ["a"]).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(403);
+	});
+});

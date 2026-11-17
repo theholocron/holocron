@@ -13,6 +13,22 @@ import {
 	WORKFLOW_TEMPLATES,
 } from "./github-action-thin-callers.js";
 
+describe("the deploy-preview caller", () => {
+	const yaml = WORKFLOW_TEMPLATES["deploy-preview"]!;
+
+	it("also runs when the PR closes, for the reusable's cleanup job (holocron#1021)", () => {
+		expect(yaml).toContain("types: [opened, synchronize, reopened, closed]");
+	});
+
+	it("queues a run behind one in flight instead of cancelling it, so a close waits for a deploy to finish", () => {
+		expect(yaml).toContain("cancel-in-progress: false");
+	});
+
+	it("grants the reusable's jobs what they ask for, cleanup included (deployments: write)", () => {
+		expect(yaml).toContain("deployments: write");
+	});
+});
+
 describe("WORKFLOW_TEMPLATES", () => {
 	it("KNOWN_WORKFLOWS mirrors the template keys", () => {
 		expect([...KNOWN_WORKFLOWS].sort()).toEqual(Object.keys(WORKFLOW_TEMPLATES).sort());

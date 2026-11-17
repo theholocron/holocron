@@ -31,6 +31,12 @@ import type {
 import { ProviderApiError } from "@theholocron/cli";
 import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
 
+/** The `meta` key a file deploy tags a preview with: the pull request it belongs to, as `<repo>-pr-<number>`. */
+const PREVIEW_META_KEY = "holocronPreview";
+
+/** How many pages of a project's deployments a cleanup reads (100 to a page) before it stops looking. */
+const MAX_LIST_PAGES = 20;
+
 export interface DeploymentOptions {
 	/** Optional framework hint passed to project creates. Defaults to "nextjs". */
 	defaultFramework?: string;
@@ -153,8 +159,52 @@ export class VercelDeployment implements Deployment {
 			framework: null,
 			...installCommandOf(config.files),
 			target: config.target as "production" | "staging" | undefined,
+			...(config.meta ? { meta: config.meta } : {}),
 		});
 		return { deploymentId: raw.id, url: raw.url };
+	}
+
+	// ── preview cleanup ─────────────────────────────────────────────────
+
+	/**
+	 * The project's preview deployments tagged for `branch` (the `<repo>-pr-<number>` alias a file deploy puts in its
+	 * `meta.holocronPreview`), found by reading the project's deployments page by page and matching the tag here, so
+	 * only this project's deployments are ever candidates. A production or staging deployment is never one.
+	 */
+	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
+		const found: DeploymentRecord[] = [];
+		let until: number | undefined;
+		for (let page = 0; page < MAX_LIST_PAGES; page++) {
+			const { deployments, pagination } = await this.client().deployments.list({
+				projectId,
+				...(until !== undefined ? { until } : {}),
+			});
+			for (const raw of deployments) {
+				if (raw.target || raw.meta?.[PREVIEW_META_KEY] !== branch) continue;
+				found.push({
+					...mapDeployment(raw, raw.meta?.githubCommitRef ?? null),
+					...(raw.createdAt ? { createdAt: new Date(raw.createdAt).toISOString() } : {}),
+				});
+			}
+			const next = pagination?.next;
+			if (!next) break;
+			until = next;
+		}
+		return found;
+	}
+
+	/** Deletes the deployments by id; one already gone (404) is not counted and is not an error. */
+	async deletePreviewDeployments(_projectId: string, deploymentIds: string[]): Promise<number> {
+		let deleted = 0;
+		for (const id of deploymentIds) {
+			try {
+				await this.client().deployments.remove(id);
+				deleted++;
+			} catch (err) {
+				if (!(err instanceof ProviderApiError && err.status === 404)) throw err;
+			}
+		}
+		return deleted;
 	}
 
 	// ── custom domains ─────────────────────────────────────────────────

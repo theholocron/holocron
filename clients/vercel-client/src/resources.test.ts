@@ -265,6 +265,74 @@ describe("deployments.create", () => {
 	});
 });
 
+describe("deployments.create meta", () => {
+	it("sends the creator's own tags as meta, and omits it when there are none", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "d1", url: "a.vercel.app", readyState: "QUEUED" } },
+			{ body: { id: "d2", url: "b.vercel.app", readyState: "QUEUED" } },
+			{ body: { id: "d3", url: "c.vercel.app", readyState: "QUEUED" } },
+		]);
+		const files = [{ file: "index.js", content: "x" }];
+		await client.deployments.create({ projectName: "p", files, meta: { holocronPreview: "holocron-pr-7" } });
+		await client.deployments.create({ projectName: "p", files, meta: {} });
+		await client.deployments.create({ projectName: "p", files });
+		expect(calls[0]?.body).toMatchObject({ meta: { holocronPreview: "holocron-pr-7" } });
+		expect(calls[1]?.body).not.toHaveProperty("meta");
+		expect(calls[2]?.body).not.toHaveProperty("meta");
+	});
+});
+
+describe("deployments.list", () => {
+	it("GET /v6/deployments for the project, 100 to a page, and returns each deployment's meta", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					deployments: [
+						{
+							id: "d1",
+							url: "a.vercel.app",
+							readyState: "READY",
+							meta: { holocronPreview: "holocron-pr-7" },
+						},
+					],
+					pagination: { next: 1700000000000 },
+				},
+			},
+		]);
+		const page = await client.deployments.list({ projectId: "sentinel" });
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/v6/deployments");
+		expect(calls[0]?.url).toContain("projectId=sentinel");
+		expect(calls[0]?.url).toContain("limit=100");
+		expect(calls[0]?.url).not.toContain("until=");
+		expect(page.deployments[0]?.meta?.holocronPreview).toBe("holocron-pr-7");
+		expect(page.pagination?.next).toBe(1700000000000);
+	});
+
+	it("passes the page size and where the next page starts", async () => {
+		const { client, calls } = makeClient([{ body: { deployments: [] } }]);
+		await client.deployments.list({ projectId: "sentinel", limit: 20, until: 1700000000000 });
+		expect(calls[0]?.url).toContain("limit=20");
+		expect(calls[0]?.url).toContain("until=1700000000000");
+	});
+});
+
+describe("deployments.remove", () => {
+	it("DELETE /v13/deployments/{id}", async () => {
+		const { client, calls } = makeClient([{ body: { uid: "d1", state: "DELETED" } }]);
+		const result = await client.deployments.remove("d1");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain("/v13/deployments/d1");
+		expect(result).toEqual({ uid: "d1", state: "DELETED" });
+	});
+
+	it("encodes the id", async () => {
+		const { client, calls } = makeClient([{ body: { uid: "x", state: "DELETED" } }]);
+		await client.deployments.remove("a/b");
+		expect(calls[0]?.url).toContain("/v13/deployments/a%2Fb");
+	});
+});
+
 describe("deployments.get", () => {
 	it("GET /v13/deployments/{id}", async () => {
 		const { client, calls } = makeClient([

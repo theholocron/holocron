@@ -602,6 +602,80 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		);
 	});
 
+	describe("deploy-preview cleans up when the PR closes (holocron#1021)", () => {
+		const previewDeploy = REUSABLE_WORKFLOWS["deploy-preview"]!;
+		const job = (id: string) => {
+			const start = previewDeploy.indexOf(`\n  ${id}:\n`);
+			expect(start).toBeGreaterThan(-1);
+			const rest = previewDeploy.slice(start + 1);
+			const next = rest.slice(1).search(/\n {2}[a-z][\w-]*:\n/);
+			return next === -1 ? rest : rest.slice(0, next + 1);
+		};
+
+		it("never deploys or reports a closed PR", () => {
+			expect(job("deploy")).toContain("if: ${{ github.event.action != 'closed' }}");
+			expect(job("report")).toContain("github.event.action != 'closed'");
+		});
+
+		it("runs its cleanup job only on a closed PR", () => {
+			expect(job("cleanup")).toContain("if: ${{ github.event.action == 'closed' }}");
+		});
+
+		it("tags the preview with the PR it belongs to, in the deploy job's environment", () => {
+			expect(job("deploy")).toContain(
+				"HOLOCRON_PREVIEW_KEY: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}"
+			);
+		});
+
+		it("takes the Vercel project to look in as an input, so the cleanup only ever searches that project", () => {
+			expect(previewDeploy).toMatch(/\n {6}project:\n[\s\S]*?required: false\n[\s\S]*?default: ""/);
+			expect(job("cleanup")).toContain("--project=${{ inputs.project }}");
+		});
+
+		it("runs the base branch's CLI, never the PR's, with the Vercel token", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain("ref: ${{ github.event.pull_request.base.sha }}");
+			expect(cleanup).not.toContain("pull_request.head.sha");
+			expect(cleanup).toContain("persist-credentials: false");
+			expect(cleanup).toContain("VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}");
+		});
+
+		it("deletes through `holocron deploy cleanup-preview`, for the closed PR, with no prompt", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain("command: deploy cleanup-preview ${{ github.event.pull_request.number }}");
+			expect(cleanup).toMatch(/args: [^\n]*--yes/);
+			expect(cleanup).toContain("--repo=${{ github.repository }}");
+			expect(cleanup).toContain("--cwd=${{ inputs.cwd }}");
+		});
+
+		it("is a quiet no-op when there is no token (a fork PR never had a preview made) or no project", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain('elif [ -z "$VERCEL_TOKEN" ]; then');
+			expect(cleanup).toContain("::notice title=No previews deleted::");
+			expect(cleanup).toContain("::warning title=No previews deleted::");
+			expect(cleanup).toContain("if: ${{ steps.needs.outputs.ready == 'true' }}");
+		});
+
+		it("marks the GitHub deployments inactive only after the previews were deleted, and never deletes them", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain("if: ${{ steps.cleanup.outcome == 'success' }}");
+			expect(cleanup).toContain("--field state=inactive");
+			expect(cleanup).not.toContain("--method DELETE");
+		});
+
+		it("fails the job when a deployment could not be listed or marked, after trying every one", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain('echo "::error::could not list the GitHub deployments');
+			expect(cleanup).toMatch(/could not mark deployment \$\{deploy_id\} inactive"\n\s+failed=1/);
+			expect(cleanup).toContain('exit "$failed"');
+		});
+
+		it("calls no API directly: Vercel goes through the CLI and its client", () => {
+			expect(job("cleanup")).not.toContain("curl");
+			expect(job("cleanup")).not.toContain("api.vercel.com");
+		});
+	});
+
 	it("delivery.previewDeploy never carries trust data through the deployment payload (holocron#1058 follow-up)", () => {
 		const previewDeploy = REUSABLE_WORKFLOWS["deploy-preview"]!;
 		// A deployment's `payload` field is attacker-controllable by

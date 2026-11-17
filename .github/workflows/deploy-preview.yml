@@ -25,6 +25,13 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "[]"
+      project:
+        description: >
+          The Vercel project the previews are deployed to (the `--project-id` of the package's deploy script). The
+          cleanup that runs when a PR closes looks for the PR's previews in it; without it, nothing is cleaned up.
+        required: false
+        type: string
+        default: ""
     secrets:
       HOLOCRON_VERCEL_TOKEN:
         description: The Vercel token. Read first; the vendor-native VERCEL_TOKEN secret is the fallback.
@@ -59,6 +66,8 @@ jobs:
   # inherit.
   deploy:
     name: Deploy preview
+    # The caller also runs on `closed`, for the cleanup job below; a closed PR is never deployed.
+    if: ${{ github.event.action != 'closed' }}
     runs-on: ubuntu-latest
     # Setup/build/stage, plus the deploy capability's own
     # wait-for-ready polling (up to 10 minutes by itself) — 10 would kill
@@ -186,6 +195,9 @@ jobs:
         if: ${{ steps.creds.outputs.available == 'true' }}
         env:
           VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+          # Tags the preview with the PR it belongs to (`<repo>-pr-<number>`, the alias `deploy cleanup-preview` derives from
+          # a PR), so the cleanup on close finds it without depending on anything this workflow records afterwards.
+          HOLOCRON_PREVIEW_KEY: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
           command: run deploy-preview
@@ -223,7 +235,7 @@ jobs:
   report:
     name: Report deployment status
     needs: deploy
-    if: ${{ needs.deploy.outputs.url != '' }}
+    if: ${{ github.event.action != 'closed' && needs.deploy.outputs.url != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -344,3 +356,82 @@ jobs:
           post_status error || true
           echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- marked it failed instead of leaving it pending"
           exit 1
+
+  # When the PR closes (merged or not), its previews go: `holocron deploy cleanup-preview` finds the Vercel deployments
+  # the deploy job tagged for this PR (HOLOCRON_PREVIEW_KEY, `<repo>-pr-<number>`) in the project and deletes them, then
+  # the GitHub deployments that pointed at them are marked inactive (not deleted, so the PR keeps its history). The
+  # CLI is the base branch's, never the PR's: the checkout is the commit the PR targets, so none of the PR's own code
+  # runs with the Vercel token (holocron#1021, #1020).
+  cleanup:
+    name: Clean up previews
+    if: ${{ github.event.action == 'closed' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: read
+    steps:
+      - name: Check what the cleanup needs
+        id: needs
+        env:
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+          PROJECT: ${{ inputs.project }}
+        run: |
+          if [ -z "$PROJECT" ]; then
+            echo "::warning title=No previews deleted::This workflow was called without its \`project\` input (the Vercel project the previews are deployed to), so there is nothing to look in."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$VERCEL_TOKEN" ]; then
+            # A fork PR never receives this secret (and never had a preview made), so there is nothing to delete.
+            echo "::notice title=No previews deleted::This run has no VERCEL_TOKEN available, so no Vercel preview was deleted -- most commonly a pull_request run triggered by a fork, which never had one deployed."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout the base branch
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+        with:
+          # The commit the PR targets, not its head: the CLI that runs below is code already reviewed and merged.
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+
+      - name: Delete the PR's Vercel previews
+        id: cleanup
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+          # The pull request is looked up through the `source` provider.
+          GITHUB_TOKEN: ${{ github.token }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: deploy cleanup-preview ${{ github.event.pull_request.number }}
+          args: --cwd=${{ inputs.cwd }} --project=${{ inputs.project }} --repo=${{ github.repository }} --yes
+
+      - name: Mark the PR's GitHub deployments inactive
+        # Only after the previews are confirmed deleted (or there were none): a deployment whose preview is still live
+        # keeps saying so.
+        if: ${{ steps.cleanup.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # The PR's head branch: how the "report" job named the GitHub deployments it made.
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          deploy_ids=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" --method GET --paginate -f ref="$REF" -f environment=Preview --jq '.[].id') || {
+            echo "::error::could not list the GitHub deployments for ${REF}"
+            exit 1
+          }
+          failed=0
+          for deploy_id in $deploy_ids; do
+            gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+              --method POST --field state=inactive >/dev/null || {
+              echo "::error::could not mark deployment ${deploy_id} inactive"
+              failed=1
+            }
+          done
+          exit "$failed"
