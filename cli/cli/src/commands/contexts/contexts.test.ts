@@ -90,6 +90,64 @@ const EVERY_COMMAND = [
 	"new issue",
 ];
 
+/**
+ * The verbs a command may start with (spec `tech-cli-verb-commands`, #2082; the audit of #1125): every command is a verb
+ * and the object follows it. `doctor`, `probe` and `provider` are the documented exceptions (their next word is a target,
+ * a provider or a plugin's own name). A new verb is a decision, so it is added here, with a line in the spec, in the same
+ * change as the command.
+ */
+const VERBS = [
+	"apply",
+	"check",
+	"clone",
+	"close",
+	"cleanup",
+	"deploy",
+	"dev",
+	"doctor",
+	"export",
+	"install",
+	"link",
+	"list",
+	"migrate",
+	"move",
+	"new",
+	"probe",
+	"provider",
+	"publish",
+	"reconcile",
+	"remove",
+	"resolve",
+	"run",
+	"setup",
+	"show",
+	"sync",
+	"update",
+	"upgrade",
+	"upload",
+];
+
+describe("COMMAND_CONTEXTS command shape", () => {
+	const commands = Object.keys(COMMAND_CONTEXTS);
+
+	it("starts every command with a known verb", () => {
+		const unknown = commands.filter((command) => !VERBS.includes(command.split(" ")[0]!));
+		expect(unknown).toEqual([]);
+	});
+
+	it("is at most a verb and an object, with no hyphenated verb (the old `sync-roles` shape)", () => {
+		// `run` takes a task and an optional job (`run lint commit-msg`), so it is the one command allowed three words.
+		const tooLong = commands.filter((command) => !command.startsWith("run ") && command.split(" ").length > 2);
+		const hyphenatedVerb = commands.filter((command) => command.split(" ")[0]!.includes("-"));
+		expect({ tooLong, hyphenatedVerb }).toEqual({ tooLong: [], hyphenatedVerb: [] });
+	});
+
+	it("lists only verbs that some command uses", () => {
+		const used = new Set(commands.map((command) => command.split(" ")[0]));
+		expect(VERBS.filter((verb) => !used.has(verb))).toEqual([]);
+	});
+});
+
 describe("COMMAND_CONTEXTS", () => {
 	it("tags every context with a valid value", () => {
 		for (const ctx of Object.values(COMMAND_CONTEXTS)) {
