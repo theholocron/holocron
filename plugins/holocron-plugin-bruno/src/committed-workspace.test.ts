@@ -31,6 +31,13 @@ describe("the committed .bruno/ workspace", () => {
 		expect(result.files.length).toBeGreaterThan(0);
 	});
 
+	it("gives each collection an info.version, which no check compares, so a release leaves it behind harmlessly", () => {
+		for (const folder of ["sentinel-webhook", "comlink-relay"]) {
+			const text = readFileSync(join(REPO_ROOT, `.bruno/collections/${folder}/opencollection.yml`), "utf8");
+			expect(text).toMatch(/^info:\n {2}name: .+\n {2}version: ".+"\n/m);
+		}
+	});
+
 	it("keeps the docs of workspace.yml and .bruno/README.md as the same text, and records the pair", () => {
 		const readme = readFileSync(join(REPO_ROOT, ".bruno/README.md"), "utf8");
 		const docs = readDocs(readFileSync(join(REPO_ROOT, ".bruno/workspace.yml"), "utf8"));

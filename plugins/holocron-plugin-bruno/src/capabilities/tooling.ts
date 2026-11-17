@@ -26,6 +26,7 @@ import type {
 	ToolingWorkspaceResult,
 } from "@theholocron/cli";
 
+import { rootVersion } from "../collection-version.js";
 import { convertCollection } from "../convert-collection.js";
 import { outputNames } from "../output-names.js";
 import { type CollectionInput, syncWorkspace } from "../sync-workspace.js";
@@ -38,6 +39,8 @@ export interface BrunoToolingOptions {
 	envFiles?: string[];
 	/** The name Bruno shows for the `.bruno/` workspace that `workspace()` keeps (default `Workspace`). */
 	workspaceName?: string;
+	/** The `info.version` of each collection `workspace()` writes. Defaults to the version of the root `package.json`. */
+	version?: string;
 	/** Working repo root. Defaults to `process.cwd()`. */
 	repoRoot?: string;
 }
@@ -136,10 +139,13 @@ export class BrunoTooling implements Tooling {
 				),
 			});
 		}
+		// Each collection file carries the repo's own version, the root package's, unless the options name one.
+		const version = this.options.version ?? (await rootVersion(repoRoot));
 		return syncWorkspace({
 			workspaceName: this.options.workspaceName ?? "Workspace",
 			collections,
 			repoRoot,
+			...(version === undefined ? {} : { version }),
 			...(input.dryRun ? { dryRun: true } : {}),
 			...(input.prefer ? { prefer: input.prefer } : {}),
 		});

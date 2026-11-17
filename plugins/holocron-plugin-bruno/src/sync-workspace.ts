@@ -7,6 +7,7 @@ import { stringifyEnvironment } from "@usebruno/filestore";
 
 import { type Baseline, BASELINE_FILE, type BaselinePair, readBaseline, serializeBaseline } from "./baseline.js";
 import { collectionFiles } from "./collection-files.js";
+import { stripVersion, withVersion } from "./collection-version.js";
 import { formatJson } from "./format-json.js";
 import { comparableDocs, DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 import { canonicalJson, environmentToSource, hashOf, keepOriginal, workspaceToSource } from "./workspace-to-source.js";
@@ -42,6 +43,12 @@ export interface SyncWorkspaceInput {
 	dryRun?: boolean;
 	/** Settles a pair whose two sides both changed. */
 	prefer?: ToolingWorkspaceSide;
+	/**
+	 * The `info.version` each collection's `opencollection.yml` gets when the sync writes it (the repo root's package
+	 * version). It is left out of every comparison and hash, so a release that changes it never makes a file out of
+	 * date; it is brought up to date whenever a run is not a dry run.
+	 */
+	version?: string;
 }
 
 /** What {@link syncWorkspace} found. */
@@ -114,7 +121,10 @@ async function readIfThere(path: string): Promise<string | undefined> {
 	}
 }
 
-/** Every `.yml` file below `dir` (empty when it is not there) with its text, by path from `dir` with `/` separators. */
+/**
+ * Every `.yml` file below `dir` (empty when it is not there) with its text, by path from `dir` with `/` separators.
+ * The collection's own `opencollection.yml` is read without its `info.version`, which the sync keeps apart.
+ */
 async function ymlFilesBelow(dir: string): Promise<Map<string, string>> {
 	const files = new Map<string, string>();
 	let entries;
@@ -129,7 +139,10 @@ async function ymlFilesBelow(dir: string): Promise<Map<string, string>> {
 		.map((entry) => relative(dir, join(entry.parentPath, entry.name)).split(sep).join("/"))
 		.filter((path) => !path.split("/").includes("node_modules"))
 		.sort();
-	for (const path of paths) files.set(path, await readFile(join(dir, path), "utf8"));
+	for (const path of paths) {
+		const text = await readFile(join(dir, path), "utf8");
+		files.set(path, path === "opencollection.yml" ? stripVersion(text) : text);
+	}
 	return files;
 }
 
@@ -334,7 +347,11 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 					path: `${WORKSPACE_DIR}/${folder}/${path}`,
 					state: now === undefined ? "new" : now === text ? "unchanged" : "changed",
 				});
-				if (now !== text) plan.write(`${WORKSPACE_DIR}/${folder}/${path}`, text);
+				if (now !== text) {
+					const versioned =
+						path === "opencollection.yml" && input.version ? withVersion(text, input.version) : text;
+					plan.write(`${WORKSPACE_DIR}/${folder}/${path}`, versioned);
+				}
 			}
 			for (const path of currentRequests.keys()) {
 				if (generatedRequests.has(path)) continue;
@@ -373,6 +390,15 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 						}
 					}
 				}
+			}
+		}
+		// The version in the collection's own file is brought up to date on any run that writes, and never compared.
+		if (input.version !== undefined && direction !== "conflict") {
+			const own = `${WORKSPACE_DIR}/${folder}/opencollection.yml`;
+			const raw = await readIfThere(join(repoRoot, own));
+			if (raw !== undefined && !plan.writes.has(own)) {
+				const desired = withVersion(raw, input.version);
+				if (desired !== raw) plan.write(own, desired);
 			}
 		}
 		listed.push({ name, path: folder });
