@@ -108,7 +108,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"scan:secrets": ["scan:secrets / Run gitleaks"],
 	"sync-repo": ["sync-repo / Run holocron sync", "sync-repo / Notify of a failed sync"],
 	"deploy-sentinel": ["deploy-sentinel / Build, stage and deploy Sentinel"],
-	"sync-secrets": ["sync-secrets / Sync 1Password to Vercel to GH org secret"],
+	"sync-secrets": ["sync-secrets / Sync 1Password to Vercel"],
 	"sync-issues": ["sync-issues / Sync issues between trackers"],
 	"sync-specs": ["sync-specs / Sync spec discussions"],
 	"preview-specs": ["preview-specs / Sync spec discussions for the pull request"],
