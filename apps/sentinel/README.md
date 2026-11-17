@@ -479,7 +479,6 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 | Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                                                                           |
 | Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                                                                     |
 | Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write is consumed by `pulls.createReview()`/`listReviewThreads()`/`resolveReviewThread()` — error-severity markdownlint findings post as a PR review, not only a check-run annotation (holocron#860) |
-| Actions           | Write  | unused since Sentinel stopped dispatching the typecheck (#2263); narrow it in the App's settings when convenient                                                                                                                                          |
 | Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                                                                        |
 
 No other repository permissions — never touches Administration.
@@ -501,12 +500,11 @@ App and the dev one that `holocron dev` runs, holocron#1968), never a person's.
 | Projects   | Write  | the `reconcile-projects` workflow mints an installation token with this permission to set board item statuses (`holocron reconcile project`, holocron#1744); Sentinel's own code does not use it |
 
 **Contents bumped from Read to Write for holocron#820, Issues bumped from
-none to Write for holocron#834, Pull requests bumped from Read to Write and
-Actions added at Write for the Bucket 2 dispatch prototype** — real
+none to Write for holocron#834, and Pull requests bumped from Read to Write** — real
 permission escalations, not something code or an API call can grant. Update
 in the App's own settings page (Settings → Developer settings → GitHub Apps
 → Holocron Sentinel → Permissions & events), then accept the updated
-permissions for the `theholocron` installation. Auto-fix-commit is
+permissions for the `theholocron` installation. (Actions, added at Write for the Bucket 2 dispatch prototype, is no longer requested: nothing uses it since #2263.) Auto-fix-commit is
 default-on (holocron#864) — opt out via `with: { autoFix: false }` on
 the `format` task (`{ name: "format", with: { autoFix: false } }`; the deprecated alias
 `sourceQuality.formatting` still works, and `format` wins when both are present, holocron#1697), <!-- holocron-allow-old-name -->
