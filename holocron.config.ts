@@ -166,10 +166,24 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
-		// Monitoring: Checkly. Only the alert channel is managed from here (the uptime channel's feed below); the checks
-		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts. The account id
+		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel; the checks are declared next to
+		// the service they watch (apps/sentinel and apps/comlink), and the docs site's here, because no app owns it. The
+		// dashboard and the status page, which span apps, are added to this one entry by later parts of #2302. The account id
 		// comes from .holocron/org.ts.
-		monitoring: "checkly",
+		monitoring: [
+			"checkly",
+			{
+				checks: [
+					{
+						name: "Docs",
+						url: `https://docs.${domain}/holocron/`,
+						locations: ["us-east-1"],
+						tags: ["docs"],
+						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
+					},
+				],
+			},
+		],
 		cache: "turbo",
 		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",

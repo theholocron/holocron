@@ -194,6 +194,8 @@ export default defineConfig({
 						// Checkly requires at least one location or privateLocation —
 						// no account-level default exists on a trial/Hobby plan.
 						locations: ["us-east-1"],
+						// The tag a dashboard and the status page pick this check by (#2302).
+						tags: ["sentinel"],
 						// 405 is the EXPECTED healthy response here (confirms the
 						// function declines non-POST) — without shouldFail, Checkly
 						// classifies any 4xx as a platform-level failure before
@@ -212,6 +214,7 @@ export default defineConfig({
 						url: webhookUrl,
 						method: "POST",
 						locations: ["us-east-1"],
+						tags: ["sentinel"],
 						// A POST with no signature header always fails verification —
 						// 401 is the expected response, same shouldFail reasoning as
 						// the uptime check above.

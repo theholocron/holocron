@@ -114,6 +114,19 @@ describe("checks.create", () => {
 		expect(calls[0]?.body).toMatchObject({ shouldFail: true });
 	});
 
+	it("passes tags through on create and on update", async () => {
+		const { checks, calls } = client([{ body: check }, { body: check }]);
+		const input = {
+			name: "Docs",
+			tags: ["docs"],
+			request: { url: "https://docs.theholocron.dev/holocron/", method: "GET" as const },
+		};
+		await checks.create(input);
+		await checks.update("chk-1", { ...input, tags: ["docs", "web"] });
+		expect(calls[0]?.body).toMatchObject({ tags: ["docs"] });
+		expect(calls[1]?.body).toMatchObject({ tags: ["docs", "web"] });
+	});
+
 	it("sets bodyType RAW on the wire when a request body is given", async () => {
 		const { checks, calls } = client([{ body: check }]);
 		await checks.create({

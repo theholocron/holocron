@@ -181,6 +181,23 @@ describe("doctor monitoring — the checks", () => {
 		expect(lines.some((l) => l.includes("      - check uptime url"))).toBe(true);
 	});
 
+	it("fails on a declared tag the check lacks, and ignores an extra tag on the account", async () => {
+		const { report } = await run(
+			provider([declared({ tags: ["sentinel", "web"] })], [declared({ tags: ["web", "by-hand"] })])
+		);
+		expect(report.rows[0]!.problems).toEqual(["missing check uptime tag sentinel"]);
+		const ok = await run(provider([declared({ tags: ["web"] })], [declared({ tags: ["web", "by-hand"] })]));
+		expect(ok.report.status).toBe("ok");
+		const none = await run(provider([declared()], [declared({ tags: ["by-hand"] })]));
+		expect(none.report.status).toBe("ok");
+		// A check the account holds with no tags at all lacks every declared one.
+		const untagged = await run(provider([declared({ tags: ["sentinel", "web"] })], [declared()]));
+		expect(untagged.report.rows[0]!.problems).toEqual([
+			"missing check uptime tag sentinel",
+			"missing check uptime tag web",
+		]);
+	});
+
 	it("fails with the message when the read throws", async () => {
 		const { report } = await run(
 			provider([declared()], async () => {

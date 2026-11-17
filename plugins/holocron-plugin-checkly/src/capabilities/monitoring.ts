@@ -88,6 +88,7 @@ function fromChecklyCheck(check: ApiCheck): MonitoringCheckInput {
 		shouldFail: check.shouldFail,
 		assertions,
 		...(check.locations ? { locations: check.locations } : {}),
+		...(check.tags ? { tags: check.tags } : {}),
 		...(request.body ? { body: request.body } : {}),
 	};
 }
@@ -99,6 +100,7 @@ function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 		...(input.activated !== undefined ? { activated: input.activated } : {}),
 		...(input.locations !== undefined ? { locations: input.locations } : {}),
 		...(input.shouldFail !== undefined ? { shouldFail: input.shouldFail } : {}),
+		...(input.tags !== undefined ? { tags: input.tags } : {}),
 		request: {
 			url: input.url,
 			method: input.method ?? "GET",

@@ -61,6 +61,7 @@ monitoring: [
         url: "https://sentinel.theholocron.dev/api/webhook",
         method: "GET",
         locations: ["us-east-1"],
+        tags: ["sentinel"], // groups checks for a dashboard or status page; `ensureCheck` sets them exactly
         shouldFail: true, // 405 is the EXPECTED healthy response here
         assertions: [
           { source: "status_code", comparison: "equals", target: "405" },

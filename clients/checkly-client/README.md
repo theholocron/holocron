@@ -30,6 +30,7 @@ const check = await checkly.checks.create({
   name: "Sentinel webhook uptime",
   frequency: 5,
   locations: ["us-east-1"],
+  tags: ["sentinel"], // what a dashboard or a status page picks the check by
   shouldFail: true,
   request: {
     url: "https://sentinel.theholocron.dev/api/webhook",

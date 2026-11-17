@@ -22,12 +22,12 @@ It is the check for [`setup`](/holocron/commands/setup/), which creates and upda
 
 ## What counts as a problem
 
-| Finding                                                                | A problem when                                                                                                                 |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| A declared check is not in the account                                 | always. Checks are matched by name                                                                                             |
-| A declared check has another URL or method                             | always. A check that states no method is a `GET`                                                                               |
-| Another frequency, locations, activated, should-fail, body, assertions | the config states that setting. A setting the config leaves out is not compared, since the provider then picks its own default |
-| A check is in the account but not declared                             | never: the account may hold checks made by hand or by another tool                                                             |
+| Finding                                                                      | A problem when                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A declared check is not in the account                                       | always. Checks are matched by name                                                                                                                                                                                    |
+| A declared check has another URL or method                                   | always. A check that states no method is a `GET`                                                                                                                                                                      |
+| Another frequency, locations, tags, activated, should-fail, body, assertions | the config states that setting (for `tags`, only a declared tag the check lacks; an extra tag on it is not a problem). A setting the config leaves out is not compared, since the provider then picks its own default |
+| A check is in the account but not declared                                   | never: the account may hold checks made by hand or by another tool                                                                                                                                                    |
 
 Locations and assertions are compared without regard to their order. Only the settings the provider can return are compared; an assertion on something the config cannot express (for example a JSON body in Checkly) is not read back.
 

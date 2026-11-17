@@ -259,6 +259,20 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			},
 		};
 
+		// And (#2302): the `monitoring` provider gained the docs site's check. Sentinel's and Comlink's checks are in
+		// their own configs.
+		const monitoring = expectedProviders.monitoring as { tuple: { options: Record<string, unknown> } };
+		expect(monitoring.tuple.options.checks).toBeUndefined();
+		monitoring.tuple.options.checks = [
+			{
+				name: "Docs",
+				url: "https://docs.theholocron.dev/holocron/",
+				locations: ["us-east-1"],
+				tags: ["docs"],
+				assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
+			},
+		];
+
 		// And (#2172): the `tooling` provider, Bruno over the apps' request files, so `export requests` runs from the root.
 		expect(expectedProviders.tooling).toBeUndefined();
 		expectedProviders.tooling = {
