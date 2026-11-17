@@ -1,3 +1,12 @@
+## [1.58.0-alpha.39](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.38...clients-v1.58.0-alpha.39) (2026-11-17)
+
+### Features
+
+* **monitoring:** ✨ 💓 heartbeats, with the ping URL handed to the 1Password import file ([#2308](https://github.com/theholocron/holocron/issues/2308)) ([9b532b0](https://github.com/theholocron/holocron/commit/9b532b06bd092989a50997c08a8e4f9636e91c3e)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📊 declare and check a private Checkly dashboard ([#2306](https://github.com/theholocron/holocron/issues/2306)) ([40f3b2d](https://github.com/theholocron/holocron/commit/40f3b2d224d28910b0c45a4440c9d3c692c08348)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📟️ declare a status page, its components and rules, and its domain record ([#2307](https://github.com/theholocron/holocron/issues/2307)) ([36cdf41](https://github.com/theholocron/holocron/commit/36cdf41f78d5aec5973b8deca709a4998d8ab1d7)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ tag checks, and declare Comlink's and the docs site's ([#2305](https://github.com/theholocron/holocron/issues/2305)) ([e451d08](https://github.com/theholocron/holocron/commit/e451d083a12b51c238a0985b2def972dce847f58)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+
 ## [1.58.0-alpha.38](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.37...clients-v1.58.0-alpha.38) (2026-11-17)
 
 ### Features
