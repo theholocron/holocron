@@ -687,16 +687,16 @@ App only on the repositories you test with.
 
 ### Sending a delivery by hand
 
-`requests/collection.json` and the `requests/environment*.json` files are a collection of requests and its environments.
+`api/webhook.collection.json` and the `api/webhook.environment*.json` files, beside `api/webhook.mjs` and kept out of the deploy by `.vercelignore`, are a collection of requests and its environments.
 Open them in an API client, pick an environment and put that instance's webhook secret in `webhookSecret`, a secret-type
 variable the files leave empty. A pre-request script signs each body as sent (`X-Hub-Signature-256`). There are three
 environments, one file each:
 
-| Environment        | File                    | `baseUrl`                              | What it is                                                                                   |
-| ------------------ | ----------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `Sentinel (local)` | `environment.json`      | `http://127.0.0.1:3000`                | The instance on this machine, what `holocron dev serve` listens on                           |
-| `Sentinel (dev)`   | `environment.dev.json`  | `https://sentinel-dev.theholocron.dev` | The same instance through its named tunnel (`dev.tunnel`), reached the way GitHub reaches it |
-| `Sentinel (prod)`  | `environment.prod.json` | `https://sentinel.theholocron.dev`     | The deployed App. Its webhook secret is the production one, not the dev App's                |
+| Environment        | File                            | `baseUrl`                              | What it is                                                                                   |
+| ------------------ | ------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `Sentinel (local)` | `webhook.environment.json`      | `http://127.0.0.1:3000`                | The instance on this machine, what `holocron dev serve` listens on                           |
+| `Sentinel (dev)`   | `webhook.environment.dev.json`  | `https://sentinel-dev.theholocron.dev` | The same instance through its named tunnel (`dev.tunnel`), reached the way GitHub reaches it |
+| `Sentinel (prod)`  | `webhook.environment.prod.json` | `https://sentinel.theholocron.dev`     | The deployed App. Its webhook secret is the production one, not the dev App's                |
 
 Use `Sentinel (prod)` with care: the `Rejected` and `Signed, no effect` folders are harmless there, but `Signed, acts on
 GitHub` runs the real checks and posts as the production App on the repository you name, so leave that folder alone
@@ -720,8 +720,8 @@ environment is made or updated, keeping a `webhookSecret` set there. Add `--dry-
 config declares (`holocron setup` would also run the Vercel domain and DNS steps).
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
-`holocron export requests --to bruno --cwd apps/sentinel` writes `collection.bruno.json` (the requests and the three
-environments in one file, which Bruno imports) and an OpenCollection YAML into the git-ignored `requests/.export/bruno/`
+`holocron export requests --to bruno --cwd apps/sentinel` writes `webhook.bruno.json` (the requests and the three
+environments in one file, which Bruno imports) into the git-ignored `api/.export/bruno/`
 (`--dry-run` converts and lists without writing).
 
 ## Development

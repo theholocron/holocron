@@ -27,9 +27,9 @@ interface Environment {
 }
 
 const read = <T>(file: string) =>
-	JSON.parse(readFileSync(fileURLToPath(new URL(`../../requests/${file}`, import.meta.url)), "utf8")) as T;
-const collection = read<Collection>("collection.json");
-const environment = read<Environment>("environment.json");
+	JSON.parse(readFileSync(fileURLToPath(new URL(`../../api/${file}`, import.meta.url)), "utf8")) as T;
+const collection = read<Collection>("worker.collection.json");
+const environment = read<Environment>("worker.environment.json");
 
 const SECRET = "client_secret_requests_test";
 const HOOK = "https://discord.com/api/webhooks/1/token";

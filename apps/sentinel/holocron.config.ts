@@ -224,7 +224,7 @@ export default defineConfig({
 				],
 			},
 		],
-		// The requests for sending a delivery by hand, `requests/` (#2172): `holocron sync tooling --cwd apps/sentinel`
+		// The requests for sending a delivery by hand, `api/` (#2172): `holocron sync tooling --cwd apps/sentinel`
 		// pushes them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
 		// `webhookSecret` is committed empty and keeps the value set there.
 		tooling: [
@@ -232,17 +232,17 @@ export default defineConfig({
 				"postman",
 				{
 					workspace: "Holocron",
-					collectionFiles: ["requests/collection.json"],
-					envFiles: ["requests/environment.json"],
+					collectionFiles: ["api/webhook.collection.json"],
+					envFiles: ["api/webhook.environment.json"],
 				},
 			],
 			// Bruno reads files, not an account: `holocron export requests --to bruno` writes the same collection as
-			// OpenCollection YAML into the git-ignored `requests/.export/bruno/`.
+			// a Bruno JSON file into the git-ignored `api/.export/bruno/`.
 			[
 				"bruno",
 				{
-					collectionFiles: ["requests/collection.json"],
-					envFiles: ["requests/environment.json"],
+					collectionFiles: ["api/webhook.collection.json"],
+					envFiles: ["api/webhook.environment.json"],
 				},
 			],
 		],

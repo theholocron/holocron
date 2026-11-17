@@ -12,7 +12,7 @@ A `tooling` provider keeps a tool in step with the repo: it pushes the repo's AP
 ```ts
 providers: {
 	tooling: [
-		["postman", { workspace: "Holocron", collectionFiles: ["requests/collection.json"], envFiles: ["requests/environment.json"] }],
+		["postman", { workspace: "Holocron", collectionFiles: ["api/webhook.collection.json"], envFiles: ["api/webhook.environment.json"] }],
 	],
 },
 ```

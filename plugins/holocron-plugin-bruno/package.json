@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/holocron-plugin-bruno",
   "version": "5.0.0-alpha.455",
-  "description": "Holocron plugin for Bruno. Implements the tooling capability over files: it exports the repo's request collections as OpenCollection YAML.",
+  "description": "Holocron plugin for Bruno. Implements the tooling capability over files: it exports the repo's request collections as Bruno JSON files.",
   "keywords": [
     "bruno",
     "holocron",
@@ -37,10 +37,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencollection/converters": "catalog:plugins",
     "@usebruno/converters": "catalog:plugins",
-    "@usebruno/filestore": "catalog:plugins",
-    "js-yaml": "catalog:plugins"
+    "@usebruno/filestore": "catalog:plugins"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",

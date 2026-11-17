@@ -816,7 +816,7 @@ holocron remove skill --all         # remove every installed skill (or name some
 holocron export tokens             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
 holocron export tokens --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
 holocron export requests --dry-run   # convert the repo's request collections for each tooling provider that can export, writing nothing
-holocron export requests --to bruno --yes  # write requests/.export/bruno/ (ignored by version control; never inside the source folder)
+holocron export requests --to bruno --yes  # write api/.export/bruno/ (ignored by version control; never inside the source folder)
 holocron upload coverage --uploads '[{"flag":"utils","files":"utils/*/coverage/lcov.info"}]' --allow-empty  # upload the coverage reports, one flag per group, through the coverage provider (Codecov: the job's OIDC token, no stored token)
 holocron export tokens --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron new github-app --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials

@@ -7,7 +7,7 @@ description: Write the repo's request collections in each tooling provider's own
 holocron export requests [--to <provider>] [--out <dir>] [--dry-run] [--yes]
 ```
 
-A repo can keep a collection of requests and an environment as JSON files (`apps/sentinel/requests/collection.json` and `environment.json`). Those files are the one source. A tool that reads another format cannot open them, so `export requests` asks each `tooling` provider to write its own format from them. Nothing is written back to the source and no account is touched.
+A repo can keep a collection of requests and an environment as JSON files (`apps/sentinel/api/webhook.collection.json` and `webhook.environment.json`, named for the endpoint they exercise and kept beside it). Those files are the one source. A tool that reads another format cannot open them, so `export requests` asks each `tooling` provider to write its own format from them. Nothing is written back to the source and no account is touched.
 
 ## What it does
 
@@ -16,12 +16,12 @@ For every `tooling` provider in `holocron.config` (or only `--to <provider>`), t
 ```ts
 providers: {
 	tooling: [
-		["bruno", { collectionFiles: ["requests/collection.json"], envFiles: ["requests/environment.json"] }],
+		["bruno", { collectionFiles: ["api/webhook.collection.json"], envFiles: ["api/webhook.environment.json"] }],
 	],
 },
 ```
 
-Each provider writes under its own folder, `<out>/<provider>`. The default `<out>` is `.export` next to the collection files, so `requests/.export/bruno/`, which the repo's `.gitignore` leaves out (`**/requests/.export/`). Collection files in different folders are exported separately, each into the `.export` beside its own folder (`apps/sentinel/requests/.export/bruno/` and `apps/comlink/requests/.export/bruno/`), and the run prints one row per folder. Collection files in the same folder go out together. Each folder's collections get the `envFiles` that sit in that same folder (`environment.json`, `environment.dev.json`, …), so Sentinel's collection carries Sentinel's environments and not Comlink's; if none sits beside a collection, it gets all of them. `--out <dir>` puts the provider folders under `<dir>` instead (absolute, or relative to the repo root), with every collection in one folder. The run ends with a `Wrote:` list (`Would write:` on `--dry-run`) of the full path of every file, so you can open them straight from the terminal.
+Each provider writes under its own folder, `<out>/<provider>`. The default `<out>` is `.export` next to the collection files, so `api/.export/bruno/`, which the repo's `.gitignore` leaves out (`**/api/.export/`). Collection files in different folders are exported separately, each into the `.export` beside its own folder (`apps/sentinel/api/.export/bruno/` and `apps/comlink/api/.export/bruno/`), and the run prints one row per folder. Collection files in the same folder go out together. Each folder's collections get the `envFiles` that sit in that same folder (`webhook.environment.json`, `webhook.environment.dev.json`, …), so Sentinel's collection carries Sentinel's environments and not Comlink's; if none sits beside a collection, it gets all of them. `--out <dir>` puts the provider folders under `<dir>` instead (absolute, or relative to the repo root), with every collection in one folder. The run ends with a `Wrote:` list (`Would write:` on `--dry-run`) of the full path of every file, so you can open them straight from the terminal.
 
 ## Rules
 

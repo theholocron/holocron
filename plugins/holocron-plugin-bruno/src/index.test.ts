@@ -4,7 +4,7 @@ import { BrunoTooling, createPlugin, tooling } from "./index.js";
 
 describe("createPlugin", () => {
 	it("names the plugin and offers only the tooling capability, with no probes", () => {
-		const plugin = createPlugin({ collectionFiles: ["requests/collection.json"] });
+		const plugin = createPlugin({ collectionFiles: ["api/webhook.collection.json"] });
 		expect(plugin.name).toBe("@theholocron/holocron-plugin-bruno");
 		expect(Object.keys(plugin.capabilities)).toEqual(["tooling"]);
 		expect(plugin).not.toHaveProperty("probes");

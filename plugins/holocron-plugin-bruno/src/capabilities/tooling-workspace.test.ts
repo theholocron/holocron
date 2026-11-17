@@ -28,16 +28,16 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 beforeEach(() => {
 	root = mkdtempSync(join(tmpdir(), "bruno-workspace-"));
-	put("apps/a/requests/collection.json", collection("App A", "ping"));
-	put("apps/a/requests/environment.json", environment("A (local)"));
-	put("apps/b/requests/collection.json", collection("App B", "pong"));
-	put("apps/b/requests/environment.json", environment("B (local)"));
+	put("apps/a/api/webhook.collection.json", collection("App A", "ping"));
+	put("apps/a/api/webhook.environment.json", environment("A (local)"));
+	put("apps/b/api/webhook.collection.json", collection("App B", "pong"));
+	put("apps/b/api/webhook.environment.json", environment("B (local)"));
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 const input = (over: Record<string, unknown> = {}) => ({
-	collectionFiles: ["apps/a/requests/collection.json", "apps/b/requests/collection.json"],
-	envFiles: ["apps/a/requests/environment.json", "apps/b/requests/environment.json"],
+	collectionFiles: ["apps/a/api/webhook.collection.json", "apps/b/api/webhook.collection.json"],
+	envFiles: ["apps/a/api/webhook.environment.json", "apps/b/api/webhook.environment.json"],
 	repoRoot: root,
 	...over,
 });
@@ -85,7 +85,7 @@ describe("BrunoTooling.workspace", () => {
 	});
 
 	it("hands a collection every environment when none sits beside it", async () => {
-		await tool().workspace(input({ envFiles: ["apps/a/requests/environment.json"] }));
+		await tool().workspace(input({ envFiles: ["apps/a/api/webhook.environment.json"] }));
 		expect(existsSync(join(root, ".bruno/collections/app-b/environments/A (local).yml"))).toBe(true);
 	});
 
@@ -102,7 +102,7 @@ describe("BrunoTooling.workspace", () => {
 
 	it("changes a file the source no longer matches, and removes one it no longer generates", async () => {
 		await tool().workspace(input());
-		put("apps/a/requests/collection.json", collection("App A", "ping-two"));
+		put("apps/a/api/webhook.collection.json", collection("App A", "ping-two"));
 		const result = await tool().workspace(input());
 		expect(states(result.files)).toMatchObject({
 			".bruno/collections/app-a/opencollection.yml": "unchanged",
@@ -114,13 +114,13 @@ describe("BrunoTooling.workspace", () => {
 	});
 
 	it("removes the folder of a request that was in a folder of its own, once it is empty", async () => {
-		put("apps/a/requests/collection.json", {
+		put("apps/a/api/webhook.collection.json", {
 			info: { name: "App A", schema: SCHEMA },
 			item: [{ name: "Group", item: [{ name: "one", request: { method: "GET", url: "http://x" } }] }],
 		});
 		await tool().workspace(input());
 		expect(existsSync(join(root, ".bruno/collections/app-a/Group/folder.yml"))).toBe(true);
-		put("apps/a/requests/collection.json", collection("App A", "ping"));
+		put("apps/a/api/webhook.collection.json", collection("App A", "ping"));
 		await tool().workspace(input());
 		expect(existsSync(join(root, ".bruno/collections/app-a/Group"))).toBe(false);
 	});
@@ -130,7 +130,7 @@ describe("BrunoTooling.workspace", () => {
 		expect(result.files.length).toBeGreaterThan(0);
 		expect(existsSync(join(root, ".bruno"))).toBe(false);
 		await tool().workspace(input());
-		put("apps/a/requests/collection.json", collection("App A", "ping-two"));
+		put("apps/a/api/webhook.collection.json", collection("App A", "ping-two"));
 		const dry = await tool().workspace(input({ dryRun: true }));
 		expect(states(dry.files)[".bruno/collections/app-a/ping.yml"]).toBe("removed");
 		expect(existsSync(join(root, ".bruno/collections/app-a/ping.yml"))).toBe(true);
@@ -146,7 +146,7 @@ describe("BrunoTooling.workspace", () => {
 	});
 
 	it("writes the workspace file again when it does not list a collection", async () => {
-		await tool().workspace(input({ collectionFiles: ["apps/a/requests/collection.json"] }));
+		await tool().workspace(input({ collectionFiles: ["apps/a/api/webhook.collection.json"] }));
 		const result = await tool().workspace(input());
 		expect(states(result.files)[".bruno/workspace.yml"]).toBe("changed");
 		expect(read(".bruno/workspace.yml")).toContain("collections/app-b");
@@ -158,19 +158,19 @@ describe("BrunoTooling.workspace", () => {
 	});
 
 	it("gives two collections of the same name their own folders", async () => {
-		put("apps/b/requests/collection.json", collection("App A", "pong"));
+		put("apps/b/api/webhook.collection.json", collection("App A", "pong"));
 		await tool().workspace(input());
 		expect(existsSync(join(root, ".bruno/collections/app-a/opencollection.yml"))).toBe(true);
 		expect(existsSync(join(root, ".bruno/collections/app-a-2/opencollection.yml"))).toBe(true);
 	});
 
 	it("names the file when a collection cannot be read", async () => {
-		writeFileSync(join(root, "apps/a/requests/collection.json"), "not json");
-		await expect(tool().workspace(input())).rejects.toThrow(/apps\/a\/requests\/collection\.json/);
+		writeFileSync(join(root, "apps/a/api/webhook.collection.json"), "not json");
+		await expect(tool().workspace(input())).rejects.toThrow(/apps\/a\/api\/webhook\.collection\.json/);
 	});
 
 	it("names the file when a collection cannot be converted", async () => {
-		put("apps/a/requests/collection.json", { info: { name: "Bad" }, item: "no" });
-		await expect(tool().workspace(input())).rejects.toThrow(/apps\/a\/requests\/collection\.json/);
+		put("apps/a/api/webhook.collection.json", { info: { name: "Bad" }, item: "no" });
+		await expect(tool().workspace(input())).rejects.toThrow(/apps\/a\/api\/webhook\.collection\.json/);
 	});
 });

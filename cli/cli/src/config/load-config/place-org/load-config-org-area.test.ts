@@ -102,17 +102,17 @@ describe("the org area in this repo (#1820)", () => {
 					packageName: "@theholocron/holocron-plugin-postman",
 					options: {
 						workspace: "Holocron",
-						collectionFiles: ["requests/collection.json"],
-						envFiles: ["requests/environment.json"],
+						collectionFiles: ["api/webhook.collection.json"],
+						envFiles: ["api/webhook.environment.json"],
 					},
 				},
-				// And the same files for Bruno, which reads them as OpenCollection YAML once `export requests` writes it.
+				// And the same files for Bruno, which reads them as Bruno JSON files when `export requests` writes them.
 				{
 					provider: "bruno",
 					packageName: "@theholocron/holocron-plugin-bruno",
 					options: {
-						collectionFiles: ["requests/collection.json"],
-						envFiles: ["requests/environment.json"],
+						collectionFiles: ["api/webhook.collection.json"],
+						envFiles: ["api/webhook.environment.json"],
 					},
 				},
 			],

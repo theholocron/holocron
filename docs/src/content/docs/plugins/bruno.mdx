@@ -1,6 +1,6 @@
 ---
 title: Bruno Plugin
-description: Implements the tooling capability over files — it exports the repo's request collections as OpenCollection YAML for Bruno.
+description: Implements the tooling capability over files — it exports the repo's request collections as a Bruno JSON file.
 ---
 
 import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
@@ -12,7 +12,7 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <CapabilitiesTable rows={[{ capability: "tooling", token: "None (reads and writes files)" }]} />
 
-[Bruno](https://www.usebruno.com) opens a collection from a folder of files, and has no HTTP API. So this plugin needs no token and makes no network call, and it has no `auth.ts`. Its one real job is [`holocron export requests`](/holocron/commands/export-requests/): it writes the repo's request collections, which are JSON files in the v2.1 collection format, as one OpenCollection YAML document each, with the environments inside.
+[Bruno](https://www.usebruno.com) opens a collection from a folder of files, and has no HTTP API. So this plugin needs no token and makes no network call, and it has no `auth.ts`. Its one real job is [`holocron export requests`](/holocron/commands/export-requests/): it writes the repo's request collections, which are JSON files in the v2.1 collection format, as one Bruno JSON file each, with the environments inside.
 
 ## Config
 
@@ -20,8 +20,8 @@ import { getPlugins } from "../../../lib/registry.ts";
 providers: {
   tooling: [
     ["bruno", {
-      collectionFiles: ["requests/collection.json"],
-      envFiles: ["requests/environment.json"],
+      collectionFiles: ["api/webhook.collection.json"],
+      envFiles: ["api/webhook.environment.json"],
     }],
   ],
 }
@@ -32,22 +32,22 @@ providers: {
 | Option            | Required | Description                                                                                                                                                         |
 | ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `workspaceName`   | No       | The name Bruno shows for the `.bruno/` workspace `sync requests` keeps (default `Workspace`)                                                                        |
-| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repository root. Each becomes one YAML file                                                                       |
+| `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repository root. Each becomes one JSON file                                                                       |
 | `envFiles`        | No       | The environment JSON files, relative to the repository root. A collection gets the ones in its own folder (all of them when none is there), inside its own document |
 
 ## What `tooling` provides
 
-- `export()` — converts each collection with Bruno's own converters (`@usebruno/converters` reads the collection and rewrites its `pm.*` scripts to `bru.*` and `req.*`, then `@opencollection/converters` lays it out as OpenCollection) and writes `<name>.yml` under the folder it is given: `collection.json` is `collection.yml`, and two files with the same name use their whole path (`apps-a-collection.yml`). Environments are written inside the document, and a variable of the secret type is marked `transient`. What the converters report they could not carry across is returned as issues, and `holocron export requests` lists them. `--dry-run` converts and lists the files without writing any.
+- `export()` — converts each collection with Bruno's own converters (`@usebruno/converters` reads the collection and rewrites its `pm.*` scripts to `bru.*` and `req.*`, and Bruno's own JSON export lays it out) and writes `<name>.bruno.json` under the folder it is given: `api/webhook.collection.json` is `webhook.bruno.json`, a `.collection` part of the name left out, and two files with the same name use their whole path (`apps-a-collection.bruno.json`). Environments are written inside the file, and a variable of the secret type is marked `secret`. What the converters report they could not carry across is returned as issues, and `holocron export requests` lists them. `--dry-run` converts and lists the files without writing any.
 - `workspace()` — keeps the committed `.bruno/` workspace and the request files in step, both ways, for [`holocron sync requests`](/holocron/commands/sync-requests/). It writes the files Bruno itself would save, with Bruno's own writer (`@usebruno/filestore`): `.bruno/workspace.yml` lists the collections, and each collection is a folder under `.bruno/collections/<name>/` with an `opencollection.yml`, a `folder.yml` for each folder, one YAML file for each request and, under `environments/`, one file for each environment beside it. In Bruno, choose Open Workspace and pick the repo's `.bruno` folder: edits are saved in the repo. A secret variable is written without its value, so `webhookSecret` stays in Bruno's own secret store on your machine. `workspace.yml` is written when it is missing or does not list a collection, and left alone otherwise, because Bruno adds settings of its own to it.
   - **The record.** `.bruno/.sync.json` (committed) holds, for each collection and each environment, a hash of the request file as the workspace can carry it and a hash of the workspace's own files at the last sync. A side whose hash differs has changed; both changed is a conflict that `--prefer source|workspace` settles (see [`sync requests`](/holocron/commands/sync-requests/) for the table). Delete the file to start again: the next sync rebuilds it when the two sides already agree, and reports a conflict where they do not.
   - **Workspace to request file.** Each file of a collection folder is read with Bruno's own reader (`parseRequest`, `parseFolder`, `parseCollection`, `parseEnvironment`) and the whole is written as a v2.1 collection by `brunoToPostman` from `@usebruno/converters`, which rewrites `bru.*` and `req.*` back to `pm.*`. Two things that exporter leaves out are put back (a folder's description, and the `$guid` it invents as a collection variable) and what it adds to every entry (an empty `description`, `disabled: false`, `type: "default"`, empty `packages`/`requests`) is taken out again. The request file as it was is then laid under the result, so an entry the edit did not change keeps its own text.
   - **What does not survive a trip.** A script is rewritten by the translator in both directions, so it comes back with the same meaning but not always the same text: `pm.response.to.have.status(200)` returns as `pm.expect(pm.response.code).to.equal(200)`, a multi-line statement is laid out on several lines, and a request's key order follows Bruno's. Only a request edited in Bruno is rewritten this way. A setting only Bruno has (a request's timeout, redirect limits, an environment's colour) stays in the workspace and is listed as an issue, never written to the request file. An environment file that only the workspace has is listed and not synced.
   - **Fidelity.** The committed Sentinel and Comlink collections go to Bruno and back with every folder and request in order, with its method, URL, headers, body, description and tests, with the folder-level signing script, the collection and folder descriptions and the collection variables, and the environments with the secret variable still empty. The Bruno files of the result are the same as the Bruno files before, so a second sync changes nothing.
-- `sync()` — does nothing and succeeds. Bruno keeps no state of its own to reconcile, and the files are written by `export`, which is your call, never a side effect of `holocron setup`.
+- `sync()` — does nothing and succeeds. Bruno keeps no state of its own to reconcile, and the files are written by `export` and `workspace`, which is your call, never a side effect of `holocron setup`.
 - `doctor()` — checks that `collectionFiles` is set and that every collection and environment file exists and parses as JSON.
 
-Each collection is written twice, as `<name>.yml` and as `<name>.bruno.json` (`collection.bruno.json`). The JSON file is Bruno's own collection export with the environments inside it, so one file brings in the requests and the environments together: in Bruno, choose Import Collection and pick the `.bruno.json` file. Bruno's collection import did not accept the OpenCollection YAML in testing ("unsupported collection format"), so use the JSON file.
+Each collection is written as `<name>.bruno.json` (`webhook.bruno.json`), Bruno's own collection export with the environments inside it, so one file brings in the requests and the environments together: in Bruno, choose Import Collection and pick the `.bruno.json` file. The plugin once also wrote an OpenCollection YAML, which Bruno's collection import rejected ("unsupported collection format"), so it no longer does.
 
-The files go to `requests/.export/bruno/` by default, which is git-ignored.
+The files go to `api/.export/bruno/` by default, which is git-ignored.
 
 The full [API reference](/holocron/plugins/holocron-plugin-bruno/api/readme/) is generated from the package's TSDoc comments.

@@ -14,7 +14,7 @@ discussion:
 ## Problem
 
 The Sentinel and Comlink request collections (#2172) are one JSON source per app, `apps/<app>/requests/collection.json`
-and `environment.json`. A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
+and `environment.json` (moved beside the API in #2276, for example `apps/sentinel/api/webhook.collection.json`). A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
 the `postman` tool's git-native format is collection schema 3.0 YAML. The JSON should stay the one source, with each tool's format
 generated from it, so no tool's file is edited by hand and none drifts.
 
@@ -30,28 +30,28 @@ generated from it, so no tool's file is edited by hand and none drifts.
    It is a `workspace` command. It takes each `tooling` provider's `collectionFiles` and `envFiles` options as the list
    of source files (the same two option names every tooling provider uses for the repo's request files), calls `export`
    on every provider that has it (or only `--to`), and writes to `<out>/<provider>`; `<out>` defaults to `.export`
-   beside the collection files (`requests/.export/<provider>/`), which `.gitignore` leaves out; collection files in
+   beside the collection files (`api/.export/<provider>/` since #2276), which `.gitignore` leaves out; collection files in
    different folders are exported separately, each beside its own folder, and `--out` puts them all in one. It refuses a folder
    that is, or contains, the folder of a source file ("never writes inside the source folder"; a folder below it, the
    default, is allowed). It asks first unless `--dry-run` or `--yes`, and refuses without a terminal. A conversion issue
    is a line under the provider's row and is not a failure; a provider that throws is a failing row, and the run goes on
    with the next one.
 3. **Bruno plugin** (`@theholocron/holocron-plugin-bruno`, part 2): `tooling` only, files only (no token, no network).
-   Converts with `postmanToBruno` (`@usebruno/converters`) then `brunoToOpenCollection` (`@opencollection/converters`),
-   dumped with `js-yaml`. There is no `bruno-client`: Bruno has no HTTP API. Options mirror the other tooling providers'
+   Converts with `postmanToBruno` (`@usebruno/converters`) and writes Bruno's own JSON export. (It first also wrote an
+   OpenCollection YAML through `@opencollection/converters` and `js-yaml`; Bruno rejects that file, so #2276 removed it
+   and both dependencies.) There is no `bruno-client`: Bruno has no HTTP API. Options mirror the other tooling providers'
    (`collectionFiles`, `envFiles`, relative to the repo root). Checked against the real converters on the Sentinel and
    Comlink collections: no issues, and the signing script comes out as `bru.getVar` / `req.setHeader`.
-   - **One file per collection**, named after the source (`collection.json` is `collection.yml`; two files of the same
+   - **One file per collection**, named after the source (`collection.json` is `collection.bruno.json`, `webhook.collection.json` is `webhook.bruno.json`; two files of the same
      name use their whole path joined with `-`).
-   - **Environments live inside the OpenCollection document** (`environments:`), not in a file of their own, so every
+   - **Environments live inside the Bruno JSON file** (`environments`), not in a file of their own, so every
      environment file goes into the collections it is handed with: the command gives a folder's collections the
-     environment files beside them (all of them when none sits there, or under `--out`). The converter takes an environment's name from its `.bru`
-     file name, so the plugin sets it to `<name>.bru` first (otherwise it is `Unnamed Environment`). A secret-type
-     variable becomes `transient: true`.
+     environment files beside them (all of them when none sits there, or under `--out`). A secret-type
+     variable becomes `secret: true`.
    - **`sync()` is a no-op that succeeds.** Bruno holds no state to reconcile, `holocron setup` calls `sync` on every
      tooling provider, and writing files is the person's call through `export`, never a side effect of `setup`.
    - **`doctor()`** reports `collectionFiles` unset, or each collection and environment file that is missing or not JSON.
-   - Not verified against the Bruno app itself: the output is the converter's single-document OpenCollection YAML.
+   - The JSON file imports into the Bruno app (confirmed by hand); the OpenCollection YAML first written here did not.
 4. **`postman` plugin** (part 3): `export` writes collection schema 3.0 YAML by running
    `postman collection migrate <file> --output <dir>` through a small CLI-transport wrapper (`shell.ts`: `spawnSync`,
    stdin attached, injected for tests).

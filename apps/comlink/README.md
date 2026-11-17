@@ -39,7 +39,7 @@ in `src/worker.ts`. Nothing else changes.
 
 ## Sending a delivery by hand
 
-`requests/collection.json` and `requests/environment.json` are a collection of requests and its environment for a
+`api/worker.collection.json` and `api/worker.environment.json` (the only files in `apps/comlink/api/`, kept apart from the code in `src/worker.ts`) are a collection of requests and its environment for a
 Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
 `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (a secret-type variable the file leaves empty) and
 `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as sent
@@ -58,8 +58,8 @@ script against the real relay (`src/requests/requests.test.ts`).
 is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the step first.
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
-`holocron export requests --to bruno --cwd apps/comlink` writes OpenCollection YAML into the git-ignored
-`requests/.export/bruno/` (`--dry-run` converts and lists without writing).
+`holocron export requests --to bruno --cwd apps/comlink` writes `worker.bruno.json` (the requests and the environment in one file, which Bruno imports) into the git-ignored
+`api/.export/bruno/` (`--dry-run` converts and lists without writing).
 
 ## Build
 
