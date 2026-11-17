@@ -6,7 +6,12 @@
  * README for auth + config docs.
  */
 
-import type { Monitoring, MonitoringCheckInput, MonitoringDashboardInput } from "@theholocron/cli";
+import type {
+	Monitoring,
+	MonitoringCheckInput,
+	MonitoringDashboardInput,
+	MonitoringStatusPageInput,
+} from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
@@ -23,6 +28,8 @@ export interface ChecklyPluginOptions extends ResolveTokenInput {
 	checks?: MonitoringCheckInput[];
 	/** Dashboards `holocron setup` should ensure exist, private unless a declaration says otherwise. */
 	dashboards?: MonitoringDashboardInput[];
+	/** Status pages `holocron setup` should ensure exist, with their components and rules. */
+	statusPages?: MonitoringStatusPageInput[];
 	/** Override base URL for tests. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. */
@@ -57,7 +64,11 @@ export function createContext(options: ChecklyPluginOptions): PluginContext {
 
 /** Builds the `monitoring` capability for a context, passing it the configured checks. */
 export function monitoring(ctx: PluginContext): Monitoring {
-	return new ChecklyMonitoring(ctx.client, { checks: ctx.options.checks, dashboards: ctx.options.dashboards });
+	return new ChecklyMonitoring(ctx.client, {
+		checks: ctx.options.checks,
+		dashboards: ctx.options.dashboards,
+		statusPages: ctx.options.statusPages,
+	});
 }
 
 /** Creates the Checkly plugin: its `monitoring` capability and its `connection` and Checkly probes. */

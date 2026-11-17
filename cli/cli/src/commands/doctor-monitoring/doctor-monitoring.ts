@@ -32,6 +32,7 @@ import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { dashboardRows } from "./dashboard-rows/index.js";
 import type { DoctorMonitoringReport, RunDoctorMonitoringInput } from "./doctor-monitoring.type.js";
+import { statusPageRows } from "./status-page-rows/index.js";
 
 const ID = "monitoring-checks";
 const TITLE = "monitoring checks match";
@@ -45,6 +46,7 @@ export async function runDoctorMonitoring(input: RunDoctorMonitoringInput): Prom
 
 	const rows: CheckRow[] = [await checkRow(loader)];
 	if (loader.has("monitoring")) rows.push(...(await dashboardRows(loader.get("monitoring") as Monitoring)));
+	if (loader.has("monitoring")) rows.push(...(await statusPageRows(loader.get("monitoring") as Monitoring)));
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);
 	printCheckSummary(summary, print);

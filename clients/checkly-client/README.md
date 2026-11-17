@@ -144,6 +144,42 @@ const one = await checkly.dashboards.get(made.dashboardId);
 
 The single-dashboard calls take the string `dashboardId`, not the numeric `id`. There is no delete here.
 
-> **Note:** This client covers API checks (`checks.*`), alert channels (`alertChannels.*`) and dashboards
-> (`dashboards.*`) — the subset this org currently provisions programmatically. Checkly's full surface (browser
-> checks, check groups, status pages, heartbeats) is out of scope until a real consumer needs it.
+## Status pages (v3)
+
+`statusPages.*` talks to Checkly's v3 API (`/v3/status-pages`; the client derives the `/v3` base from the `/v1` one, so
+`baseUrl` still ends in `/v1`). A component holds no check: an automation rule ties a failing check's tags to the
+components it lists, each with a `targetImpact` (`UNDER_MAINTENANCE`, `DEGRADED_PERFORMANCE`, `PARTIAL_OUTAGE` or
+`MAJOR_OUTAGE`).
+
+```ts
+const page = await checkly.statusPages.create({ name: "The Holocron", url: "theholocron", isPrivate: false });
+const group = await checkly.statusPages.components.create(page.id, {
+  name: "Services",
+  type: "GROUP",
+  displayOrder: 0,
+});
+const sentinel = await checkly.statusPages.components.create(page.id, {
+  name: "Sentinel",
+  type: "SERVICE",
+  displayOrder: 0,
+  parentId: group.id,
+});
+await checkly.statusPages.rules.create(page.id, {
+  name: "Sentinel",
+  firstUpdate: "Sentinel is failing its checks.",
+  lastUpdate: "Sentinel is passing its checks again.",
+  tags: ["sentinel"],
+  components: [{ componentId: sentinel.id, targetImpact: "MAJOR_OUTAGE" }],
+});
+
+// A custom domain (`customDomain: "status.example.com"` on the page): the DNS record Checkly asks for, and a re-check.
+const verification = await checkly.statusPages.customDomain.verification(page.id); // `CNAME`, `ownershipVerification`, ...
+await checkly.statusPages.customDomain.recheck(page.id);
+```
+
+`list` calls follow `nextId` to the end. `statusPages.update` and `components.update` replace the whole resource, so send
+every field you want to keep.
+
+> **Note:** This client covers API checks (`checks.*`), alert channels (`alertChannels.*`), dashboards
+> (`dashboards.*`) and status pages (`statusPages.*`) — the subset this org currently provisions programmatically.
+> Checkly's full surface (browser checks, check groups, heartbeats) is out of scope until a real consumer needs it.

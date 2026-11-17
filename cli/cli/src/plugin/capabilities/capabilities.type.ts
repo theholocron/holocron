@@ -1799,6 +1799,105 @@ export interface MonitoringDashboardState {
 	others: string[];
 }
 
+/** One thing a status page shows: it goes down when a check carrying one of its tags fails. */
+export interface MonitoringStatusComponentInput {
+	/** Also the idempotency key within the page. */
+	name: string;
+	/** Text shown under the component's name. */
+	description?: string;
+	/** A failing check carrying any of these tags opens an incident on this component. */
+	tags: string[];
+	/** A group to show it under; made if absent. */
+	group?: string;
+}
+
+/** A public page that shows whether the org's services are up, and its components. */
+export interface MonitoringStatusPageInput {
+	/** The page's title; also the idempotency key. */
+	name: string;
+	/** The page's address segment on the provider. */
+	slug: string;
+	/** A hostname on the org's zone, `status.<domain>`. */
+	domain?: string;
+	/** Text shown under the page's title. */
+	description?: string;
+	/** A picture (http or https URL). */
+	logo?: string;
+	/** Default false: the point of the page is that people can read it. */
+	private?: boolean;
+	/** In the order they are shown. */
+	components: MonitoringStatusComponentInput[];
+}
+
+/** What {@link Monitoring.ensureStatusPage} did. */
+export interface MonitoringStatusPageResult extends EnsuredResource {
+	/** Names of the components made, and of those brought in line (a field or its place changed). */
+	components: {
+		/** Names of the components made now. */
+		created: string[];
+		/** Names of the components brought in line. */
+		updated: string[];
+	};
+	/** Names of the rules (one per component) made, and of those brought in line. */
+	rules: {
+		/** Names of the rules made now. */
+		created: string[];
+		/** Names of the rules brought in line. */
+		updated: string[];
+	};
+	/** Present when the page declares a custom domain. */
+	domain?: {
+		/** The custom domain's host name. */
+		name: string;
+		/** The DNS record the provider asks for, when it has not found it yet. */
+		record?: {
+			/** The record's type. */
+			type: "CNAME";
+			/** The host name to make the record at. */
+			name: string;
+			/** What the record points at. */
+			value: string;
+		};
+		/** `TXT` records the provider also asks for (ownership, certificate), when it does. */
+		extraRecords?: Array<{ type: "TXT"; name: string; value: string }>;
+		/** Whether the provider has verified the domain. */
+		verified: boolean;
+	};
+}
+
+/** A status page as the provider holds it, for `doctor monitoring`. Names only, no credentials. */
+export interface MonitoringStatusPageState {
+	/** Whether a page with that name exists. */
+	exists: boolean;
+	/** Whether anyone can read it. Absent when the page does not exist. */
+	public?: boolean;
+	/** The custom domain it serves, if any. */
+	domain?: string;
+	/** Whether the provider has verified the domain. Absent when the page has no custom domain. */
+	domainVerified?: boolean;
+	/** The DNS record still to make for the domain. */
+	domainRecord?: {
+		/** The record's type. */
+		type: "CNAME";
+		/** The host name to make the record at. */
+		name: string;
+		/** What the record points at. */
+		value: string;
+	};
+	/** What the provider says is wrong with the domain, when it says. */
+	domainProblems: string[];
+	/** Names of declared components the page lacks. */
+	missingComponents: string[];
+	/** Declared components that are not in the declared group or order, as `name: how`. */
+	misplacedComponents: string[];
+	/** Names of declared components that no rule ties to the right tags and impact. */
+	missingRules: string[];
+	/** Names of components on the page that the config does not declare (left alone, reported). */
+	extraComponents: string[];
+	/** Names of rules on the page that the config does not declare (left alone, reported). */
+	extraRules: string[];
+}
+
 /** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
 export interface Monitoring extends ProviderIdentity {
 	/** Identifies this provider as the `monitoring` capability. */
@@ -1859,6 +1958,17 @@ export interface Monitoring extends ProviderIdentity {
 	ensureDashboard?(input: MonitoringDashboardInput): Promise<EnsuredResource & { key?: string }>;
 	/** Read the dashboard named `name` and the names of the account's others. Read-only, and never returns its key. */
 	inspectDashboard?(name: string): Promise<MonitoringDashboardState>;
+	/** Status pages this provider is configured to ensure exist, from its own config; `holocron setup` loops them. */
+	readonly statusPages?: readonly MonitoringStatusPageInput[];
+	/**
+	 * Find-or-create-or-update a status page by name, its components in the order declared, and one automation rule per
+	 * component that ties its tags to it. Never deletes a page, component, group or rule; a field left out is left alone
+	 * on an existing page. Returns the DNS record the custom domain needs when it is not verified yet.
+	 * Optional — a provider with no status pages omits it.
+	 */
+	ensureStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageResult>;
+	/** Read the status page `input.name` and compare it with the declaration. Read-only. Optional. */
+	inspectStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageState>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

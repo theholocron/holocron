@@ -187,6 +187,8 @@ describe("the org area in this repo (#1820)", () => {
 					],
 					// And (#2302): the dashboard over the checks tagged for each component.
 					dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
+					// And (#2302): the status page, which spans the apps, is the root config's own.
+					statusPages: expect.any(Array),
 				},
 			},
 		});
