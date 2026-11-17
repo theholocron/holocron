@@ -149,6 +149,18 @@ describe("the docs pair: .bruno/README.md and the `docs` of workspace.yml", () =
 			write(YML, withDocs(read(YML), "# Bruno edit"));
 		};
 
+		it("is a conflict when there is no baseline yet and the two differ", async () => {
+			await run();
+			rmSync(join(root, ".bruno/.sync.json"));
+			write(README, "# README\n");
+			write(YML, withDocs(read(YML), "# Bruno"));
+			const yml = read(YML);
+			const result = await run();
+			expect(result.files.find((f) => f.path === README)).toMatchObject({ state: "conflict" });
+			expect(read(YML)).toBe(yml);
+			expect(existsSync(join(root, ".bruno/.sync.json"))).toBe(false);
+		});
+
 		it("is a conflict that writes nothing", async () => {
 			await diverge();
 			const yml = read(YML);

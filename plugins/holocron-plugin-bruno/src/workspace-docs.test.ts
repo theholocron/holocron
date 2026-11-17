@@ -61,6 +61,10 @@ describe("readDocs", () => {
 		expect(readDocs("docs: |2-\n    code\n  text\n")).toBe("  code\ntext");
 	});
 
+	it("is an empty text for a block with nothing in it", () => {
+		expect(readDocs("a: 1\ndocs: |-\nb: 2\n")).toBe("");
+	});
+
 	it("is undefined when there is no `docs:` key", () => {
 		expect(readDocs("info:\n  name: x\n")).toBeUndefined();
 	});
@@ -98,6 +102,12 @@ describe("withDocs", () => {
 
 	it("adds the key after a blank line when the file has none", () => {
 		expect(withDocs("info:\n  name: x\n", "hi")).toBe("info:\n  name: x\n\ndocs: |-\n  hi\n");
+	});
+
+	it("adds the key to an empty file, to one with no final newline and to one that already ends in a blank line", () => {
+		expect(withDocs("", "hi")).toBe("docs: |-\n  hi\n");
+		expect(withDocs("a: 1", "hi")).toBe("a: 1\n\ndocs: |-\n  hi\n");
+		expect(withDocs("a: 1\n\n", "hi")).toBe("a: 1\n\ndocs: |-\n  hi\n");
 	});
 
 	it("replaces `docs: ''`, and writes an empty text as `docs: ''`", () => {

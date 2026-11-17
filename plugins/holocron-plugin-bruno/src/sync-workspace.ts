@@ -503,7 +503,8 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 			// Compared and hashed without a markdown table's padding, which a formatter adds and Bruno does not.
 			sourceHash: readmeDocs === undefined ? "" : hashOf(comparableDocs(readmeDocs)),
 			workspaceHash: workspaceDocs === undefined ? "" : hashOf(comparableDocs(workspaceDocs)),
-			agree: () => comparableDocs(readmeDocs ?? "") === comparableDocs(workspaceDocs ?? ""),
+			// Asked only when both sides are there.
+			agree: () => comparableDocs(readmeDocs as string) === comparableDocs(workspaceDocs as string),
 			prefer,
 		});
 		if (direction === "conflict") {
