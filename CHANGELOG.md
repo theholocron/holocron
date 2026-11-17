@@ -1,3 +1,9 @@
+## [5.0.0-alpha.458](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.457...v5.0.0-alpha.458) (2026-11-17)
+
+### Refactoring
+
+* **datapad:** ♻️ load layered configs from content, so Sentinel stops merging them itself ([#2292](https://github.com/theholocron/holocron/issues/2292)) ([9074533](https://github.com/theholocron/holocron/commit/9074533dceb68679a16ef1371bc46717b436ab72)), closes [#1040](https://github.com/theholocron/holocron/issues/1040) [#1040](https://github.com/theholocron/holocron/issues/1040)
+
 ## [5.0.0-alpha.457](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.456...v5.0.0-alpha.457) (2026-11-17)
 
 ### Refactoring
