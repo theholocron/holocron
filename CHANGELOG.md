@@ -1,3 +1,29 @@
+## [5.0.0-alpha.456](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.455...v5.0.0-alpha.456) (2026-11-17)
+
+### Features
+
+* **cli:** ✨ keep a Bruno workspace equal to the request files ([#2281](https://github.com/theholocron/holocron/issues/2281)) ([d17d9e9](https://github.com/theholocron/holocron/commit/d17d9e9c28018fd9d5e17ef4b71ac2fc8daf373f)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+* **cli:** ✨ sync the Bruno workspace back to the request files ([#2286](https://github.com/theholocron/holocron/issues/2286)) ([6d76d2d](https://github.com/theholocron/holocron/commit/6d76d2de587ccda638fae01c7569eb07c5fa331b)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
+### Refactoring
+
+* **sentinel:** ♻️ keep the request files beside the API they exercise ([#2285](https://github.com/theholocron/holocron/issues/2285)) ([5ad6465](https://github.com/theholocron/holocron/commit/5ad64656e7f58923f2361d7d17d6140bca9f8843)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
+### Documentation
+
+* **specs:** 📝 add the Bruno workspace spec ([#2278](https://github.com/theholocron/holocron/issues/2278)) ([83aecf0](https://github.com/theholocron/holocron/commit/83aecf01b21c4cedc04974c330582b7f711f361d)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
+### Chores
+
+* **ci:** 🧹 remove the check-dispatched reusable ([#2275](https://github.com/theholocron/holocron/issues/2275)) ([fb98569](https://github.com/theholocron/holocron/commit/fb98569adba720f4f3b905d3f85f0c30b313adf1)), closes [#2265](https://github.com/theholocron/holocron/issues/2265) [#2263](https://github.com/theholocron/holocron/issues/2263)
+* **ci:** rename the sync-secrets job ([#2282](https://github.com/theholocron/holocron/issues/2282)) ([ee8d636](https://github.com/theholocron/holocron/commit/ee8d63642d9964f08a1322d05c941072b9a1865a)), closes [#2280](https://github.com/theholocron/holocron/issues/2280) [#2263](https://github.com/theholocron/holocron/issues/2263)
+* **dco:** 🧹 require Sentinel's DCO check, stop writing .github/dco.yml ([#2290](https://github.com/theholocron/holocron/issues/2290)) ([0bd79f8](https://github.com/theholocron/holocron/commit/0bd79f835c5b56a24acaf07f381d2d9eb33a54e6)), closes [#1044](https://github.com/theholocron/holocron/issues/1044)
+* **release:** 🧹 collapse the repeated 5.0.0-alpha.453 sections of the changelog ([#2274](https://github.com/theholocron/holocron/issues/2274)) ([c02d6b3](https://github.com/theholocron/holocron/commit/c02d6b3808ff386f9f5a638922855ab34c06d676))
+* **sentinel:** 🔒 stop copying Sentinel's Axiom values to org Actions secrets and variables ([#2280](https://github.com/theholocron/holocron/issues/2280)) ([e0d4620](https://github.com/theholocron/holocron/commit/e0d462022ed5cd6901e647109e1ffb6bfcaabc7d)), closes [#2263](https://github.com/theholocron/holocron/issues/2263)
+* **sentinel:** 🔒 stop requesting the Actions permission ([#2277](https://github.com/theholocron/holocron/issues/2277)) ([d419890](https://github.com/theholocron/holocron/commit/d419890169e7954c9e8ecc4f8a3a1f13d1c3f8eb)), closes [#2265](https://github.com/theholocron/holocron/issues/2265) [#2263](https://github.com/theholocron/holocron/issues/2263)
+* **setup:** 🧹 stop writing .alexrc.json and .alexignore ([#2288](https://github.com/theholocron/holocron/issues/2288)) ([8178f25](https://github.com/theholocron/holocron/commit/8178f25aa56c7b01a43ade377012880202f304e4)), closes [#831](https://github.com/theholocron/holocron/issues/831)
+* **specs:** 🔧 🔄 sync spec discussions ([#2279](https://github.com/theholocron/holocron/issues/2279)) ([018a46a](https://github.com/theholocron/holocron/commit/018a46ac8f686e0d4b175fe051dd161e1b011d6f))
+
 ## [5.0.0-alpha.455](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.454...v5.0.0-alpha.455) (2026-11-17)
 
 ### Refactoring
