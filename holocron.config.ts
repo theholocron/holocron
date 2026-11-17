@@ -169,9 +169,11 @@ export default defineConfig({
 		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. The checks are declared next to
 		// the service they watch (apps/sentinel and apps/comlink); the docs site's is here, because no app owns it. The
 		// dashboard and the public status page span the apps, so they are declared here too: each picks checks by tag, and a
-		// failing check carrying a component's tag opens an incident on it. The dashboard is private (its view key goes to
-		// the `dev` layer by hand, `doctor.manualSecrets`); the page serves `status.<domain>` through a CNAME that
-		// `holocron setup` makes with the `dns` provider. The account id comes from .holocron/org.ts.
+		// failing check carrying a component's tag opens an incident on it. Checkly's free plan refuses a private dashboard
+		// (400) and a custom domain on a status page (402), so the dashboard is public and the page has no domain of its
+		// own; on a paid plan, drop `private: false` (the view key then goes to the `dev` layer by hand,
+		// `doctor.manualSecrets`) and add `domain: \`status.${domain}\``, which `holocron setup` serves through a CNAME it makes
+		// with the `dns` provider. The account id comes from .holocron/org.ts.
 		monitoring: [
 			"checkly",
 			{
@@ -184,12 +186,11 @@ export default defineConfig({
 						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 					},
 				],
-				dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
+				dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"], private: false }],
 				statusPages: [
 					{
 						name: "The Holocron",
 						slug: "theholocron",
-						domain: `status.${domain}`,
 						components: [
 							{ name: "Sentinel", tags: ["sentinel"] },
 							{ name: "Comlink", tags: ["comlink"] },

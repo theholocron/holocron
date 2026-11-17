@@ -287,6 +287,10 @@ config no longer lists (it stays active until removed by hand), or another dashb
 - **Where the root's `monitoring` block lives.** Inline in `holocron.config.ts` with the cap raised (this spec's choice, the
   smallest change), or a new `monitoring` area in `.holocron/` (`HOLOCRON_AREAS`, `placeAreas()`, Sentinel's loader
   already reads a new area with no change) which keeps the config short but is a larger change.
+- **Checkly's plan.** The free plan refuses a private dashboard (`400`) and a custom domain on a status page (`402`),
+  found when `holocron setup` first ran. This repo declares the dashboard public (`private: false`) and the page with no
+  `domain`, so it is served at `<slug>.checkly-dashboards.com`; the code's defaults (private, a custom domain) are
+  unchanged, and a paid plan drops the two overrides.
 - **Rule impact.** Each rule impacts its component as a major outage when a check fails; a partial or degraded impact for a
   slow check is a later setting.
 - **Heartbeat period units.** Declared as the provider takes them (`seconds`, `minutes`, `hours`, `days`).
