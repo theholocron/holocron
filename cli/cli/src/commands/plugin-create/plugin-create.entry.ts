@@ -7,5 +7,6 @@ export const pluginCreateEntry: MenuEntry = {
 		{ key: "slug", message: "Package slug (kebab-case):", type: "input" },
 		{ key: "vendor", message: "Vendor display name (PascalCase):", type: "input" },
 	],
+	skipOptions: ["capability", "token-env", "vendor-env", "base-url", "verify"],
 	supportsDryRun: true,
 };

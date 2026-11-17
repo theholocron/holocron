@@ -5,5 +5,6 @@ export const doctorDnsEntry: MenuEntry = {
 	description:
 		"Check that the DNS records the config makes setup write exist and point where they should (read-only)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

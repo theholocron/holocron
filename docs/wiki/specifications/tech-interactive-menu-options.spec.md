@@ -1,6 +1,6 @@
 ---
 id: SPEC-0046
-status: proposed
+status: accepted
 issue: theholocron/holocron#1052
 blocked-by: []
 related:
@@ -15,12 +15,13 @@ discussion:
 
 ## Status
 
-Rollout step 1 (types, the multi-select flow, `buildChildArgv`, secret env
-delivery, `package publish` as the first `options`-declaring entry) is done.
-Steps 2 (one PR per remaining command group) and 3 (this file's own eventual
-move to `docs/wiki/specifications/`) are still open — `AGENTS.md`'s
-Interactive fallback bullet and `packages/cli/README.md`'s Interactive mode
-section already reflect what's shipped so far.
+Done (#1052). The mechanism (types, the multi-select flow, `buildChildArgv`, secret env delivery) shipped with
+`publish package`; every other command's options were then decided in one change rather than one PR per group, because
+the drift guard (section 4) can only be green once all of them are. It is `command-options.test.ts` in
+`cli/cli/src/interactive-menu/command-catalog/`: it runs each registered command's `--help` (the binary and the test
+share one `COMMAND_MODULES` list) and fails for an option that an entry neither offers nor skips, and for an entry that
+names an option the command no longer has. The entries built per task (`run <task>`) and per probe are checked too.
+`AGENTS.md`'s interactive-fallback bullet and `cli/cli/README.md`'s Interactive mode section describe it.
 
 ## Problem
 

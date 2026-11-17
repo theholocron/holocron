@@ -29,6 +29,13 @@ is shown as a `<command> <subcommand>` path — `show config` is `show ›` then
 searches the whole tree, with
 name matches ranked above description matches.
 
+A command's own options are offered too: a required one is always asked, and the
+rest sit behind one "set any options?" checklist, so only the ones you pick are
+prompted. A secret option (`--otp`) is typed masked and handed to the command
+through its environment, never its argument list. Options the menu does not offer
+(flags meant for CI, ones a command asks for itself) are listed as skipped in the
+command's entry, and a test fails when a command has an option that is neither.
+
 ```console
 $ holocron
 ? What would you like to do? › repo

@@ -4,5 +4,6 @@ export const doctorMonitoringEntry: MenuEntry = {
 	name: "doctor monitoring",
 	description: "Check the monitoring checks the config declares against the ones the provider holds (read-only)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

@@ -4,5 +4,6 @@ export const skillsRemoveEntry: MenuEntry = {
 	name: "remove skill",
 	description: "Remove installed skills via npx skills remove",
 	positionals: [],
+	skipOptions: ["all"],
 	supportsDryRun: true,
 };

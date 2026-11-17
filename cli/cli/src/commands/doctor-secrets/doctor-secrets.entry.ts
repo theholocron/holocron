@@ -35,5 +35,6 @@ export const doctorSecretsEntry: MenuEntry = {
 		},
 		{ key: "name", flag: "--name", type: "input", message: "Look up one name:" },
 	],
+	skipOptions: ["all", "repo", "only-secrets", "only-variables", "allow"],
 	supportsDryRun: false,
 };

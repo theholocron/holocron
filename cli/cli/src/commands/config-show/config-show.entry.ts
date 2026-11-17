@@ -4,4 +4,5 @@ export const configShowEntry: MenuEntry = {
 	name: "show config",
 	description: "Print the resolved holocron config",
 	positionals: [],
+	skipOptions: ["depth", "interactive"],
 };

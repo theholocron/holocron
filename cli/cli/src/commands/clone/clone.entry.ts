@@ -11,5 +11,13 @@ export const cloneEntry: MenuEntry = {
 			validate: (v) => v.trim().length > 0 || "org/repo or org is required",
 		},
 	],
+	options: [
+		{
+			key: "dir",
+			flag: "--dir",
+			type: "input",
+			message: "Parent directory to clone into (blank = ~/Code/<org>):",
+		},
+	],
 	supportsDryRun: true,
 };

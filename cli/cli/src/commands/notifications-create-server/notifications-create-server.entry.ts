@@ -33,5 +33,6 @@ export const notificationsCreateServerEntry: MenuEntry = {
 			message: "Finish an earlier run (the server exists): invite the owner and hand it over?",
 		},
 	],
+	skipOptions: ["provider"],
 	supportsDryRun: true,
 };

@@ -5,5 +5,6 @@ export const doctorGitHubAppEntry: MenuEntry = {
 	description:
 		"Compare each registered GitHub App's events, permissions and installations with its manifest (read-only)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

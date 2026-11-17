@@ -1,5 +1,6 @@
 import type { MenuEntry } from "@theholocron/kyber/menu";
 
+import { PROBE_SKIP_OPTIONS } from "../../commands/probe/probe.entry.js";
 import type { PluginProbes } from "../../plugin/index.js";
 
 /**
@@ -15,6 +16,7 @@ export function buildProbeMenuEntries(groups: ReadonlyMap<string, PluginProbes>)
 				name: `probe ${provider} ${name}`,
 				description: probe.writes ? `${probe.summary} (changes things)` : probe.summary,
 				positionals: [],
+				skipOptions: PROBE_SKIP_OPTIONS,
 				supportsDryRun: probe.writes,
 				spawnArgs: ["probe", provider, name],
 			});

@@ -5,5 +5,6 @@ export const doctorCiEntry: MenuEntry = {
 	description:
 		"Check the repo against the flat task vocabulary: aliases, caller names, the ci aggregate, home (read-only)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

@@ -14,5 +14,6 @@ export const doctorProjectEntry: MenuEntry = {
 			message: "Post the result to #alerts (the failures, or just the summary)?",
 		},
 	],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

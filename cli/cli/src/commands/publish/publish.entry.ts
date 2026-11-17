@@ -35,6 +35,7 @@ export const publishEntry: MenuEntry = {
 	name: "publish package",
 	description: "Publish @theholocron/* packages to npm",
 	positionals: [],
+	skipOptions: ["group", "package", "exclude-group", "force"],
 	supportsDryRun: true,
 	// Three mutually exclusive workflows, not independent flags
 	// (holocron#1052 follow-up) -- modes instead of a flat options list

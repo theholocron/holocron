@@ -5,5 +5,6 @@ export const authExportEntry: MenuEntry = {
 	description:
 		"Write the stored tokens as NAME=value lines to a private file, to import them into a credentials environment",
 	positionals: [],
+	skipOptions: ["from-env", "file", "only", "blank", "vendor-names", "copy", "keep", "force"],
 	supportsDryRun: false,
 };

@@ -4,5 +4,6 @@ export const syncGithubEntry: MenuEntry = {
 	name: "sync github",
 	description: "Sync workflow templates and composite actions to theholocron/.github",
 	positionals: [],
+	skipOptions: ["repo", "branch", "pr", "message", "output-dir"],
 	supportsDryRun: true,
 };
