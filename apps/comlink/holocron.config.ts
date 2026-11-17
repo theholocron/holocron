@@ -37,7 +37,7 @@ export default defineConfig({
 				},
 			],
 			// Bruno reads files, not an account: `holocron export requests --to bruno` writes the same collection as
-			// OpenCollection YAML into the git-ignored `api/.export/bruno/`.
+			// a Bruno JSON file into the git-ignored `api/.export/bruno/`.
 			[
 				"bruno",
 				{

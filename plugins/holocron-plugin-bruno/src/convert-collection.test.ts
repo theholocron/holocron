@@ -1,4 +1,3 @@
-import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
 
 import { convertCollection } from "./convert-collection.js";
@@ -39,35 +38,35 @@ const environment = {
 
 type Doc = {
 	name: string;
-	environments?: { name: string; variables: { name: string; value: unknown; transient?: boolean }[] }[];
-	items: { name: string; scripts?: Record<string, string> }[];
+	environments?: { name: string; variables: { name: string; value: unknown; secret?: boolean }[] }[];
+	items: { name: string }[];
 };
 
 describe("convertCollection", () => {
-	it("writes an OpenCollection document with the scripts translated and no pm left", async () => {
-		const { text, issues } = await convertCollection(collection, [environment]);
-		const doc = load(text) as Doc;
+	it("writes a Bruno JSON file with the scripts translated and no pm left", async () => {
+		const { json, issues } = await convertCollection(collection, [environment]);
+		const doc = JSON.parse(json) as Doc;
 		expect(issues).toEqual([]);
 		expect(doc.name).toBe("Demo");
 		expect(doc.items.map((item) => item.name)).toEqual(["ping"]);
-		expect(text).not.toMatch(/\bpm\./);
-		expect(text).toContain('req.setHeader("X-A", "1");');
-		expect(text).toContain("res.getStatus()");
+		expect(json).not.toMatch(/\bpm\./);
+		expect(json).toContain('req.setHeader(\\"X-A\\", \\"1\\");');
+		expect(json).toContain("res.getStatus()");
 	});
 
-	it("carries the environment inside the document, under its own name, a secret as transient", async () => {
-		const { text } = await convertCollection(collection, [environment]);
-		const [env] = (load(text) as Doc).environments!;
+	it("carries the environment inside the file, under its own name, a secret marked", async () => {
+		const { json } = await convertCollection(collection, [environment]);
+		const [env] = (JSON.parse(json) as Doc).environments!;
 		expect(env!.name).toBe("Demo (development)");
-		expect(env!.variables).toEqual([
-			{ name: "baseUrl", value: "http://127.0.0.1:3000" },
-			{ name: "secret", value: "", transient: true },
+		expect(env!.variables.map(({ name, value, secret }) => ({ name, value, secret }))).toEqual([
+			{ name: "baseUrl", value: "http://127.0.0.1:3000", secret: false },
+			{ name: "secret", value: "", secret: true },
 		]);
 	});
 
-	it("writes no environments when there are none", async () => {
-		const { text } = await convertCollection(collection, []);
-		expect(load(text)).not.toHaveProperty("environments");
+	it("writes an empty environments list when there are none", async () => {
+		const { json } = await convertCollection(collection, []);
+		expect((JSON.parse(json) as Doc).environments).toEqual([]);
 	});
 
 	it("rejects a file that is not a collection", async () => {

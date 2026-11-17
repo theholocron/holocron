@@ -213,18 +213,12 @@ catalogs:
       specifier: ^1.447.15
       version: 1.447.15
   plugins:
-    '@opencollection/converters':
-      specifier: ^0.0.2
-      version: 0.0.2
     '@usebruno/converters':
       specifier: ^0.25.0
       version: 0.25.0
     '@usebruno/filestore':
       specifier: ^0.14.0
       version: 0.14.0
-    js-yaml:
-      specifier: ^5.5.0
-      version: 5.5.0
     libsodium-wrappers:
       specifier: ^0.8.4
       version: 0.8.4
@@ -2982,18 +2976,12 @@ importers:
 
   plugins/holocron-plugin-bruno:
     dependencies:
-      '@opencollection/converters':
-        specifier: catalog:plugins
-        version: 0.0.2
       '@usebruno/converters':
         specifier: catalog:plugins
         version: 0.25.0
       '@usebruno/filestore':
         specifier: catalog:plugins
         version: 0.14.0
-      js-yaml:
-        specifier: catalog:plugins
-        version: 5.5.0
     devDependencies:
       '@theholocron/cli':
         specifier: workspace:*
@@ -6894,9 +6882,6 @@ packages:
 
   '@open-draft/until@3.0.1':
     resolution: {integrity: sha512-s7/9ELP4aP9YZtW7RJaa0Xf3RISaRH9+EFN18FtykJYRHGNrl8f9ymvoNXzjhrjmftFvkQudtuDU9RYhk0xs3A==}
-
-  '@opencollection/converters@0.0.2':
-    resolution: {integrity: sha512-w4yq8P83DcM0T610zKQBEyvSsxAydOXrqT5RrHHaoRkqwl12fjWcaBX93uRyTeLk0c7pBBNrzYU4zNFseXHFsA==}
 
   '@opentelemetry/api-logs@0.220.0':
     resolution: {integrity: sha512-CmVa4ImJ+ynfrPMNaAXHET6Bhb44SwzmfyVJFq9ni2jgXJR/l7C6gfVFddNmHP+ZOkP9cf4f9DBe68qVLTHc9w==}
@@ -18042,8 +18027,6 @@ snapshots:
   '@open-draft/deferred-promise@2.2.0': {}
 
   '@open-draft/until@3.0.1': {}
-
-  '@opencollection/converters@0.0.2': {}
 
   '@opentelemetry/api-logs@0.220.0':
     dependencies:

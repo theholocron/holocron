@@ -106,7 +106,7 @@ describe("the org area in this repo (#1820)", () => {
 						envFiles: ["api/webhook.environment.json"],
 					},
 				},
-				// And the same files for Bruno, which reads them as OpenCollection YAML once `export requests` writes it.
+				// And the same files for Bruno, which reads them as Bruno JSON files when `export requests` writes them.
 				{
 					provider: "bruno",
 					packageName: "@theholocron/holocron-plugin-bruno",

@@ -4,7 +4,6 @@ vi.mock("@usebruno/converters", () => ({
 	postmanToBruno: vi.fn(async () => ({ collection: { name: "Demo" } })),
 	postmanToBrunoEnvironment: vi.fn(),
 }));
-vi.mock("@opencollection/converters", () => ({ brunoToOpenCollection: (c: unknown) => c }));
 
 import { convertCollection } from "./convert-collection.js";
 

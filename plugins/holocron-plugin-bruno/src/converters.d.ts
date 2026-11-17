@@ -1,5 +1,5 @@
 /**
- * The two converter packages ship no types of their own, so this declares the parts the plugin calls. A collection
+ * The converter and file-store packages ship no types of their own, so this declares the parts the plugin calls. A collection
  * and an environment are passed through untouched, which is why they are `unknown` here.
  */
 
@@ -77,9 +77,4 @@ declare module "@usebruno/filestore" {
 		name: string;
 		variables?: { name: string; value?: string; enabled?: boolean; secret?: boolean }[];
 	};
-}
-
-declare module "@opencollection/converters" {
-	/** Turns Bruno's collection (with its `environments`) into one OpenCollection document. */
-	export function brunoToOpenCollection(collection: unknown): unknown;
 }

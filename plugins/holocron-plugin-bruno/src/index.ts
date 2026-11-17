@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-bruno` — entrypoint.
  *
  * Implements the `tooling` capability for Bruno over files: `holocron export requests` writes the repo's request
- * collections as OpenCollection YAML, which Bruno opens as a collection. Bruno has no HTTP API and no account to sync
+ * collections as Bruno JSON files, which Bruno imports. Bruno has no HTTP API and no account to sync
  * to, so the plugin has no token and makes no network call, and so no `auth.ts`.
  */
 

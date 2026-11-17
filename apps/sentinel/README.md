@@ -726,7 +726,7 @@ config declares (`holocron setup` would also run the Vercel domain and DNS steps
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
 `holocron export requests --to bruno --cwd apps/sentinel` writes `webhook.bruno.json` (the requests and the three
-environments in one file, which Bruno imports) and an OpenCollection YAML into the git-ignored `api/.export/bruno/`
+environments in one file, which Bruno imports) into the git-ignored `api/.export/bruno/`
 (`--dry-run` converts and lists without writing).
 
 ## Development

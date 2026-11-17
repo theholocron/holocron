@@ -58,7 +58,7 @@ script against the real relay (`src/requests/requests.test.ts`).
 is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the step first.
 
 The two JSON files are the one source. A tool that reads another format gets it generated:
-`holocron export requests --to bruno --cwd apps/comlink` writes OpenCollection YAML into the git-ignored
+`holocron export requests --to bruno --cwd apps/comlink` writes `worker.bruno.json` (the requests and the environment in one file, which Bruno imports) into the git-ignored
 `api/.export/bruno/` (`--dry-run` converts and lists without writing).
 
 ## Build

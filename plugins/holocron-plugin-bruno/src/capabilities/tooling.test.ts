@@ -41,15 +41,10 @@ describe("BrunoTooling", () => {
 	});
 
 	describe("export", () => {
-		it("writes one YAML file per collection, into the folder it is given", async () => {
+		it("writes one Bruno JSON file per collection, into the folder it is given, with the environments inside it", async () => {
 			const result = await new BrunoTooling().export(input());
-			expect(result).toEqual({ files: ["webhook.yml", "webhook.bruno.json"], issues: [] });
-			const text = readFileSync(join(root, "api/.export/bruno/webhook.yml"), "utf8");
-			expect(text).toContain("name: Demo");
-			expect(text).toContain("name: Env");
-		});
-
-		it("also writes one Bruno JSON file per collection, with the environments inside it", async () => {
+			expect(result).toEqual({ files: ["webhook.bruno.json"], issues: [] });
+			expect(readdirSync(join(root, "api/.export/bruno"))).toEqual(["webhook.bruno.json"]);
 			await new BrunoTooling().export(
 				input({
 					envFiles: ["api/webhook.environment.json"],
@@ -80,14 +75,13 @@ describe("BrunoTooling", () => {
 
 		it("converts and lists the files but writes none on a dry run", async () => {
 			const result = await new BrunoTooling().export(input({ dryRun: true }));
-			expect(result.files).toEqual(["webhook.yml", "webhook.bruno.json"]);
+			expect(result.files).toEqual(["webhook.bruno.json"]);
 			expect(readdirSync(join(root, "api"))).not.toContain(".export");
 		});
 
 		it("exports a collection with no environment file", async () => {
 			const result = await new BrunoTooling().export(input({ envFiles: [] }));
-			expect(result.files).toEqual(["webhook.yml", "webhook.bruno.json"]);
-			expect(readFileSync(join(root, "api/.export/bruno/webhook.yml"), "utf8")).not.toContain("environments");
+			expect(result.files).toEqual(["webhook.bruno.json"]);
 		});
 
 		it("names two collections of the same file name apart", async () => {
@@ -96,19 +90,14 @@ describe("BrunoTooling", () => {
 			const result = await new BrunoTooling().export(
 				input({ collectionFiles: ["api/webhook.collection.json", "other/webhook.collection.json"] })
 			);
-			expect(result.files).toEqual([
-				"api-webhook.yml",
-				"api-webhook.bruno.json",
-				"other-webhook.yml",
-				"other-webhook.bruno.json",
-			]);
+			expect(result.files).toEqual(["api-webhook.bruno.json", "other-webhook.bruno.json"]);
 		});
 
 		it("names the file that cannot be read", async () => {
 			const err = await new BrunoTooling()
-				.export(input({ collectionFiles: ["requests/missing.json"] }))
+				.export(input({ collectionFiles: ["api/missing.json"] }))
 				.catch((e: unknown) => e);
-			expect((err as Error).message).toMatch(/^requests\/missing\.json: /);
+			expect((err as Error).message).toMatch(/^api\/missing\.json: /);
 		});
 
 		it("names the file that is not JSON", async () => {
@@ -124,10 +113,8 @@ describe("BrunoTooling", () => {
 		});
 
 		it("names a path that is a folder, not a file", async () => {
-			const err = await new BrunoTooling()
-				.export(input({ collectionFiles: ["requests"] }))
-				.catch((e: unknown) => e);
-			expect((err as Error).message).toMatch(/^requests: /);
+			const err = await new BrunoTooling().export(input({ collectionFiles: ["api"] })).catch((e: unknown) => e);
+			expect((err as Error).message).toMatch(/^api: /);
 		});
 	});
 
@@ -161,11 +148,11 @@ describe("BrunoTooling", () => {
 			writeFileSync(join(root, "api/webhook.environment.json"), "{ nope");
 			const report = await new BrunoTooling({
 				repoRoot: root,
-				collectionFiles: ["api/webhook.collection.json", "requests/gone.json"],
+				collectionFiles: ["api/webhook.collection.json", "api/gone.json"],
 				envFiles: ["api/webhook.environment.json"],
 			}).doctor();
 			expect(report.ok).toBe(false);
-			expect(report.message).toContain("requests/gone.json: ");
+			expect(report.message).toContain("api/gone.json: ");
 			expect(report.message).toContain("api/webhook.environment.json: ");
 			expect(report.message).not.toContain("api/webhook.collection.json");
 		});
