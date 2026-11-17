@@ -202,12 +202,11 @@ Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
 eleven more independent Bucket 1 check pipelines — commit standards
 (commitlint), DCO (holocron#900 — the org-wide replacement for
-`probot/dcoapp`; no real tool to delegate to, so a deliberate, narrow
+`probot/dcoapp`, which it replaced (#1044); no real tool to delegate to, so a deliberate, narrow
 reimplementation of the one stable rule — every commit needs a
 `Signed-off-by` trailer matching its own author or committer identity,
 case-insensitively; merge commits and bot-authored commits are exempt;
-runs alongside the existing probot/dcoapp install for now, not instead
-of it — see `src/actions/dco/lint-dco/lint-dco.ts`'s own module docstring),
+required by the ruleset as `validate:dco / Run Developer Certificate of Origin` — see `src/actions/dco/lint-dco/lint-dco.ts`'s own module docstring),
 inclusive language (alex), formatting (prettier,
 holocron#819, purely advisory — no severity axis, 100% mechanical),
 editorconfig (the `editorconfig` package's own `matcher()` API resolving

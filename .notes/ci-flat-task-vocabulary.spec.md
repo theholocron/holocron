@@ -453,7 +453,7 @@ Today a ruleset lists 13 contexts, each of the form `<caller job> / <called job>
 rename, split or workflow addition orphans one in every repo until its ruleset is resynced (#1547). This spec ends that.
 
 **One required check per repo, `ci`**, replaces every per-task context and the `codecov/*` statuses. `holocron repo
-setup` writes a ruleset of `ci` and `DCO`. `DCO` stays its own required context: it comes from the DCO app, not from this
+setup` writes a ruleset of `ci` and `DCO`. The DCO check stays its own required context: it comes from Sentinel (it was the DCO app's `DCO` until #1044), not from this
 repo's workflows, and a missing sign-off should be named by itself, not by the aggregate. The per-task checks still run
 and still show on the PR; they are no longer individually required.
 

@@ -17,7 +17,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
  * Check`, `Generated files / Check`) became the `validate:deps` and `validate:generated` tasks, which post new contexts.
  */
 const PINNED_CONTEXTS = [
-	"DCO",
+	"validate:dco / Run Developer Certificate of Origin",
 	"build / Build every workspace",
 	"codecov/patch",
 	"codecov/patch/documentation",
@@ -47,7 +47,10 @@ async function rootTasksConfig(): Promise<TasksConfig> {
 
 describe("this repo's required checks (#1727, B6)", () => {
 	it("keeps the ruleset to the aggregate and DCO", async () => {
-		expect(requiredChecks(await rootTasksConfig(), true)).toEqual(["ci / Required checks", "DCO"]);
+		expect(requiredChecks(await rootTasksConfig(), true)).toEqual([
+			"ci / Required checks",
+			"validate:dco / Run Developer Certificate of Origin",
+		]);
 	});
 
 	it("derives exactly the per-task contexts it did before, and no codecov context per package", async () => {

@@ -325,10 +325,10 @@ manifest, not a hand-maintained array:
 In the repo that holds the reusable workflows (holocron itself) the list is `ci / Required checks` and `DCO`. That is the aggregate
 check (`ci/workflows/ci.yml`, written by `setup` / `sync` as `.github/workflows/ci.ci.yml`): it waits on
 every `{ required: true }` task, the hand-written checks in `extraRequiredChecks` and the coverage statuses (the `coverage` provider's required ones, `Coverage.statusContexts()`; `codecov/*` by default when none is loaded), and its
-job summary lists each of them with a link, failing ones first. `DCO` stays its own required context. In any other
+job summary lists each of them with a link, failing ones first. The DCO check (`validate:dco / Run Developer Certificate of Origin`, Sentinel's) stays its own required context. In any other
 repo, which has no `ci` caller yet, the list is:
 
-- `"DCO"`, then
+- the DCO check (`validate:dco / Run Developer Certificate of Origin`), then
 - every `{ required: true }` task's workflow check context (`Lint / Conclusion`,
   `Test / Conclusion`, `Typecheck / Conclusion` while the repo is on the frozen reusables; `test:unit / Conclusion`,
   `typecheck / Run tsc --noEmit`, … once it moves to the flat ones), walked

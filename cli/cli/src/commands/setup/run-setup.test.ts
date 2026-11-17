@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { DCO_CHECK } from "@theholocron/astromech";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
@@ -1343,7 +1344,7 @@ describe("runSetup", () => {
 		expect(checksRule).toBeDefined();
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
-				{ context: "DCO" },
+				{ context: DCO_CHECK },
 				{ context: "typecheck / Run tsc --noEmit" },
 				{ context: "lint:code / Run eslint, actionlint and prettier" },
 				{ context: "test:unit / Conclusion" },
@@ -1387,7 +1388,7 @@ describe("runSetup", () => {
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
-				{ context: "DCO" },
+				{ context: DCO_CHECK },
 				{ context: "lint:code / Run eslint, actionlint and prettier" },
 				{ context: "some-extra-check" },
 			],
@@ -1433,7 +1434,7 @@ describe("runSetup", () => {
 		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule?.parameters).toMatchObject({
-			required_status_checks: [{ context: "ci / Required checks" }, { context: "DCO" }],
+			required_status_checks: [{ context: "ci / Required checks" }, { context: DCO_CHECK }],
 		});
 	});
 
@@ -1477,7 +1478,7 @@ describe("runSetup", () => {
 		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
 		expect(rules.find((r) => r.type === "required_status_checks")?.parameters).toMatchObject({
 			required_status_checks: [
-				{ context: "DCO" },
+				{ context: DCO_CHECK },
 				{ context: "lint:code / Run eslint, actionlint and prettier" },
 				{ context: "cov/patch" },
 			],

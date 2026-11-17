@@ -155,7 +155,7 @@ const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
 astromech.packageScripts(); // single package: { holocron: "holocron", "test:unit": "holocron run test unit --", … }; workspace: { "test:unit": "turbo run test:unit", … }
-astromech.requiredChecks(true); // ["ci / Required checks", "DCO"]  — branch-protection contexts (false: "DCO", then the per-task contexts, then extras)
+astromech.requiredChecks(true); // ["ci / Required checks", DCO_CHECK]  — branch-protection contexts (false: DCO_CHECK, then the per-task contexts, then extras); DCO_CHECK is Sentinel's `validate:dco / Run Developer Certificate of Origin`
 astromech.aggregateCaller(); // the thin caller of the `ci` aggregate check, or null when nothing is required
 astromech.ci({ scope: "required" }); // CiReport — run the gating checks locally, in CI order
 ```
@@ -205,7 +205,7 @@ to flat ids is what moves its keys, and the package scripts with them (`taskKey(
 ### Required checks
 
 `requiredChecks(aggregate)` is the branch-protection required-status-check list. With the `ci` aggregate (the repo
-contains it, see below) it is `["ci / Required checks", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
+contains it, see below) it is `["ci / Required checks", DCO_CHECK]`. Without it, it is `DCO_CHECK`, then every `{ required: true }` task's check
 context, ordered by `CI_ORDER`, then `config.extraRequiredChecks` (codecov gates, …), de-duplicated. Most tasks are
 single always-run jobs now, so their context
 names that job directly (`"typecheck / Run tsc --noEmit"`) — the `… /

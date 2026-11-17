@@ -11,6 +11,7 @@ vi.mock("node:child_process", () => ({
 
 import { createAstromech } from "./astromech.js";
 import { aggregateChecks } from "./generators/aggregate-checks/index.js";
+import { DCO_CHECK } from "./generators/required-checks/index.js";
 
 const PKG = JSON.stringify({ name: "@scope/x" });
 
@@ -569,7 +570,7 @@ describe("createAstromech().reusableTemplates", () => {
 
 describe("createAstromech().requiredChecks", () => {
 	it("is `ci / Required checks` and `DCO` with the aggregate", () => {
-		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci / Required checks", "DCO"]);
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci / Required checks", DCO_CHECK]);
 	});
 
 	it("without the aggregate, derives contexts from required tasks + extraRequiredChecks after `DCO`", () => {
@@ -585,7 +586,7 @@ describe("createAstromech().requiredChecks", () => {
 			},
 		}).requiredChecks(false);
 		expect(checks).toEqual([
-			"DCO",
+			DCO_CHECK,
 			"lint:code / Run eslint, actionlint and prettier",
 			"test:unit / Conclusion",
 			"codecov/patch",
@@ -593,7 +594,7 @@ describe("createAstromech().requiredChecks", () => {
 	});
 
 	it("returns just `DCO` with no config and no aggregate", () => {
-		expect(createAstromech({ cwd: "/repo" }).requiredChecks(false)).toEqual(["DCO"]);
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(false)).toEqual([DCO_CHECK]);
 	});
 });
 
@@ -643,7 +644,7 @@ describe("createAstromech() with the statuses a coverage provider reports", () =
 			config: { extraRequiredChecks: ["cov/patch/docs"] },
 			statusContexts,
 		});
-		expect(astromech.requiredChecks(false)).toEqual(["DCO", "cov/patch/docs", "cov/patch"]);
+		expect(astromech.requiredChecks(false)).toEqual([DCO_CHECK, "cov/patch/docs", "cov/patch"]);
 		const caller = astromech.aggregateCaller();
 		expect(caller).toContain(`expected: '[]'`);
 		expect(caller).toContain(`statuses: '["cov/patch/docs","cov/patch"]'`);

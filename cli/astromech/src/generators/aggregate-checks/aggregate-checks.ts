@@ -1,4 +1,5 @@
 import type { TasksConfig } from "../../config/schema/index.js";
+import { DCO_CHECK } from "../required-checks/index.js";
 import { type StatusContext, taskCheckContexts } from "../task-check-contexts/index.js";
 import type { AggregateChecks } from "./aggregate-checks.type.js";
 
@@ -24,7 +25,7 @@ export function aggregateChecks(config: TasksConfig, statusContexts?: readonly S
 	const expected = new Set<string>();
 	const statuses = new Set<string>();
 	for (const context of taskCheckContexts(config, statusContexts)) {
-		if (context === "DCO") continue;
+		if (context === DCO_CHECK || context === "DCO") continue;
 		if (isStatus(context)) statuses.add(context);
 		else expected.add(context.split(" / ")[0]!);
 	}

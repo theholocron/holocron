@@ -71,15 +71,13 @@ describe("generateConfigFiles", () => {
 		});
 	});
 
-	it("writes the hooks, the labeler and the DCO config when they apply", async () => {
+	it("writes the hooks and the labeler when they apply, and no DCO config (#1044)", async () => {
 		const loaded = loadedFrom({ name: "x", tasks: ["bookkeeping"], repo: { protection: "strict" } });
 		const entries = generateConfigFiles({ loaded, repoRoot: root, logger: getLogger() });
 		const file = (path: string) => entries.find((e) => e.kind === "file" && e.path === path);
 		expect(file(".github/labeler.yml")).toBeDefined();
 		expect(file(".github/dependabot.yml")).toBeDefined();
-		expect(file(".github/dco.yml")).toMatchObject({
-			content: expect.stringContaining("astromech/src/templates/configs/dco/create-config.ts"),
-		});
+		expect(file(".github/dco.yml")).toBeUndefined();
 		expect(file(".husky/pre-push")).toMatchObject({ note: expect.stringContaining("holocron run ci") });
 		expect(file(".husky/pre-commit")).toBeDefined();
 	});
@@ -97,7 +95,7 @@ describe("generateConfigFiles", () => {
 		expect(await dependabot()).toMatchObject({ content: expect.stringContaining("- /ci/actions/*") });
 	});
 
-	it("leaves the Dependabot and DCO files out for protection: none", async () => {
+	it("leaves the Dependabot file out for protection: none", async () => {
 		const entries = generateConfigFiles({
 			loaded: loadedFrom({ name: "x", repo: { protection: "none" } }),
 			repoRoot: root,

@@ -3,7 +3,6 @@ import { join } from "node:path";
 
 import {
 	createCommitMsg,
-	createDco,
 	createDependabot,
 	createDevmoji,
 	createEditorconfig,
@@ -58,7 +57,7 @@ function coverageConfigEntries(input: RepoFilesInput, taskNames: string[]): Repo
 }
 
 /**
- * The config files that are not workflows: the labeler, Dependabot and DCO configs, the lint and editor configs, the
+ * The config files that are not workflows: the labeler and Dependabot configs, the lint and editor configs, the
  * git hooks and the coverage provider's config (`codecov.yml`), in the order `setup` writes them.
  */
 export function generateConfigFiles(input: RepoFilesInput): RepoFileEntry[] {
@@ -76,8 +75,7 @@ export function generateConfigFiles(input: RepoFilesInput): RepoFileEntry[] {
 					ignore: ownCatalogPackages(input.repoRoot),
 					sources: hostsReusables(input.repoRoot) ? HOSTED_SOURCES : [],
 				})
-			),
-			file(".github/dco.yml", createDco())
+			)
 		);
 	}
 
