@@ -1,3 +1,13 @@
+## [5.0.0-alpha.466](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.465...v5.0.0-alpha.466) (2026-11-17)
+
+### Features
+
+* **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
+
+### Bug Fixes
+
+* **cli:** 🐛 show the provider's message when a setup step fails ([#2315](https://github.com/theholocron/holocron/issues/2315)) ([b05cdbb](https://github.com/theholocron/holocron/commit/b05cdbbb6b124935a016c99847b9ded62535dd7e)), closes [#2314](https://github.com/theholocron/holocron/issues/2314)
+
 ## [5.0.0-alpha.465](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.464...v5.0.0-alpha.465) (2026-11-17)
 
 ### Features
