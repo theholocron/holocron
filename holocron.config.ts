@@ -135,7 +135,6 @@ export default defineConfig({
 		{ name: "lint:commits", required: true, sentinel: true },
 		{ name: "test:unit", required: true, with: { affected: true, uploads: codecovUploads } },
 		"scan:code",
-		"annotate",
 		"mark-stale",
 		"greet",
 		"update-deps",

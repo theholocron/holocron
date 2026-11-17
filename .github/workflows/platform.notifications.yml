@@ -31,7 +31,6 @@ on: # yamllint disable-line rule:truthy
       - lint:code
       - lint:data
       - lint:unused
-      - annotate
       - scan:secrets
       - scan:code
       - build

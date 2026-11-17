@@ -389,6 +389,11 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"validate:docs",
 		]);
 
+		// And: the `annotate` task is gone from this repo's list. The gates annotate the diff themselves (problem matchers
+		// in `lint:code`), so the second ReviewDog run is not needed.
+		const expectedTasks = (expected as unknown as { tasks: unknown[] }).tasks;
+		expectedTasks.splice(0, expectedTasks.length, ...expectedTasks.filter((task) => task !== "annotate"));
+
 		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
 		// "claude", and the option is kept beside it.
 		expect((expected as { agentOptions?: unknown }).agentOptions).toBeUndefined();
