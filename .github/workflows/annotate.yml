@@ -13,6 +13,9 @@ name: Review
 # are the CI gates covering push + PR events. Gitleaks and YAML are
 # intentionally duplicated: those gate merges; ReviewDog surfaces exact
 # line annotations in the PR diff.
+#
+# Inclusive language (alex) is not run here: Sentinel owns that check (`lint:language / Run alex`), reading the org's own
+# allow-list (`process-sentinel-and-actions-roles`, #2263, #831).
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
@@ -62,7 +65,6 @@ jobs:
           has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \
             echo "docker=true" >> "$GITHUB_OUTPUT" || echo "docker=false" >> "$GITHUB_OUTPUT"
           has_ext '.env*' && echo "dotenv=true" >> "$GITHUB_OUTPUT" || echo "dotenv=false" >> "$GITHUB_OUTPUT"
-          has_ext '*.md' && echo "markdown=true" >> "$GITHUB_OUTPUT" || echo "markdown=false" >> "$GITHUB_OUTPUT"
 
       #
       # Always applicable
@@ -147,14 +149,3 @@ jobs:
         uses: dotenv-linter/action-dotenv-linter@afde61cfda2ecffe7bea35837b6f20b956c88689 # v3.0.0
         with:
           reporter: github-code-suggestions
-
-      #
-      # Documentation
-      #
-
-      - name: Alex (inclusive language)
-        if: steps.detect.outputs.markdown == 'true'
-        uses: reviewdog/action-alex@f39fd335ddb3b76d5595d5c452078903cf872e96 # v1
-        with:
-          reporter: github-pr-annotations
-          tool_name: "Review / alex"
