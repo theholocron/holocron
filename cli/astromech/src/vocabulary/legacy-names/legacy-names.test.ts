@@ -21,7 +21,7 @@ describe("LEGACY_NAMES", () => {
 	});
 
 	it("only names ids the registry has, except the workflow-only ones", () => {
-		const workflowOnly = new Set(["check-dispatched", "label", "greet", "mark-stale", "update-deps", "annotate"]);
+		const workflowOnly = new Set(["label", "greet", "mark-stale", "update-deps", "annotate"]);
 		const ids = Object.values(LEGACY_NAMES).flatMap((targets) => targets.map((t) => t.id));
 		expect(ids.filter((id) => TASKS[id] === undefined && !workflowOnly.has(id))).toEqual([]);
 	});
@@ -52,7 +52,6 @@ describe("legacyName", () => {
 	it("is the old name a flat id replaced, and undefined for one that never had one", () => {
 		expect(legacyName("test:unit")).toBe("verification.unitTests");
 		expect(legacyName("release")).toBe("delivery.publish");
-		expect(legacyName("check-dispatched")).toBe("platform.dispatchedCheck");
 		expect(legacyName("nope")).toBeUndefined();
 	});
 

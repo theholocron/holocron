@@ -20,9 +20,7 @@ const SOURCES = import.meta.glob<string>("../workflows/**/*.yml", { eager: true,
 /**
  * The workflows by task id: the source `workflows/<suite>/<leaf>.yml` is `<suite>:<leaf>` and `workflows/<id>.yml` is
  * `<id>` (see {@link idFromSource}); the file a reusable is generated as is `workflowFile(id)`. Most are
- * `workflow_call` implementations; `tag`, `sync-dispatch` and `check-dispatched` also start on an event or by hand.
- * `check-dispatched` is not run via any repo's own thin caller: Sentinel dispatches it directly via the Actions API
- * (holocron#769, holocron#794), so it has no `WORKFLOW_TEMPLATES` entry either.
+ * `workflow_call` implementations; `tag` and `sync-dispatch` also start on an event or by hand.
  */
 export const WORKFLOWS: Record<string, string> = Object.fromEntries(
 	Object.entries(SOURCES).map(([path, text]) => [idFromSource(path), text])

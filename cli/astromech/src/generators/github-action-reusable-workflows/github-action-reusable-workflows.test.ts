@@ -97,7 +97,7 @@ describe("hostedReusableWorkflows()", () => {
 	});
 
 	it("leaves out the ones that are also started by an event or by hand, which run where they live", () => {
-		const left = ["tag", "sync-dispatch", "check-dispatched"];
+		const left = ["tag", "sync-dispatch"];
 		expect(left.filter((name) => !(name in REUSABLE_WORKFLOWS))).toEqual([]);
 		expect(left.filter((name) => hosted.has(name))).toEqual([]);
 	});
@@ -145,11 +145,10 @@ describe("reusableTemplates()", () => {
 		expect(starter).not.toContain("validate-docs");
 	});
 
-	it("keeps the old names in the starter workflows and the file Sentinel dispatches by name (the legacy-name gate)", () => {
+	it("keeps the old names in the starter workflows (the legacy-name gate)", () => {
 		expect(batch.get("workflow-templates/stale.yml")).toMatch(/^name: Stale$/m);
 		expect(batch.get("workflow-templates/verification.unitTests.yml")).toMatch(/^ {2}test:\n {4}name: Test$/m);
 		expect(batch.has("workflow-templates/test:unit.yml")).toBe(false);
-		expect(batch.has(".github/workflows/platform.dispatchedCheck.yml")).toBe(true);
 	});
 
 	it("ships the holocron composite action that CI jobs use to run a task", () => {
@@ -705,96 +704,6 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		for (const wf of Object.values(REUSABLE_WORKFLOWS)) {
 			expect(wf).not.toContain("super-linter/super-linter");
 		}
-	});
-});
-
-describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatch target (holocron#794)", () => {
-	const wf = REUSABLE_WORKFLOWS["check-dispatched"]!;
-
-	it("is workflow_dispatch-triggered, not workflow_call — Sentinel invokes it directly via the Actions API", () => {
-		expect(wf).toContain("workflow_dispatch:");
-		expect(wf).not.toContain("workflow_call:");
-	});
-
-	it("has no WORKFLOW_TEMPLATES/thin-caller entry — no repo invokes this itself", () => {
-		expect(WORKFLOW_TEMPLATES).not.toHaveProperty("platform.dispatchedCheck");
-	});
-
-	it("checks out the target repo/ref from the dispatch inputs, not the calling repo", () => {
-		expect(wf).toMatch(/repository: \$\{\{ inputs\.repo \}\}/);
-		expect(wf).toMatch(/ref: \$\{\{ inputs\.ref \}\}/);
-	});
-
-	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
-		expect(wf).toContain("actions/create-github-app-token@");
-		expect(wf).toContain(
-			"app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}"
-		);
-		expect(wf).toContain(
-			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
-		);
-		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
-	});
-
-	it("scopes the minted token to the parsed target repo, not the default current-repo scope (holocron#794 live test finding)", () => {
-		expect(wf).toContain('echo "owner=${INPUT_REPO%%/*}" >> "$GITHUB_OUTPUT"');
-		expect(wf).toContain('echo "name=${INPUT_REPO##*/}" >> "$GITHUB_OUTPUT"');
-		expect(wf).toContain("owner: ${{ steps.target.outputs.owner }}");
-		expect(wf).toContain("repositories: ${{ steps.target.outputs.name }}");
-	});
-
-	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toContain("task: ${{ inputs.task }}");
-	});
-
-	it("patches the check run back on the target repo regardless of task outcome", () => {
-		expect(wf).toContain("continue-on-error: true");
-		expect(wf).toMatch(/if: always\(\)/);
-		expect(wf).toContain('gh api --method PATCH "/repos/${REPO}/check-runs/${CHECK_RUN_ID}" --input -');
-		expect(wf).toContain("CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}");
-	});
-
-	it("points details_url at the specific job's log view, not just the run summary", () => {
-		expect(wf).toContain("id: job-info");
-		expect(wf).toContain(".jobs[0].id");
-		expect(wf).toContain(
-			"RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ steps.job-info.outputs.job_id }}"
-		);
-	});
-
-	it("ships the task's real captured output to Axiom, tagged with this check run's own id", () => {
-		expect(wf).toContain("id: axiom");
-		expect(wf).toContain("LOG_FILE: ${{ steps.run-task.outputs.log-file }}");
-		expect(wf).toContain("https://api.axiom.co/v1/datasets/${SENTINEL_AXIOM_DATASET}/ingest");
-		expect(wf).toContain("check_run_id: $check_run_id");
-		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}");
-		// ingest failing must never break the actual check-run report
-		expect(wf).toMatch(/curl[\s\S]*\|\|\s*echo "::warning::Axiom ingest failed/);
-	});
-
-	it("builds an Axiom permalink filtered to this run's own logs, not a bare dataset view", () => {
-		expect(wf).toContain("query-url=https://app.axiom.co/${HOLOCRON_AXIOM_ORG}/query?initForm=${encoded}");
-		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
-	});
-
-	it("reads the Axiom org and dataset from org variables, with no literal fallback", () => {
-		expect(wf).toContain("HOLOCRON_AXIOM_ORG: ${{ vars.HOLOCRON_AXIOM_ORG || vars.AXIOM_ORG }}");
-		expect(wf).toContain("SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}");
-		expect(wf).not.toContain("the-holocron-7bbe");
-		expect(wf).not.toMatch(/SENTINEL_AXIOM_DATASET: holocron-sentinel/);
-	});
-
-	it("tags the shipped event with a level field so Axiom's severity highlighting applies", () => {
-		expect(wf).toContain('level=$([ "$CONCLUSION" = "success" ] && echo "info" || echo "error")');
-		expect(wf).toContain("level: $level");
-	});
-
-	it("embeds the real log excerpt and the Axiom link directly in output.text, not just a bare link", () => {
-		expect(wf).toContain("QUERY_URL: ${{ steps.axiom.outputs.query-url }}");
-		expect(wf).toContain("[Full logs on Axiom](%s)");
-		expect(wf).toContain('tail -c 3000 "$LOG_FILE"');
-		expect(wf).toContain("output: {title: $title, summary: $summary, text: $text}");
 	});
 });
 

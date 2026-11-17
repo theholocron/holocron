@@ -52,7 +52,6 @@ export const LEGACY_NAMES: Record<string, LegacyTarget[]> = {
 	"platform.repoSync": [{ id: "sync-repo" }],
 	"platform.syncTemplates": [{ id: "sync-templates" }],
 	"platform.notifyCheck": [{ id: "check-notify" }],
-	"platform.dispatchedCheck": [{ id: "check-dispatched" }],
 	"knowledge.wiki": [{ id: "publish-wiki" }],
 	"knowledge.docs": [{ id: "deploy-docs" }],
 	"knowledge.components": [{ id: "deploy-components" }],

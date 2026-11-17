@@ -28,8 +28,8 @@
  *    `secrets` entirely — still synced to `deployment` if configured.
  *    Needed for a vault holding a mix of deploy-only secrets and one
  *    CI-consumed, org-wide secret (holocron#781's Sentinel case: 4
- *    Vercel-only keys + one org-scoped Axiom ingest token
- *    `theholocron/.github`'s dispatched-check workflow also reads).
+ *    Vercel-only keys + one org-scoped Axiom ingest token that
+ *    a workflow in `theholocron/.github` also read).
  *  - With no `--github-secret`, the routes come from `repo.secrets.sync`: every
  *    entry for this environment gives `secrets` its own keys and scope, one
  *    step per scope, so one environment can fill organization and repository

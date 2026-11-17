@@ -578,8 +578,8 @@ have their own) and one shared org slug. Sentinel's Environment holds the Axiom 
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `sync secrets` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
-and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above; the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG`); with either unset the check run has no details link.
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values (no workflow reads them since the dispatched check was removed, #2263), and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `sync secrets` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above); with either unset the check run has no details link.
 
 ```sh
 holocron sync secrets --env Sentinel --cwd apps/sentinel --project-id sentinel --target production \
@@ -627,12 +627,12 @@ if you give it an account that can.
   PR-controlled deploy target entirely, rather than narrow what's
   synced there.
 - **`--github-secret`/`--github-secret-scope`.** Of the 5 runtime keys,
-  only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
-  (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
-  needs **org** scope, since any repo with Bucket 2 dispatch enabled
-  needs `.github`'s workflow to see it, not only this one. Omitting
-  these two flags would push every key as a pointless repo secret on
-  `holocron` instead (nothing there reads them).
+  only `SENTINEL_AXIOM_INGEST_TOKEN` ever had a GH Actions consumer
+  (`theholocron/.github`'s dispatched-check workflow, which Sentinel no
+  longer dispatches, #2263), at **org** scope. Nothing reads it now: the
+  sync still writes it, and dropping the org secret and these two flags is
+  a separate step. Omitting the flags would push every key as a pointless
+  repo secret on `holocron` instead (nothing there reads them).
 - **`--token github=$(gh auth token)`.** None of holocron's own
   provisioned GitHub tokens (`docs/tokens.md`, repo root) carry the
   org-level Secrets permission this write needs — `github.admin` is

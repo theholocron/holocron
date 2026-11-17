@@ -26,8 +26,8 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = rehomeAll(WORKFLOWS);
 
 /**
  * The reusables a repo that hosts them keeps in its own `.github/workflows`, by id: the ones that only run when
- * another workflow calls them. A reusable that is also started by an event or by hand (`tag`, `sync-dispatch`,
- * `check-dispatched`) would become a live workflow of the hosting repo, and runs where it is dispatched, so
+ * another workflow calls them. A reusable that is also started by an event or by hand (`tag`, `sync-dispatch`)
+ * would become a live workflow of the hosting repo, and runs where it is dispatched, so
  * it stays out (spec `tech-workflows-in-holocron`, #1216).
  */
 export function hostedReusableWorkflows(): Map<string, string> {
@@ -40,8 +40,8 @@ export function hostedReusableWorkflows(): Map<string, string> {
 }
 
 /**
- * The path in `theholocron/.github` of the reusable workflow `id`: the old file name, because the frozen copies and the
- * workflows still dispatched by name (`platform.dispatchedCheck.yml`, which Sentinel calls) live there under it.
+ * The path in `theholocron/.github` of the reusable workflow `id`: the old file name, because the frozen copies live
+ * there under it.
  */
 function remotePath(id: string): string {
 	return `.github/workflows/${legacyFile(workflowFile(id))}`;

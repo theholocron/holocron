@@ -219,7 +219,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		expect(names).toContain(".github/workflows/mark-stale.yml");
 		expect(names).toContain(".github/workflows/test-unit.yml");
 		expect(names.filter((name) => /workflows\/[\w-]+\.[\w-]+\.yml$/.test(name))).toEqual([]);
-		for (const unlisted of ["tag", "sync-dispatch", "check-dispatched"]) {
+		for (const unlisted of ["tag", "sync-dispatch"]) {
 			expect(names).not.toContain(`.github/workflows/${unlisted}.yml`);
 		}
 		const stale = reusables.find((entry) => entry.kind === "file" && entry.path.endsWith("/mark-stale.yml"));

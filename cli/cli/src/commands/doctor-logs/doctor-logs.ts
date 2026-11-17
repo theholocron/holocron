@@ -93,7 +93,7 @@ async function checkLogs(logs: Logs, targets: LogsDatasetTarget[]): Promise<Chec
 					"logs:org",
 					"organization",
 					"skip",
-					`${PREFIX}_AXIOM_ORG (or AXIOM_ORG) is not set here; Sentinel's log links and check-dispatched need it`
+					`${PREFIX}_AXIOM_ORG (or AXIOM_ORG) is not set here; Sentinel's log links need it`
 				)
 	);
 	return rows;

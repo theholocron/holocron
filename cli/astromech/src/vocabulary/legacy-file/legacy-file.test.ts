@@ -9,7 +9,6 @@ describe("legacyFile", () => {
 		expect(legacyFile("test-unit.yml")).toBe("verification.unitTests.yml");
 		expect(legacyFile("typecheck.yml")).toBe("verification.typeSafety.yml");
 		expect(legacyFile("mark-stale.yml")).toBe("stale.yml");
-		expect(legacyFile("check-dispatched.yml")).toBe("platform.dispatchedCheck.yml");
 	});
 
 	it("gives the formatting workflow's name to its first successor, which carries it", () => {
