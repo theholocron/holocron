@@ -1,10 +1,13 @@
 ---
+id: SPEC-0093
 status: draft
 issue: theholocron/holocron#2302
 blocked-by: []
 related:
   - theholocron/holocron#1599
   - theholocron/holocron#1160
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572129640720506960
 ---
 
 # `monitoring`: tags, a dashboard, a status page and heartbeats
