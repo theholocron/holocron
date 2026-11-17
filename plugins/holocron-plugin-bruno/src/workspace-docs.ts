@@ -4,6 +4,31 @@ export const DOCS_FILE = ".bruno/README.md";
 /** The text compared and hashed: line endings as `\n`, no trailing whitespace, so `|-` and a final newline agree. */
 export const normalizeDocs = (text: string): string => text.replace(/\r\n?/g, "\n").trimEnd();
 
+/**
+ * The text two docs are compared and hashed by: {@link normalizeDocs}, and a markdown table written without its padding
+ * (each cell trimmed, a separator row as `---`), so a formatter that pads the table's columns, as Prettier does, and
+ * Bruno's editor, which does not, give the same text. Only the comparison uses it; a write keeps the text it is given.
+ */
+export function comparableDocs(text: string): string {
+	return normalizeDocs(text)
+		.split("\n")
+		.map((line) => {
+			const row = line.trim();
+			if (!row.startsWith("|") || !row.endsWith("|")) return line;
+			const cells = row
+				.slice(1, -1)
+				.split("|")
+				.map((cell) => cell.trim())
+				.map((cell) =>
+					/^:?-+:?$/.test(cell)
+						? `${cell.startsWith(":") ? ":" : ""}---${cell.endsWith(":") ? ":" : ""}`
+						: cell
+				);
+			return `| ${cells.join(" | ")} |`;
+		})
+		.join("\n");
+}
+
 /** Where the `docs:` entry sits in a workspace file: its first line and the last line it covers. */
 function docsRange(lines: string[]): { start: number; end: number } | undefined {
 	const start = lines.findIndex((line) => /^docs:(\s|$)/.test(line));

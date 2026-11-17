@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { BrunoTooling } from "./capabilities/tooling.js";
-import { normalizeDocs, readDocs } from "./workspace-docs.js";
+import { comparableDocs, readDocs } from "./workspace-docs.js";
 
 /** This repository's root: its real request files and its committed `.bruno/` workspace are compared, not copies. */
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -35,7 +35,8 @@ describe("the committed .bruno/ workspace", () => {
 		const readme = readFileSync(join(REPO_ROOT, ".bruno/README.md"), "utf8");
 		const docs = readDocs(readFileSync(join(REPO_ROOT, ".bruno/workspace.yml"), "utf8"));
 		expect(docs).toBeTruthy();
-		expect(normalizeDocs(readme)).toBe(docs);
+		// The same text up to a table's padding, which a formatter may add to the README and Bruno does not.
+		expect(comparableDocs(readme)).toBe(comparableDocs(docs as string));
 		expect(readme.endsWith("\n")).toBe(true);
 		const baseline = JSON.parse(readFileSync(join(REPO_ROOT, ".bruno/.sync.json"), "utf8")) as {
 			pairs: { kind: string; source: string; workspace: string; sourceHash: string; workspaceHash: string }[];
@@ -44,7 +45,7 @@ describe("the committed .bruno/ workspace", () => {
 		expect(pair).toMatchObject({ source: ".bruno/README.md", workspace: "workspace.yml" });
 		expect(pair?.sourceHash).toBe(
 			createHash("sha256")
-				.update(docs as string)
+				.update(comparableDocs(docs as string))
 				.digest("hex")
 		);
 		expect(pair?.workspaceHash).toBe(pair?.sourceHash);

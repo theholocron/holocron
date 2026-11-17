@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
+import { comparableDocs, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 
 const FILE = [
 	"opencollection: 1.0.0",
@@ -19,6 +19,23 @@ const FILE = [
 describe("normalizeDocs", () => {
 	it("ignores line endings and trailing whitespace", () => {
 		expect(normalizeDocs("a\r\nb\r\n\r\n")).toBe("a\nb");
+	});
+});
+
+describe("comparableDocs", () => {
+	it("gives a padded table and an unpadded one the same text", () => {
+		const padded = "| Name  | Kind |\n| ----- | :--: |\n| a     | b    |";
+		const raw = "| Name | Kind |\n| - | :-: |\n| a | b |";
+		expect(comparableDocs(padded)).toBe(comparableDocs(raw));
+		expect(comparableDocs(raw)).toBe("| Name | Kind |\n| --- | :---: |\n| a | b |");
+	});
+
+	it("keeps the alignment colons, so another alignment is another text", () => {
+		expect(comparableDocs("| a |\n| :-- |")).not.toBe(comparableDocs("| a |\n| --: |"));
+	});
+
+	it("leaves every other line as it is, apart from the normalizing", () => {
+		expect(comparableDocs("# Title\r\n\r\n  | not a table\r\n\r\n")).toBe("# Title\n\n  | not a table");
 	});
 });
 

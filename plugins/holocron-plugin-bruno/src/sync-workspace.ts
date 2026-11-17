@@ -8,7 +8,7 @@ import { stringifyEnvironment } from "@usebruno/filestore";
 import { type Baseline, BASELINE_FILE, type BaselinePair, readBaseline, serializeBaseline } from "./baseline.js";
 import { collectionFiles } from "./collection-files.js";
 import { formatJson } from "./format-json.js";
-import { DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
+import { comparableDocs, DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 import { canonicalJson, environmentToSource, hashOf, keepOriginal, workspaceToSource } from "./workspace-to-source.js";
 
 /** The folder at the repo root that holds the workspace Bruno opens. */
@@ -500,9 +500,10 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 			sourcePresent: readmeDocs !== undefined,
 			workspacePresent: workspaceDocs !== undefined,
 			prior: knownDocs,
-			sourceHash: readmeDocs === undefined ? "" : hashOf(readmeDocs),
-			workspaceHash: workspaceDocs === undefined ? "" : hashOf(workspaceDocs),
-			agree: () => readmeDocs === workspaceDocs,
+			// Compared and hashed without a markdown table's padding, which a formatter adds and Bruno does not.
+			sourceHash: readmeDocs === undefined ? "" : hashOf(comparableDocs(readmeDocs)),
+			workspaceHash: workspaceDocs === undefined ? "" : hashOf(comparableDocs(workspaceDocs)),
+			agree: () => comparableDocs(readmeDocs ?? "") === comparableDocs(workspaceDocs ?? ""),
 			prefer,
 		});
 		if (direction === "conflict") {
@@ -522,8 +523,8 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 				kind: "docs",
 				source: DOCS_FILE,
 				workspace: "workspace.yml",
-				sourceHash: hashOf(finalDocs),
-				workspaceHash: hashOf(finalDocs),
+				sourceHash: hashOf(comparableDocs(finalDocs)),
+				workspaceHash: hashOf(comparableDocs(finalDocs)),
 			});
 		}
 	}

@@ -76,6 +76,29 @@ describe("the docs pair: .bruno/README.md and the `docs` of workspace.yml", () =
 		expect(read(README)).toBe("# Hello\r\n\r\n");
 	});
 
+	it("leaves both alone when a formatter only padded the README's table, as Prettier does and Bruno does not", async () => {
+		const raw = "| A | B |\n| - | - |\n| one | two |\n";
+		write(README, raw);
+		await run();
+		const before = read(YML);
+		const padded = "| A   | B   |\n| --- | --- |\n| one | two |\n";
+		write(README, padded);
+		const result = await run();
+		expect(states(result.files)).toMatchObject({ [README]: "unchanged", [YML]: "unchanged" });
+		expect(read(YML)).toBe(before);
+		expect(read(README)).toBe(padded);
+		expect((await run()).files.every((file) => file.state === "unchanged")).toBe(true);
+	});
+
+	it("still sees a changed cell in a table as a change", async () => {
+		write(README, "| A | B |\n| - | - |\n| one | two |\n");
+		await run();
+		write(README, "| A   | B     |\n| --- | ----- |\n| one | three |\n");
+		const result = await run();
+		expect(states(result.files)[YML]).toBe("changed");
+		expect(read(YML)).toContain("three");
+	});
+
 	it("writes a changed README into the workspace file and keeps the rest of it byte for byte", async () => {
 		write(README, "# One\n");
 		await run();
