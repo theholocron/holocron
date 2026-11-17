@@ -1898,6 +1898,43 @@ export interface MonitoringStatusPageState {
 	extraRules: string[];
 }
 
+/** A unit of time a heartbeat's period and grace are given in, as the provider takes them. */
+export type MonitoringHeartbeatUnit = "seconds" | "minutes" | "hours" | "days";
+
+/**
+ * A heartbeat (a dead man's switch): a job calls a ping URL each time it succeeds, and the provider alerts when no
+ * ping arrives within `period` plus `grace`. A field left out is left alone on an existing heartbeat.
+ */
+export interface MonitoringHeartbeatInput {
+	/** Also the idempotency key: `ensureHeartbeat` finds-or-creates by this exact name. */
+	name: string;
+	/** How often the job is expected to ping. */
+	period: number;
+	/** The unit of `period`. */
+	periodUnit: MonitoringHeartbeatUnit;
+	/** How long past the period a ping may be late before the heartbeat alerts. */
+	grace: number;
+	/** The unit of `grace`. */
+	graceUnit: MonitoringHeartbeatUnit;
+	/** Labels that group checks, as on {@link MonitoringCheckInput.tags}. */
+	tags?: string[];
+	/** Route this heartbeat to specific alert channels, as on {@link MonitoringCheckInput.alertChannels}. */
+	alertChannels?: string[];
+}
+
+/** What {@link Monitoring.ensureHeartbeat} did. */
+export interface MonitoringHeartbeatResult {
+	/** The heartbeat as the provider holds it. */
+	heartbeat: MonitoringCheck;
+	/** False when this call made it. */
+	alreadyExists: boolean;
+	/**
+	 * The address the job calls on success. A credential: anyone holding it can fake a success, so it is handed to a
+	 * secret store and never printed, logged or written to the config. Absent when the provider did not return it.
+	 */
+	pingUrl?: string;
+}
+
 /** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
 export interface Monitoring extends ProviderIdentity {
 	/** Identifies this provider as the `monitoring` capability. */
@@ -1969,6 +2006,16 @@ export interface Monitoring extends ProviderIdentity {
 	ensureStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageResult>;
 	/** Read the status page `input.name` and compare it with the declaration. Read-only. Optional. */
 	inspectStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageState>;
+	// ── Heartbeats ──
+	/** Heartbeats this provider is configured to ensure exist; `holocron setup` ensures each. Empty or absent when none. */
+	readonly heartbeats?: readonly MonitoringHeartbeatInput[];
+	/**
+	 * Find-or-create-or-update a heartbeat by name, never deleting one. Returns the ping URL when the provider gives it.
+	 * Optional: a provider with no heartbeats omits it.
+	 */
+	ensureHeartbeat?(input: MonitoringHeartbeatInput): Promise<MonitoringHeartbeatResult>;
+	/** Every heartbeat the account holds now, in the shape `heartbeats` declares them and without the ping URL. Read-only. */
+	listHeartbeats?(): Promise<MonitoringHeartbeatInput[]>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@
  */
 
 import { readFile, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -51,6 +51,7 @@ import {
 } from "../../plugin/index.js";
 import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
+import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
@@ -793,6 +794,38 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		for (const step of await statusPagesStep(monitoring, loader, dryRun)) {
 			steps.push(step);
 			print(formatStep(step));
+		}
+
+		// Heartbeats: ensured by name; the ping URL of each one made is a credential, handed over through the private
+		// import file and never printed (a dry run makes nothing, so it writes no file).
+		const pings: HeartbeatPing[] = [];
+		for (const beat of monitoring.ensureHeartbeat ? (monitoring.heartbeats ?? []) : []) {
+			steps.push(
+				await runStep("monitoring", `ensureHeartbeat ${beat.name}`, dryRun, async () => {
+					const result = await monitoring.ensureHeartbeat!(beat);
+					if (!result.alreadyExists && result.pingUrl) pings.push({ name: beat.name, url: result.pingUrl });
+					return `${beat.name} ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+		if (pings.length > 0) {
+			const handed = await (input.handOffHeartbeats ?? handOffHeartbeats)({
+				pings,
+				base: dirname(input.loaded.filepath),
+				print: (line) => print(`    ${line}`),
+				interactive: process.stdin.isTTY === true,
+			});
+			steps.push({
+				capability: "monitoring",
+				step: "heartbeat ping URLs for import",
+				status: handed.status === "fail" ? "fail" : handed.status === "skip" ? "skip" : "ok",
+				message:
+					handed.status === "ok"
+						? `${handed.written.join(", ")} written for import, not printed`
+						: handed.reason,
+			});
+			print(formatStep(steps[steps.length - 1]!));
 		}
 	}
 

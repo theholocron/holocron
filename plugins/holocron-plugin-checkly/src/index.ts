@@ -10,6 +10,7 @@ import type {
 	Monitoring,
 	MonitoringCheckInput,
 	MonitoringDashboardInput,
+	MonitoringHeartbeatInput,
 	MonitoringStatusPageInput,
 } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
@@ -30,6 +31,8 @@ export interface ChecklyPluginOptions extends ResolveTokenInput {
 	dashboards?: MonitoringDashboardInput[];
 	/** Status pages `holocron setup` should ensure exist, with their components and rules. */
 	statusPages?: MonitoringStatusPageInput[];
+	/** Heartbeats `holocron setup` should ensure exist; the ping URL of each is handed to the private import file. */
+	heartbeats?: MonitoringHeartbeatInput[];
 	/** Override base URL for tests. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. */
@@ -68,6 +71,7 @@ export function monitoring(ctx: PluginContext): Monitoring {
 		checks: ctx.options.checks,
 		dashboards: ctx.options.dashboards,
 		statusPages: ctx.options.statusPages,
+		heartbeats: ctx.options.heartbeats,
 	});
 }
 
@@ -116,6 +120,9 @@ export {
 	createChecklyClient,
 	type Dashboard,
 	type DashboardInput,
+	type Heartbeat,
+	type HeartbeatInput,
+	type HeartbeatUnit,
 	type HttpMethod,
 	type ListChecksParams,
 } from "./rest.js";

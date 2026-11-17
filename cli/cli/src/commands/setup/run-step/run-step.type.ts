@@ -2,6 +2,7 @@ import type { readWorkspacePackages } from "@theholocron/astromech";
 
 import type { LoadedConfig } from "../../../config/index.js";
 import { PluginLoader, type RuntimeContext } from "../../../plugin/index.js";
+import type { HandOffHeartbeatsInput, HandOffHeartbeatsResult } from "../../heartbeat-handoff/index.js";
 
 export type SetupPrintLine = (line: string) => void;
 
@@ -42,4 +43,6 @@ export interface RunSetupInput {
 	 * stack detection uses. Tests inject one that throws to cover the fall-back to the root manifest.
 	 */
 	workspacePackages?: (repoRoot: string) => ReturnType<typeof readWorkspacePackages>;
+	/** Replaces the hand-off of heartbeat ping URLs to the private import file. Tests inject one; it never sees a terminal. */
+	handOffHeartbeats?: (input: HandOffHeartbeatsInput) => Promise<HandOffHeartbeatsResult>;
 }

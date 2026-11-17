@@ -2,6 +2,7 @@ import { alertChannels } from "./alert-channels/alert-channels.js";
 import { checkStatuses } from "./check-statuses/check-statuses.js";
 import { checks } from "./checks/checks.js";
 import { dashboards } from "./dashboards/dashboards.js";
+import { heartbeats } from "./heartbeats/heartbeats.js";
 import { statusPages } from "./status-pages/status-pages.js";
 import { type ChecklyClientOptions, createChecklyRestClient, DEFAULT_BASE } from "./utils.js";
 
@@ -29,6 +30,13 @@ export type {
 } from "./checks/checks.js";
 export type { Dashboard, DashboardInput, DashboardKey } from "./dashboards/dashboards.js";
 export type {
+	Heartbeat,
+	HeartbeatInput,
+	HeartbeatSettings,
+	HeartbeatUnit,
+	ListHeartbeatsParams,
+} from "./heartbeats/heartbeats.js";
+export type {
 	CustomDomainVerification,
 	StatusComponent,
 	StatusComponentConfiguration,
@@ -54,6 +62,7 @@ export function createChecklyClient(opts: ChecklyClientOptions) {
 		checks: checks(rest),
 		dashboards: dashboards(rest),
 		statusPages: statusPages(v3),
+		heartbeats: heartbeats(rest),
 	};
 }
 

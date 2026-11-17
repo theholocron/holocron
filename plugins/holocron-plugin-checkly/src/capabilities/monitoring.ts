@@ -21,6 +21,8 @@ import {
 	type MonitoringCheckInput,
 	type MonitoringDashboardInput,
 	type MonitoringDashboardState,
+	type MonitoringHeartbeatInput,
+	type MonitoringHeartbeatResult,
 	type MonitoringStatusPageInput,
 	type MonitoringStatusPageResult,
 	type MonitoringStatusPageState,
@@ -41,6 +43,7 @@ import { DISCORD_TEMPLATE } from "../rest.js";
 import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 import { ensureDashboard, inspectDashboard } from "./dashboards.js";
+import { ensureChecklyHeartbeat, fromChecklyHeartbeat } from "./heartbeats.js";
 import { ensureStatusPage, inspectStatusPage } from "./status-pages.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
@@ -140,6 +143,8 @@ export interface ChecklyMonitoringOptions {
 	dashboards?: MonitoringDashboardInput[];
 	/** Status pages `holocron setup` ensures exist (see `capabilities/status-pages.ts`). */
 	statusPages?: MonitoringStatusPageInput[];
+	/** Heartbeats `holocron setup` ensures exist. */
+	heartbeats?: MonitoringHeartbeatInput[];
 }
 
 /** The Checkly implementation of the `monitoring` capability: ensures the configured API checks and alert channels exist. */
@@ -152,6 +157,7 @@ export class ChecklyMonitoring implements Monitoring {
 	readonly checks: readonly MonitoringCheckInput[];
 	readonly dashboards: readonly MonitoringDashboardInput[];
 	readonly statusPages: readonly MonitoringStatusPageInput[];
+	readonly heartbeats: readonly MonitoringHeartbeatInput[];
 
 	constructor(
 		private readonly client: () => ChecklyClient,
@@ -160,6 +166,7 @@ export class ChecklyMonitoring implements Monitoring {
 		this.checks = opts.checks ?? [];
 		this.dashboards = opts.dashboards ?? [];
 		this.statusPages = opts.statusPages ?? [];
+		this.heartbeats = opts.heartbeats ?? [];
 	}
 
 	async whoami(): Promise<{ ok: boolean }> {
@@ -193,6 +200,20 @@ export class ChecklyMonitoring implements Monitoring {
 			found.push(...batch.filter((c) => c.checkType === "API").map(fromChecklyCheck));
 			if (batch.length < PAGE) return found;
 		}
+	}
+
+	/**
+	 * Find-or-create-or-update a heartbeat by exact name (never deleting one). The ping URL comes back on every call, not
+	 * only on create, and is a credential: the caller hands it to a secret store and never prints it. Alert channels
+	 * subscribe a heartbeat with the checks, since Checkly lists it among them.
+	 */
+	async ensureHeartbeat(input: MonitoringHeartbeatInput): Promise<MonitoringHeartbeatResult> {
+		return ensureChecklyHeartbeat(this.client(), input);
+	}
+
+	/** Every heartbeat on the account, in the shape `heartbeats` declares them; the ping URL is left out. */
+	async listHeartbeats(): Promise<MonitoringHeartbeatInput[]> {
+		return (await this.client().heartbeats.listAll()).map(fromChecklyHeartbeat);
 	}
 
 	/**
@@ -427,7 +448,9 @@ export class ChecklyMonitoring implements Monitoring {
 	 * it alerts through every channel, as one made by hand always has.
 	 */
 	private routedTo<T extends { name: string }>(name: string, checks: T[]): { routed: T[]; routedAway: T[] } {
-		const away = (c: T) => routedAwayFrom(this.checks, c.name, name);
+		// A heartbeat is a check to Checkly: it is subscribed with the rest and may route itself like a declared check.
+		const declared = [...this.checks, ...this.heartbeats];
+		const away = (c: T) => routedAwayFrom(declared, c.name, name);
 		return { routed: checks.filter((c) => !away(c)), routedAway: checks.filter(away) };
 	}
 

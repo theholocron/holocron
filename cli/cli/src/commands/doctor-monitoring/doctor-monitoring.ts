@@ -8,6 +8,9 @@
  * lacks fails, an extra tag on it does not. A provider that cannot list its checks, a missing
  * provider that failed to load, or a missing token is a skip with the reason, not a failure.
  *
+ * Heartbeats are one more row (`heartbeat-rows/`): each declared one must exist with the declared period and grace, and
+ * the account's others are an `info` row. Names only.
+ *
  * Out of scope: the alert channel and its subscriptions (the notification layout declares those, see
  * `doctor notifications`) and any check that a message really arrives.
  */
@@ -32,6 +35,7 @@ import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { dashboardRows } from "./dashboard-rows/index.js";
 import type { DoctorMonitoringReport, RunDoctorMonitoringInput } from "./doctor-monitoring.type.js";
+import { heartbeatRows } from "./heartbeat-rows/index.js";
 import { statusPageRows } from "./status-page-rows/index.js";
 
 const ID = "monitoring-checks";
@@ -47,6 +51,7 @@ export async function runDoctorMonitoring(input: RunDoctorMonitoringInput): Prom
 	const rows: CheckRow[] = [await checkRow(loader)];
 	if (loader.has("monitoring")) rows.push(...(await dashboardRows(loader.get("monitoring") as Monitoring)));
 	if (loader.has("monitoring")) rows.push(...(await statusPageRows(loader.get("monitoring") as Monitoring)));
+	rows.push(...(await heartbeatRowsOf(loader)));
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);
 	printCheckSummary(summary, print);
@@ -88,6 +93,11 @@ async function checkRow(loader: PluginLoader): Promise<CheckRow> {
 		if (noToken !== undefined) return skip(noToken);
 		return { id: ID, title: TITLE, status: "fail", detail: errorMessage(err), problems: [] };
 	}
+}
+
+/** The heartbeat rows, only when a monitoring provider is loaded and declares heartbeats. */
+async function heartbeatRowsOf(loader: PluginLoader): Promise<CheckRow[]> {
+	return loader.has("monitoring") ? heartbeatRows(loader.get("monitoring") as Monitoring) : [];
 }
 
 /** One assertion as a line: `status_code equals 405`, `header[x-a] contains b`. */

@@ -233,6 +233,26 @@ describe("doctor monitoring — the checks", () => {
 	});
 });
 
+describe("doctor monitoring — heartbeats", () => {
+	const beat = { name: "check-tokens", period: 1, periodUnit: "days", grace: 2, graceUnit: "hours" };
+
+	it("adds a heartbeat row after the checks row, and fails on a mismatch", async () => {
+		const { report, lines } = await run({
+			...provider([declared()], [declared()]),
+			heartbeats: [beat],
+			listHeartbeats: async () => [{ ...beat, period: 7 }],
+		});
+		expect(report.rows.map((r) => r.id)).toEqual(["monitoring-checks", "monitoring-heartbeats"]);
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("heartbeat check-tokens period: declared 1 days, found 7 days");
+	});
+
+	it("adds no row when no heartbeat is declared", async () => {
+		const { report } = await run(provider([declared()], [declared()]));
+		expect(report.rows.map((r) => r.id)).toEqual(["monitoring-checks"]);
+	});
+});
+
 describe("doctor monitoring — defaults", () => {
 	it("prints and logs without an injected printer, logger or loader", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
