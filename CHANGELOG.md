@@ -1,3 +1,17 @@
+## [5.0.0-alpha.462](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.461...v5.0.0-alpha.462) (2026-11-17)
+
+### Features
+
+* **cli:** ✨ sync the Bruno workspace docs with .bruno/README.md ([#2298](https://github.com/theholocron/holocron/issues/2298)) ([6d95a75](https://github.com/theholocron/holocron/commit/6d95a7532001fc56c52eef7a8c082bee9d4a05b8)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
+### Bug Fixes
+
+* **bruno:** 🐛 keep the workspace file's own settings when a collection is added ([#2296](https://github.com/theholocron/holocron/issues/2296)) ([8dc96ff](https://github.com/theholocron/holocron/commit/8dc96ff7805571856e47b609b772c2f14b385ab1)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
+### Chores
+
+* add in docs to bruno ([#2294](https://github.com/theholocron/holocron/issues/2294)) ([dc4f145](https://github.com/theholocron/holocron/commit/dc4f145daf2c2fb3c2cd5f02d09b689752557feb))
+
 ## [5.0.0-alpha.461](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.460...v5.0.0-alpha.461) (2026-11-17)
 
 ### Features
