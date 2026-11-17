@@ -56,6 +56,7 @@ import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
+import { handOffDashboardKey } from "./dashboard-key/index.js";
 import { deriveRepoStack } from "./derive-repo-stack/index.js";
 import {
 	deriveCapabilities,
@@ -751,6 +752,41 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
+		}
+
+		// Dashboards: private unless declared otherwise. A key the provider returns is handed over, never shown.
+		for (const dashboard of monitoring.dashboards ?? []) {
+			if (!monitoring.ensureDashboard) {
+				steps.push({
+					capability: "monitoring",
+					step: `ensureDashboard ${dashboard.name}`,
+					status: "skip",
+					message: "provider has no dashboards",
+				});
+				print(formatStep(steps[steps.length - 1]!));
+				continue;
+			}
+			let key: string | undefined;
+			steps.push(
+				await runStep("monitoring", `ensureDashboard ${dashboard.name}`, dryRun, async () => {
+					const result = await monitoring.ensureDashboard!(dashboard);
+					key = result.key;
+					const changed = result.updated?.length ? ` (updated ${result.updated.join(", ")})` : "";
+					return `${dashboard.name} ${result.created ? "created" : "exists"}${changed}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]!));
+			if (key !== undefined) {
+				// Not inside `runStep`: its spinner would draw over the wait for the 1Password import.
+				const step = `hand over dashboard key for ${dashboard.name}`;
+				try {
+					await handOffDashboardKey({ key, repoRoot: input.context.repoRoot, print });
+					steps.push({ capability: "monitoring", step, status: "ok" });
+				} catch (err) {
+					steps.push({ capability: "monitoring", step, status: "fail", message: errorMessage(err) });
+				}
+				print(formatStep(steps[steps.length - 1]!));
+			}
 		}
 	}
 

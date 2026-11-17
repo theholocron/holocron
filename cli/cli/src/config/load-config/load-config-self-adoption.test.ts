@@ -236,6 +236,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			// And (the `token` probe's zone): `.holocron/org.ts` fills the org's zone into every `cloudflare` entry.
 			tuple.options = { zone: "theholocron.dev" };
 		}
+		// And (#2302): the Checkly entry declares the dashboard that shows every check tagged for a component.
+		const checkly = expectedProviders.monitoring as { tuple: { options: Record<string, unknown> } };
+		checkly.tuple.options.dashboards = [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }];
 		const dns = expectedProviders.dns as { tuple: { options: Record<string, unknown> } };
 		expect(dns.tuple.options).toEqual({});
 		dns.tuple.options = { zone: "theholocron.dev" };
@@ -355,6 +358,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// And (#2183): the strays of the `dev` layer, which nothing syncs, are set by hand on purpose.
 		(doctorBefore as { manualSecrets?: string[] }).manualSecrets = [
 			"COMLINK_AXIOM_DATASET",
+			"HOLOCRON_CHECKLY_DASHBOARD_KEY", // And (#2302): the private dashboard's view key.
 			"HOLOCRON_ENVIRONMENT",
 			"HOLOCRON_LINEAR_TOKEN",
 			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",

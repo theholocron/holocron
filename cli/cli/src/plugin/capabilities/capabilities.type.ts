@@ -1768,6 +1768,37 @@ export interface MonitoringAlertChannelState {
 	deactivated: string[];
 }
 
+/** A dashboard over the checks that carry some tags, for {@link Monitoring.ensureDashboard}. */
+export interface MonitoringDashboardInput {
+	/** The title; also the idempotency key. */
+	name: string;
+	/** Text under the title. A dashboard that leaves it out keeps the one it has. */
+	description?: string;
+	/** Checks carrying any of these tags are shown. */
+	tags: string[];
+	/** Default true: a dashboard shows check URLs and timings, so only people holding its key read it. */
+	private?: boolean;
+	/** A hostname on the org's zone, if wanted. */
+	domain?: string;
+}
+
+/**
+ * A dashboard as the provider holds it, for `doctor monitoring`. The view key of a private dashboard is a credential
+ * and is never returned here.
+ */
+export interface MonitoringDashboardState {
+	/** Whether a dashboard with that name exists. */
+	exists: boolean;
+	/** Whether anyone with the link can read it. Absent when the dashboard does not exist. */
+	private?: boolean;
+	/** The tags it shows checks by. Absent when the dashboard does not exist. */
+	tags?: string[];
+	/** The custom hostname it is served on, when it has one. */
+	domain?: string;
+	/** Names of the other dashboards the account holds, for an `info` row. */
+	others: string[];
+}
+
 /** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
 export interface Monitoring extends ProviderIdentity {
 	/** Identifies this provider as the `monitoring` capability. */
@@ -1813,6 +1844,21 @@ export interface Monitoring extends ProviderIdentity {
 	 * the URL it posts to. Optional — a provider with no alert channels omits it.
 	 */
 	inspectAlertChannel?(name: string): Promise<MonitoringAlertChannelState>;
+
+	/**
+	 * Dashboards this provider is configured to ensure exist, from its own config like `checks`. `holocron setup` calls
+	 * `ensureDashboard` for each; absent or empty when none are configured.
+	 */
+	readonly dashboards?: readonly MonitoringDashboardInput[];
+	/**
+	 * Find-or-create-or-update a dashboard by `input.name`. Private unless `input.private` is false. Never deletes, and a
+	 * field the input leaves out is left alone on an existing dashboard. When the provider holds a view key for a private
+	 * dashboard it is returned once as `key`: a credential, never logged or printed. Optional: a provider with no
+	 * dashboards omits it.
+	 */
+	ensureDashboard?(input: MonitoringDashboardInput): Promise<EnsuredResource & { key?: string }>;
+	/** Read the dashboard named `name` and the names of the account's others. Read-only, and never returns its key. */
+	inspectDashboard?(name: string): Promise<MonitoringDashboardState>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

@@ -185,6 +185,8 @@ describe("the org area in this repo (#1820)", () => {
 							assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 						},
 					],
+					// And (#2302): the dashboard over the checks tagged for each component.
+					dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
 				},
 			},
 		});
