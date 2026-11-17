@@ -137,7 +137,10 @@ bare call lists the installed skills and asks.
 ### Execution contexts
 
 `COMMAND_CONTEXTS` keys are the full command names, so every key is renamed (the table above carries the context).
-`contexts.test.ts` fails on a command with no entry, which guards the rename.
+`contexts.test.ts` fails on a command with no entry, which guards the rename. It also guards the shape (#1125): every
+key starts with a verb from the test's `VERBS` list (plus the exceptions `doctor`, `probe` and `provider`), has at most a
+verb and an object (`run`, which takes a task and a job, is the one exception), and has no hyphenated verb. A new verb is
+a decision, so it goes in that list with a line here, in the change that adds the command.
 
 ### Interactive menu
 
