@@ -58,8 +58,10 @@ recommended set cannot, such as a floating promise or an `any` flowing into a ty
 information, since a package's `tsconfig.json` does not usually include them. Four rules are off because their findings
 were noise here: `require-await` (an `async` function with nothing to await is how a method satisfies a Promise-returning
 interface), `unbound-method`, `no-base-to-string` and `no-redundant-type-constituents`. A package whose `tsconfig.json`
-does not include its source files fails to parse until it does. Lint takes roughly two to three times as long as the
-plain preset.
+does not include its source files fails to parse until it does: the error reads `was not found by the project service`
+and names the file, and the fix is to add the file's folder to `include` in that package's `tsconfig.json`. (A file that
+is not source, such as a script or a generated file, goes in the config's `ignores` instead.) Lint takes roughly two to
+three times as long as the plain preset.
 
 `node()` pins `n/no-unsupported-features/node-builtins` and `es-builtins` to the org-wide Node floor (`>=22.0.0`)
 instead of reading `engines.node`, so a run with no `package.json` to read (Sentinel's in-memory check) does not fall
