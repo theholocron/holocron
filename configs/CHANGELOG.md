@@ -1,3 +1,9 @@
+## [8.9.0-alpha.20](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.19...configs-v8.9.0-alpha.20) (2026-11-17)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 say what the type-aware parse error means and how to clear it ([#2328](https://github.com/theholocron/holocron/issues/2328)) ([1a85964](https://github.com/theholocron/holocron/commit/1a85964f776590d4ad05e3ccda063389f70f7071))
+
 ## [8.9.0-alpha.19](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.18...configs-v8.9.0-alpha.19) (2026-11-17)
 
 ### Features
