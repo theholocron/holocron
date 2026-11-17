@@ -1,3 +1,9 @@
+## [5.0.0-alpha.468](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.467...v5.0.0-alpha.468) (2026-11-17)
+
+### Bug Fixes
+
+* **monitoring:** 🐛 declare a public dashboard and no custom domain for Checkly's free plan ([#2319](https://github.com/theholocron/holocron/issues/2319)) ([ae9a548](https://github.com/theholocron/holocron/commit/ae9a5484cf15ec0156026d48d5bca4b6ff298e2a)), closes [#2318](https://github.com/theholocron/holocron/issues/2318) [#2318](https://github.com/theholocron/holocron/issues/2318)
+
 ## [5.0.0-alpha.467](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.466...v5.0.0-alpha.467) (2026-11-17)
 
 ### Features
