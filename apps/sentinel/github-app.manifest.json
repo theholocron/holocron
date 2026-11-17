@@ -3,7 +3,6 @@
   "url": "https://github.com/theholocron/holocron/tree/main/apps/sentinel#readme",
   "public": false,
   "default_permissions": {
-    "actions": "write",
     "checks": "write",
     "contents": "write",
     "issues": "write",
