@@ -9,7 +9,9 @@ export const cleanupPreviewEntry: MenuEntry = {
 			key: "project",
 			flag: "--project",
 			type: "input",
-			message: "Cloudflare Pages project name (blank = the configured one):",
+			// `demandOption` in yargs: the command exits without it, so it is always asked.
+			required: true,
+			message: "Cloudflare Pages project name (e.g. theholocron-preview):",
 		},
 	],
 	skipOptions: ["project-id", "target", "files", "repo"],

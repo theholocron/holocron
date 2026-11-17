@@ -8,14 +8,18 @@ export const secretsListEntry: MenuEntry = {
 		{
 			key: "scope",
 			flag: "--scope",
-			type: "input",
-			message: "List one scope (repo, env=<name>, org=<name>):",
+			type: "select",
+			// `environment` is not offered: it needs `--env`, which is asked on its own and adds the environment to the
+			// default scopes without it.
+			choices: ["repo", "organization"],
+			default: "repo",
+			message: "List one scope:",
 		},
 		{
 			key: "env",
 			flag: "--env",
 			type: "input",
-			message: "Also list this environment:",
+			message: "Also list this environment (blank = none):",
 		},
 	],
 	skipOptions: ["json"],

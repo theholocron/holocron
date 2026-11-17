@@ -324,7 +324,8 @@ coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `m
     sees what `cli.ts` does), and fails when an option, apart from the
     global ones, is in neither the entry's `options` (or a mode's) nor its
     `skipOptions`, or when an entry names an option the command no longer
-    has. The entries built per task (`run <task>`) and per probe are checked
+    has; it also fails for a command yargs registers that
+    `COMMAND_CONTEXTS` does not know. The entries built per task (`run <task>`) and per probe are checked
     too (they share `RUN_SKIP_OPTIONS` / `PROBE_SKIP_OPTIONS`). A new
     `.option()` therefore needs a menu decision in its entry in the same PR:
     offer it, or skip it (the commands that prompt for their own answers

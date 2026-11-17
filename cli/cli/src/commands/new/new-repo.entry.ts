@@ -18,6 +18,8 @@ export const newRepoEntry: MenuEntry = {
 		"skills",
 		"is-template",
 		"verify",
+		// `new repo` declares its own `--org` (the organization to create in); the command asks for it on a terminal.
+		"org",
 	],
 	supportsDryRun: true,
 };
