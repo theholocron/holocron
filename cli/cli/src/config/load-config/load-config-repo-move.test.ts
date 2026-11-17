@@ -85,7 +85,6 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 				scope: "org=theholocron",
 				keys: [
 					"HOLOCRON_AXIOM_DATASET",
-					"HOLOCRON_AXIOM_ORG",
 					"HOLOCRON_CLOUDFLARE_ACCOUNT_ID",
 					"HOLOCRON_CLOUDFLARE_PAGES_PROJECT",
 					"HOLOCRON_POSTHOG_PROJECT_TOKEN",
@@ -93,7 +92,6 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 					"HOLOCRON_SENTRY_ORG",
 					"HOLOCRON_TURBO_TEAM",
 					"HOLOCRON_VERCEL_TEAM_ID",
-					"SENTINEL_AXIOM_DATASET",
 					"SENTINEL_GITHUB_APP_ID",
 				],
 			},

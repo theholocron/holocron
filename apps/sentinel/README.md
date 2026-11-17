@@ -576,25 +576,20 @@ have their own) and one shared org slug. Sentinel's Environment holds the Axiom 
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values (no workflow reads them since the dispatched check was removed, #2263), and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `sync secrets` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+source of truth. They used to be copied to organization Actions variables and an org secret for the dispatched check workflow; Sentinel no longer dispatches it (#2263), so the sync writes them to Vercel only. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above); with either unset the check run has no details link.
 
 ```sh
-holocron sync secrets --env Sentinel --cwd apps/sentinel --project-id sentinel --target production \
-  --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
-  --org theholocron --token github=$(gh auth token)
+holocron sync secrets --env prod --cwd apps/sentinel --project-id sentinel --target production
 ```
 
 **CI-triggered, too** (holocron#800) — the `sync-secrets` task
 (`.github/workflows/ci.sync-secrets.yml`, generated) runs the same invocation
 via `gh workflow run ci.sync-secrets.yml`
 (`workflow_dispatch` only, never automatic — matches "run once after
-registration, again only when a secret rotates" below). Uses a dedicated
-`HOLOCRON_SECRETS_TOKEN` repo secret in place of `gh auth token`, since CI
-has no equivalent of a human's already-authenticated session — see
-the token reference's "Organization secrets" section
-(`docs/src/content/docs/tokens.mdx`) for why a new, narrowly-scoped token rather than widening an existing
-one. The 1Password side would be a service account that can read the
+registration, again only when a secret rotates" below). It needs no GitHub
+token: the sync writes to Vercel only (it used to write one org secret too, with a
+`HOLOCRON_SECRETS_TOKEN`, #2263). The 1Password side would be a service account that can read the
 `prod` layer Environment, but the repo's `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN` is not one: it is the scheduled
 `doctor-tokens` account and reads the `ci` Environment only, so that a job nobody watches cannot read production
 secrets. Run this sync locally, as above, signed in to 1Password on your machine; the workflow reads `prod` only

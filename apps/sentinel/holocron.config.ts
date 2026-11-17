@@ -40,14 +40,10 @@
  * and the role-sync settings live there; `holocron sync secrets --env Sentinel`
  * fans them out. The Environment is made by hand — `op` cannot create one.
  *
- * `secrets`: GitHub — only ONE of the 5 runtime keys ever had a GH Actions
- * consumer (`SENTINEL_AXIOM_INGEST_TOKEN`, read at org scope by the dispatched
- * check workflow in `theholocron/.github`, which Sentinel no longer dispatches,
- * #2263; nothing reads it now) — every sync invocation must pass `--github-secret
- * SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron` to
- * scope it down to that one key; the other 4 are Vercel-only and would
- * otherwise get pushed as pointless repo secrets on `holocron` (nothing
- * in this repo's own CI reads them).
+ * `secrets`: GitHub — none of the runtime keys has a GH Actions consumer any more.
+ * One, `SENTINEL_AXIOM_INGEST_TOKEN`, was copied to an org secret for the dispatched
+ * check workflow in `theholocron/.github`, which Sentinel stopped dispatching
+ * (#2263), so `sync secrets` writes only to Vercel (`repo.secrets.deploy` below).
  *
  * `dns`: Cloudflare — receives the CNAME challenge `holocron setup`
  * gets back from `Deployment.ensureCustomDomain()` when it adds
