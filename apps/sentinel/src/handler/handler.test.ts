@@ -176,6 +176,7 @@ beforeEach(() => {
 	vi.mocked(postAutoFixLoopComment).mockResolvedValue({ posted: true });
 	fakeFlush.mockClear();
 	fakeErrorSink.captureException.mockReset();
+	fakeErrorSink.endSession.mockReset();
 	fakeErrorSink.flush.mockReset();
 	fakeErrorSink.flush.mockResolvedValue(undefined);
 });
@@ -2096,6 +2097,43 @@ describe("handler — error tracking (holocron#1045)", () => {
 		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
 	});
 
+	it("reports a pull request feed that returns a failure instead of throwing", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "pull_request.feed",
+				repo: "acme/demo",
+				installationId: 7,
+				action: "closed",
+				pullNumbers: [12],
+			},
+		} as never);
+		vi.mocked(runPrFeed).mockResolvedValue({ status: "fail", reason: "Missing Access" });
+		await handleWebhookRequest(req(), ENV);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledTimes(1);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(
+			expect.objectContaining({ message: "pr feed failed: Missing Access" })
+		);
+	});
+
+	it("ends the Sentry session before it closes the client", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintCommits).mockRejectedValue(new Error("down"));
+		await handleWebhookRequest(req(), ENV);
+		expect(fakeErrorSink.endSession).toHaveBeenCalledTimes(1);
+		expect(fakeErrorSink.endSession.mock.invocationCallOrder[0]).toBeLessThan(
+			fakeErrorSink.flush.mock.invocationCallOrder[0]!
+		);
+	});
+
+	it("flushes Sentry even when the logger's flush never settles", async () => {
+		fakeFlush.mockReturnValueOnce(new Promise(() => {}));
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintCommits).mockRejectedValue(new Error("down"));
+		void handleWebhookRequest(req(), ENV);
+		await vi.waitFor(() => expect(fakeErrorSink.flush).toHaveBeenCalledTimes(1));
+	});
+
 	it("a sink whose flush rejects never turns a successful response into a 500", async () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		fakeErrorSink.flush.mockRejectedValue(new Error("Sentry unreachable"));
@@ -2103,5 +2141,6 @@ describe("handler — error tracking (holocron#1045)", () => {
 		vi.mocked(lintCommits).mockRejectedValue(new Error("down"));
 		const res = await handleWebhookRequest(req(), ENV);
 		expect(res.status).toBe(200);
+		expect(fakeErrorSink.flush).toHaveBeenCalledTimes(1);
 	});
 });

@@ -39,13 +39,43 @@ describe("createErrorReporter", () => {
 	});
 
 	it("flushes the sink, and makes a new one for an error after the flush", async () => {
-		const sinks = [fakeSink(), fakeSink()];
+		const first = fakeSink();
+		const second = fakeSink();
+		const sinks = [first, second];
 		const makeSink = vi.fn(() => sinks.shift() as ErrorSink);
 		const reporter = createErrorReporter(makeSink);
+		const later = new Error("b");
 		reporter.capture(new Error("a"));
 		await reporter.flush();
-		reporter.capture(new Error("b"));
+		reporter.capture(later);
 		expect(makeSink).toHaveBeenCalledTimes(2);
+		expect(second.captureException).toHaveBeenCalledWith(later);
+		expect(first.captureException).not.toHaveBeenCalledWith(later);
+	});
+
+	it("ends the session before it flushes", async () => {
+		const sink = fakeSink();
+		const reporter = createErrorReporter(() => sink);
+		reporter.capture(new Error("a"));
+		await reporter.flush();
+		expect(sink.endSession).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(sink.endSession).mock.invocationCallOrder[0]).toBeLessThan(
+			vi.mocked(sink.flush).mock.invocationCallOrder[0]!
+		);
+	});
+
+	it("closes the sink only when the last of several overlapping deliveries finishes", async () => {
+		const sink = fakeSink();
+		const reporter = createErrorReporter(() => sink);
+		reporter.begin();
+		reporter.begin();
+		reporter.capture(new Error("a"));
+		await reporter.flush();
+		expect(sink.flush).not.toHaveBeenCalled();
+		reporter.capture(new Error("b"));
+		await reporter.flush();
+		expect(sink.flush).toHaveBeenCalledTimes(1);
+		expect(sink.captureException).toHaveBeenCalledTimes(2);
 	});
 
 	it("calls the sink's flush", async () => {

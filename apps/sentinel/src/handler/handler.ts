@@ -361,6 +361,7 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		return new Response("Method Not Allowed", { status: 405 });
 	}
 
+	errors.begin();
 	try {
 		return await handle(request, env);
 	} catch (err) {
@@ -381,13 +382,19 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		// `await` delays the function's real return until the flush settles.
 		// A flush failure is itself just an observability gap, never a reason
 		// to turn an otherwise-successful response into a 500.
-		try {
-			await logger.flush();
-		} catch (err) {
-			console.error("handleWebhookRequest: logger.flush() failed", err);
-		}
-		// Same reason for the error sink: Sentry queues an event and sends it later. `flush()` never rejects.
-		await errors.flush();
+		// Same reason for the error sink: Sentry queues an event and sends it later. The two flushes run side by side,
+		// so an Axiom flush that stalls cannot keep a Sentry event from going out (Sentry's own close is time-boxed),
+		// and `errors.flush()` never rejects.
+		await Promise.all([
+			(async () => {
+				try {
+					await logger.flush();
+				} catch (err) {
+					console.error("handleWebhookRequest: logger.flush() failed", err);
+				}
+			})(),
+			errors.flush(),
+		]);
 	}
 }
 
@@ -463,13 +470,16 @@ const FEED_ONLY_EVENTS: ReadonlySet<SentinelEvent["type"]> = new Set([
  */
 async function runFeed(event: SentinelEvent, repo: string, trigger: PrFeedTrigger, env: Env): Promise<RunPrFeedResult> {
 	let prFeed: RunPrFeedResult;
+	let thrown: unknown;
 	try {
 		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
 		prFeed = await runPrFeed({ client, env, repo, trigger });
 	} catch (err) {
-		errors.capture(err);
+		thrown = err;
 		prFeed = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
 	}
+	// A feed that fails is usually a returned `fail` result, not a throw, so both reach the error tracker.
+	if (prFeed.status === "fail") errors.capture(thrown ?? new Error(`pr feed failed: ${prFeed.reason}`));
 	if (prFeed.status === "fail") logger.error({ repo, type: event.type, prFeed }, SENTINEL_PR_FEED_LOG_MSG);
 	else logger.info({ repo, type: event.type, prFeed }, SENTINEL_PR_FEED_LOG_MSG);
 	return prFeed;

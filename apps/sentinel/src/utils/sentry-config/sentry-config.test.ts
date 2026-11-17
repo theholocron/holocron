@@ -1,4 +1,5 @@
 import { NoopErrorSink } from "@theholocron/observability/core";
+import { SentrySink } from "@theholocron/observability/errors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { init } = vi.hoisted(() => ({ init: vi.fn() }));
@@ -33,6 +34,7 @@ describe("resolveErrorSink", () => {
 
 	it("returns an initialised Sentry sink when the DSN is set", () => {
 		const sink = resolveErrorSink(env({ SENTINEL_SENTRY_DSN: "https://key@o0.ingest.sentry.io/1" }));
+		expect(sink).toBeInstanceOf(SentrySink);
 		expect(sink).not.toBeInstanceOf(NoopErrorSink);
 		expect(init).toHaveBeenCalledWith({
 			dsn: "https://key@o0.ingest.sentry.io/1",
