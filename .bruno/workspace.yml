@@ -20,10 +20,10 @@ docs: |-
 
   ## What is here
 
-  | Collection         | App      | Sends                                                                                  | Environments                                    |
-  | ------------------ | -------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-  | **Sentinel webhook** | Sentinel | GitHub webhook deliveries to `POST /api/webhook`, signed with the App's webhook secret | `Sentinel (local)`, `Sentinel (dev)`, `Sentinel (prod)` |
-  | **Comlink relay**    | Comlink  | Sentry `event_alert` deliveries to the relay Worker, signed with the integration's secret | `Comlink (local)`                               |
+  | Collection           | App      | Sends                                                                                     | Environments                                            |
+  | -------------------- | -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+  | **Sentinel webhook** | Sentinel | GitHub webhook deliveries to `POST /api/webhook`, signed with the App's webhook secret    | `Sentinel (local)`, `Sentinel (dev)`, `Sentinel (prod)` |
+  | **Comlink relay**    | Comlink  | Sentry `event_alert` deliveries to the relay Worker, signed with the integration's secret | `Comlink (local)`                                       |
 
   Both collections run from harmless to acting. Only the last folder of each does real work:
 
@@ -40,7 +40,7 @@ docs: |-
 
   ## Without a Discord channel
 
-  The `Comlink Discord webhook` mock server (in `mocks/`) stands in for Discord on `http://localhost:4000`: `POST /discord/accepts` answers 204, `POST /discord/refuses` answers 500. Start it, run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`, and send `Signed, posts to Discord`. The mock's request log shows the embed, and nothing reaches a channel.
+  The **Comlink** mock server (`mocks/comlink.yml`, listed under Mock Servers in Bruno) stands in for Discord on `http://localhost:4000`: `POST /discord/accepts` answers 204, `POST /discord/refuses` answers 500. Start it, run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`, and send `Signed, posts to Discord`. The mock's request log shows the embed, and nothing reaches a channel. The mock is a plain file in `mocks/`, not generated from the request files, so the sync never touches it.
 
   ## How the files stay in sync
 

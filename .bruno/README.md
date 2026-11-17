@@ -26,7 +26,7 @@ A pre-request script signs each body as it is sent (`X-Hub-Signature-256` for Se
 
 ## Without a Discord channel
 
-The `Comlink Discord webhook` mock server (in `mocks/`) stands in for Discord on `http://localhost:4000`: `POST /discord/accepts` answers 204, `POST /discord/refuses` answers 500. Start it, run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`, and send `Signed, posts to Discord`. The mock's request log shows the embed, and nothing reaches a channel.
+The **Comlink** mock server (`mocks/comlink.yml`, listed under Mock Servers in Bruno) stands in for Discord on `http://localhost:4000`: `POST /discord/accepts` answers 204, `POST /discord/refuses` answers 500. Start it, run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`, and send `Signed, posts to Discord`. The mock's request log shows the embed, and nothing reaches a channel. The mock is a plain file in `mocks/`, not generated from the request files, so the sync never touches it.
 
 ## How the files stay in sync
 
