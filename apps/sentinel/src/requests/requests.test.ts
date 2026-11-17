@@ -26,9 +26,9 @@ interface Environment {
 }
 
 const read = <T>(file: string) =>
-	JSON.parse(readFileSync(fileURLToPath(new URL(`../../requests/${file}`, import.meta.url)), "utf8")) as T;
-const collection = read<Collection>("collection.json");
-const environment = read<Environment>("environment.json");
+	JSON.parse(readFileSync(fileURLToPath(new URL(`../../api/${file}`, import.meta.url)), "utf8")) as T;
+const collection = read<Collection>("webhook.collection.json");
+const environment = read<Environment>("webhook.environment.json");
 
 const SECRET = "whsec_requests_test";
 const VARIABLES: Record<string, string> = {
@@ -129,15 +129,19 @@ describe("the environment files", () => {
 		name: string;
 		values: Array<{ key: string; value: string; type: string }>;
 	}
-	const dir = fileURLToPath(new URL("../../requests/", import.meta.url));
+	const dir = fileURLToPath(new URL("../../api/", import.meta.url));
 	const files = readdirSync(dir)
-		.filter((file) => /^environment(\.[a-z]+)?\.json$/.test(file))
+		.filter((file) => /^webhook\.environment(\.[a-z]+)?\.json$/.test(file))
 		.sort();
 	const load = (file: string) => JSON.parse(readFileSync(`${dir}${file}`, "utf8")) as EnvironmentFile;
 	const byName = Object.fromEntries(files.map((file) => [load(file).name, load(file)]));
 
 	it("are a local, a dev and a prod environment", () => {
-		expect(files).toEqual(["environment.dev.json", "environment.json", "environment.prod.json"]);
+		expect(files).toEqual([
+			"webhook.environment.dev.json",
+			"webhook.environment.json",
+			"webhook.environment.prod.json",
+		]);
 		expect(Object.keys(byName).sort()).toEqual(["Sentinel (dev)", "Sentinel (local)", "Sentinel (prod)"]);
 	});
 
@@ -160,8 +164,13 @@ describe("the environment files", () => {
 		expect(base("Sentinel (prod)")).toBe("https://sentinel.theholocron.dev");
 	});
 
+	it("are kept out of the deploy by .vercelignore, as they sit beside the function", () => {
+		const ignore = readFileSync(fileURLToPath(new URL("../../.vercelignore", import.meta.url)), "utf8");
+		expect(ignore.split("\n")).toContain("api/*.json");
+	});
+
 	it("are the ones the root config exports for Sentinel", () => {
 		const config = readFileSync(fileURLToPath(new URL("../../../../holocron.config.ts", import.meta.url)), "utf8");
-		for (const file of files) expect(config).toContain(`apps/sentinel/requests/${file}`);
+		for (const file of files) expect(config).toContain(`apps/sentinel/api/${file}`);
 	});
 });

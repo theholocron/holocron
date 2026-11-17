@@ -24,7 +24,7 @@ describe("canonicalJson and hashOf", () => {
 });
 
 describe("workspaceToSource: the committed Sentinel collection, written and read back", () => {
-	const original = readRepoJson("apps/sentinel/requests/collection.json");
+	const original = readRepoJson("apps/sentinel/api/webhook.collection.json");
 	const files = async (collection: unknown) => requestsOf((await collectionFiles(collection, [])).files);
 
 	it("keeps the structure, the order, the requests, their bodies and their headers", async () => {
@@ -84,7 +84,7 @@ describe("workspaceToSource: the committed Sentinel collection, written and read
 	});
 
 	it("is the same for the Comlink collection", async () => {
-		const comlink = readRepoJson("apps/comlink/requests/collection.json");
+		const comlink = readRepoJson("apps/comlink/api/worker.collection.json");
 		const once = workspaceToSource(await files(comlink));
 		expect(canonicalJson(workspaceToSource(await files(once)))).toBe(canonicalJson(once));
 		expect((once.item as Loose[]).length).toBe(comlink.item.length);

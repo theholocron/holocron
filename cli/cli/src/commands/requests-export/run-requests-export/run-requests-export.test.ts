@@ -12,7 +12,7 @@ import { fakeLoader, loadedWith } from "../../migrate/migrate.testing.js";
 import { runRequestsExport } from "./run-requests-export.js";
 import type { RunRequestsExportInput } from "./run-requests-export.type.js";
 
-const OPTIONS = { collectionFiles: ["requests/collection.json"], envFiles: ["requests/environment.json"] };
+const OPTIONS = { collectionFiles: ["api/webhook.collection.json"], envFiles: ["api/webhook.environment.json"] };
 
 const tool = (name: string, exp?: Tooling["export"]): Tooling =>
 	({
@@ -51,38 +51,36 @@ describe("runRequestsExport", () => {
 		const exp = vi.fn(async (_input: ToolingExportInput) => result({ files: ["a.yml", "b.yml"] }));
 		const { report, text } = await run([tool("bruno", exp)]);
 		expect(exp).toHaveBeenCalledWith({
-			collectionFiles: ["requests/collection.json"],
-			envFiles: ["requests/environment.json"],
-			outDir: "/repo/requests/.export/bruno",
+			collectionFiles: ["api/webhook.collection.json"],
+			envFiles: ["api/webhook.environment.json"],
+			outDir: "/repo/api/.export/bruno",
 			repoRoot: "/repo",
 		});
 		expect(report.status).toBe("ok");
-		expect(text).toContain("wrote 2 file(s) to requests/.export/bruno (a.yml, b.yml)");
+		expect(text).toContain("wrote 2 file(s) to api/.export/bruno (a.yml, b.yml)");
 		expect(text).toContain("1 ok, 0 fail, 0 skipped");
 	});
 
 	it("prints the full path of every file it wrote, and says 'would write' on a dry run", async () => {
 		const exp = async () => result({ files: ["a.yml", "b.yml"] });
 		const written = await run([tool("bruno", exp)]);
-		expect(written.text).toContain(
-			"Wrote:\n  /repo/requests/.export/bruno/a.yml\n  /repo/requests/.export/bruno/b.yml"
-		);
+		expect(written.text).toContain("Wrote:\n  /repo/api/.export/bruno/a.yml\n  /repo/api/.export/bruno/b.yml");
 		const dry = await run([tool("bruno", exp)], undefined, { context: { repoRoot: "/repo", dryRun: true } });
-		expect(dry.text).toContain("Would write:\n  /repo/requests/.export/bruno/a.yml");
+		expect(dry.text).toContain("Would write:\n  /repo/api/.export/bruno/a.yml");
 	});
 
 	it("lists a conversion issue under the row without failing the run", async () => {
 		const exp = vi.fn(async () =>
-			result({ issues: [{ file: "requests/collection.json", message: "lost a script" }] })
+			result({ issues: [{ file: "api/webhook.collection.json", message: "lost a script" }] })
 		);
 		const { report, text } = await run([tool("bruno", exp)]);
 		expect(report.status).toBe("ok");
-		expect(text).toContain("issue in requests/collection.json: lost a script");
+		expect(text).toContain("issue in api/webhook.collection.json: lost a script");
 	});
 
 	it("lists no files when none were written", async () => {
 		const { text } = await run([tool("bruno", async () => result({ files: [] }))]);
-		expect(text).toContain("wrote 0 file(s) to requests/.export/bruno\n");
+		expect(text).toContain("wrote 0 file(s) to api/.export/bruno\n");
 	});
 
 	it("puts every provider under --out", async () => {
@@ -95,8 +93,8 @@ describe("runRequestsExport", () => {
 
 	describe("collections in different folders", () => {
 		const TWO_APPS = {
-			collectionFiles: ["apps/a/requests/collection.json", "apps/b/requests/collection.json"],
-			envFiles: ["apps/a/requests/environment.json", "apps/b/requests/environment.json"],
+			collectionFiles: ["apps/a/api/webhook.collection.json", "apps/b/api/webhook.collection.json"],
+			envFiles: ["apps/a/api/webhook.environment.json", "apps/b/api/webhook.environment.json"],
 		};
 
 		it("exports each folder beside its own files, never into the first folder", async () => {
@@ -104,18 +102,18 @@ describe("runRequestsExport", () => {
 			const { report, text } = await run([tool("bruno", exp)], [["bruno", TWO_APPS]]);
 			expect(exp).toHaveBeenCalledTimes(2);
 			expect(exp.mock.calls.map(([call]) => [call.collectionFiles, call.outDir])).toEqual([
-				[["apps/a/requests/collection.json"], "/repo/apps/a/requests/.export/bruno"],
-				[["apps/b/requests/collection.json"], "/repo/apps/b/requests/.export/bruno"],
+				[["apps/a/api/webhook.collection.json"], "/repo/apps/a/api/.export/bruno"],
+				[["apps/b/api/webhook.collection.json"], "/repo/apps/b/api/.export/bruno"],
 			]);
 			// Each folder's collection carries the environments beside it, not the other app's.
 			expect(exp.mock.calls.map(([call]) => call.envFiles)).toEqual([
-				["apps/a/requests/environment.json"],
-				["apps/b/requests/environment.json"],
+				["apps/a/api/webhook.environment.json"],
+				["apps/b/api/webhook.environment.json"],
 			]);
 			expect(report.status).toBe("ok");
-			expect(text).toContain("bruno: apps/a/requests");
-			expect(text).toContain("bruno: apps/b/requests");
-			expect(text).toContain("/repo/apps/b/requests/.export/bruno/collection.yml");
+			expect(text).toContain("bruno: apps/a/api");
+			expect(text).toContain("bruno: apps/b/api");
+			expect(text).toContain("/repo/apps/b/api/.export/bruno/collection.yml");
 		});
 
 		it("keeps collection files of one folder in a single call", async () => {
@@ -132,15 +130,15 @@ describe("runRequestsExport", () => {
 			const many = {
 				collectionFiles: TWO_APPS.collectionFiles,
 				envFiles: [
-					"apps/a/requests/environment.json",
-					"apps/a/requests/environment.dev.json",
-					"apps/b/requests/environment.json",
+					"apps/a/api/webhook.environment.json",
+					"apps/a/api/webhook.environment.dev.json",
+					"apps/b/api/webhook.environment.json",
 				],
 			};
 			await run([tool("bruno", exp)], [["bruno", many]]);
 			expect(exp.mock.calls.map(([call]) => call.envFiles)).toEqual([
-				["apps/a/requests/environment.json", "apps/a/requests/environment.dev.json"],
-				["apps/b/requests/environment.json"],
+				["apps/a/api/webhook.environment.json", "apps/a/api/webhook.environment.dev.json"],
+				["apps/b/api/webhook.environment.json"],
 			]);
 		});
 
@@ -172,7 +170,7 @@ describe("runRequestsExport", () => {
 				.mockResolvedValueOnce(result());
 			const { report, text } = await run([tool("bruno", exp)], [["bruno", TWO_APPS]]);
 			expect(report.status).toBe("fail");
-			expect(text).toContain("bruno: apps/a/requests");
+			expect(text).toContain("bruno: apps/a/api");
 			expect(text).toContain("boom");
 			expect(text).toContain("1 ok, 1 fail");
 		});
@@ -247,7 +245,7 @@ describe("runRequestsExport", () => {
 
 	it("exports a collection with no environment file", async () => {
 		const exp = vi.fn(async (_input: ToolingExportInput) => result());
-		await run([tool("bruno", exp)], [["bruno", { collectionFiles: ["requests/collection.json"] }]]);
+		await run([tool("bruno", exp)], [["bruno", { collectionFiles: ["api/webhook.collection.json"] }]]);
 		expect(exp.mock.calls[0]![0].envFiles).toEqual([]);
 	});
 
@@ -268,7 +266,7 @@ describe("runRequestsExport", () => {
 
 	it("fails for a folder that would write over the source", async () => {
 		const exp = vi.fn(async (_input: ToolingExportInput) => result());
-		const { report, text } = await run([tool("requests", exp)], undefined, { out: "requests/.." });
+		const { report, text } = await run([tool("api", exp)], undefined, { out: "api/.." });
 		expect(report.status).toBe("fail");
 		expect(text).toContain("never writes there");
 		expect(exp).not.toHaveBeenCalled();

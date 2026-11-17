@@ -272,14 +272,14 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 					options: {
 						workspaceName: "The Holocron",
 						collectionFiles: [
-							"apps/sentinel/requests/collection.json",
-							"apps/comlink/requests/collection.json",
+							"apps/sentinel/api/webhook.collection.json",
+							"apps/comlink/api/worker.collection.json",
 						],
 						envFiles: [
-							"apps/sentinel/requests/environment.json",
-							"apps/sentinel/requests/environment.dev.json",
-							"apps/sentinel/requests/environment.prod.json",
-							"apps/comlink/requests/environment.json",
+							"apps/sentinel/api/webhook.environment.json",
+							"apps/sentinel/api/webhook.environment.dev.json",
+							"apps/sentinel/api/webhook.environment.prod.json",
+							"apps/comlink/api/worker.environment.json",
 						],
 					},
 				},

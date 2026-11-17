@@ -19,8 +19,8 @@ pnpm add -D @theholocron/holocron-plugin-bruno
 providers: {
   tooling: [
     ["bruno", {
-      collectionFiles: ["requests/collection.json"],
-      envFiles: ["requests/environment.json"],
+      collectionFiles: ["api/webhook.collection.json"],
+      envFiles: ["api/webhook.environment.json"],
     }],
   ],
 },

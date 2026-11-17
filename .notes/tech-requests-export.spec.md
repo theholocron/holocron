@@ -14,7 +14,7 @@ discussion:
 ## Problem
 
 The Sentinel and Comlink request collections (#2172) are one JSON source per app, `apps/<app>/requests/collection.json`
-and `environment.json`. A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
+and `environment.json` (moved beside the API in #2276, for example `apps/sentinel/api/webhook.collection.json`). A tool that does not read that format cannot open them: Bruno reads OpenCollection YAML, and
 the `postman` tool's git-native format is collection schema 3.0 YAML. The JSON should stay the one source, with each tool's format
 generated from it, so no tool's file is edited by hand and none drifts.
 
@@ -30,7 +30,7 @@ generated from it, so no tool's file is edited by hand and none drifts.
    It is a `workspace` command. It takes each `tooling` provider's `collectionFiles` and `envFiles` options as the list
    of source files (the same two option names every tooling provider uses for the repo's request files), calls `export`
    on every provider that has it (or only `--to`), and writes to `<out>/<provider>`; `<out>` defaults to `.export`
-   beside the collection files (`requests/.export/<provider>/`), which `.gitignore` leaves out; collection files in
+   beside the collection files (`api/.export/<provider>/` since #2276), which `.gitignore` leaves out; collection files in
    different folders are exported separately, each beside its own folder, and `--out` puts them all in one. It refuses a folder
    that is, or contains, the folder of a source file ("never writes inside the source folder"; a folder below it, the
    default, is allowed). It asks first unless `--dry-run` or `--yes`, and refuses without a terminal. A conversion issue

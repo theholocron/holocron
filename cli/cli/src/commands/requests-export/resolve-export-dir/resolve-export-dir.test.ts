@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { resolveExportDir } from "./resolve-export-dir.js";
 
-const base = { repoRoot: "/repo", provider: "bruno", files: ["requests/collection.json", "requests/environment.json"] };
+const base = {
+	repoRoot: "/repo",
+	provider: "bruno",
+	files: ["api/webhook.collection.json", "api/webhook.environment.json"],
+};
 
 describe("resolveExportDir", () => {
 	it("defaults to .export/<provider> beside the first collection file", () => {
-		expect(resolveExportDir(base)).toEqual({ ok: true, dir: "/repo/requests/.export/bruno" });
+		expect(resolveExportDir(base)).toEqual({ ok: true, dir: "/repo/api/.export/bruno" });
 	});
 
 	it("puts a provider folder under --out, relative to the repo root or absolute", () => {
@@ -18,7 +22,7 @@ describe("resolveExportDir", () => {
 	});
 
 	it("refuses a folder that is the source folder", () => {
-		const result = resolveExportDir({ ...base, out: "requests/..", provider: "requests" });
+		const result = resolveExportDir({ ...base, out: "api/..", provider: "api" });
 		expect(result.ok).toBe(false);
 		expect((result as { message: string }).message).toContain("never writes there");
 	});
@@ -26,9 +30,9 @@ describe("resolveExportDir", () => {
 	it("refuses a folder that holds the source folder", () => {
 		const result = resolveExportDir({
 			...base,
-			files: ["requests/collection.json"],
+			files: ["api/webhook.collection.json"],
 			out: ".",
-			provider: "requests",
+			provider: "api",
 		});
 		expect(result.ok).toBe(false);
 	});

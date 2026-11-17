@@ -183,18 +183,21 @@ export default defineConfig({
 		// elsewhere sets HOLOCRON_IDEAS_DIR, which wins.
 		ideas: ["obsidian", { vault: "The Holocron" }],
 		// Tooling: the apps' request files, so `holocron export requests --to bruno` runs from the root. It writes to the
-		// git-ignored `apps/sentinel/requests/.export/bruno/`; `holocron sync requests` keeps the committed `.bruno/`
+		// git-ignored `apps/sentinel/api/.export/bruno/`; `holocron sync requests` keeps the committed `.bruno/`
 		// workspace equal to them; pushing to Postman is each app's `sync tooling --cwd`.
 		tooling: [
 			"bruno",
 			{
 				workspaceName: "The Holocron",
-				collectionFiles: ["apps/sentinel/requests/collection.json", "apps/comlink/requests/collection.json"],
+				collectionFiles: [
+					"apps/sentinel/api/webhook.collection.json",
+					"apps/comlink/api/worker.collection.json",
+				],
 				envFiles: [
-					"apps/sentinel/requests/environment.json",
-					"apps/sentinel/requests/environment.dev.json",
-					"apps/sentinel/requests/environment.prod.json",
-					"apps/comlink/requests/environment.json",
+					"apps/sentinel/api/webhook.environment.json",
+					"apps/sentinel/api/webhook.environment.dev.json",
+					"apps/sentinel/api/webhook.environment.prod.json",
+					"apps/comlink/api/worker.environment.json",
 				],
 			},
 		],

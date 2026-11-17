@@ -26,6 +26,7 @@ sit next to the API path they exercise, and Bruno should open and save them in t
    reaches it through the optional `Tooling.workspace(input)` and knows no tool's name or path.
 2. **The Postman-format JSON moves next to the API it exercises**, named for it: `<endpoint>.collection.json` and
    `<endpoint>.environment[.<name>].json`.
+   - The folder keeps the name `api` (not `requests`).
    - Sentinel: `apps/sentinel/api/webhook.collection.json`, `webhook.environment.json`, `webhook.environment.dev.json`,
      `webhook.environment.prod.json`, beside `webhook.mjs`.
    - `apps/sentinel/.vercelignore` lists `api/*.json`, so the files are not uploaded with the function. `vercel.json`
@@ -74,14 +75,22 @@ workspaceHash }] }`). The request file's hash is the hash of what the workspace 
 
 ## Parts (one PR each)
 
-1. The `.bruno/` workspace and `sync requests` one way (JSON to Bruno), with `--check`.
-2. Bruno to JSON, the baseline file and conflict detection (built).
-3. The file moves (`apps/sentinel/api`, Comlink) with `.vercelignore`, and the removal of the YAML output.
+1. The `.bruno/` workspace and `sync requests` one way (JSON to Bruno), with `--check`. Delivered.
+2. Bruno to JSON, the baseline file and conflict detection. Built (#2286).
+3. The file moves (`apps/sentinel/api`, Comlink) with `.vercelignore`, and the removal of the YAML output. Delivered:
+   the move and `.vercelignore` in one commit, the removal of the OpenCollection YAML output (and its
+   `@opencollection/converters` and `js-yaml` dependencies) in a second, separate commit that can be dropped. The
+   folder name stays `api`. The default export folder follows the files (`api/.export/`, git-ignored by
+   `**/api/.export/`), and an export's output name leaves a `.collection` part out (`webhook.collection.json` is
+   `webhook.bruno.json`). The workspace pairs each collection with the environments in its own folder, so Sentinel
+   (`api/webhook.*`) and Comlink (`api/worker.*`) still get only their own.
 
 ## Open questions
 
-- **Comlink's place.** It has no `api/` folder: its one entry is `src/worker.ts`. Beside it (`src/worker.collection.json`)
-  keeps the files next to the code; a new `apps/comlink/api/` would hold nothing else.
+- **Comlink's place (settled, open to change).** It has no `api/` code: its one entry is `src/worker.ts`. Chosen:
+  `apps/comlink/api/worker.collection.json` and `worker.environment.json`, in a folder that holds only those files,
+  to keep the same name for the same idea in both apps. The alternative is beside the code
+  (`src/worker.collection.json`), at the cost of JSON among source files.
 - **Collections outside the workspace folder.** Part 1 puts the collections under `.bruno/collections/`, the layout
   Bruno documents. Whether a workspace can point at a folder outside `.bruno/` is not verified.
 - **Round-trip fidelity (checked in part 2).** `@usebruno/converters` has `brunoToPostman`, and `@usebruno/filestore`

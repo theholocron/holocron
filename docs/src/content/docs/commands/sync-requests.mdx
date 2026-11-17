@@ -7,7 +7,7 @@ description: Keep each tooling provider's own workspace and the repo's request f
 holocron sync requests [--to <provider>] [--check] [--prefer source|workspace] [--dry-run] [--yes]
 ```
 
-The repo's request files (`collection.json` and `environment*.json`, in the v2.1 collection format) are what the repo's tests and docs read. A `tooling` provider that keeps a workspace of its own turns them into that tool's own files, committed in the repo, so the tool opens and saves them in place instead of importing a copy. `sync requests` keeps the two in step, **both ways**: a change to a request file reaches the workspace, and an edit saved in the tool reaches the request file. For Bruno the workspace is `.bruno/` at the repo root, opened with Open Workspace; see the [Bruno plugin](/holocron/plugins/bruno/).
+The repo's request files (`<endpoint>.collection.json` and `<endpoint>.environment*.json`, beside the API path they exercise, in the v2.1 collection format) are what the repo's tests and docs read. A `tooling` provider that keeps a workspace of its own turns them into that tool's own files, committed in the repo, so the tool opens and saves them in place instead of importing a copy. `sync requests` keeps the two in step, **both ways**: a change to a request file reaches the workspace, and an edit saved in the tool reaches the request file. For Bruno the workspace is `.bruno/` at the repo root, opened with Open Workspace; see the [Bruno plugin](/holocron/plugins/bruno/).
 
 ## How it tells which side changed
 

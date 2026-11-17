@@ -62,7 +62,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 ## Sending a delivery by hand
 
-`apps/comlink/requests/` holds a collection of requests and an environment for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
+`apps/comlink/api/` holds a collection of requests (`worker.collection.json`) and an environment (`worker.environment.json`) for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
 
 | Folder                     | What it sends                                                               | What the relay does                   |
 | -------------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
@@ -74,7 +74,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 
 [`holocron sync tooling --cwd apps/comlink`](/holocron/commands/sync-tooling/) pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the step first.
 
-The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/comlink` generates it (OpenCollection YAML, into the git-ignored `requests/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/). Bruno can also open them in place: the repo's `.bruno/` workspace holds Bruno's own files for this collection and its environment (under `collections/comlink-relay/`), kept equal to the JSON by [`holocron sync requests`](/holocron/commands/sync-requests/); in Bruno choose Open Workspace and pick `.bruno`. `sentrySecret` is left empty in the files, so set it in Bruno.
+The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/comlink` generates it (OpenCollection YAML, into the git-ignored `api/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/). Bruno can also open them in place: the repo's `.bruno/` workspace holds Bruno's own files for this collection and its environment (under `collections/comlink-relay/`), kept equal to the JSON by [`holocron sync requests`](/holocron/commands/sync-requests/); in Bruno choose Open Workspace and pick `.bruno`. `sentrySecret` is left empty in the files, so set it in Bruno.
 
 ## Build and deploy
 

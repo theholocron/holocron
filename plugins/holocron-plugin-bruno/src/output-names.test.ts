@@ -8,6 +8,13 @@ describe("outputNames", () => {
 		expect(outputNames(["a/one.json", "b/two.json"])).toEqual(["one.yml", "two.yml"]);
 	});
 
+	it("leaves out a .collection part, so a file named for its API gets that name", () => {
+		expect(outputNames(["apps/sentinel/api/webhook.collection.json"])).toEqual(["webhook.yml"]);
+		expect(outputNames(["apps/sentinel/api/webhook.collection.json"], ".bruno.json")).toEqual([
+			"webhook.bruno.json",
+		]);
+	});
+
 	it("uses the whole path when two files share a name, so neither overwrites the other", () => {
 		expect(outputNames(["apps/a/requests/collection.json", "apps/b/requests/collection.json"])).toEqual([
 			"apps-a-requests-collection.yml",
