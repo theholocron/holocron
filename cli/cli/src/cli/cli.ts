@@ -10,38 +10,11 @@ import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { applyCommand } from "../commands/apply/index.js";
-import { checkCommand } from "../commands/check/index.js";
-import { cleanupCommand } from "../commands/cleanup/index.js";
-import { cloneCommand } from "../commands/clone/clone.command.js";
-import { closeCommand } from "../commands/close/index.js";
 import { commandsInContext } from "../commands/contexts/index.js";
-import { deployCommand } from "../commands/deploy/deploy.command.js";
-import { devCommand } from "../commands/dev/index.js";
-import { doctorCommand } from "../commands/doctor/index.js";
-import { exportCommand } from "../commands/export/index.js";
-import { installCommand } from "../commands/install/index.js";
-import { linkCommand } from "../commands/link/index.js";
-import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
-import { migrateCommand } from "../commands/migrate/index.js";
-import { moveCommand } from "../commands/move/index.js";
-import { newCommand } from "../commands/new/new.command.js";
-import { probeCommand } from "../commands/probe/index.js";
-import { providerCommand } from "../commands/provider/index.js";
-import { publishCommand } from "../commands/publish/publish.command.js";
-import { reconcileCommand } from "../commands/reconcile/index.js";
-import { removeCommand } from "../commands/remove/index.js";
-import { resolveCommand } from "../commands/resolve/index.js";
-import { runCommand } from "../commands/run/run.command.js";
-import { setupCommand } from "../commands/setup/setup.command.js";
-import { showCommand } from "../commands/show/index.js";
-import { syncCommand } from "../commands/sync/sync.command.js";
-import { updateCommand } from "../commands/update/index.js";
-import { upgradeCommand } from "../commands/upgrade/index.js";
-import { uploadCommand } from "../commands/upload/index.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
+import { COMMAND_MODULES } from "./command-modules/index.js";
 import { ownPackageJson } from "./own-package-json.js";
 
 const env = createEnvLookup();
@@ -145,35 +118,8 @@ try {
 			finishCommand = startCommand(name);
 		})
 		// ── commands ────────────────────────────────────────────────────────
-		.command(cloneCommand as never)
-		.command(doctorCommand as never)
-		.command(installCommand as never)
-		.command(updateCommand as never)
-		.command(runCommand as never)
-		.command(showCommand as never)
-		.command(checkCommand as never)
-		.command(exportCommand as never)
-		.command(uploadCommand as never)
+		.command(COMMAND_MODULES)
 		.command(menuCommand(CLI_VERSION) as never)
-		.command(setupCommand as never)
-		.command(upgradeCommand as never)
-		.command(cleanupCommand as never)
-		.command(applyCommand as never)
-		.command(newCommand as never)
-		.command(listCommand as never)
-		.command(removeCommand as never)
-		.command(probeCommand as never)
-		.command(providerCommand as never)
-		.command(linkCommand as never)
-		.command(closeCommand as never)
-		.command(moveCommand as never)
-		.command(migrateCommand as never)
-		.command(devCommand as never)
-		.command(syncCommand as never)
-		.command(publishCommand as never)
-		.command(deployCommand as never)
-		.command(resolveCommand as never)
-		.command(reconcileCommand as never)
 		.strict()
 		.help()
 		.epilogue(

@@ -4,5 +4,6 @@ export const setupEntry: MenuEntry = {
 	name: "setup",
 	description: "Apply infra setup actions across every configured capability",
 	positionals: [],
+	skipOptions: ["repo", "hooks"],
 	supportsDryRun: true,
 };

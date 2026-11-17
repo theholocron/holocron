@@ -5,5 +5,6 @@ export const doctorTokensEntry: MenuEntry = {
 	description:
 		"Check every token the plugins declare for a layer has the permissions it should, no more, and is not due for rotation (read-only, goes online)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };

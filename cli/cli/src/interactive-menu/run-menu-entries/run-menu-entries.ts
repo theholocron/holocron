@@ -2,6 +2,8 @@ import { createAstromech } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import type { MenuEntry } from "@theholocron/kyber/menu";
 
+import { RUN_SKIP_OPTIONS } from "../../commands/run/run-ci.entry.js";
+
 /**
  * This repo's own resolved task manifest, filtered to what's actually
  * runnable locally — `Astromech.runnableTasks()`, reused rather than
@@ -81,6 +83,7 @@ export function buildRunMenuEntries(taskNames: string[]): MenuEntry[] {
 				name: `run ${namespace}`,
 				description: `Run every ${namespace}.* task in sequence`,
 				positionals: [],
+				skipOptions: [...RUN_SKIP_OPTIONS, "all"],
 				supportsDryRun: true,
 				spawnArgs: ["run", namespace],
 			});
@@ -91,6 +94,7 @@ export function buildRunMenuEntries(taskNames: string[]): MenuEntry[] {
 				name: isRealNamespace ? `run ${namespace} ${leaf}` : `run ${leaf}`,
 				description: `Run ${task}`,
 				positionals: [],
+				skipOptions: [...RUN_SKIP_OPTIONS, "all"],
 				supportsDryRun: true,
 				spawnArgs: ["run", task],
 			});

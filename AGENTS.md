@@ -317,11 +317,18 @@ coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `m
     enforces 2FA sets that env var in their own shell profile (never
     committed) to stop re-checking the OTP checkbox every run, without
     forcing an OTP prompt on anyone else publishing from the same repo;
-    it's still collected last either way. Every other command's
-    options are still rolled out one PR per command group, tracked on
-    #1052 — a command's own yargs options not yet triaged into
-    `options`/`skipOptions`/`modes` is a known, accepted gap until that
-    command's turn, not a bug.
+    it's still collected last either way. Every registered command's yargs
+    options are decided (#1052): `command-options.test.ts` (in
+    `interactive-menu/command-catalog/`) runs each command's `--help`
+    (from the same `COMMAND_MODULES` list the binary registers, so the test
+    sees what `cli.ts` does), and fails when an option, apart from the
+    global ones, is in neither the entry's `options` (or a mode's) nor its
+    `skipOptions`, or when an entry names an option the command no longer
+    has. The entries built per task (`run <task>`) and per probe are checked
+    too (they share `RUN_SKIP_OPTIONS` / `PROBE_SKIP_OPTIONS`). A new
+    `.option()` therefore needs a menu decision in its entry in the same PR:
+    offer it, or skip it (the commands that prompt for their own answers
+    on a terminal, like `new repo`, and the CI-only flags, skip theirs).
 
 ## Dependencies and catalogs
 

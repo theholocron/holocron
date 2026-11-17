@@ -13,5 +13,6 @@ export const secretsSyncEntry: MenuEntry = {
 			message: "Vault environment (a layer such as ci or prod, or an Environment name):",
 		},
 	],
+	skipOptions: ["project-id", "target", "worker", "github-secret", "github-secret-scope"],
 	supportsDryRun: true,
 };

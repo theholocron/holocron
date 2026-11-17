@@ -21,5 +21,6 @@ export const doctorNotificationsEntry: MenuEntry = {
 			message: "Post the result to #alerts (the failures, or just the summary)?",
 		},
 	],
+	skipOptions: ["all", "repo", "scope", "provider", "built-only"],
 	supportsDryRun: false,
 };

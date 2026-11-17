@@ -4,5 +4,6 @@ export const doctorEntry: MenuEntry = {
 	name: "doctor",
 	description: "Load the config and run a smoke check against every provider",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: true,
 };

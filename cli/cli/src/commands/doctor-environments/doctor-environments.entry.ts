@@ -4,5 +4,6 @@ export const doctorEnvironmentsEntry: MenuEntry = {
 	name: "doctor environments",
 	description: "Check that the deployment environments the config relies on exist (read-only)",
 	positionals: [],
+	skipOptions: ["all", "repo"],
 	supportsDryRun: false,
 };
