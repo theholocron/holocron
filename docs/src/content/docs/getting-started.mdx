@@ -82,7 +82,7 @@ holocron setup
 
 `setup` applies all infrastructure actions for the configured capabilities:
 
-- Writes `.editorconfig`, `.alexrc.json` and `commitlint.config.ts`, and `codecov.yml` when the config declares a `coverage` provider (`providers.coverage: "codecov"`); a repo with none gets no `codecov.yml` from `setup`
+- Writes `.editorconfig` and `commitlint.config.ts`, and `codecov.yml` when the config declares a `coverage` provider (`providers.coverage: "codecov"`); a repo with none gets no `codecov.yml` from `setup`
 - Installs CI workflow thin callers from `tasks`
 - Configures branch protection (from `repo.protection`)
 - Syncs labels, repo settings, teams, security features (GitHub plugin)

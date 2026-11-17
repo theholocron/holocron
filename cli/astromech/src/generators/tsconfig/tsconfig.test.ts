@@ -59,7 +59,7 @@ describe("createTsconfig", () => {
 		expect(() => JSON.parse(out)).not.toThrow();
 	});
 
-	it("has no scaffold/workflow header — matches .alexrc.json's strict-JSON precedent", () => {
+	it("has no scaffold/workflow header — matches .editorconfig-checker.json's strict-JSON precedent", () => {
 		const out = createTsconfig({ display: "x" });
 		expect(out.startsWith("{")).toBe(true);
 	});

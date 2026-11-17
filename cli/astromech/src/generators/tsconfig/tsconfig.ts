@@ -47,8 +47,8 @@ import type { TsconfigOptions } from "./tsconfig.type.js";
 /**
  * A package-level `tsconfig.json` — the uniform shape confirmed across
  * every package checked, parameterized only by the two fields that
- * genuinely vary (`display`, `paths`). No scaffold/workflow header (matches
- * `.alexrc.json`'s existing precedent for a strict-JSON Bucket B file —
+ * genuinely vary (`display`, `paths`). No scaffold/workflow header (a strict-JSON
+ * Bucket B file, like `.editorconfig-checker.json` —
  * JSON has no comment syntax to carry one, and TypeScript's own tolerance
  * for JSONC comments in `tsconfig.json` isn't worth relying on for a file
  * this thin).

@@ -56,7 +56,9 @@ describe("generateConfigFiles", () => {
 	it("generates the lint, editor and hook files, and skips the hooks when they are off", async () => {
 		const entries = generateConfigFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });
 		const steps = entries.map((e) => e.step);
-		expect(steps).toContain("write .alexrc.json");
+		expect(steps).toContain("write .yamllint.yml");
+		expect(steps).not.toContain("write .alexrc.json");
+		expect(steps).not.toContain("write .alexignore");
 		expect(steps).toContain("write .husky/commit-msg");
 		expect(steps).not.toContain("write .github/labeler.yml");
 		expect(entries.find((e) => e.step === "write .husky/pre-push")).toMatchObject({
@@ -482,8 +484,8 @@ describe("generateRepoFiles", () => {
 		});
 		const steps = entries.map((e) => e.step);
 		expect(steps.indexOf("write workflow verification.typeSafety")).toBeLessThan(
-			steps.indexOf("write .alexrc.json")
+			steps.indexOf("write .yamllint.yml")
 		);
-		expect(steps.indexOf("write .alexrc.json")).toBeLessThan(steps.indexOf("write turbo.json"));
+		expect(steps.indexOf("write .yamllint.yml")).toBeLessThan(steps.indexOf("write turbo.json"));
 	});
 });
