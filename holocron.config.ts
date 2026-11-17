@@ -166,14 +166,13 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
-		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. The checks are declared next to
-		// the service they watch (apps/sentinel and apps/comlink); the docs site's is here, because no app owns it. The
-		// dashboard and the public status page span the apps, so they are declared here too: each picks checks by tag, and a
-		// failing check carrying a component's tag opens an incident on it. Checkly's free plan refuses a private dashboard
-		// (400) and a custom domain on a status page (402), so the dashboard is public and the page has no domain of its
-		// own; on a paid plan, drop `private: false` (the view key then goes to the `dev` layer by hand,
-		// `doctor.manualSecrets`) and add `domain: \`status.${domain}\``, which `holocron setup` serves through a CNAME it makes
-		// with the `dns` provider. The account id comes from .holocron/org.ts.
+		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. Checks are declared next to the
+		// service they watch (apps/sentinel, apps/comlink); the docs site's is here, with the dashboard and the status
+		// page, which pick checks by tag (a failing check opens an incident on the components with its tag). Checkly's
+		// free plan refuses a private dashboard (400), a custom domain (402) and automated incidents (403), so the
+		// dashboard is public, the page has no domain and `automation: false` leaves incidents to hand. On a paid plan
+		// drop `private: false` (the view key then goes to `dev` by hand, `doctor.manualSecrets`) and `automation: false`,
+		// and add `domain: \`status.${domain}\``, which `holocron setup` serves through a CNAME. Account id: .holocron/org.ts.
 		monitoring: [
 			"checkly",
 			{
@@ -191,6 +190,7 @@ export default defineConfig({
 					{
 						name: "The Holocron",
 						slug: "theholocron",
+						automation: false,
 						components: [
 							{ name: "Sentinel", tags: ["sentinel"] },
 							{ name: "Comlink", tags: ["comlink"] },

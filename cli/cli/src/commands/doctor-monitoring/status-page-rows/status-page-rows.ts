@@ -74,6 +74,15 @@ export async function statusPageRows(monitoring: Monitoring): Promise<CheckRow[]
 							problems: [],
 						}
 			);
+			if (page.automation === false) {
+				rows.push({
+					id: `${id}:automation`,
+					title: `status page ${page.name} automation`,
+					status: "skip",
+					detail: "off: no rule ties a failing check to a component, so incidents are opened by hand",
+					problems: [],
+				});
+			}
 			const extras = [
 				...state.extraComponents.map((n) => `component ${n}`),
 				...state.extraRules.map((n) => `rule ${n}`),

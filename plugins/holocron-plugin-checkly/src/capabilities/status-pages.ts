@@ -6,7 +6,7 @@
  * automation rule ties them, so each component gets one rule, named like it, whose `tags` are the component's and whose
  * `components` lists it with a full-outage impact. Nothing is ever deleted: a component, group or rule the config no
  * longer lists is left alone and the doctor reports it. A field the config leaves out is left alone on an existing
- * resource.
+ * resource. With `automation: false` (a plan without automated incidents) no rule is read or made.
  */
 
 import type {
@@ -215,10 +215,11 @@ export async function ensureStatusPage(
 		}
 	}
 
-	const rules = await api.rules.list(page.id);
 	const rulesMade: string[] = [];
 	const rulesChanged: string[] = [];
-	for (const c of input.components) {
+	const automated = input.automation !== false;
+	const rules = automated ? await api.rules.list(page.id) : [];
+	for (const c of automated ? input.components : []) {
 		const componentId = componentIds.get(c.name)!;
 		const rule = rules.find((r) => r.name === c.name);
 		if (ruleOk(rule, c.tags, componentId)) continue;
@@ -295,7 +296,11 @@ export async function inspectStatusPage(
 	}
 
 	const api = client.statusPages;
-	const [components, rules] = await Promise.all([api.components.list(page.id), api.rules.list(page.id)]);
+	const automated = input.automation !== false;
+	const [components, rules] = await Promise.all([
+		api.components.list(page.id),
+		automated ? api.rules.list(page.id) : Promise.resolve([]),
+	]);
 	const { groups, order } = layout(input.components);
 	const byId = new Map(components.map((c) => [c.id, c]));
 
@@ -314,7 +319,7 @@ export async function inspectStatusPage(
 		const found = services.get(c.name);
 		if (!found) {
 			missing.push(c.name);
-			missingRules.push(c.name);
+			if (automated) missingRules.push(c.name);
 			continue;
 		}
 		if (c.group !== undefined) {
@@ -324,6 +329,7 @@ export async function inspectStatusPage(
 		const want = c.group === undefined ? order.get(`service:${c.name}`) : order.get(`child:${c.group}:${c.name}`);
 		if (found.displayOrder !== want) misplaced.push(`${c.name}: order ${found.displayOrder}, expected ${want}`);
 		if (
+			automated &&
 			!ruleOk(
 				rules.find((r) => r.name === c.name),
 				c.tags,

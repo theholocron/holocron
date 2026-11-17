@@ -227,6 +227,16 @@ describe("ensureStatusPage", () => {
 		expect(result.domain).toBeUndefined();
 		expect(stub.calls.every((c) => c.method === "GET")).toBe(true);
 	});
+
+	it("neither reads nor makes a rule when automation is off, since the plan refuses them", async () => {
+		const off = { ...INPUT, domain: undefined, automation: false };
+		const { monitoring, stub } = capability([list(page({ customDomain: null })), goodComponents()]);
+		const result = await monitoring.ensureStatusPage(off);
+		expect(result).toMatchObject({ created: false, components: { created: [], updated: [] } });
+		expect(result.rules).toEqual({ created: [], updated: [] });
+		expect(stub.calls).toHaveLength(2);
+		expect(stub.calls.some((c) => String(c.url).includes("automation-rules"))).toBe(false);
+	});
 });
 
 describe("inspectStatusPage", () => {
@@ -319,5 +329,20 @@ describe("inspectStatusPage", () => {
 		const state = await pending.monitoring.inspectStatusPage(INPUT);
 		expect(state).toMatchObject({ domainVerified: false, domainProblems: [] });
 		expect(state.domainRecord).toBeUndefined();
+	});
+
+	it("does not read or compare rules when automation is off, even for a missing component", async () => {
+		const off = { ...INPUT, domain: undefined, automation: false };
+		const { monitoring, stub } = capability([
+			list(page({ customDomain: null })),
+			list(
+				component("g1", "Services", { type: "GROUP", displayOrder: 0 }),
+				component("s1", "Sentinel", { parentId: "g1", displayOrder: 0 }),
+				component("s2", "Comlink", { parentId: "g1", displayOrder: 1 })
+			),
+		]);
+		const state = await monitoring.inspectStatusPage(off);
+		expect(state).toMatchObject({ missingComponents: ["Docs"], missingRules: [], extraRules: [] });
+		expect(stub.calls.some((c) => String(c.url).includes("automation-rules"))).toBe(false);
 	});
 });
