@@ -14,6 +14,3 @@ export interface ValidateConfigInput {
 	/** A specific commit/branch to validate instead of the default branch. See the module docstring for what a `ref`-based result may (and may not) be used for. */
 	ref?: string;
 }
-
-export type DedicatedTasksResult =
-	{ status: "found" | "absent"; config?: TasksConfig } | { status: "load-error"; filepath: string; message: string };

@@ -42,8 +42,8 @@ decide, actions to report, never the other way around.
 
 Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) via
 `@theholocron/github-client`'s `git.getContents()`, then an optional
-`astromech.config.*` at the same ref, merged on top with astromech's own
-`mergeTasksLayers()` — the same manifest `holocron run` / `ci` / `sync`
+`astromech.config.*` at the same ref, merged on top with datapad's
+`loadLayeredFromContent()` — the same manifest `holocron run` / `ci` / `sync`
 act on (holocron#916; a task declared only in the dedicated file, like
 this repo's `validate`, gates Sentinel checks too) — and
 validates the merged `tasks` array against `@theholocron/astromech`'s

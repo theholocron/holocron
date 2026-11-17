@@ -1,7 +1,7 @@
 /**
  * Reads a repo's `holocron.config.*` (plus an optional dedicated
- * `astromech.config.*`, merged on top via astromech's own
- * `mergeTasksLayers()` — the same manifest `holocron run` / `ci` / `sync`
+ * `astromech.config.*`, merged on top via datapad's
+ * `loadLayeredFromContent()` — the same manifest `holocron run` / `ci` / `sync`
  * act on, holocron#916) and validates the merged `tasks` array
  * against `@theholocron/astromech`'s canonical task registry (D11 — one
  * table, imported rather than duplicated). Defaults to the repo's default
@@ -45,11 +45,13 @@
 import { join } from "node:path";
 
 import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
-import { mergeTasksLayers, normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
+import { coerceTasks, normalizeTaskEntry, type TasksConfig, type TasksInput } from "@theholocron/astromech/config";
 import { HOLOCRON_AREAS, type HolocronConfig, placeAreas } from "@theholocron/cli";
 import {
+	ConfigFileError,
 	loadConfigDir,
 	loadConfigFromContent,
+	loadLayeredFromContent,
 	readConfigSource,
 	withConfigSandbox,
 	writeConfigDir,
@@ -61,7 +63,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { decodeContents } from "../decode-contents/index.js";
 import { fetchConfigDir } from "../fetch-config-dir/index.js";
 import { getPackageRoot } from "../package-root/index.js";
-import type { DedicatedTasksResult, ValidateConfigInput, ValidateConfigResult } from "./validate-config.type.js";
+import type { ValidateConfigInput, ValidateConfigResult } from "./validate-config.type.js";
 
 /** Where a repo keeps the area files of its config: `.<config name>/`. */
 const CONFIG_DIR = ".holocron";
@@ -103,16 +105,28 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 			};
 		}
 		// The dedicated astromech.config.* layer (holocron#916): merged on
-		// top of holocron.config's own tasks exactly as astromech's
-		// loadTasksConfig() does for `holocron run` / `ci` / `sync`, so a
+		// top of holocron.config's own tasks by datapad's loadLayeredFromContent(),
+		// the content counterpart of the loadLayered() that astromech's
+		// loadTasksConfig() uses for `holocron run` / `ci` / `sync`, so a
 		// task declared only there (this repo's platform.repoValidation)
-		// is visible to every Sentinel gate, not just the CLI.
-		const dedicated = await loadDedicatedTasks(fetch, tmpDir);
-		if (dedicated.status === "load-error") return dedicated;
-		const config: TasksConfig = {
-			...loaded.config,
-			...mergeTasksLayers(loaded.config.tasks, dedicated.config),
-		};
+		// is visible to every Sentinel gate, not just the CLI. The parent is
+		// the config already loaded above, with its areas placed.
+		let layered;
+		try {
+			layered = await loadLayeredFromContent<TasksConfig>({
+				dir: tmpDir,
+				name: "astromech",
+				fetch,
+				fallback: { key: "tasks", preloaded: { config: loaded.config, filepath: path } },
+				coerce: (raw) => coerceTasks(raw as TasksInput | undefined),
+			});
+		} catch (err) {
+			// Only a file that was found and could not be executed is the repo's config being wrong; a GitHub failure
+			// reading it propagates, as every other read does. loadLayeredFromContent() names the file it failed on.
+			if (!(err instanceof ConfigFileError)) throw err;
+			return { status: "load-error", filepath: err.filepath as string, message: errorMessage(err) };
+		}
+		const config: TasksConfig = { ...loaded.config, ...layered?.config };
 
 		// A task-array entry is legitimate if it resolves to either a real
 		// runnable task (KNOWN_TASKS, e.g. "verification.unitTests") or a
@@ -132,33 +146,6 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 		}
 		return { status: "valid", filepath: path, config };
 	});
-}
-
-/**
- * Reads and executes the repo's optional `astromech.config.*` at `ref`, in
- * the same prepared `tmpDir` as `holocron.config.*` (its own
- * `@theholocron/astromech/config` import resolves through the same
- * `node_modules` symlink). Same TS-first extension probe; a 404 on every
- * extension means the repo has no dedicated layer.
- */
-async function loadDedicatedTasks(
-	fetch: (path: string) => Promise<string | undefined>,
-	tmpDir: string
-): Promise<DedicatedTasksResult> {
-	const source = await readConfigSource({ name: "astromech", fetch });
-	if (!source) return { status: "absent" };
-
-	try {
-		const loaded = await loadConfigFromContent<TasksConfig>({
-			dir: tmpDir,
-			content: source.content,
-			name: "astromech",
-			extension: source.extension,
-		});
-		return { status: "found", config: loaded.config };
-	} catch (err) {
-		return { status: "load-error", filepath: source.path, message: errorMessage(err) };
-	}
 }
 
 /**
