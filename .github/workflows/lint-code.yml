@@ -54,6 +54,18 @@ jobs:
             exit 1
           fi
 
+      # Problem matchers turn the tools' own output into inline annotations on the pull request's diff (the job the
+      # old `annotate` task did with ReviewDog, on a second checkout). They are files of this repo, so a copy of this
+      # workflow that runs where they are missing skips them. `ci/matchers/eslint.json` reads stylish output, whose
+      # paths are absolute, so turbo's `<package>:<task>:` prefix does not hide them.
+      - name: Annotate eslint and actionlint findings
+        run: |
+          for matcher in eslint actionlint; do
+            if [ -f "ci/matchers/$matcher.json" ]; then
+              echo "::add-matcher::ci/matchers/$matcher.json"
+            fi
+          done
+
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run eslint and actionlint
         with:
