@@ -34,7 +34,7 @@ The provider records, for each pair (one collection and its workspace folder, or
 - **A conflict writes nothing for its provider**, not the other side of the pair, not another pair, not the record. Other providers go on.
 - **`--check`** writes nothing and asks nothing. It exits 1 unless every pair is in sync, so a check can fail a branch where the request files, the workspace or the record were changed without the others. The repo's own unit tests run the same comparison on the committed `.bruno/`.
 - **`--dry-run`** prints what would be written and stops, a conflict included.
-- **Never in a source folder.** A provider writes the workspace folder it owns and the request files it was given, nothing else.
+- **Never in a source folder.** A provider writes the workspace folder it owns and the request files it was given, nothing else. For Bruno that means `workspace.yml` and `collections/`; the rest of `.bruno/`, such as the `mocks/` folder where Bruno keeps mock servers, is yours and is never read, listed or deleted.
 - **One row per provider**, like every [`doctor <capability>`](/holocron/commands/doctor/). What the conversion could not carry across is listed under the row and does not fail the run; a provider that throws is a failing row, and the others still run.
 - **A request file the workspace wrote** is laid out the way the repo's formatter lays out a `.json` file, so the formatting check passes without a second run.
 

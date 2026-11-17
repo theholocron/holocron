@@ -61,6 +61,10 @@ The two JSON files are the one source. A tool that reads another format gets it 
 `holocron export requests --to bruno --cwd apps/comlink` writes `worker.bruno.json` (the requests and the environment in one file, which Bruno imports) into the git-ignored
 `src/.export/bruno/` (`--dry-run` converts and lists without writing).
 
+### Without a Discord channel
+
+Bruno can stand in for Discord. The workspace's `.bruno/mocks/comlink.yml` is a mock server with two routes on `http://localhost:4000`: `POST /discord/accepts` answers 204, as Discord does when it takes a post, and `POST /discord/refuses` answers 500. In Bruno, open the workspace, start the **Comlink** mock server, and run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`. Send `Signed, posts to Discord` from the collection: Comlink answers 204, and the mock's request log shows the embed it sent, with nothing posted to a channel. With `/discord/refuses` the same request answers 502, the path for a webhook Discord did not take. The mock is committed beside the collections and `holocron sync requests` leaves it alone.
+
 ## Build
 
 `pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is

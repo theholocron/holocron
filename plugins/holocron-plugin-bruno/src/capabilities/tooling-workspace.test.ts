@@ -164,6 +164,16 @@ describe("BrunoTooling.workspace", () => {
 		expect(existsSync(join(root, ".bruno/collections/app-a-2/opencollection.yml"))).toBe(true);
 	});
 
+	it("leaves the other folders of the workspace alone, such as the mock servers Bruno keeps in mocks/", async () => {
+		await tool().workspace(input());
+		mkdirSync(join(root, ".bruno/mocks"), { recursive: true });
+		writeFileSync(join(root, ".bruno/mocks/stand-in.yml"), "info:\n  name: stand-in\n  type: mock\n");
+		const result = await tool().workspace(input());
+		expect(result.files.some((file) => file.path.includes("mocks/"))).toBe(false);
+		expect(new Set(result.files.map((file) => file.state))).toEqual(new Set(["unchanged"]));
+		expect(read(".bruno/mocks/stand-in.yml")).toContain("name: stand-in");
+	});
+
 	it("names the file when a collection cannot be read", async () => {
 		writeFileSync(join(root, "apps/a/api/webhook.collection.json"), "not json");
 		await expect(tool().workspace(input())).rejects.toThrow(/apps\/a\/api\/webhook\.collection\.json/);

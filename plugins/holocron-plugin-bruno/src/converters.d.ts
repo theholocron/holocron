@@ -77,4 +77,15 @@ declare module "@usebruno/filestore" {
 		name: string;
 		variables?: { name: string; value?: string; enabled?: boolean; secret?: boolean }[];
 	};
+
+	/** Reads a mock server's file from the workspace's `mocks/` folder. */
+	export function parseMockServer(
+		content: string,
+		options?: { format?: "bru" | "yml" }
+	): {
+		name: string;
+		port: number | null;
+		source: { type: string; path: string } | null;
+		routes: { name: string; request: { method: string; url: string }; response: { status: number } }[];
+	};
 }
