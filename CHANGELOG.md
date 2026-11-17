@@ -1,3 +1,9 @@
+## [5.0.0-alpha.467](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.466...v5.0.0-alpha.467) (2026-11-17)
+
+### Features
+
+* **sentinel:** add Sentry error tracking ([#2316](https://github.com/theholocron/holocron/issues/2316)) ([c630103](https://github.com/theholocron/holocron/commit/c63010357d07f5dafa360441e03d7f8c317da394)), closes [#1045](https://github.com/theholocron/holocron/issues/1045) [#1045](https://github.com/theholocron/holocron/issues/1045)
+
 ## [5.0.0-alpha.466](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.465...v5.0.0-alpha.466) (2026-11-17)
 
 ### Features
