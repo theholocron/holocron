@@ -1,10 +1,13 @@
 ---
+id: SPEC-0094
 status: draft
 issue: theholocron/holocron#2322
 blocked-by: []
 related:
   - theholocron/holocron#2189
   - theholocron/holocron#2276
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572378327677665464
 ---
 
 # Bruno: fill a collection's secrets from the layer's 1Password Environment
