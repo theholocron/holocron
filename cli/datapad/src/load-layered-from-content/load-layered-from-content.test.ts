@@ -131,6 +131,28 @@ describe("loadLayeredFromContent", () => {
 		expect(result).toBeNull();
 	});
 
+	it("treats a dedicated file coerce turns into undefined as absent, leaving the fallback alone", async () => {
+		const result = await loadLayeredFromContent<{ tasks: string[] }>({
+			...opts({
+				"holocron.config.json": JSON.stringify({ tasks: { tasks: ["lint"] } }),
+				"astromech.config.json": JSON.stringify(null),
+			}),
+			coerce: (raw) => (raw == null ? undefined : (raw as { tasks: string[] })),
+		});
+		expect(result?.sources).toEqual(["holocron.config.json"]);
+		expect(result?.filepath).toBe("holocron.config.json");
+	});
+
+	it("takes a fallback with neither a file nor a preloaded config as absent", async () => {
+		const result = await loadLayeredFromContent<{ tasks: string[] }>({
+			dir,
+			name: "astromech",
+			fetch: files({ "astromech.config.json": JSON.stringify({ tasks: ["lint"] }) }),
+			fallback: { key: "tasks" },
+		});
+		expect(result?.sources).toEqual(["astromech.config.json"]);
+	});
+
 	it("names the dedicated file when it cannot be executed", async () => {
 		const err = await loadLayeredFromContent(opts({ "astromech.config.json": "{ not json" })).catch(
 			(e: unknown) => e

@@ -121,13 +121,10 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 				coerce: (raw) => coerceTasks(raw as TasksInput | undefined),
 			});
 		} catch (err) {
-			// As above, a GitHub failure is not the repo's config being wrong.
-			if (err instanceof ProviderApiError) throw err;
-			return {
-				status: "load-error",
-				filepath: err instanceof ConfigFileError && err.filepath ? err.filepath : path,
-				message: errorMessage(err),
-			};
+			// Only a file that was found and could not be executed is the repo's config being wrong; a GitHub failure
+			// reading it propagates, as every other read does. loadLayeredFromContent() names the file it failed on.
+			if (!(err instanceof ConfigFileError)) throw err;
+			return { status: "load-error", filepath: err.filepath as string, message: errorMessage(err) };
 		}
 		const config: TasksConfig = { ...loaded.config, ...layered?.config };
 
