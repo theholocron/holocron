@@ -238,6 +238,8 @@ describe("publish package's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#10
 	}
 
 	it("is checkbox-optional by default, still askLast", async () => {
+		// An operator's shell may export the variable; the default must not see it.
+		vi.stubEnv("HOLOCRON_NPM_ENFORCE_2FA", "");
 		vi.resetModules();
 		const { COMMAND_REGISTRY: registry } = await import("./command-catalog.js");
 		const otp = otpOption(registry);
