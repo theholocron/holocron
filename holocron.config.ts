@@ -168,11 +168,12 @@ export default defineConfig({
 		errors: "sentry",
 		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. Checks are declared next to the
 		// service they watch (apps/sentinel, apps/comlink); the docs site's is here, with the dashboard and the status
-		// page, which pick checks by tag (a failing check opens an incident on the components with its tag). Checkly's
-		// free plan refuses a private dashboard (400), a custom domain (402) and automated incidents (403), so the
-		// dashboard is public, the page has no domain and `automation: false` leaves incidents to hand. On a paid plan
-		// drop `private: false` (the view key then goes to `dev` by hand, `doctor.manualSecrets`) and `automation: false`,
-		// and add `domain: \`status.${domain}\``, which `holocron setup` serves through a CNAME. Account id: .holocron/org.ts.
+		// page, which pick checks by tag (the dashboard shows them; with `automation` on, a failing check also opens an
+		// incident on the components with its tag). Checkly's free plan refuses a private dashboard (400), a custom domain
+		// (402) and automated incidents (403), so the dashboard is public, the page has no domain and `automation: false`
+		// leaves incidents to hand. On a paid plan drop `private: false` (the view key then goes to `dev` by hand,
+		// `doctor.manualSecrets`) and `automation: false`, and add `domain: \`status.${domain}\``, which `holocron setup`
+		// serves through a CNAME. Account id: .holocron/org.ts.
 		monitoring: [
 			"checkly",
 			{

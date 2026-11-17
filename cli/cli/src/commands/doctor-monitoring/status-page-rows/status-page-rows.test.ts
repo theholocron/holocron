@@ -102,6 +102,17 @@ describe("statusPageRows", () => {
 			["monitoring-status-page:The Holocron:automation", "skip"],
 		]);
 		expect(rows[1]?.detail).toMatch(/incidents are opened by hand/);
+		// And whatever the inspection found: a missing page, an error, or a provider that cannot inspect.
+		const off = { ...PAGE, automation: false };
+		const missing = await statusPageRows(provider({ exists: false }, off));
+		expect(missing.map((r) => [r.status, r.id.endsWith(":automation")])).toEqual([
+			["fail", false],
+			["skip", true],
+		]);
+		const broken = await statusPageRows(provider(new Error("boom"), off));
+		expect(broken.map((r) => r.status)).toEqual(["fail", "skip"]);
+		const blind = await statusPageRows({ statusPages: [off] } as unknown as Monitoring);
+		expect(blind.map((r) => r.status)).toEqual(["skip", "skip"]);
 		expect((await statusPageRows(provider({}, { ...PAGE, automation: true }))).map((r) => r.status)).toEqual([
 			"ok",
 		]);
