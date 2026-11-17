@@ -1,0 +1,33 @@
+info:
+  name: "pull_request opened: runs every check on the pull request"
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-GitHub-Event
+      value: pull_request
+    - name: X-GitHub-Delivery
+      value: "{{$guid}}"
+  body:
+    type: json
+    data: '{"action":"opened","number":{{pullNumber}},"pull_request":{"number":{{pullNumber}}},"repository":{"full_name":"{{repo}}","default_branch":"alpha"},"installation":{"id":{{installationId}}}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 200", () => expect(res.getStatus()).to.equal(200));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Needs `repo`, `pullNumber` and `installationId` to name a real pull request the App can see. A pull request that does not exist makes the reads fail instead.

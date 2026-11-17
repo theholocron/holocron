@@ -1,0 +1,33 @@
+info:
+  name: POST with a wrong signature
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/sentry"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Sentry-Hook-Resource
+      value: event_alert
+    - name: Sentry-Hook-Signature
+      value: "0000000000000000000000000000000000000000000000000000000000000000"
+  body:
+    type: json
+    data: '{"data":{"triggered_rule":"Comlink check","event":{"title":"Comlink test alert","culprit":"requests/collection","level":"warning","environment":"development","project_name":"comlink-test","datetime":"2026-01-01T00:00:00Z"}}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 401", () => expect(res.getStatus()).to.equal(401));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "A signature that is not this body's under the secret: 401."

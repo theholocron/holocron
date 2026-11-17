@@ -1,0 +1,10 @@
+opencollection: 1.0.0
+info:
+  name: "The Holocron"
+  type: workspace
+
+collections:
+  - name: "Sentinel webhook"
+    path: "collections/sentinel-webhook"
+  - name: "Comlink relay"
+    path: "collections/comlink-relay"

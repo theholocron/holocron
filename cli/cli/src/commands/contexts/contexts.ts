@@ -128,6 +128,8 @@ export const COMMAND_CONTEXTS = {
 	"sync ideas": "workspace",
 	// Calls each `tooling` provider's `sync()`, so those packages (and a `credentials` one for their tokens) must be resolvable.
 	"sync tooling": "workspace",
+	// `sync requests` loads the `tooling` providers to keep their workspaces equal to the repo's request files.
+	"sync requests": "workspace",
 	// Reads the issue through the `issues` provider, so its package must be resolvable.
 	"new spec": "workspace",
 	// Files the issue through the `issues` provider, so its package must be resolvable.

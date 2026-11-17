@@ -1,0 +1,21 @@
+info:
+  name: Signed, acts on GitHub
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit
+  scripts:
+    - type: before-request
+      code: |-
+        const CryptoJS = require("crypto-js");
+        // Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.
+        const secret = bru.getVar("webhookSecret");
+        if (!secret) throw new Error("Set webhookSecret in the environment (the dev App's webhook secret).");
+        const body = bru.interpolate(req.getBody().raw);
+        const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);
+        req.setHeader("X-Hub-Signature-256", "sha256=" + digest);
+
+docs:
+  content: "These make the real checks run. The handler reads the pull request named here from the GitHub API with the App's installation token, then posts check runs, comments and the #prs feed on it. Use a sandbox repository the dev App is installed on."
+  type: text/markdown

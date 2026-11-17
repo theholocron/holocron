@@ -85,6 +85,7 @@ const EVERY_COMMAND = [
 	"sync issues",
 	"sync ideas",
 	"sync tooling",
+	"sync requests",
 	"new spec",
 	"new issue",
 ];

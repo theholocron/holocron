@@ -39,6 +39,7 @@
   "dependencies": {
     "@opencollection/converters": "catalog:plugins",
     "@usebruno/converters": "catalog:plugins",
+    "@usebruno/filestore": "catalog:plugins",
     "js-yaml": "catalog:plugins"
   },
   "devDependencies": {

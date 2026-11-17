@@ -18,9 +18,12 @@ sit next to the API path they exercise, and Bruno should open and save them in t
 
 ## Decision
 
-1. **A `.bruno/` workspace at the repo root**, committed: `workspace.yml`, `environments/` and `collections/<name>/`
-   (each collection an OpenCollection folder with its `opencollection.yml`). Bruno opens the repository's `.bruno/`
-   folder as a workspace and saves every edit there. The layout is the one Bruno documents for a workspace.
+1. **A `.bruno/` workspace at the repo root**, committed: `workspace.yml` and `collections/<name>/` (each collection an
+   OpenCollection folder with its `opencollection.yml`, a `folder.yml` per folder, a YAML file per request and an
+   `environments/` folder). Bruno opens the repository's `.bruno/` folder as a workspace and saves every edit there. The
+   layout is the one Bruno documents for a workspace. The files are written with Bruno's own writer
+   (`@usebruno/filestore`), so they are what the app would save. The provider owns the folder and the layout: the CLI
+   reaches it through the optional `Tooling.workspace(input)` and knows no tool's name or path.
 2. **The Postman-format JSON moves next to the API it exercises**, named for it: `<endpoint>.collection.json` and
    `<endpoint>.environment[.<name>].json`.
    - Sentinel: `apps/sentinel/api/webhook.collection.json`, `webhook.environment.json`, `webhook.environment.dev.json`,
@@ -49,8 +52,10 @@ sit next to the API path they exercise, and Bruno should open and save them in t
 4. **Lossy conversion is reported, never hidden.** A field one format cannot hold (a Bruno-only setting going to
    Postman JSON) is a line under the row, as `export` does today, and stays in the Bruno files; the comparison ignores
    what the other format cannot carry, so a Bruno-only edit does not look like a change to the JSON.
-5. **Environments** are `.bruno/environments/<name>.yml`, generated from the `environment*.json` files like the
-   collections; a secret-type variable stays empty in both.
+5. **Environments** are `.bruno/collections/<name>/environments/<name>.yml`, inside the collection they belong to and
+   generated from the `environment*.json` files beside its collection file (all of them when none sits there), so one
+   app's workspace never lists another app's environments. A workspace-level `environments/` folder would be shared by
+   every collection. A secret-type variable is written without its value in both.
 6. **`export requests`** stays for Postman. The Bruno provider's OpenCollection YAML output (which Bruno rejects) and
    its `@opencollection/converters` / `js-yaml` dependencies go in the last part, once the workspace replaces them.
 7. **A version in `info.version`** is not committed: the apps are `0.0.0` and the release version changes on every
@@ -76,4 +81,5 @@ sit next to the API path they exercise, and Bruno should open and save them in t
   Bruno documents. Whether a workspace can point at a folder outside `.bruno/` is not verified.
 - **Round-trip fidelity.** Bruno to Postman JSON through `@usebruno/converters` is untested on the signing script and
   on the folder structure; part 2 starts with that check.
-- **`validate:generated`.** Whether `sync requests --check` joins that task or gets its own.
+- **`validate:generated`.** Whether `sync requests --check` joins that task or gets its own. Part 1 pins the committed
+  `.bruno/` with a unit test in the Bruno plugin (`committed-workspace.test.ts`), which the required `test:unit` check runs.

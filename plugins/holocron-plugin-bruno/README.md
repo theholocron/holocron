@@ -30,6 +30,7 @@ providers: {
 
 | Option            | Required | Description                                                                                                                    |
 | ----------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `workspaceName`   | No       | The name Bruno shows for the `.bruno/` workspace `sync requests` keeps (default `Workspace`).                                  |
 | `collectionFiles` | Yes      | The collection JSON files (v2.1), relative to the repo root. Each becomes one YAML file.                                       |
 | `envFiles`        | No       | The environment JSON files, relative to the repo root. A collection holds the ones in its own folder (all when none is there). |
 
@@ -41,7 +42,12 @@ providers: {
   The same collection is also written as `<name>.bruno.json`, Bruno's own collection export with the environments inside,
   which is the file to import in Bruno (one file for the requests and the environments).
   Converter issues are returned, not thrown. A dry run converts and writes nothing.
-- `sync` does nothing and succeeds: Bruno keeps no state, and the files are written by `export`.
+- `workspace` keeps the committed `.bruno/` workspace equal to the request files (`holocron sync requests`), with Bruno's own
+  file writer (`@usebruno/filestore`): `workspace.yml`, and one folder per collection under `collections/` holding
+  `opencollection.yml`, a `folder.yml` per folder, a YAML file per request and an `environments/` folder. A secret variable
+  is written without its value. Each file is `new`, `changed`, `unchanged` or `removed`; a dry run writes and deletes nothing.
+  One way for now: the request files win.
+- `sync` does nothing and succeeds: Bruno keeps no state, and the files are written by `export` and `workspace`.
 - `doctor` checks `collectionFiles` is set and every file exists and parses as JSON.
 
 ## Documentation

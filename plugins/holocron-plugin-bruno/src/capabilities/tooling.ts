@@ -2,17 +2,19 @@
  * `tooling` capability for Bruno.
  *
  * Bruno has no HTTP API and no account to push to: it reads a folder of files. So this provider works on files only,
- * with no token and no network, and its one real job is `export()`: it writes each of the repo's collection files as
- * an OpenCollection YAML document and a Bruno JSON file, each with the environments inside it, for
- * `holocron export requests`.
+ * with no token and no network. `export()` writes each of the repo's collection files as an OpenCollection YAML
+ * document and a Bruno JSON file, each with the environments inside it, for `holocron export requests`.
+ * `workspace()` keeps the committed `.bruno/` workspace (Bruno's own files, one folder per collection) equal to the
+ * repo's request files, for `holocron sync requests`.
  *
  * `sync()` has nothing to reconcile, so it does nothing and succeeds: `holocron setup` calls it on every `tooling`
- * provider, and the files are written by `export()`, which is the person's call, never a side effect of `setup`.
+ * provider, and the files are written by `export()` and `workspace()`, which are the person's call, never a side
+ * effect of `setup`.
  * `doctor()` checks the input files exist and parse as JSON.
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import type {
 	Tooling,
@@ -20,10 +22,14 @@ import type {
 	ToolingExportInput,
 	ToolingExportIssue,
 	ToolingExportResult,
+	ToolingWorkspaceInput,
+	ToolingWorkspaceResult,
 } from "@theholocron/cli";
 
+import { type CollectionFiles, collectionFiles as convertToFiles } from "../collection-files.js";
 import { convertCollection } from "../convert-collection.js";
 import { outputNames } from "../output-names.js";
+import { syncWorkspace } from "../sync-workspace.js";
 
 /** Options for the Bruno `tooling` provider: the same two file lists the other tooling providers take. */
 export interface BrunoToolingOptions {
@@ -31,6 +37,8 @@ export interface BrunoToolingOptions {
 	collectionFiles?: string[];
 	/** Environment JSON files, relative to `repoRoot`; each goes into every collection it is exported with (`export requests` hands a folder's collections the files beside them). */
 	envFiles?: string[];
+	/** The name Bruno shows for the `.bruno/` workspace that `workspace()` keeps (default `Workspace`). */
+	workspaceName?: string;
 	/** Working repo root. Defaults to `process.cwd()`. */
 	repoRoot?: string;
 }
@@ -103,6 +111,32 @@ export class BrunoTooling implements Tooling {
 			}
 			files.push(name, jsonName);
 		}
+		return { files, issues };
+	}
+
+	async workspace(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult> {
+		const { collectionFiles, envFiles, repoRoot } = input;
+		const issues: ToolingExportIssue[] = [];
+		const collections: CollectionFiles[] = [];
+		for (const file of collectionFiles) {
+			const beside = envFiles.filter((env) => dirname(env) === dirname(file));
+			const environments = await Promise.all(
+				(beside.length > 0 ? beside : envFiles).map((env) => readJson(repoRoot, env))
+			);
+			const converted = await convertToFiles(await readJson(repoRoot, file), environments).catch(
+				(err: unknown) => {
+					throw new Error(`${file}: ${message(err)}`, { cause: err });
+				}
+			);
+			for (const issue of converted.issues) issues.push({ file, message: issue });
+			collections.push(converted);
+		}
+		const files = await syncWorkspace({
+			workspaceName: this.options.workspaceName ?? "Workspace",
+			collections,
+			repoRoot,
+			...(input.dryRun ? { dryRun: true } : {}),
+		});
 		return { files, issues };
 	}
 }

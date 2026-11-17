@@ -1,0 +1,6 @@
+name: Comlink (local)
+variables:
+  - name: baseUrl
+    value: http://127.0.0.1:8787
+  - secret: true
+    name: sentrySecret

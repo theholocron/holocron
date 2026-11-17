@@ -2,6 +2,8 @@ import { brunoToOpenCollection } from "@opencollection/converters";
 import { postmanToBruno, postmanToBrunoEnvironment } from "@usebruno/converters";
 import { dump } from "js-yaml";
 
+import { describeIssue } from "./describe-issue.js";
+
 /** What {@link convertCollection} produced. */
 export interface ConvertedCollection {
 	/** The OpenCollection document, as YAML. */
@@ -11,15 +13,6 @@ export interface ConvertedCollection {
 	/** What the converters reported they could not carry across, one line each. */
 	issues: string[];
 }
-
-/** One line for a converter's issue, whatever shape it came in. */
-const describeIssue = (issue: unknown): string => {
-	if (typeof issue === "string") return issue;
-	if (issue !== null && typeof issue === "object" && "message" in issue && typeof issue.message === "string") {
-		return issue.message;
-	}
-	return JSON.stringify(issue);
-};
 
 /** The collection as Bruno's own JSON export lays it out: one file, with the environments inside it. */
 function brunoJson(bruno: { name?: string; environments?: unknown[] } & Record<string, unknown>): string {
