@@ -135,7 +135,7 @@
             "type": "text/javascript",
             "exec": [
               "// Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.",
-              "const secret = pm.variables.get(\"webhookSecret\");",
+              "const secret = pm.environment.get(\"webhookSecret\");",
               "if (!secret) throw new Error(\"Set webhookSecret in the environment (the dev App's webhook secret).\");",
               "const body = pm.variables.replaceIn(pm.request.body.raw);",
               "const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
@@ -289,7 +289,7 @@
             "type": "text/javascript",
             "exec": [
               "// Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.",
-              "const secret = pm.variables.get(\"webhookSecret\");",
+              "const secret = pm.environment.get(\"webhookSecret\");",
               "if (!secret) throw new Error(\"Set webhookSecret in the environment (the dev App's webhook secret).\");",
               "const body = pm.variables.replaceIn(pm.request.body.raw);",
               "const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",

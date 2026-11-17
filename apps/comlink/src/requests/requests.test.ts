@@ -43,7 +43,9 @@ function sign(folder: Item, request: NonNullable<Item["request"]>): Record<strin
 	const exec = folder.event?.find((e) => e.listen === "prerequest")?.script.exec;
 	if (!exec) return headers;
 	const pm = {
-		variables: { get: (name: string) => VARIABLES[name], replaceIn: fill },
+		// Bruno reads a runtime variable here, which nothing sets: a script that looks the secret up this way must fail.
+		variables: { get: () => undefined, replaceIn: fill },
+		environment: { get: (name: string) => VARIABLES[name] },
 		request: {
 			body: { raw: request.body?.raw ?? "" },
 			headers: { upsert: ({ key, value }: Header) => void (headers[key] = value) },

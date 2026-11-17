@@ -46,7 +46,9 @@ describe.each([
 		// The scripts that sign each body ran on Postman's `pm` object; they are Bruno's own API now.
 		expect(text).not.toMatch(/\bpm\./);
 		expect(text).toContain("HmacSHA256");
-		expect(text).toContain("bru.getVar(");
+		// The secret is read from the environment, by the name the environment declares (the text is JSON, so its quotes are escaped).
+		expect(text).toContain(`bru.getEnvVar(\\"${secret}\\")`);
+		expect(text).not.toContain("bru.getVar(");
 		expect(text).toContain("req.setHeader(");
 
 		// Every request of the source is still there, and the environment came with the collection, the secret marked.
