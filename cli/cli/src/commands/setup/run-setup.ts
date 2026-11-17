@@ -74,6 +74,7 @@ import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
 import { SETUP_ENVIRONMENTS } from "./setup-environments.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
+import { statusPagesStep } from "./status-pages-step/index.js";
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -787,6 +788,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				}
 				print(formatStep(steps[steps.length - 1]!));
 			}
+		}
+		// Status pages after the checks, whose tags their rules match (and their domain's DNS record).
+		for (const step of await statusPagesStep(monitoring, loader, dryRun)) {
+			steps.push(step);
+			print(formatStep(step));
 		}
 	}
 

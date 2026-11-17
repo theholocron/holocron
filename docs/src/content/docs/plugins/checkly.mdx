@@ -137,9 +137,40 @@ monitoring: ["checkly", {
 - `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), its alert settings, and the names of the checks routed to it that it is not subscribed to or has switched off, and of the checks it is still subscribed to though they are routed elsewhere.
 - `ensureDashboard(input)`: finds a dashboard by its exact header, then creates or updates it (private by default). It returns the id and, only when it made the dashboard or switched it to private, the view key (never logged).
 - `inspectDashboard(name)`: reads a dashboard without changing it, for `holocron doctor monitoring`: whether it exists, its privacy, tags and domain, and the headers of the account's other dashboards. Never the key.
+- `ensureStatusPage(input)`: finds a status page by exact name or creates it (public unless `private: true`), then its components in the declared order and one automation rule per component. See [Status pages](#status-pages).
+- `inspectStatusPage(input)`: reads the page without changing it, for `holocron doctor monitoring`: whether it exists and is public, which components and rules are missing or misplaced, which exist that the config does not declare, and whether the custom domain is verified (with the DNS record still to make).
 - `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
 - `checks`: the configured check list, which `holocron setup` loops over.
 - `dashboards`: the configured dashboard list, which `holocron setup` loops over.
+- `statusPages`: the configured status pages, which `holocron setup` and `holocron doctor monitoring` loop over.
+
+## Status pages
+
+A page is a list of components, and a component holds no check: an automation rule ties them. A failing check whose tags overlap the rule's opens one incident on the component, as a full outage (`MAJOR_OUTAGE`), so give each check the tag of the component it belongs to.
+
+```ts
+monitoring: [
+  "checkly",
+  {
+    statusPages: [
+      {
+        name: "The Holocron", // the page's title, and how it is found
+        slug: "theholocron", // <slug>.checkly-dashboards.com
+        domain: `status.${domain}`, // optional custom domain
+        // private: false is the default: the point of the page is that people can read it
+        components: [
+          { name: "Sentinel", tags: ["sentinel"], group: "Services" },
+          { name: "Docs", tags: ["docs"] },
+        ],
+      },
+    ],
+  },
+];
+```
+
+`holocron setup` makes the page after the checks. Components keep the order you list them in; a `group` is shown as a group of that name, made when absent. Nothing is ever deleted: a component, group or rule you stop listing stays on the page and `holocron doctor monitoring` reports it as an `info` row. A field you leave out is left alone on an existing page.
+
+With a `domain`, Checkly asks for DNS records before it serves the page there. `holocron setup` reads them and makes them through the `dns` provider, as DNS-only records (Checkly's answer does not say they may be proxied). With no `dns` provider, or on a failure, each record is a failing `todo` row naming it, so it can be made by hand. `--dry-run` writes nothing, DNS included. `holocron doctor monitoring` fails a page declared `private` that is public, and fails while the domain is unverified.
 
 The plugin also contributes probes for `holocron probe` (see the [probe command](/holocron/commands/probe/)).
 

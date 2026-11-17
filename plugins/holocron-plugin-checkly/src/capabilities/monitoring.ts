@@ -21,6 +21,9 @@ import {
 	type MonitoringCheckInput,
 	type MonitoringDashboardInput,
 	type MonitoringDashboardState,
+	type MonitoringStatusPageInput,
+	type MonitoringStatusPageResult,
+	type MonitoringStatusPageState,
 	ProviderApiError,
 } from "@theholocron/cli";
 
@@ -38,6 +41,7 @@ import { DISCORD_TEMPLATE } from "../rest.js";
 import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 import { ensureDashboard, inspectDashboard } from "./dashboards.js";
+import { ensureStatusPage, inspectStatusPage } from "./status-pages.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
 	status_code: "STATUS_CODE",
@@ -134,6 +138,8 @@ function alertFields(
 export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
 	dashboards?: MonitoringDashboardInput[];
+	/** Status pages `holocron setup` ensures exist (see `capabilities/status-pages.ts`). */
+	statusPages?: MonitoringStatusPageInput[];
 }
 
 /** The Checkly implementation of the `monitoring` capability: ensures the configured API checks and alert channels exist. */
@@ -145,6 +151,7 @@ export class ChecklyMonitoring implements Monitoring {
 	readonly icon = CHECKLY_ICON;
 	readonly checks: readonly MonitoringCheckInput[];
 	readonly dashboards: readonly MonitoringDashboardInput[];
+	readonly statusPages: readonly MonitoringStatusPageInput[];
 
 	constructor(
 		private readonly client: () => ChecklyClient,
@@ -152,6 +159,7 @@ export class ChecklyMonitoring implements Monitoring {
 	) {
 		this.checks = opts.checks ?? [];
 		this.dashboards = opts.dashboards ?? [];
+		this.statusPages = opts.statusPages ?? [];
 	}
 
 	async whoami(): Promise<{ ok: boolean }> {
@@ -432,6 +440,16 @@ export class ChecklyMonitoring implements Monitoring {
 			found.push(...batch.map((c) => ({ id: c.id, name: c.name })));
 			if (batch.length < PAGE) return found;
 		}
+	}
+
+	/** A status page, its components and one automation rule per component; see `capabilities/status-pages.ts`. */
+	ensureStatusPage(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageResult> {
+		return ensureStatusPage(this.client(), input);
+	}
+
+	/** Reads the status page `input.name` and compares it with the declaration. */
+	inspectStatusPage(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageState> {
+		return inspectStatusPage(this.client(), input);
 	}
 
 	/** Checkly's `search` param is a case-insensitive partial match — narrow to the exact name ourselves. */

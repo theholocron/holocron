@@ -19,9 +19,12 @@ export interface ChecklyClientOptions {
 	errors?: ErrorSink;
 }
 
+/** The v1 API base, which the v3 status page client derives its own from. */
+export const DEFAULT_BASE = "https://api.checklyhq.com/v1";
+
 export function createChecklyRestClient(opts: ChecklyClientOptions): RestClient {
 	return createRestClient({
-		baseUrl: opts.baseUrl ?? "https://api.checklyhq.com/v1",
+		baseUrl: opts.baseUrl ?? DEFAULT_BASE,
 		token: opts.token,
 		vendor: "Checkly",
 		extraHeaders: { "x-checkly-account": opts.accountId },

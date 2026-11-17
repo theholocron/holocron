@@ -167,12 +167,12 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
-		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel; the checks are declared next to
-		// the service they watch (apps/sentinel and apps/comlink), and the docs site's here, because no app owns it. The
-		// dashboard and the status page, which span apps, are added to this one entry by later parts of #2302. The account id
-		// comes from .holocron/org.ts.
-		// The dashboard spans the apps, so it is declared here, not beside one of them: it shows every check tagged for a
-		// component. Private by default; its view key goes to the `dev` layer by hand (`doctor.manualSecrets`).
+		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. The checks are declared next to
+		// the service they watch (apps/sentinel and apps/comlink); the docs site's is here, because no app owns it. The
+		// dashboard and the public status page span the apps, so they are declared here too: each picks checks by tag, and a
+		// failing check carrying a component's tag opens an incident on it. The dashboard is private (its view key goes to
+		// the `dev` layer by hand, `doctor.manualSecrets`); the page serves `status.<domain>` through a CNAME that
+		// `holocron setup` makes with the `dns` provider. The account id comes from .holocron/org.ts.
 		monitoring: [
 			"checkly",
 			{
@@ -186,6 +186,18 @@ export default defineConfig({
 					},
 				],
 				dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
+				statusPages: [
+					{
+						name: "The Holocron",
+						slug: "theholocron",
+						domain: `status.${domain}`,
+						components: [
+							{ name: "Sentinel", tags: ["sentinel"] },
+							{ name: "Comlink", tags: ["comlink"] },
+							{ name: "Docs", tags: ["docs"] },
+						],
+					},
+				],
 			},
 		],
 		cache: "turbo",

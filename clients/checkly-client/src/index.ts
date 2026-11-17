@@ -2,7 +2,8 @@ import { alertChannels } from "./alert-channels/alert-channels.js";
 import { checkStatuses } from "./check-statuses/check-statuses.js";
 import { checks } from "./checks/checks.js";
 import { dashboards } from "./dashboards/dashboards.js";
-import { type ChecklyClientOptions, createChecklyRestClient } from "./utils.js";
+import { statusPages } from "./status-pages/status-pages.js";
+import { type ChecklyClientOptions, createChecklyRestClient, DEFAULT_BASE } from "./utils.js";
 
 export type {
 	AlertChannel,
@@ -27,16 +28,32 @@ export type {
 	ListChecksParams,
 } from "./checks/checks.js";
 export type { Dashboard, DashboardInput, DashboardKey } from "./dashboards/dashboards.js";
+export type {
+	CustomDomainVerification,
+	StatusComponent,
+	StatusComponentConfiguration,
+	StatusComponentInput,
+	StatusComponentType,
+	StatusPage,
+	StatusPageInput,
+	StatusRule,
+	StatusRuleComponent,
+	StatusRuleImpact,
+	StatusRuleInput,
+} from "./status-pages/status-pages.js";
 export type { ChecklyClientOptions } from "./utils.js";
 
-/** Creates a Checkly client with `alertChannels`, `checkStatuses`, `checks` and `dashboards` groups sharing one REST client. */
+/** Creates a Checkly client with `alertChannels`, `checkStatuses`, `checks`, `dashboards` and `statusPages` groups. */
 export function createChecklyClient(opts: ChecklyClientOptions) {
 	const rest = createChecklyRestClient(opts);
+	// The status page API is Checkly's v3: the same host and headers, a different version segment.
+	const v3 = createChecklyRestClient({ ...opts, baseUrl: (opts.baseUrl ?? DEFAULT_BASE).replace(/\/v1\/?$/, "/v3") });
 	return {
 		alertChannels: alertChannels(rest),
 		checkStatuses: checkStatuses(rest),
 		checks: checks(rest),
 		dashboards: dashboards(rest),
+		statusPages: statusPages(v3),
 	};
 }
 

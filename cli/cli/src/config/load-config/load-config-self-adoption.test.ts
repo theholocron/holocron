@@ -236,9 +236,33 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			// And (the `token` probe's zone): `.holocron/org.ts` fills the org's zone into every `cloudflare` entry.
 			tuple.options = { zone: "theholocron.dev" };
 		}
-		// And (#2302): the Checkly entry declares the dashboard that shows every check tagged for a component.
-		const checkly = expectedProviders.monitoring as { tuple: { options: Record<string, unknown> } };
-		checkly.tuple.options.dashboards = [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }];
+		// And (#2302): the root `monitoring` entry declares the docs site's check (Sentinel's and Comlink's are in their own
+		// configs), the dashboard that shows every check tagged for a component, and the public status page whose
+		// components are tied to checks by the same tags.
+		const monitoring = expectedProviders.monitoring as { tuple: { options: Record<string, unknown> } };
+		expect(monitoring.tuple.options.checks).toBeUndefined();
+		monitoring.tuple.options.checks = [
+			{
+				name: "Docs",
+				url: "https://docs.theholocron.dev/holocron/",
+				locations: ["us-east-1"],
+				tags: ["docs"],
+				assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
+			},
+		];
+		monitoring.tuple.options.dashboards = [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }];
+		monitoring.tuple.options.statusPages = [
+			{
+				name: "The Holocron",
+				slug: "theholocron",
+				domain: "status.theholocron.dev",
+				components: [
+					{ name: "Sentinel", tags: ["sentinel"] },
+					{ name: "Comlink", tags: ["comlink"] },
+					{ name: "Docs", tags: ["docs"] },
+				],
+			},
+		];
 		const dns = expectedProviders.dns as { tuple: { options: Record<string, unknown> } };
 		expect(dns.tuple.options).toEqual({});
 		dns.tuple.options = { zone: "theholocron.dev" };
@@ -261,20 +285,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				options: { vault: "The Holocron" },
 			},
 		};
-
-		// And (#2302): the `monitoring` provider gained the docs site's check. Sentinel's and Comlink's checks are in
-		// their own configs.
-		const monitoring = expectedProviders.monitoring as { tuple: { options: Record<string, unknown> } };
-		expect(monitoring.tuple.options.checks).toBeUndefined();
-		monitoring.tuple.options.checks = [
-			{
-				name: "Docs",
-				url: "https://docs.theholocron.dev/holocron/",
-				locations: ["us-east-1"],
-				tags: ["docs"],
-				assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
-			},
-		];
 
 		// And (#2172): the `tooling` provider, Bruno over the apps' request files, so `export requests` runs from the root.
 		expect(expectedProviders.tooling).toBeUndefined();
