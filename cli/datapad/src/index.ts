@@ -7,7 +7,8 @@
  * parent file, deep-merge, and hand back a plain object. No schema, no
  * validation, no defaults — the consumer owns those. `readConfigSource` +
  * `loadConfigFromContent` cover the same loading for content that didn't come
- * from a file on disk (a network fetch, a git blob, …), and
+ * from a file on disk (a network fetch, a git blob, …), `loadLayeredFromContent` layers such sources the way
+ * `loadLayered` layers files, and
  * `withConfigSandbox` prepares the directory that needs. A config directory of area files (`.holocron/<area>.*`) is
  * read with `loadConfigDir` from disk, or with `readConfigDirSource` / `writeConfigDir` from a remote source; the
  * directory name and the area names are parameters.
@@ -40,6 +41,8 @@ export { loadConfigFromContent } from "./load-config-from-content/index.js";
 export { loadConfigPath } from "./load-config-path/index.js";
 export type { LayeredResult, LoadLayeredOptions } from "./load-layered/index.js";
 export { loadLayered } from "./load-layered/index.js";
+export type { LoadLayeredFromContentOptions } from "./load-layered-from-content/index.js";
+export { loadLayeredFromContent } from "./load-layered-from-content/index.js";
 export { mergeLayers } from "./merge-layers/index.js";
 export type { ConfigDirSource, ReadConfigDirSourceOptions } from "./read-config-dir-source/index.js";
 export { readConfigDirSource } from "./read-config-dir-source/index.js";

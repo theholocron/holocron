@@ -4,9 +4,10 @@
  * can import it without pulling the task runner.
  */
 
+export { coerceTasks } from "./coerce-tasks/index.js";
 export { defineConfig } from "./define/index.js";
+export type { TasksInput } from "./load/index.js";
 export { loadTasksConfig } from "./load/index.js";
-export { mergeTasksLayers } from "./merge-tasks-layers/index.js";
 export { releaseGroups } from "./release-groups/index.js";
 export type { TaskConfigItem, TaskEntry, TasksConfig } from "./schema/index.js";
 export { normalizeTaskEntry } from "./schema/index.js";

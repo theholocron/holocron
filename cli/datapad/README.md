@@ -157,6 +157,19 @@ paths actually merged, lowest priority first.
   before the merge (a bare array standing for `{ tasks: [...] }`, say);
   returning `undefined` treats the layer as absent.
 
+### `loadLayeredFromContent<T>({ dir, name, fetch, fallback?, extensions?, coerce? })`
+
+`loadLayered` for config files that live somewhere other than the local disk. The
+dedicated `<name>.config.*` and the `<fallback.file>.config.*` are probed through
+`fetch` (as `readConfigSource` does), executed in `dir` (a directory prepared by
+`withConfigSandbox`) and merged with `mergeLayers`, the dedicated file winning. Returns
+`{ config, filepath, sources } | null`, with the paths as `fetch` was asked for them.
+
+- `fallback.preloaded` — the fallback file as the caller already loaded it, used
+  instead of fetching it (then `fallback.file` is not needed).
+- A source that is found but cannot be executed throws a `ConfigFileError` whose
+  `filepath` names it; what `fetch` throws propagates unchanged.
+
 ### `mergeLayers<T>(layers)`
 
 The merge `loadLayered` uses, for layers loaded some other way: deep-merges
