@@ -89,6 +89,17 @@ describe("pre-push createConfig", () => {
 			expect(result.stderr).toBe("");
 		});
 
+		it("finds the built file after node's own options", () => {
+			const out = createConfig("node --no-warnings cli/cli/dist/cli.mjs");
+			expect(out).toContain('if [ ! -f "cli/cli/dist/cli.mjs" ]; then');
+			expect(out).toContain("node --no-warnings cli/cli/dist/cli.mjs run ci");
+		});
+
+		it("finds a quoted built file, spaces and all", () => {
+			expect(createConfig('node "my tools/dist/cli.mjs"')).toContain('if [ ! -f "my tools/dist/cli.mjs" ]; then');
+			expect(createConfig("node 'my tools/dist/cli.mjs'")).toContain('if [ ! -f "my tools/dist/cli.mjs" ]; then');
+		});
+
 		it("adds no check for a script that is not a built file", () => {
 			expect(createConfig("pnpm exec holocron")).not.toContain("is not built yet");
 			expect(createConfig()).not.toContain("__BUILD_CHECK__");

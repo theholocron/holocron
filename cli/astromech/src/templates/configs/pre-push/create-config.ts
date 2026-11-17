@@ -18,10 +18,12 @@ const { workflowHeader } = createHeader({
  *   `pnpm exec holocron`; the source repo passes `node cli/cli/dist/cli.mjs`.
  */
 export function createConfig(holocronScript = "pnpm exec holocron"): string {
-	const built = /^node (\S+)$/.exec(holocronScript)?.[1];
-	const buildCheck = built
-		? `if [ ! -f "${built}" ]; then
-\techo "pre-push: ${built} is not built yet. Run: pnpm install && pnpm build (or push with --no-verify)." >&2
+	// `node [--option ...] <file>`, the file bare or in single or double quotes.
+	const built = /^node(?:\s+-\S+)*\s+(?:"([^"]+)"|'([^']+)'|([^\s"'-]\S*))$/.exec(holocronScript);
+	const file = built?.[1] ?? built?.[2] ?? built?.[3];
+	const buildCheck = file
+		? `if [ ! -f "${file}" ]; then
+\techo "pre-push: ${file} is not built yet. Run: pnpm install && pnpm build (or push with --no-verify)." >&2
 \texit 1
 fi
 `

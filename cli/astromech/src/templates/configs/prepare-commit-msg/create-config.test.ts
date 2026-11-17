@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -107,19 +107,31 @@ describe("prepare-commit-msg createConfig", () => {
 			);
 		});
 
+		/** What sits beside the message file: nothing but the message itself should remain. */
+		const besideMessage = (root: string) => readdirSync(root).filter((name) => name.startsWith("MSG"));
+
 		it("leaves no temporary file behind", () => {
 			const root = setup();
 			run(root);
-			expect(existsSync(join(root, "MSG.devmoji"))).toBe(false);
+			expect(besideMessage(root)).toEqual(["MSG"]);
 		});
 
-		it("fails the commit and keeps the message when devmoji fails", () => {
+		it("never touches a file that already sits at a guessable name beside the message", () => {
+			const root = setup();
+			writeFileSync(join(root, "MSG.devmoji"), "somebody else's file\n");
+			const result = run(root);
+			expect(result.status).toBe(0);
+			expect(readFileSync(join(root, "MSG.devmoji"), "utf8")).toBe("somebody else's file\n");
+			expect(besideMessage(root).sort()).toEqual(["MSG", "MSG.devmoji"]);
+		});
+
+		it("fails the commit and puts the message back exactly as it was when devmoji fails", () => {
 			const root = setup();
 			writeFileSync(join(root, "npx"), "#!/bin/sh\nexit 3\n");
 			const result = run(root);
 			expect(result.status).toBe(1);
-			expect(readFileSync(join(root, "MSG"), "utf8")).toContain("chore: a change");
-			expect(existsSync(join(root, "MSG.devmoji"))).toBe(false);
+			expect(readFileSync(join(root, "MSG"), "utf8")).toBe("chore: a change\n");
+			expect(besideMessage(root)).toEqual(["MSG"]);
 		});
 	});
 });

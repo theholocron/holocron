@@ -143,7 +143,8 @@ handed the path directly. Requires: (a) `astromech`'s task registry
 actually resolving and passing `--config`/`--extends`, and (b) removing
 the now-redundant pointer files from every repo (folds into the migration
 pass, Phase 5). **Unverified, check during implementation**: `devmoji`
-(invoked via `npx devmoji -e` in the generated `prepare-commit-msg` hook,
+(invoked via `npx devmoji` on the commit message, passed on stdin and written back to the file git hands the generated
+`prepare-commit-msg` hook; it was `-e` until #1104, which reads the main checkout's file from a linked worktree,
 not installed as a persistent devDependency anywhere checked) — don't
 assume it supports the same pattern without confirming first.
 
