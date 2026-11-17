@@ -1,3 +1,9 @@
+## [5.0.0-alpha.463](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.462...v5.0.0-alpha.463) (2026-11-17)
+
+### Features
+
+* **ci:** ✨ delete a PR's Vercel previews when it closes ([#2304](https://github.com/theholocron/holocron/issues/2304)) ([965bd62](https://github.com/theholocron/holocron/commit/965bd6205c14a693cd0773263c8ec6ac53ad1b8c)), closes [#1021](https://github.com/theholocron/holocron/issues/1021)
+
 ## [5.0.0-alpha.462](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.461...v5.0.0-alpha.462) (2026-11-17)
 
 ### Features
