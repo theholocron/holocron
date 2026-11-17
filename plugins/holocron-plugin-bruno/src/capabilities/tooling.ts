@@ -13,7 +13,7 @@
  * `doctor()` checks the input files exist and parse as JSON.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 import type {
@@ -26,10 +26,9 @@ import type {
 	ToolingWorkspaceResult,
 } from "@theholocron/cli";
 
-import { type CollectionFiles, collectionFiles as convertToFiles } from "../collection-files.js";
 import { convertCollection } from "../convert-collection.js";
 import { outputNames } from "../output-names.js";
-import { syncWorkspace } from "../sync-workspace.js";
+import { type CollectionInput, syncWorkspace } from "../sync-workspace.js";
 
 /** Options for the Bruno `tooling` provider: the same two file lists the other tooling providers take. */
 export interface BrunoToolingOptions {
@@ -53,6 +52,16 @@ async function readJson(root: string, file: string): Promise<unknown> {
 	} catch (err) {
 		throw new Error(`${file}: ${message(err)}`, { cause: err });
 	}
+}
+
+/** Like {@link readJson}, but a file that is not there is `undefined`: the workspace may make it. */
+async function readJsonIfThere(root: string, file: string): Promise<unknown> {
+	try {
+		await access(resolve(root, file));
+	} catch {
+		return undefined;
+	}
+	return readJson(root, file);
 }
 
 /** The Bruno implementation of the `tooling` capability: files only. */
@@ -116,27 +125,26 @@ export class BrunoTooling implements Tooling {
 
 	async workspace(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult> {
 		const { collectionFiles, envFiles, repoRoot } = input;
-		const issues: ToolingExportIssue[] = [];
-		const collections: CollectionFiles[] = [];
+		const collections: CollectionInput[] = [];
 		for (const file of collectionFiles) {
 			const beside = envFiles.filter((env) => dirname(env) === dirname(file));
-			const environments = await Promise.all(
-				(beside.length > 0 ? beside : envFiles).map((env) => readJson(repoRoot, env))
-			);
-			const converted = await convertToFiles(await readJson(repoRoot, file), environments).catch(
-				(err: unknown) => {
-					throw new Error(`${file}: ${message(err)}`, { cause: err });
-				}
-			);
-			for (const issue of converted.issues) issues.push({ file, message: issue });
-			collections.push(converted);
+			collections.push({
+				source: file,
+				json: await readJsonIfThere(repoRoot, file),
+				environments: await Promise.all(
+					(beside.length > 0 ? beside : envFiles).map(async (env) => ({
+						source: env,
+						json: await readJsonIfThere(repoRoot, env),
+					}))
+				),
+			});
 		}
-		const files = await syncWorkspace({
+		return syncWorkspace({
 			workspaceName: this.options.workspaceName ?? "Workspace",
 			collections,
 			repoRoot,
 			...(input.dryRun ? { dryRun: true } : {}),
+			...(input.prefer ? { prefer: input.prefer } : {}),
 		});
-		return { files, issues };
 	}
 }

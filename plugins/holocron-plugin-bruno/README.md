@@ -42,11 +42,15 @@ providers: {
   The same collection is also written as `<name>.bruno.json`, Bruno's own collection export with the environments inside,
   which is the file to import in Bruno (one file for the requests and the environments).
   Converter issues are returned, not thrown. A dry run converts and writes nothing.
-- `workspace` keeps the committed `.bruno/` workspace equal to the request files (`holocron sync requests`), with Bruno's own
-  file writer (`@usebruno/filestore`): `workspace.yml`, and one folder per collection under `collections/` holding
-  `opencollection.yml`, a `folder.yml` per folder, a YAML file per request and an `environments/` folder. A secret variable
-  is written without its value. Each file is `new`, `changed`, `unchanged` or `removed`; a dry run writes and deletes nothing.
-  One way for now: the request files win.
+- `workspace` keeps the committed `.bruno/` workspace and the request files in step, both ways (`holocron sync requests`), with Bruno's own
+  file writer (`@usebruno/filestore`) and reader (`parseRequest`, `parseFolder`, `parseCollection`, `parseEnvironment`):
+  `workspace.yml`, and one folder per collection under `collections/` holding `opencollection.yml`, a `folder.yml` per folder,
+  a YAML file per request and an `environments/` folder. A secret variable is written without its value. `.bruno/.sync.json`
+  records a hash of both sides of each pair at the last sync, so a run knows which side changed: the request file only
+  regenerates the workspace, the workspace only regenerates the request file (through `brunoToPostman`, with the request
+  file's untouched entries kept as they were), both is a `conflict` that writes nothing unless `prefer` (`source` or
+  `workspace`) settles it. A setting only Bruno has stays in the workspace and is reported as an issue. Each file is `new`,
+  `changed`, `unchanged`, `removed` or `conflict`; a dry run writes and deletes nothing.
 - `sync` does nothing and succeeds: Bruno keeps no state, and the files are written by `export` and `workspace`.
 - `doctor` checks `collectionFiles` is set and every file exists and parses as JSON.
 

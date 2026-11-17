@@ -7,11 +7,11 @@ import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runSyncRequests } from "./run-sync-requests/index.js";
 
-type Args = GlobalArgs & { to?: string; check?: boolean; yes?: boolean };
+type Args = GlobalArgs & { to?: string; check?: boolean; prefer?: "source" | "workspace"; yes?: boolean };
 
 export const syncRequestsCommand: CommandModule<GlobalArgs, Args> = {
 	command: "requests",
-	describe: "Keep each tooling provider's workspace of the repo's request collections equal to the request files",
+	describe: "Keep each tooling provider's workspace and the repo's request files in step, both ways",
 	builder: (y: Argv<GlobalArgs>) =>
 		y
 			.option("to", {
@@ -21,6 +21,12 @@ export const syncRequestsCommand: CommandModule<GlobalArgs, Args> = {
 			.option("check", {
 				type: "boolean",
 				describe: "Write nothing and exit non-zero when any file is out of date (for CI)",
+			})
+			.option("prefer", {
+				type: "string",
+				choices: ["source", "workspace"] as const,
+				describe:
+					"Settle a pair whose request file and workspace both changed since the last sync: `source` regenerates the workspace from the request files, `workspace` the request files from the workspace",
 			})
 			.option("yes", {
 				type: "boolean",
@@ -36,6 +42,7 @@ export const syncRequestsCommand: CommandModule<GlobalArgs, Args> = {
 			context: { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org: resolveOrg(argv, loaded.resolved) },
 			...(argv.to ? { to: argv.to } : {}),
 			...(argv.check ? { check: true } : {}),
+			...(argv.prefer ? { prefer: argv.prefer } : {}),
 			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

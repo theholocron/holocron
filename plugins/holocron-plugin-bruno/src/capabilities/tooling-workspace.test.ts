@@ -51,6 +51,7 @@ describe("BrunoTooling.workspace", () => {
 		expect(result.issues).toEqual([]);
 		expect(Object.values(states(result.files))).toEqual(Array(result.files.length).fill("new"));
 		expect(result.files.map((f) => f.path)).toEqual([
+			".bruno/.sync.json",
 			".bruno/collections/app-a/environments/A (local).yml",
 			".bruno/collections/app-a/opencollection.yml",
 			".bruno/collections/app-a/ping.yml",
@@ -110,14 +111,6 @@ describe("BrunoTooling.workspace", () => {
 		});
 		expect(existsSync(join(root, ".bruno/collections/app-a/ping.yml"))).toBe(false);
 		expect(existsSync(join(root, ".bruno/collections/app-a/ping-two.yml"))).toBe(true);
-	});
-
-	it("reports a file edited in the workspace as changed and puts the generated text back", async () => {
-		await tool().workspace(input());
-		writeFileSync(join(root, ".bruno/collections/app-a/ping.yml"), "edited in Bruno\n");
-		const result = await tool().workspace(input());
-		expect(states(result.files)[".bruno/collections/app-a/ping.yml"]).toBe("changed");
-		expect(read(".bruno/collections/app-a/ping.yml")).toContain("method: GET");
 	});
 
 	it("removes the folder of a request that was in a folder of its own, once it is empty", async () => {

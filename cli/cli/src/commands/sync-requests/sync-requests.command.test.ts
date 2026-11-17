@@ -38,11 +38,18 @@ describe("sync requests", () => {
 		);
 	});
 
+	it("passes --prefer, and refuses a word that is neither side", async () => {
+		await go("--prefer", "workspace");
+		expect(runSyncRequests.mock.calls[0]![0].prefer).toBe("workspace");
+		await expect(go("--prefer", "bruno")).rejects.toThrow();
+	});
+
 	it("leaves the optional inputs out and passes dry-run when asked", async () => {
 		await go("--dry-run");
 		const input = runSyncRequests.mock.calls[0]![0];
 		expect(input).not.toHaveProperty("to");
 		expect(input).not.toHaveProperty("check");
+		expect(input).not.toHaveProperty("prefer");
 		expect(input).not.toHaveProperty("yes");
 		expect(input.context.dryRun).toBe(true);
 	});

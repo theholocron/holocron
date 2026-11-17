@@ -16,6 +16,15 @@ declare module "@usebruno/converters" {
 		options?: { useWorkers?: boolean; preserveScripts?: boolean }
 	): Promise<PostmanToBrunoResult>;
 
+	/**
+	 * Writes Bruno's collection (its `name`, `root`, `items` and `environments`) as a v2.1 collection. It takes the
+	 * collection it is given apart (it deletes the ids), so pass a collection that is not used again.
+	 */
+	export function brunoToPostman(
+		collection: unknown,
+		options?: { preserveScripts?: boolean }
+	): Record<string, unknown>;
+
 	/** Reads an environment file into Bruno's environment. */
 	export function postmanToBrunoEnvironment(
 		environment: unknown
@@ -41,6 +50,33 @@ declare module "@usebruno/filestore" {
 
 	/** One environment's file; a secret variable is written without its value. */
 	export function stringifyEnvironment(environment: unknown, options?: { format?: "bru" | "yml" }): string;
+
+	/** Reads a collection's own file: its root settings and Bruno's config (the name is `brunoConfig.name`). */
+	export function parseCollection(
+		content: string,
+		options?: { format?: "bru" | "yml" }
+	): { collectionRoot: Record<string, unknown>; brunoConfig: { name?: string } & Record<string, unknown> };
+
+	/** Reads a folder's own file; `meta` holds its name and position and the rest is the folder's settings. */
+	export function parseFolder(
+		content: string,
+		options?: { format?: "bru" | "yml" }
+	): { meta?: { name?: string; seq?: number }; docs?: unknown } & Record<string, unknown>;
+
+	/** Reads one request's file into Bruno's item. */
+	export function parseRequest(
+		content: string,
+		options?: { format?: "bru" | "yml" }
+	): { name?: string; seq?: number } & Record<string, unknown>;
+
+	/** Reads one environment's file. */
+	export function parseEnvironment(
+		content: string,
+		options?: { format?: "bru" | "yml" }
+	): {
+		name: string;
+		variables?: { name: string; value?: string; enabled?: boolean; secret?: boolean }[];
+	};
 }
 
 declare module "@opencollection/converters" {

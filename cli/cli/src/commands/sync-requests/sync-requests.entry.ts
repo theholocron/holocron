@@ -2,9 +2,8 @@ import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const syncRequestsEntry: MenuEntry = {
 	name: "sync requests",
-	description:
-		"Keep each tooling provider's own workspace of the repo's request collections equal to the request files",
+	description: "Keep each tooling provider's own workspace and the repo's request files in step, both ways",
 	positionals: [],
-	skipOptions: ["yes", "to", "check"],
+	skipOptions: ["yes", "to", "check", "prefer"],
 	supportsDryRun: true,
 };

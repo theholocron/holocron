@@ -35,10 +35,13 @@ sit next to the API path they exercise, and Bruno should open and save them in t
      already registers only `api/webhook.mjs` as a function; the ignore file is belt and braces.
    - The `tooling` provider's `collectionFiles` and `envFiles` name the new paths, and the Sentinel and Comlink
      requests tests, the self-adoption test and the docs follow them.
-3. **`holocron sync requests [--check] [--prefer json|bruno] [--dry-run] [--yes]`** keeps the two sides equal. It is a
+3. **`holocron sync requests [--check] [--prefer source|workspace] [--dry-run] [--yes]`** keeps the two sides equal. It is a
    `workspace` command that reads the same `collectionFiles` / `envFiles` options as `export requests`. It records, for
    each collection and each environment, a hash of both sides as they were at the last sync, in `.bruno/.sync.json`
-   (committed, so a fresh clone has the baseline). A run compares each side with that baseline:
+   (committed, so a fresh clone has the baseline; `{ version: 1, pairs: [{ kind, source, workspace, sourceHash,
+workspaceHash }] }`). The request file's hash is the hash of what the workspace can carry of it (the file written
+   to Bruno's files and read back, as a key-sorted JSON text); the workspace's is the hash of its own files. A run
+   compares each side with that baseline:
 
    | JSON changed | Bruno changed | What happens                                  |
    | ------------ | ------------- | --------------------------------------------- |
@@ -48,7 +51,9 @@ sit next to the API path they exercise, and Bruno should open and save them in t
    | yes          | yes           | a conflict: the row fails, nothing is written |
 
    With no baseline yet, a side that does not exist is made from the other; two that differ are a conflict. `--prefer`
-   settles a conflict explicitly, one run at a time; there is no default winner. `--check` writes nothing and exits
+   settles a conflict explicitly, one run at a time (`source` regenerates the workspace from the request files,
+   `workspace` the request files from the workspace; the words are the provider-neutral ones, since the CLI names no
+   tool); there is no default winner. Two sides that both changed to the same content are not a conflict. `--check` writes nothing and exits
    non-zero unless every pair is in sync, for CI. `--dry-run` converts and lists. It asks first unless `--dry-run` or
    `--yes`.
 
@@ -73,7 +78,7 @@ sit next to the API path they exercise, and Bruno should open and save them in t
 ## Parts (one PR each)
 
 1. The `.bruno/` workspace and `sync requests` one way (JSON to Bruno), with `--check`.
-2. Bruno to JSON, the baseline file and conflict detection.
+2. Bruno to JSON, the baseline file and conflict detection (built).
 3. The file moves (`apps/sentinel/api`, Comlink) with `.vercelignore`, and the removal of the YAML output.
 
 ## Open questions
@@ -82,7 +87,25 @@ sit next to the API path they exercise, and Bruno should open and save them in t
   keeps the files next to the code; a new `apps/comlink/api/` would hold nothing else.
 - **Collections outside the workspace folder.** Part 1 puts the collections under `.bruno/collections/`, the layout
   Bruno documents. Whether a workspace can point at a folder outside `.bruno/` is not verified.
-- **Round-trip fidelity.** Bruno to Postman JSON through `@usebruno/converters` is untested on the signing script and
-  on the folder structure; part 2 starts with that check.
+- **Round-trip fidelity (checked in part 2).** `@usebruno/converters` has `brunoToPostman`, and `@usebruno/filestore`
+  reads every file kind (`parseRequest`, `parseFolder`, `parseCollection`, `parseEnvironment`, `{ format: "yml" }`).
+  On the committed Sentinel and Comlink collections the trip request file to Bruno files and back keeps the folder
+  structure and order, each request's method, URL, headers, body, description and tests, the folder-level signing
+  script (`bru.*` back to `pm.*`), the collection and request descriptions, the collection variables, and an
+  environment's secret variable with no value. It is not byte for byte: the translator lays scripts out its own way
+  (`pm.response.to.have.status(200)` returns as `pm.expect(pm.response.code).to.equal(200)`, a one-line
+  `pm.request.headers.upsert({...})` on four lines), and the exporter drops a folder's description, invents a
+  `$guid` collection variable and adds empty `description`, `disabled`, `type`, `packages` and `requests` to every
+  entry. Part 2 repairs the first two, removes the last, and lays the original under the result so that only an
+  entry the edit changed is rewritten (a request edited in Bruno gets its test rewritten as above; the others keep
+  their text). Writing the Bruno files again from that result gives the same files, so a second sync changes nothing.
+  Not verified: features no committed collection uses (GraphQL, auth modes beyond inherit/none, examples, multipart
+  bodies, folder-level auth), which the exporter may not round-trip.
+- **A Bruno-only edit and a request file change at once.** The workspace's hash covers its own files whole, so an edit
+  to a setting only Bruno has (a timeout) is still a change to the workspace; if the request file changed as well,
+  that is a conflict, and `--prefer source` drops the setting. Hashing only what the request file carries would make
+  the sync overwrite such settings without saying so.
+- **A renamed environment file.** An environment's workspace file name comes from its name in the request file; a file
+  renamed in Bruno is read as a new, unsynced file and the old one is regenerated. Not handled.
 - **`validate:generated`.** Whether `sync requests --check` joins that task or gets its own. Part 1 pins the committed
   `.bruno/` with a unit test in the Bruno plugin (`committed-workspace.test.ts`), which the required `test:unit` check runs.
