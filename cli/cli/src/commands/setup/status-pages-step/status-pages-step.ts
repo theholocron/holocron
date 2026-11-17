@@ -1,6 +1,5 @@
-import { describeError } from "@theholocron/kyber/ui";
-
 import type { DnsRecord, Monitoring, MonitoringStatusPageResult, PluginLoader } from "../../../plugin/index.js";
+import { describeProviderError } from "../describe-provider-error/index.js";
 import { runStep, type SetupStepResult } from "../run-step/index.js";
 
 /** The records Checkly asks for a status page's custom domain, as DNS records. */
@@ -105,7 +104,7 @@ export async function statusPagesStep(
 					capability: "monitoring",
 					step: `dns ${r.name}`,
 					status: "fail",
-					message: describeError(err),
+					message: describeProviderError(err),
 				});
 			}
 		}

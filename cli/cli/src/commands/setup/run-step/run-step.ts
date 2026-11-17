@@ -1,8 +1,9 @@
-import { describeError, style, withProgress } from "@theholocron/kyber/ui";
+import { style, withProgress } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
 import { ProviderApiError } from "../../../plugin/index.js";
+import { describeProviderError } from "../describe-provider-error/index.js";
 
 export async function runStep(
 	capability: string,
@@ -40,7 +41,7 @@ async function execStep(
 		if (err instanceof ProviderApiError) {
 			if (err.status !== undefined && opts.skipCodes?.includes(err.status)) {
 				return {
-					result: { capability, step, status: "skip", message: describeError(err) },
+					result: { capability, step, status: "skip", message: describeProviderError(err) },
 					logged: err.message,
 				};
 			}
@@ -53,7 +54,7 @@ async function execStep(
 						capability,
 						step,
 						status: reason === "plan" ? "skip" : "fail",
-						message: describeError(err),
+						message: describeProviderError(err),
 						reason,
 					},
 					logged: err.message,
@@ -61,7 +62,7 @@ async function execStep(
 			}
 		}
 		return {
-			result: { capability, step, status: "fail", message: describeError(err) },
+			result: { capability, step, status: "fail", message: describeProviderError(err) },
 			logged: errorMessage(err),
 		};
 	}

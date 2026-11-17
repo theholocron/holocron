@@ -26,7 +26,7 @@ import type { TasksConfig } from "@theholocron/astromech/config";
 import { holocronEnv } from "@theholocron/env-utils/lookup";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
-import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
+import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
@@ -50,6 +50,7 @@ import {
 	KNOWN_STACK_DEPS,
 	readWorkspacePackageJsons,
 } from "./derived-properties/index.js";
+import { describeProviderError } from "./describe-provider-error/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { errorsEnvKeys } from "./errors-env-keys/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
@@ -628,7 +629,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				capability: "vault",
 				step: "list",
 				status: "fail",
-				message: describeError(err),
+				message: describeProviderError(err),
 			});
 		}
 		print(formatStep(steps[steps.length - 1]));
