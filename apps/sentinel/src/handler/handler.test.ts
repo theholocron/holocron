@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { fakeFlush, createLoggerCalls, resolveAxiomConfigCalls, FAKE_AXIOM_CONFIG } = vi.hoisted(() => ({
+const { fakeFlush, fakeErrorSink, createLoggerCalls, resolveAxiomConfigCalls, FAKE_AXIOM_CONFIG } = vi.hoisted(() => ({
 	fakeFlush: vi.fn().mockResolvedValue(undefined),
+	// What `resolveErrorSink()` returns, so a test can see what the handler reported and flushed.
+	fakeErrorSink: {
+		init: vi.fn(),
+		startSpan: vi.fn(),
+		captureException: vi.fn(),
+		endSession: vi.fn(),
+		flush: vi.fn(),
+	},
 	// Recorded once, at the single static import of ./handler.js below. Plain
 	// arrays (not vi.fn()s) so the per-test mockReset()s can't clear them.
 	createLoggerCalls: [] as unknown[][],
@@ -24,6 +32,7 @@ vi.mock("../utils/axiom-config/axiom-config.js", () => ({
 		return FAKE_AXIOM_CONFIG;
 	},
 }));
+vi.mock("../utils/sentry-config/sentry-config.js", () => ({ resolveErrorSink: () => fakeErrorSink }));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
 vi.mock("../actions/auto-fix-loop/find-auto-fix-loop/find-auto-fix-loop.js", () => ({ findAutoFixLoop: vi.fn() }));
 vi.mock("../actions/auto-fix-loop/post-auto-fix-loop-comment/post-auto-fix-loop-comment.js", () => ({
@@ -166,6 +175,9 @@ beforeEach(() => {
 	vi.mocked(postAutoFixLoopComment).mockReset();
 	vi.mocked(postAutoFixLoopComment).mockResolvedValue({ posted: true });
 	fakeFlush.mockClear();
+	fakeErrorSink.captureException.mockReset();
+	fakeErrorSink.flush.mockReset();
+	fakeErrorSink.flush.mockResolvedValue(undefined);
 });
 
 describe("handler — module-level logger (holocron#780/#781)", () => {
@@ -1756,11 +1768,13 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 	it("soft-skips a postAutoFixComment failure -- the commit itself still reports success, request still succeeds", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
-		vi.mocked(postAutoFixComment).mockRejectedValue(new Error("comment failed"));
+		const failure = new Error("comment failed");
+		vi.mocked(postAutoFixComment).mockRejectedValue(failure);
 
 		const res = await handleWebhookRequest(req(), ENV);
 
 		expect(res.status).toBe(200);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
 		const body = (await res.json()) as { autoFixCommentResult: unknown; formattingFixResult: unknown };
 		expect(body.autoFixCommentResult).toBeUndefined();
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
@@ -1983,5 +1997,111 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 			await handleWebhookRequest(req(), ENV);
 			expect(runPrFeed).not.toHaveBeenCalled();
 		});
+	});
+});
+
+describe("handler — error tracking (holocron#1045)", () => {
+	function prEvent() {
+		return {
+			type: "pull_request.opened" as const,
+			repo: "acme/demo",
+			installationId: 42,
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: { number: 9, head: { sha: "pr-head-sha" } },
+			},
+		};
+	}
+
+	function withTasks(tasks: Array<string | { name: string }>) {
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks } as never });
+	}
+
+	beforeEach(() => {
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		withTasks([]);
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+	});
+
+	it("reports nothing, and sends nothing, for a delivery that raises no error", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: false,
+			reason: "unrelated event",
+			githubEvent: "issues",
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(fakeErrorSink.captureException).not.toHaveBeenCalled();
+		expect(fakeErrorSink.flush).not.toHaveBeenCalled();
+	});
+
+	it("reports an unhandled error and flushes the sink before the function returns", async () => {
+		const failure = new Error("something else entirely");
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw failure;
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
+		expect(fakeErrorSink.flush).toHaveBeenCalledTimes(1);
+	});
+
+	it("reports a failing check and still runs the others, then flushes", async () => {
+		const failure = new Error("Cannot find module (some unrelated failure)");
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintCommits).mockRejectedValue(failure);
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
+		expect(postCheckRun).toHaveBeenCalled();
+		expect(fakeErrorSink.flush).toHaveBeenCalledTimes(1);
+	});
+
+	it("reports each of several failing checks, not only the first", async () => {
+		const first = new Error("commits down");
+		const second = new Error("dco down");
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintCommits).mockRejectedValue(first);
+		vi.mocked(lintDco).mockRejectedValue(second);
+		await handleWebhookRequest(req(), ENV);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(first);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(second);
+		expect(postCheckRun).toHaveBeenCalled();
+	});
+
+	it("reports a failing docs presence check", async () => {
+		const failure = new Error("rate limited");
+		withTasks(["platform.repoValidation"]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateDocsPresence).mockRejectedValue(failure);
+		await handleWebhookRequest(req(), ENV);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
+	});
+
+	it("reports a pull request feed that could not run", async () => {
+		const failure = new Error("bad credentials");
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "pull_request.feed",
+				repo: "acme/demo",
+				installationId: 7,
+				action: "closed",
+				pullNumbers: [12],
+			},
+		} as never);
+		vi.mocked(createInstallationClient).mockRejectedValue(failure);
+		await handleWebhookRequest(req(), ENV);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledWith(failure);
+	});
+
+	it("a sink whose flush rejects never turns a successful response into a 500", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		fakeErrorSink.flush.mockRejectedValue(new Error("Sentry unreachable"));
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintCommits).mockRejectedValue(new Error("down"));
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
 	});
 });

@@ -153,7 +153,8 @@
  * (holocron#781) from the 1Password Environment `Sentinel`: `SENTINEL_GITHUB_APP_ID`,
  * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`),
  * `SENTINEL_WEBHOOK_SECRET`. The module-level
- * logger below reads two more via `@theholocron/env-utils/lookup` (see its own
+ * logger below reads two more, and the error reporter `SENTINEL_SENTRY_DSN` (holocron#1045), via
+ * `@theholocron/env-utils/lookup` (see its own
  * comment — never bare `process.env`, this org's own convention) — not
  * through this `Env` parameter, since it's built once at module load,
  * before any request (and its `env`) exists.
@@ -215,11 +216,13 @@ import {
 	validateDocsPresence,
 } from "../actions/index.js";
 import {
+	createErrorReporter,
 	declaresRepoValidation,
 	githubAppCredentials,
 	parseWebhookEvent,
 	readAutoFix,
 	resolveAxiomConfig,
+	resolveErrorSink,
 	SENTINEL_ADRS_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
@@ -248,6 +251,9 @@ import type { Env, ResolutionContext } from "./handler.type.js";
 // log line in Axiom without leaving GitHub.
 const env = createEnvLookup();
 const { logger, runId } = createLogger(resolveAxiomConfig(env));
+// Error tracking (holocron#1045): `SENTINEL_SENTRY_DSN` unset means a no-op sink. Made on the first error and flushed
+// (so closed) at the end of each delivery, see `createErrorReporter()`.
+const errors = createErrorReporter(() => resolveErrorSink(env));
 
 function json(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -344,6 +350,7 @@ async function runDocsPresence(
 		return checkRun;
 	} catch (err) {
 		logger.error({ repo, err: serializeError(err) }, "validateDocsPresence: failed, continuing without it");
+		errors.capture(err);
 		return undefined;
 	}
 }
@@ -363,6 +370,7 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		// still respond 500 (this is a genuine unhandled failure, not a
 		// recognized "config didn't validate" case above).
 		logger.error({ err: serializeError(err) }, "handleWebhookRequest: unhandled error");
+		errors.capture(err);
 		return json({ handled: false, reason: "internal error" }, 500);
 	} finally {
 		// Axiom's transport runs on a worker thread -- a line logged above is
@@ -378,6 +386,8 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		} catch (err) {
 			console.error("handleWebhookRequest: logger.flush() failed", err);
 		}
+		// Same reason for the error sink: Sentry queues an event and sends it later. `flush()` never rejects.
+		await errors.flush();
 	}
 }
 
@@ -457,6 +467,7 @@ async function runFeed(event: SentinelEvent, repo: string, trigger: PrFeedTrigge
 		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
 		prFeed = await runPrFeed({ client, env, repo, trigger });
 	} catch (err) {
+		errors.capture(err);
 		prFeed = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
 	}
 	if (prFeed.status === "fail") logger.error({ repo, type: event.type, prFeed }, SENTINEL_PR_FEED_LOG_MSG);
@@ -539,6 +550,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintCommits: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -565,6 +577,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintDco: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -600,6 +613,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintInclusiveLanguage: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -639,6 +653,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintFormatting: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -678,6 +693,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintEditorConfig: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -719,6 +735,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "lintMarkdown: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -748,6 +765,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			logger.info({ repo, status: result.status }, SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "validateConfig (PR ref): failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -823,6 +841,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "validateAdrs: failed, continuing without it");
+			errors.capture(err);
 		}
 
 		docsPresenceCheckRun = await runDocsPresence(client, repo, context.pullNumber, context);
@@ -894,6 +913,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			}
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "autoFixLoop: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -943,10 +963,12 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 						{ repo, err: serializeError(err) },
 						"postAutoFixComment: failed, continuing without it"
 					);
+					errors.capture(err);
 				}
 			}
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "commitFormattingFix: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -976,6 +998,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "commitEditorConfigFix: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 
@@ -1012,6 +1035,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "commitMarkdownLintFix: failed, continuing without it");
+			errors.capture(err);
 		}
 	}
 

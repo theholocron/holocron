@@ -578,6 +578,24 @@ and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, bu
 source of truth. They used to be copied to organization Actions variables and an org secret for the dispatched check workflow; Sentinel no longer dispatches it (#2263), so the sync writes them to Vercel only. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above); with either unset the check run has no details link.
 
+**Error tracking** (holocron#1045). Sentinel reports an exception that a check or the handler caught to its own Sentry
+project, through `SentrySink` behind the `ErrorSink` interface of `@theholocron/observability/errors` (no `@sentry/node`
+import in Sentinel's source; the package is a dependency only so the deploy installs the peer the sink needs). The one
+variable is `SENTINEL_SENTRY_DSN` (`resolveErrorSink()`, `src/utils/sentry-config/`), read through
+`@theholocron/env-utils/lookup`. Unset, nothing is sent and nothing is initialised (a `NoopErrorSink`), as in tests and
+before the secret is synced; the CLI's `HOLOCRON_SENTRY_DSN` / `SENTRY_DSN` and its shipped key are not read. Every
+check's soft-skip `catch` in `handler.ts` logs the failure (Axiom) and reports it (`errors.capture()`), so one failing
+check is seen without stopping the others, and `handleWebhookRequest()` flushes the reporter in its `finally`, next to
+`logger.flush()`, so Vercel freezing the function does not drop the event. `createErrorReporter()`
+(`src/utils/error-reporter/`) makes the sink on the first error and again after each flush, because `SentrySink.flush()`
+closes the Sentry client and a warm instance would otherwise drop every later error. The environment name is
+`HOLOCRON_ENVIRONMENT` (default `production`), the release is `sentinel`, and events are scrubbed of token-shaped
+strings. `SENTINEL_SENTRY_DSN` reaches Vercel with the rest: the `SENTINEL_` prefix of the `repo.secrets.deploy` entry
+in `holocron.config.ts` already covers it.
+
+To turn it on (by hand): create a Sentry project for Sentinel, copy its DSN, store it as `SENTINEL_SENTRY_DSN` in the
+`prod` layer 1Password Environment (`theholocron/holocron - prod`), run the `sync secrets` command above, then redeploy.
+
 ```sh
 holocron sync secrets --env prod --cwd apps/sentinel --project-id sentinel --target production
 ```
