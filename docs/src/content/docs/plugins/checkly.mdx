@@ -12,7 +12,7 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <CapabilitiesTable rows={[{ capability: "monitoring", token: "HOLOCRON_CHECKLY_TOKEN (checkly)" }]} />
 
-Only API checks are managed. Browser checks, heartbeats and dashboards are out of scope until a real consumer needs them.
+Only API checks and dashboards are managed. Browser checks and heartbeats are out of scope until a real consumer needs them.
 
 ## Config
 
@@ -40,10 +40,11 @@ providers: {
 
 ### Options
 
-| Option      | Required | Description                                                                           |
-| ----------- | -------- | ------------------------------------------------------------------------------------- |
-| `accountId` | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)               |
-| `checks`    | No       | The API checks `holocron setup` ensures exist; each is matched and upserted by `name` |
+| Option       | Required | Description                                                                           |
+| ------------ | -------- | ------------------------------------------------------------------------------------- |
+| `accountId`  | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)               |
+| `checks`     | No       | The API checks `holocron setup` ensures exist; each is matched and upserted by `name` |
+| `dashboards` | No       | The dashboards `holocron setup` ensures exist; see [Dashboards](#dashboards)          |
 
 ### Check fields
 
@@ -104,13 +105,41 @@ export CHECKLY_API_KEY=...
 
 Resolution order: the `--token` flag, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY`, the OS keyring (service `com.theholocron.cli`, account `checkly`), then an error naming all four.
 
+## Dashboards
+
+A Checkly dashboard shows the checks whose `tags` match its own. It has no name, only a `header`, so `name` is matched against the header exactly, and an existing dashboard is updated, never duplicated.
+
+```ts
+monitoring: ["checkly", {
+  accountId: "<your Checkly account id>",
+  dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
+}],
+```
+
+| Field         | Description                                                                                                                        |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `name`        | The dashboard's title (its header), and what it is found by                                                                        |
+| `tags`        | Checks carrying any of these tags are shown                                                                                        |
+| `description` | Text under the title. Left out, an existing dashboard keeps its own                                                                |
+| `private`     | Default `true`: a dashboard shows check URLs and timings, so it needs a key. Set `false` to make it public                         |
+| `domain`      | A hostname on your zone (`status.example.com`). Left out, an existing dashboard keeps its own. Checkly verifies it by a DNS record |
+
+`setup` creates a missing dashboard, and brings an existing one in line for the fields the config states (tags, description, domain) and for privacy, which always has a value (private unless declared otherwise). It never deletes, and a field left out is left alone. `--dry-run` makes no call.
+
+**The view key.** Checkly returns a private dashboard's keys with the dashboard (`keys[].rawKey`), so a key is returned when `setup` makes the dashboard or switches it to private, and not on a later run. The key is a credential: it is never printed, logged or written to the config. `setup` writes one `HOLOCRON_CHECKLY_DASHBOARD_KEY=<value>` line to the private, git-ignored `.holocron/.private/.credentials` (never overwritten, deleted once you have imported it in 1Password, as with `holocron export tokens`), for the `dev` layer's Environment, which nothing syncs. It is listed under `doctor.manualSecrets`. If Checkly returns no key, nothing is written; read the key in the dashboard's settings in Checkly.
+
+`holocron doctor monitoring` checks each declared dashboard: it exists, its privacy matches (a public dashboard declared private fails), its tags and domain match. Dashboards the account holds that the config does not declare are an `info` row.
+
 ## What `monitoring` provides
 
 - `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
 - `ensureAlertChannel(input)`: finds an alert channel by name or creates one, applies the `alerts` settings the config states, and subscribes the checks routed to it (every check unless a check names its `alertChannels`). This is how `holocron setup notifications` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
 - `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), its alert settings, and the names of the checks routed to it that it is not subscribed to or has switched off, and of the checks it is still subscribed to though they are routed elsewhere.
+- `ensureDashboard(input)`: finds a dashboard by its exact header, then creates or updates it (private by default). It returns the id and, only when it made the dashboard or switched it to private, the view key (never logged).
+- `inspectDashboard(name)`: reads a dashboard without changing it, for `holocron doctor monitoring`: whether it exists, its privacy, tags and domain, and the headers of the account's other dashboards. Never the key.
 - `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
 - `checks`: the configured check list, which `holocron setup` loops over.
+- `dashboards`: the configured dashboard list, which `holocron setup` loops over.
 
 The plugin also contributes probes for `holocron probe` (see the [probe command](/holocron/commands/probe/)).
 

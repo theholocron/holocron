@@ -19,6 +19,8 @@ import {
 	type MonitoringAssertion,
 	type MonitoringCheck,
 	type MonitoringCheckInput,
+	type MonitoringDashboardInput,
+	type MonitoringDashboardState,
 	ProviderApiError,
 } from "@theholocron/cli";
 
@@ -35,6 +37,7 @@ import type {
 import { DISCORD_TEMPLATE } from "../rest.js";
 import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
+import { ensureDashboard, inspectDashboard } from "./dashboards.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
 	status_code: "STATUS_CODE",
@@ -130,6 +133,7 @@ function alertFields(
 
 export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
+	dashboards?: MonitoringDashboardInput[];
 }
 
 /** The Checkly implementation of the `monitoring` capability: ensures the configured API checks and alert channels exist. */
@@ -140,12 +144,14 @@ export class ChecklyMonitoring implements Monitoring {
 	readonly providerName = "checkly";
 	readonly icon = CHECKLY_ICON;
 	readonly checks: readonly MonitoringCheckInput[];
+	readonly dashboards: readonly MonitoringDashboardInput[];
 
 	constructor(
 		private readonly client: () => ChecklyClient,
 		opts: ChecklyMonitoringOptions = {}
 	) {
 		this.checks = opts.checks ?? [];
+		this.dashboards = opts.dashboards ?? [];
 	}
 
 	async whoami(): Promise<{ ok: boolean }> {
@@ -432,5 +438,15 @@ export class ChecklyMonitoring implements Monitoring {
 	private async findByExactName(name: string): Promise<ApiCheck | undefined> {
 		const candidates = await this.client().checks.list({ search: name });
 		return candidates.find((c) => c.name === name);
+	}
+
+	/** Find-or-create-or-update a dashboard by its header; see `./dashboards.ts`. */
+	ensureDashboard(input: MonitoringDashboardInput) {
+		return ensureDashboard(this.client(), input);
+	}
+
+	/** Read the dashboard named `name` and the names of the account's others; never returns its key. */
+	inspectDashboard(name: string): Promise<MonitoringDashboardState> {
+		return inspectDashboard(this.client(), name);
 	}
 }

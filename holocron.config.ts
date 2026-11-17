@@ -40,6 +40,7 @@ export default defineConfig({
 		mail: "icloud",
 		manualSecrets: [
 			"COMLINK_AXIOM_DATASET",
+			"HOLOCRON_CHECKLY_DASHBOARD_KEY",
 			"HOLOCRON_ENVIRONMENT",
 			"HOLOCRON_LINEAR_TOKEN",
 			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
@@ -170,6 +171,8 @@ export default defineConfig({
 		// the service they watch (apps/sentinel and apps/comlink), and the docs site's here, because no app owns it. The
 		// dashboard and the status page, which span apps, are added to this one entry by later parts of #2302. The account id
 		// comes from .holocron/org.ts.
+		// The dashboard spans the apps, so it is declared here, not beside one of them: it shows every check tagged for a
+		// component. Private by default; its view key goes to the `dev` layer by hand (`doctor.manualSecrets`).
 		monitoring: [
 			"checkly",
 			{
@@ -182,6 +185,7 @@ export default defineConfig({
 						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 					},
 				],
+				dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
 			},
 		],
 		cache: "turbo",

@@ -1,6 +1,7 @@
 import { alertChannels } from "./alert-channels/alert-channels.js";
 import { checkStatuses } from "./check-statuses/check-statuses.js";
 import { checks } from "./checks/checks.js";
+import { dashboards } from "./dashboards/dashboards.js";
 import { type ChecklyClientOptions, createChecklyRestClient } from "./utils.js";
 
 export type {
@@ -25,15 +26,17 @@ export type {
 	HttpMethod,
 	ListChecksParams,
 } from "./checks/checks.js";
+export type { Dashboard, DashboardInput, DashboardKey } from "./dashboards/dashboards.js";
 export type { ChecklyClientOptions } from "./utils.js";
 
-/** Creates a Checkly client with `alertChannels`, `checkStatuses` and `checks` groups sharing one REST client. */
+/** Creates a Checkly client with `alertChannels`, `checkStatuses`, `checks` and `dashboards` groups sharing one REST client. */
 export function createChecklyClient(opts: ChecklyClientOptions) {
 	const rest = createChecklyRestClient(opts);
 	return {
 		alertChannels: alertChannels(rest),
 		checkStatuses: checkStatuses(rest),
 		checks: checks(rest),
+		dashboards: dashboards(rest),
 	};
 }
 

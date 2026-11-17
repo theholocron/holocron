@@ -124,6 +124,26 @@ await checkly.alertChannels.delete(channel.id);
 `update` replaces the whole channel (settings and subscriptions), so send everything you want to keep, and re-read the channel before updating it if anything may have subscribed a check since you last did. Checkly offers
 no version check, so do not update one channel from two places at once.
 
-> **Note:** This client covers API checks (`checks.*`) and alert channels (`alertChannels.*`) — the subset this org
-> currently provisions programmatically. Checkly's full surface (browser checks, check groups, dashboards) is out of
-> scope until a real consumer needs it.
+## Dashboards
+
+```ts
+// A dashboard shows the checks whose tags match its own. It has no name: find one by its `header`.
+const found = (await checkly.dashboards.list()).find((d) => d.header === "The Holocron");
+
+const made = await checkly.dashboards.create({
+  header: "The Holocron", // required
+  tags: ["sentinel", "docs"],
+  isPrivate: true, // a private dashboard needs a key to be read
+});
+made.keys; // [{ id, rawKey, maskedKey, ... }]: rawKey is a credential, never log it
+
+// The update schema has no required field: only what you pass is sent.
+await checkly.dashboards.update(made.dashboardId, { tags: ["sentinel", "comlink", "docs"] });
+const one = await checkly.dashboards.get(made.dashboardId);
+```
+
+The single-dashboard calls take the string `dashboardId`, not the numeric `id`. There is no delete here.
+
+> **Note:** This client covers API checks (`checks.*`), alert channels (`alertChannels.*`) and dashboards
+> (`dashboards.*`) — the subset this org currently provisions programmatically. Checkly's full surface (browser
+> checks, check groups, status pages, heartbeats) is out of scope until a real consumer needs it.

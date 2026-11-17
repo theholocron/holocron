@@ -10,6 +10,8 @@ export {
 	type ChecklyClient,
 	type ChecklyClientOptions,
 	createChecklyClient,
+	type Dashboard,
+	type DashboardInput,
 	DISCORD_TEMPLATE,
 	type HttpMethod,
 	type ListChecksParams,
