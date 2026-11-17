@@ -66,7 +66,11 @@ Exit code is `1` if any check fails, `0` otherwise.
 `holocron setup` installs `.husky/pre-push` running `holocron run ci` for
 `protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
 or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
-`husky` — run `pnpm install` once to activate the hook. Skip a single push with:
+`husky` — run `pnpm install` once to activate the hook. In a repo that runs its own build of the CLI (this one:
+`node cli/cli/dist/cli.mjs`), the hook first checks the build exists and, in a fresh clone or linked worktree that has
+none, stops with "not built yet, run `pnpm install && pnpm build`" instead of a module-not-found stack. The generated
+`prepare-commit-msg` hook edits the message file git passes it, so commits from a linked worktree work too. Skip a
+single push with:
 
 ```bash
 git push --no-verify

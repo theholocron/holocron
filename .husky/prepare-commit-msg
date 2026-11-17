@@ -26,8 +26,17 @@ git interpret-trailers --if-exists doNothing --trailer \
 # shared package's built dist/ isn't present (not installed, or a stale
 # install predating this file).
 DEVMOJI_CONFIG="node_modules/@theholocron/devmoji-config/dist/index.cjs"
+
+# The message goes through devmoji on stdin and back into "$1", the file git passes to the hook. devmoji's own -e reads
+# .git/COMMIT_EDITMSG in the git root, which is the main checkout's file when the commit is made from a linked worktree
+# (.git is a file there): it would edit another checkout's message, or fail to find one (#1104).
+DEVMOJI_OUT="$1.devmoji"
 if [ -f "$DEVMOJI_CONFIG" ]; then
-	npx devmoji --config "$DEVMOJI_CONFIG" -e
+	npx devmoji --config "$DEVMOJI_CONFIG" <"$1" >"$DEVMOJI_OUT"
 else
-	npx devmoji -e
-fi
+	npx devmoji <"$1" >"$DEVMOJI_OUT"
+fi || {
+	rm -f "$DEVMOJI_OUT"
+	exit 1
+}
+mv "$DEVMOJI_OUT" "$1"
