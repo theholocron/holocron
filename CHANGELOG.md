@@ -1,3 +1,9 @@
+## [5.0.0-alpha.457](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.456...v5.0.0-alpha.457) (2026-11-17)
+
+### Refactoring
+
+* **comlink:** ♻️ keep the request files beside the worker ([#2291](https://github.com/theholocron/holocron/issues/2291)) ([453d47b](https://github.com/theholocron/holocron/commit/453d47b1be2773c1f5f370bf72629413852a4530)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
 ## [5.0.0-alpha.456](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.455...v5.0.0-alpha.456) (2026-11-17)
 
 ### Features
