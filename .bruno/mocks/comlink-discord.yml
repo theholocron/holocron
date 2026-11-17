@@ -1,0 +1,27 @@
+info:
+  name: Comlink Discord webhook
+  type: mock
+
+mock:
+  port: 4000
+
+routes:
+  - name: Discord takes the post
+    description: Answers 204 like Discord does when it accepts a webhook post, so Comlink answers 204 too.
+    request:
+      method: POST
+      url: /discord/accepts
+    response:
+      status: 204
+      statusText: No Content
+  - name: Discord refuses the post
+    description: Answers 500 so Comlink answers 502, the path for a webhook Discord did not take.
+    request:
+      method: POST
+      url: /discord/refuses
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: json
+        data: '{ "message": "refused by the mock" }'
