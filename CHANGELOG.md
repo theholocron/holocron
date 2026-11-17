@@ -1,3 +1,9 @@
+## [5.0.0-alpha.459](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.458...v5.0.0-alpha.459) (2026-11-17)
+
+### Features
+
+* **comlink:** ✨ add a Bruno mock server for Comlink's Discord webhook ([#2293](https://github.com/theholocron/holocron/issues/2293)) ([e148729](https://github.com/theholocron/holocron/commit/e1487295f50a44c3cf72fb6c37a5ef2b9786edee)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
 ## [5.0.0-alpha.458](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.457...v5.0.0-alpha.458) (2026-11-17)
 
 ### Refactoring
