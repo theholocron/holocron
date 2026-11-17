@@ -118,6 +118,12 @@ workspaceHash }] }`). The request file's hash is the hash of what the workspace 
   the active environment). The sync makes the file when it is missing, leaves it alone while it lists every
   collection, and otherwise inserts only the missing `collections:` entries (also from `collections: []`) with every
   other byte kept; it makes the file whole only when there is no `collections:` key at all.
+- **The workspace docs are synced both ways (decided).** The text people read first lives in `.bruno/README.md`
+  (markdown, shown by GitHub) and in the `docs` field of `workspace.yml` (what Bruno edits). They are one more baseline
+  pair (kind `docs`, `source` the README, `workspace` Bruno's docs), compared as normalized text (line endings and the
+  trailing newline ignored), with the same table, `--prefer` and `--check` as the requests; only the `docs` value of
+  `workspace.yml` is written, and empty docs count as missing. The README is ignored by Prettier, because a formatter
+  would otherwise read as an edit.
 - **A renamed environment file.** An environment's workspace file name comes from its name in the request file; a file
   renamed in Bruno is read as a new, unsynced file and the old one is regenerated. Not handled.
 - **`validate:generated`.** Whether `sync requests --check` joins that task or gets its own. Part 1 pins the committed

@@ -1,8 +1,12 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
 import { BrunoTooling } from "./capabilities/tooling.js";
+import { normalizeDocs, readDocs } from "./workspace-docs.js";
 
 /** This repository's root: its real request files and its committed `.bruno/` workspace are compared, not copies. */
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -25,5 +29,24 @@ describe("the committed .bruno/ workspace", () => {
 			.map((file) => `${file.state} ${file.path}`);
 		expect(stale, "run `pnpm exec holocron sync requests --yes` and commit .bruno/").toEqual([]);
 		expect(result.files.length).toBeGreaterThan(0);
+	});
+
+	it("keeps the docs of workspace.yml and .bruno/README.md as the same text, and records the pair", () => {
+		const readme = readFileSync(join(REPO_ROOT, ".bruno/README.md"), "utf8");
+		const docs = readDocs(readFileSync(join(REPO_ROOT, ".bruno/workspace.yml"), "utf8"));
+		expect(docs).toBeTruthy();
+		expect(normalizeDocs(readme)).toBe(docs);
+		expect(readme.endsWith("\n")).toBe(true);
+		const baseline = JSON.parse(readFileSync(join(REPO_ROOT, ".bruno/.sync.json"), "utf8")) as {
+			pairs: { kind: string; source: string; workspace: string; sourceHash: string; workspaceHash: string }[];
+		};
+		const pair = baseline.pairs.find((p) => p.kind === "docs");
+		expect(pair).toMatchObject({ source: ".bruno/README.md", workspace: "workspace.yml" });
+		expect(pair?.sourceHash).toBe(
+			createHash("sha256")
+				.update(docs as string)
+				.digest("hex")
+		);
+		expect(pair?.workspaceHash).toBe(pair?.sourceHash);
 	});
 });

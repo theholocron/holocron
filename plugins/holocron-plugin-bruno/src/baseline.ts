@@ -12,11 +12,14 @@ export const BASELINE_FILE = ".bruno/.sync.json";
  * hash now has changed since.
  */
 export interface BaselinePair {
-	/** `collection` is a request collection and its folder; `environment` is one environment file. */
-	kind: "collection" | "environment";
-	/** The request file, relative to the repo root. */
+	/**
+	 * `collection` is a request collection and its folder; `environment` is one environment file; `docs` is the
+	 * workspace's README (`source`) and the `docs` value of `workspace.yml` (`workspace`), hashed as normalized text.
+	 */
+	kind: "collection" | "environment" | "docs";
+	/** The request file (or the README), relative to the repo root. */
 	source: string;
-	/** The folder (a collection) or the file (an environment), relative to `.bruno/`. */
+	/** The folder (a collection) or the file (an environment, `workspace.yml`), relative to `.bruno/`. */
 	workspace: string;
 	sourceHash: string;
 	workspaceHash: string;
@@ -41,7 +44,7 @@ function parseBaseline(value: unknown): Baseline {
 	const pairs = value.pairs.map((pair, index): BaselinePair => {
 		const ok =
 			isObject(pair) &&
-			(pair.kind === "collection" || pair.kind === "environment") &&
+			(pair.kind === "collection" || pair.kind === "environment" || pair.kind === "docs") &&
 			[pair.source, pair.workspace, pair.sourceHash, pair.workspaceHash].every((v) => typeof v === "string");
 		if (!ok) throw new Error(`${BASELINE_FILE}: pair ${index + 1} is malformed; delete the file to start again`);
 		return pair as unknown as BaselinePair;
