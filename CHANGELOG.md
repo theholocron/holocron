@@ -1,3 +1,9 @@
+## [5.0.0-alpha.469](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.468...v5.0.0-alpha.469) (2026-11-17)
+
+### Bug Fixes
+
+* **bruno:** 🐛 read the signing secret from the environment, not from runtime variables ([#2321](https://github.com/theholocron/holocron/issues/2321)) ([4ccdb02](https://github.com/theholocron/holocron/commit/4ccdb02eedca06d933d01826accac96fabb47f30))
+
 ## [5.0.0-alpha.468](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.467...v5.0.0-alpha.468) (2026-11-17)
 
 ### Bug Fixes
