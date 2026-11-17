@@ -30,6 +30,10 @@ Then create a `lint-staged.config.js` at your project root:
 export { default } from "@theholocron/lint-staged-config";
 ```
 
+ESLint runs with the repo's own `eslint.config.*` when it has one at the root (the config CI lints with, including any
+per-package overrides); otherwise with the shared `@theholocron/eslint-config` library bundle when it is installed, and
+otherwise with ESLint's own discovery.
+
 ## What runs on staged files
 
 | File pattern   | Commands                        |

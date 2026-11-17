@@ -49,7 +49,7 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 				projectId: argv.projectId,
 				dir: argv.files,
 				...(argv.target ? { target: argv.target } : {}),
-				...(env.get("HOLOCRON_PREVIEW_KEY") ? { previewKey: env.get("HOLOCRON_PREVIEW_KEY") as string } : {}),
+				...(env.get("HOLOCRON_PREVIEW_KEY") ? { previewKey: env.get("HOLOCRON_PREVIEW_KEY") } : {}),
 			});
 			if (report.status === "fail") {
 				process.exitCode = 1;

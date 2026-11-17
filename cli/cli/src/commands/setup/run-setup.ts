@@ -748,7 +748,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					status: "skip",
 					message: "provider has no dashboards",
 				});
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 				continue;
 			}
 			let key: string | undefined;
@@ -760,7 +760,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `${dashboard.name} ${result.created ? "created" : "exists"}${changed}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 			if (key !== undefined) {
 				// Not inside `runStep`: its spinner would draw over the wait for the 1Password import.
 				const step = `hand over dashboard key for ${dashboard.name}`;
@@ -770,7 +770,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				} catch (err) {
 					steps.push({ capability: "monitoring", step, status: "fail", message: errorMessage(err) });
 				}
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 			}
 		}
 		// Status pages after the checks, whose tags their rules match (and their domain's DNS record).
@@ -790,7 +790,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `${beat.name} ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 		if (pings.length > 0) {
 			const handed = await (input.handOffHeartbeats ?? handOffHeartbeats)({
@@ -808,7 +808,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						? `${handed.written.join(", ")} written for import, not printed`
 						: handed.reason,
 			});
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
