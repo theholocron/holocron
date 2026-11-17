@@ -1,3 +1,9 @@
+## [5.0.0-alpha.465](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.464...v5.0.0-alpha.465) (2026-11-17)
+
+### Features
+
+* **bruno:** ✨ give each collection the repo's version as its info.version ([#2311](https://github.com/theholocron/holocron/issues/2311)) ([c408886](https://github.com/theholocron/holocron/commit/c408886dc2813ce3f0b1dcef62a7474c63dd05a2)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+
 ## [5.0.0-alpha.464](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.463...v5.0.0-alpha.464) (2026-11-17)
 
 ### Features
