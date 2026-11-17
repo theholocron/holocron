@@ -489,6 +489,40 @@ describe("runSync", () => {
 		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
 	});
 
+	it("syncs the teams but writes no CODEOWNERS when the repo is named without an organization", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async (teams: unknown[]) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
 	it("reports skip when provider does not implement syncTeams (teams configured)", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1524,6 +1558,26 @@ describe("runSync", () => {
 			});
 			const loader = makeLoaderWith(loaded, {
 				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { homepage: string };
+			expect(pkg.homepage).toBe("https://example.com");
+		});
+
+		it("still writes package.json when the config has no source provider to sync the homepage to", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { vault: "1password" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
 			});
 
 			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });

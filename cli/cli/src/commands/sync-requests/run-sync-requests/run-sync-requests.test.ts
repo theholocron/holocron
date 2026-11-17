@@ -190,6 +190,19 @@ describe("runSyncRequests", () => {
 			expect(text).toContain("the provider is not available");
 		});
 
+		it("fails a provider when the loader carries no tooling capability at all", async () => {
+			const lines: string[] = [];
+			const report = await runSyncRequests({
+				loaded: loadedWith({ tooling: [["bruno", OPTIONS]] }),
+				context: { repoRoot: "/repo" },
+				yes: true,
+				loader: fakeLoader({}),
+				print: (l) => lines.push(stripVTControlCharacters(l)),
+			});
+			expect(report.status).toBe("fail");
+			expect(lines.join("\n")).toContain("the provider is not available");
+		});
+
 		it("skips a provider with no workspace of its own", async () => {
 			const { report, text } = await run([tool("postman")]);
 			expect(report.status).toBe("ok");

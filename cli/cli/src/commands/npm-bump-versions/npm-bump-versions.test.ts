@@ -1,3 +1,5 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { fakeLogger } from "@theholocron/observability/testing";
@@ -534,6 +536,37 @@ describe("runNpmBumpVersions", () => {
 			expect(report.message).toBe('no packages in group "skills"');
 			expect(written).toEqual({});
 			expect(lines).toContain('  ✗ no packages in group "skills"');
+		});
+	});
+
+	describe("on a real directory, with nothing injected", () => {
+		it("lists, reads and rewrites the workspace's own files", async () => {
+			const root = mkdtempSync(join(tmpdir(), "bump-versions-"));
+			try {
+				writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+				writeFileSync(
+					join(root, "package.json"),
+					JSON.stringify({ name: "root", version: "1.0.0" }, null, 2) + "\n"
+				);
+				mkdirSync(join(root, "packages", "a"), { recursive: true });
+				writeFileSync(
+					join(root, "packages", "a", "package.json"),
+					JSON.stringify({ name: "a", version: "1.0.0" }, null, 2) + "\n"
+				);
+				const report = await runNpmBumpVersions({
+					version: "2.0.0",
+					cwd: root,
+					print: () => {},
+					logger: fakeLogger(),
+				});
+				expect(report).toMatchObject({ status: "ok", bumped: ["root", "packages/a"] });
+				const bumped = JSON.parse(readFileSync(join(root, "packages", "a", "package.json"), "utf8")) as {
+					version: string;
+				};
+				expect(bumped.version).toBe("2.0.0");
+			} finally {
+				rmSync(root, { recursive: true, force: true });
+			}
 		});
 	});
 });
