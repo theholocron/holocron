@@ -1,3 +1,13 @@
+## [5.0.0-alpha.460](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.459...v5.0.0-alpha.460) (2026-11-17)
+
+### Bug Fixes
+
+* **hooks:** 🪝 make the generated commit and push hooks work in a linked worktree ([#2299](https://github.com/theholocron/holocron/issues/2299)) ([131e902](https://github.com/theholocron/holocron/commit/131e9029105c49bd0eae00ef1bc450a12b803409)), closes [#1104](https://github.com/theholocron/holocron/issues/1104)
+
+### Chores
+
+* **astromech:** 🧹 let alex pass Postman ([#2300](https://github.com/theholocron/holocron/issues/2300)) ([a5a6cdb](https://github.com/theholocron/holocron/commit/a5a6cdbfea07c0930cab30a6470500a556109b53))
+
 ## [5.0.0-alpha.459](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.458...v5.0.0-alpha.459) (2026-11-17)
 
 ### Features
