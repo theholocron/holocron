@@ -72,10 +72,10 @@ describe("runSyncRequests", () => {
 		expect(text).toContain("1 ok, 0 fail, 0 skipped");
 	});
 
-	it("asks nothing and writes nothing when everything is in sync", async () => {
-		const workspace = vi.fn(async () => result(IN_SYNC));
+	it("asks nothing when everything is in sync, and still lets the provider bring its own files up to date", async () => {
+		const workspace = vi.fn(async (_input: ToolingWorkspaceInput) => result(IN_SYNC));
 		const { report, text } = await run([tool("bruno", workspace)], undefined, { yes: false, interactive: false });
-		expect(workspace).toHaveBeenCalledTimes(1);
+		expect(workspace.mock.calls.map(([input]) => input.dryRun)).toEqual([true, undefined]);
 		expect(report.status).toBe("ok");
 		expect(text).toContain("in sync (1 unchanged)");
 		expect(text).not.toContain("Wrote:");
@@ -168,7 +168,7 @@ describe("runSyncRequests", () => {
 		const postman = vi.fn(async () => result(IN_SYNC));
 		await run([tool("bruno", bruno), tool("postman", postman)], undefined, { to: "postman" });
 		expect(bruno).not.toHaveBeenCalled();
-		expect(postman).toHaveBeenCalledTimes(1);
+		expect(postman).toHaveBeenCalledTimes(2);
 	});
 
 	describe("what it cannot do", () => {
@@ -212,7 +212,7 @@ describe("runSyncRequests", () => {
 			const { report, text } = await run([bad, tool("good", good)]);
 			expect(report.status).toBe("fail");
 			expect(text).toContain("cannot read the collection");
-			expect(good).toHaveBeenCalledTimes(1);
+			expect(good).toHaveBeenCalledTimes(2);
 		});
 
 		it("fails a provider whose write throws", async () => {

@@ -164,7 +164,10 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	const planned = targets.filter((target) => plans.has(target.provider));
 	const toWrite = planned.filter((target) => writable(plans.get(target.provider) as ToolingWorkspaceResult));
 
-	const write = !dryRun && !check && pending > 0;
+	// A run that is not a dry run or a check always calls the provider for real, so it can bring up to date what no
+	// comparison sees (Bruno's `info.version`); the person is asked only when a file is out of date.
+	const writing = !dryRun && !check;
+	const write = writing && pending > 0;
 	if (write && !input.yes) {
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
@@ -184,7 +187,7 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	const listed: string[] = [];
 	for (const { tool, provider, collectionFiles, envFiles } of planned) {
 		let result = plans.get(provider) as ToolingWorkspaceResult;
-		if (write && writable(result) && outOfDate(result).length > 0) {
+		if (writing && writable(result)) {
 			try {
 				result = await tool.workspace({ collectionFiles, envFiles, repoRoot, ...preferred });
 			} catch (err) {

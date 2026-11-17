@@ -2,6 +2,7 @@ opencollection: 1.0.0
 
 info:
   name: Comlink relay
+  version: "5.0.0-alpha.463"
 
 request:
   variables:
