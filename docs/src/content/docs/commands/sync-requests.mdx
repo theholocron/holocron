@@ -1,0 +1,32 @@
+---
+title: "sync requests"
+description: Keep each tooling provider's own workspace of the repo's request collections equal to the request files.
+---
+
+```bash
+holocron sync requests [--to <provider>] [--check] [--dry-run] [--yes]
+```
+
+The repo's request files (`collection.json` and `environment*.json`, in the v2.1 collection format) are the source. A `tooling` provider that keeps a workspace of its own turns them into that tool's own files, committed in the repo, so the tool opens and saves them in place instead of importing a copy. `sync requests` brings that workspace in line with the request files. For Bruno the workspace is `.bruno/` at the repo root, opened with Open Workspace; see the [Bruno plugin](/holocron/plugins/bruno/).
+
+## Behavior
+
+- **Compare first.** For each `tooling` provider that has a workspace (or only `--to`), it asks the provider how each file compares with what the request files generate: `new`, `changed`, `unchanged`, or `removed` (a file the provider no longer generates). Nothing is written yet.
+- **Then write.** If any file is out of date it asks first, naming how many files and for which providers, then writes the `new` and `changed` ones and deletes the `removed` ones. When everything is in sync nothing is asked and nothing is written. Without a terminal it refuses instead of asking; pass `--yes`.
+- **One way, for now.** This part syncs from the request files to the workspace, so a file edited in the workspace is reported as `changed` and written back to what the request files generate. Copying the other way, with a record of the last sync so an edit in the tool is told from a change to the source, is the next part of the spec (`tech-bruno-workspace`). Until then, make a change in the request files, or commit your edit in the tool before you run the sync.
+- **`--check`** writes nothing and asks nothing. It exits 1 when any file is out of date, naming them, so a check can fail a branch whose request files changed without the workspace. The repo's own unit tests run the same comparison on the committed `.bruno/`.
+- **`--dry-run`** prints what would be written and stops.
+- **Never in a source folder.** A provider writes only inside its own folder. A secret variable is written without its value.
+- **One row per provider**, like every [`doctor <capability>`](/holocron/commands/doctor/). What the conversion could not carry across is listed under the row and does not fail the run; a provider that throws is a failing row, and the others still run.
+
+## Options
+
+| Option      | Default | Description                                        |
+| ----------- | ------- | -------------------------------------------------- |
+| `--to`      | all     | Sync only for this `tooling` provider              |
+| `--check`   | `false` | Write nothing; exit 1 when any file is out of date |
+| `--yes`     | `false` | Write without asking (required without a terminal) |
+| `--dry-run` | `false` | Compare and list, and write nothing                |
+| `--cwd`     | `.`     | The folder holding the `holocron.config.*`         |
+
+The provider's `collectionFiles` and `envFiles` options name the source files, as they do for [`export requests`](/holocron/commands/export-requests/), which stays the way to write a throwaway copy of a collection in a tool's format.

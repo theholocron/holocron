@@ -268,6 +268,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 					provider: "bruno",
 					packageName: "@theholocron/holocron-plugin-bruno",
 					options: {
+						workspaceName: "The Holocron",
 						collectionFiles: [
 							"apps/sentinel/requests/collection.json",
 							"apps/comlink/requests/collection.json",

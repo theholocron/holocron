@@ -1,0 +1,33 @@
+info:
+  name: push to a non-default branch
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-GitHub-Event
+      value: push
+    - name: X-GitHub-Delivery
+      value: "{{$guid}}"
+  body:
+    type: json
+    data: '{"ref":"refs/heads/feature","repository":{"full_name":"{{repo}}","default_branch":"alpha"}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 200", () => expect(res.getStatus()).to.equal(200));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "Not the default branch: `{ handled: false }`."

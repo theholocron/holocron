@@ -219,6 +219,9 @@ catalogs:
     '@usebruno/converters':
       specifier: ^0.25.0
       version: 0.25.0
+    '@usebruno/filestore':
+      specifier: ^0.14.0
+      version: 0.14.0
     js-yaml:
       specifier: ^5.5.0
       version: 5.5.0
@@ -2985,6 +2988,9 @@ importers:
       '@usebruno/converters':
         specifier: catalog:plugins
         version: 0.25.0
+      '@usebruno/filestore':
+        specifier: catalog:plugins
+        version: 0.14.0
       js-yaml:
         specifier: catalog:plugins
         version: 5.5.0
@@ -8623,6 +8629,9 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
+  '@types/nanoid@2.1.0':
+    resolution: {integrity: sha512-xdkn/oRTA0GSNPLIKZgHWqDTWZsVrieKomxJBOQUK9YDD+zfSgmwD5t4WJYra5S7XyhTw7tfvwznW+pFexaepQ==}
+
   '@types/nlcst@1.0.4':
     resolution: {integrity: sha512-ABoYdNQ/kBSsLvZAekMhIPMQ3YUZvavStpKYs7BjLLuKVmIMA0LUgZ7b54zzuWJRbHF80v1cNf4r90Vd6eMQDg==}
 
@@ -8835,6 +8844,12 @@ packages:
 
   '@usebruno/converters@0.25.0':
     resolution: {integrity: sha512-C+1RcGE5RgNf2V7og/v3XPFq4ct9xdJ/zTlHk7GjFBoD6Nk4Z3+L60PaVhhWClIMxHPJlbEO/2H+uyFeCeubKw==}
+
+  '@usebruno/filestore@0.14.0':
+    resolution: {integrity: sha512-8NYBDeRUYRUwU9KOvdtga6i8F7Q7WmsaMfFh1ALoKCuJbTVFbiKAiprJUsvEITA4/RzdIARNWE8tW+TQUAp1Uw==}
+
+  '@usebruno/lang@0.41.0':
+    resolution: {integrity: sha512-7goZs70RVrZ4ZA+M2aHF+2RmgWbZIa6hqqtAdT2YEdM9ZcLMzCdfR3M6dAnAH2MG2i+r62guqG0UdVTxHO+nlw==}
 
   '@usebruno/schema@0.31.0':
     resolution: {integrity: sha512-Sk4K7k+jB3HPRswSKqs4Kc0e/vnFJk/fJV+BJnG9g/5KzMvMGDCyZaTL7NXZCz2uIk2tHGnlTWuHiwY8cZpFvA==}
@@ -9122,6 +9137,9 @@ packages:
 
   archy@1.0.0:
     resolution: {integrity: sha512-Xg+9RwCg/0p32teKdGMPTPnVXKD0w3DfHnFTficozsAgsvq2XenPJq/MYpzzQ/v8zrOyJn6Ds39VA4JIDwFfqw==}
+
+  arcsecond@5.0.0:
+    resolution: {integrity: sha512-J/fHdyadnsIencRsM6oUSsraCKG+Ni9Udcgr/eusxjTzX3SEQtCUQSpP0YtImFPfIK6DdT1nqwN0ng4FqNmwgA==}
 
   are-docs-informative@0.0.2:
     resolution: {integrity: sha512-ixiS0nLNNG5jNQzgZJNoUpBKdo9yTYZMGJ+QgT2jmjR7G7+QHRCc4v6LQ3NgE7EBJq+o0ams3waJwkrlBom8Ig==}
@@ -13071,6 +13089,10 @@ packages:
   ofetch@1.5.1:
     resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
 
+  ohm-js@16.6.0:
+    resolution: {integrity: sha512-X9P4koSGa7swgVQ0gt71UCYtkAQGOjciJPJAz74kDxWt8nXbH5HrDOQG6qBDH7SR40ktNv4x61BwpTDE9q4lRA==}
+    engines: {node: '>=0.12.1'}
+
   on-exit-leak-free@2.1.2:
     resolution: {integrity: sha512-0eJJY6hXLGf1udHwfNftBqH+g73EU4B504nZeKpz1sYRKafAghwxEJunB2O7rDZkL4PGfsMVnTXZ2EjibbqcsA==}
     engines: {node: '>=14.0.0'}
@@ -15670,6 +15692,10 @@ packages:
 
   yallist@4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
+
+  yaml@2.3.4:
+    resolution: {integrity: sha512-8aAvwVUSHpfEqTQ4w/KMlf3HcRdt50E5ODIQJBw1fQ5RL34xabzxtUlzTXVqc4rkZsPbvrXKWnABCD7kWSmocA==}
+    engines: {node: '>= 14'}
 
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
@@ -19541,6 +19567,10 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
+  '@types/nanoid@2.1.0':
+    dependencies:
+      '@types/node': 26.4.1
+
   '@types/nlcst@1.0.4':
     dependencies:
       '@types/unist': 2.0.11
@@ -19888,6 +19918,23 @@ snapshots:
       - '@babel/preset-env'
       - supports-color
 
+  '@usebruno/filestore@0.14.0':
+    dependencies:
+      '@types/nanoid': 2.1.0
+      '@usebruno/common': 0.27.0
+      '@usebruno/lang': 0.41.0
+      ajv: 8.20.0
+      lodash: 4.18.1
+      nanoid: 3.3.18
+      yaml: 2.3.4
+
+  '@usebruno/lang@0.41.0':
+    dependencies:
+      arcsecond: 5.0.0
+      dotenv: 16.6.1
+      lodash: 4.18.1
+      ohm-js: 16.6.0
+
   '@usebruno/schema@0.31.0':
     dependencies:
       nanoid: 3.3.18
@@ -20220,6 +20267,8 @@ snapshots:
       default-require-extensions: 3.0.1
 
   archy@1.0.0: {}
+
+  arcsecond@5.0.0: {}
 
   are-docs-informative@0.0.2: {}
 
@@ -25382,6 +25431,8 @@ snapshots:
       node-fetch-native: 1.6.7
       ufo: 1.6.4
 
+  ohm-js@16.6.0: {}
+
   on-exit-leak-free@2.1.2: {}
 
   on-finished@2.3.0:
@@ -28351,6 +28402,8 @@ snapshots:
   yallist@3.1.1: {}
 
   yallist@4.0.0: {}
+
+  yaml@2.3.4: {}
 
   yaml@2.9.1: {}
 

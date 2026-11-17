@@ -1,0 +1,33 @@
+info:
+  name: installation created
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-GitHub-Event
+      value: installation
+    - name: X-GitHub-Delivery
+      value: "{{$guid}}"
+  body:
+    type: json
+    data: '{"action":"created","installation":{"id":{{installationId}}}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 200", () => expect(res.getStatus()).to.equal(200));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "Acknowledged before any GitHub call: `{ handled: true, type: installation.created }`."

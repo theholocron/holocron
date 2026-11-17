@@ -1835,6 +1835,47 @@ export interface Tooling extends ProviderIdentity {
 	 * would be. Optional — a tool that reads the source format as it is omits it. Used by `holocron export requests`.
 	 */
 	export?(input: ToolingExportInput): Promise<ToolingExportResult>;
+
+	/**
+	 * Keep a workspace of this tool's own files, committed in the repo, equal to the repo's request files: the tool
+	 * opens the workspace in place and saves its edits there, where `export` only writes a throwaway copy. The provider
+	 * owns the folder (Bruno's is `.bruno/` at the repo root) and the layout, writes only there, and reports each file as `new`, `changed`,
+	 * `unchanged` or `removed` (a file it no longer generates), so a caller can check without writing. With
+	 * `input.dryRun` it converts and compares but writes and deletes nothing. Optional — a tool with no files of its
+	 * own omits it. Used by `holocron sync requests`.
+	 */
+	workspace?(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult>;
+}
+
+/** What {@link Tooling.workspace} is given. */
+export interface ToolingWorkspaceInput {
+	/** The collection files to convert, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files to convert, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+	/** Convert and compare, but write and delete nothing. */
+	dryRun?: boolean;
+}
+
+/** How a file of the workspace compares with what {@link Tooling.workspace} generates from the repo's request files. */
+export type ToolingWorkspaceState = "new" | "changed" | "unchanged" | "removed";
+
+/** One file of the workspace, as {@link Tooling.workspace} found it. */
+export interface ToolingWorkspaceFile {
+	/** The path relative to the repo root, with `/` separators. */
+	path: string;
+	/** `new` is not on disk yet, `changed` differs, `unchanged` is equal, `removed` is on disk but no longer generated. */
+	state: ToolingWorkspaceState;
+}
+
+/** What {@link Tooling.workspace} found, and wrote unless it was a dry run. */
+export interface ToolingWorkspaceResult {
+	/** Every file the workspace holds or held, sorted by path. */
+	files: ToolingWorkspaceFile[];
+	/** What the conversion could not carry across; an issue is reported, never a failure on its own. */
+	issues: ToolingExportIssue[];
 }
 
 /** What {@link Tooling.export} is given. */

@@ -1,0 +1,23 @@
+info:
+  name: Signed, nothing posted
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit
+  scripts:
+    - type: before-request
+      code: |-
+        const CryptoJS = require("crypto-js");
+        // Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.
+        const secret = bru.getVar("sentrySecret");
+        if (!secret) throw new Error("Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).");
+        const body = bru.interpolate(req.getBody().raw);
+        req.setHeader(
+          "Sentry-Hook-Signature",
+          CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex)
+        );
+
+docs:
+  content: Valid deliveries the relay acknowledges or refuses without posting.
+  type: text/markdown

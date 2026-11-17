@@ -1,0 +1,11 @@
+info:
+  name: Rejected
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit
+
+docs:
+  content: Not signed, or signed wrongly. Sentinel verifies before it reads anything, so none of these run a check.
+  type: text/markdown

@@ -67,6 +67,7 @@ import { syncEntry } from "../../commands/sync/sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
 import { syncIssuesEntry } from "../../commands/sync-issues/sync-issues.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
+import { syncRequestsEntry } from "../../commands/sync-requests/sync-requests.entry.js";
 import { syncToolingEntry } from "../../commands/sync-tooling/sync-tooling.entry.js";
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
@@ -131,6 +132,7 @@ const registry = createCommandRegistry(
 		syncIssuesEntry,
 		ideasSyncEntry,
 		syncToolingEntry,
+		syncRequestsEntry,
 		ideasPromoteEntry,
 		issueCreateEntry,
 		syncReadmeEntry,

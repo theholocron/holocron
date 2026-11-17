@@ -22,6 +22,27 @@ declare module "@usebruno/converters" {
 	): Promise<{ name: string; filename?: string; variables: unknown[] }>;
 }
 
+declare module "@usebruno/filestore" {
+	/** A collection's own file (`opencollection.yml`): its root settings and Bruno's config, both passed through untouched. */
+	export function stringifyCollection(
+		collectionRoot: unknown,
+		brunoConfig: { name?: string; type?: string; ignore?: string[] },
+		options?: { format?: "bru" | "yml" }
+	): string;
+
+	/** A folder's own file (`folder.yml`); its name and position come from `meta`. */
+	export function stringifyFolder(
+		folderRoot: { meta?: { name?: string; seq?: number } } & Record<string, unknown>,
+		options?: { format?: "bru" | "yml" }
+	): string;
+
+	/** One request's file. */
+	export function stringifyRequest(item: unknown, options?: { format?: "bru" | "yml" }): string;
+
+	/** One environment's file; a secret variable is written without its value. */
+	export function stringifyEnvironment(environment: unknown, options?: { format?: "bru" | "yml" }): string;
+}
+
 declare module "@opencollection/converters" {
 	/** Turns Bruno's collection (with its `environments`) into one OpenCollection document. */
 	export function brunoToOpenCollection(collection: unknown): unknown;

@@ -1,0 +1,31 @@
+info:
+  name: unknown source
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/nope"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Sentry-Hook-Resource
+      value: event_alert
+  body:
+    type: json
+    data: '{"data":{"triggered_rule":"Comlink check","event":{"title":"Comlink test alert","culprit":"requests/collection","level":"warning","environment":"development","project_name":"comlink-test","datetime":"2026-01-01T00:00:00Z"}}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 404", () => expect(res.getStatus()).to.equal(404));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "No source with this id: 404."

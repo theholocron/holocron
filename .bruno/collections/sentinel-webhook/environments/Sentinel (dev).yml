@@ -1,0 +1,12 @@
+name: Sentinel (dev)
+variables:
+  - name: baseUrl
+    value: https://sentinel-dev.theholocron.dev
+  - secret: true
+    name: webhookSecret
+  - name: repo
+    value: theholocron/sandbox
+  - name: pullNumber
+    value: "1"
+  - name: installationId
+    value: "1"
