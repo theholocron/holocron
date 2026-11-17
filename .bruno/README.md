@@ -6,10 +6,10 @@ Open this folder (`.bruno`) with **Open Workspace**.
 
 ## What is here
 
-| Collection         | App      | Sends                                                                                  | Environments                                    |
-| ------------------ | -------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| **Sentinel webhook** | Sentinel | GitHub webhook deliveries to `POST /api/webhook`, signed with the App's webhook secret | `Sentinel (local)`, `Sentinel (dev)`, `Sentinel (prod)` |
-| **Comlink relay**    | Comlink  | Sentry `event_alert` deliveries to the relay Worker, signed with the integration's secret | `Comlink (local)`                               |
+| Collection           | App      | Sends                                                                                     | Environments                                            |
+| -------------------- | -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Sentinel webhook** | Sentinel | GitHub webhook deliveries to `POST /api/webhook`, signed with the App's webhook secret    | `Sentinel (local)`, `Sentinel (dev)`, `Sentinel (prod)` |
+| **Comlink relay**    | Comlink  | Sentry `event_alert` deliveries to the relay Worker, signed with the integration's secret | `Comlink (local)`                                       |
 
 Both collections run from harmless to acting. Only the last folder of each does real work:
 
