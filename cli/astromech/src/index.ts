@@ -63,7 +63,7 @@ export {
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
 } from "./generators/github-action-thin-callers/index.js";
-export { AGGREGATE_CHECK, requiredChecks } from "./generators/required-checks/index.js";
+export { AGGREGATE_CHECK, DCO_CHECK, requiredChecks } from "./generators/required-checks/index.js";
 export type {
 	MergedScripts,
 	PackageRole,
@@ -133,7 +133,6 @@ export { runGroup } from "./tasks/group/index.js";
 export { matchNamespace } from "./tasks/match-namespace/index.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";
 export { createConfig as createCommitMsg } from "./templates/configs/commit-msg/index.js";
-export { createConfig as createDco } from "./templates/configs/dco/index.js";
 export type { DependabotConfigOptions } from "./templates/configs/dependabot/index.js";
 export { createConfig as createDependabot } from "./templates/configs/dependabot/index.js";
 export { createConfig as createDevmoji } from "./templates/configs/devmoji/index.js";

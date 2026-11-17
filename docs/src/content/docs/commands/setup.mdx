@@ -53,10 +53,10 @@ holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 Fix it in the organization's property definitions, not in the repo: a new capability (the ones a `holocron.config` wires are listed in `holocron_capabilities`) is a value to add there once, and every repo can then use it. [`holocron doctor repo`](/holocron/commands/doctor-repo/) checks the values against the definitions before you run setup.
 
 **Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that contains the `ci`
-aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
+aggregate (holocron itself) the ruleset is `ci / Required checks` and `validate:dco / Run Developer Certificate of Origin`: the DCO check stays its own context because it comes from Sentinel, not from a workflow (it replaced the DCO app's `DCO`, #1044), and
 `ci` waits on every `{ required: true }` task, the hand-written checks and the coverage statuses (the `coverage` provider's required ones, such as Codecov's `codecov/patch`, plus any in the top-level
 `extraRequiredChecks`; with no provider loaded, an entry starting with `codecov/` is the status), so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
-caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
+caller yet, it is `validate:dco / Run Developer Certificate of Origin`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
 :::caution[Upgrade: the docs presets declare the Codecov provider]

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
+import { DCO_CHECK } from "@theholocron/astromech";
 import type { CheckRow } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
@@ -390,11 +391,11 @@ describe("doctor repo — branch protection", () => {
 		expect(problems).toContain('ruleset enforcement: declared "active", found "evaluate"');
 		expect(problems).toContain("missing ruleset rule non_fast_forward");
 		expect(problems).toContain("missing ruleset rule required_status_checks");
-		expect(problems).toContain("missing required check DCO");
+		expect(problems).toContain(`missing required check ${DCO_CHECK}`);
 		expect(problems).toContain("stale context Stale / Check (not in the derived required checks)");
 	});
 
-	it("expects only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
+	it("expects only `ci / Required checks` and the DCO check in the repo that hosts the ci aggregate", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "doctor-aggregate-"));
 		mkdirSync(join(dir, "ci"));
 		writeFileSync(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
@@ -408,7 +409,7 @@ describe("doctor repo — branch protection", () => {
 					name: RULESET.name,
 					enforcement: "active",
 					ruleTypes: ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
-					requiredChecks: ["DCO", "Test / Conclusion", "Extra / Check"],
+					requiredChecks: [DCO_CHECK, "Test / Conclusion", "Extra / Check"],
 				}),
 			},
 			dir
@@ -418,7 +419,7 @@ describe("doctor repo — branch protection", () => {
 		expect(problems).toContain("missing required check ci / Required checks");
 		expect(problems).toContain("stale context Test / Conclusion (not in the derived required checks)");
 		expect(problems).toContain("stale context Extra / Check (not in the derived required checks)");
-		expect(problems).not.toContain("missing required check DCO");
+		expect(problems).not.toContain(`missing required check ${DCO_CHECK}`);
 	});
 
 	it("passes a strict ruleset whose rules and checks match what setup derives", async () => {
@@ -437,7 +438,7 @@ describe("doctor repo — branch protection", () => {
 		checks = byId(probe.report.rows, "repo-protection")
 			.problems.filter((p) => p.startsWith("missing required check"))
 			.map((p) => p.replace("missing required check ", ""));
-		expect(checks).toContain("DCO");
+		expect(checks).toContain(DCO_CHECK);
 		const { report } = await run(strict, {
 			...base,
 			getProperties: async () => ({}),
@@ -594,7 +595,7 @@ describe("doctor repo — what cannot be read", () => {
 		);
 		expect(byId(report.rows, "repo-protection").problems).toEqual([
 			"missing ruleset rule required_status_checks",
-			"missing required check DCO",
+			`missing required check ${DCO_CHECK}`,
 		]);
 	});
 

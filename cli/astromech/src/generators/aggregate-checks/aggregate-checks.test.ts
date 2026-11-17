@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DCO_CHECK } from "../required-checks/index.js";
 import { aggregateChecks } from "./aggregate-checks.js";
 
 describe("aggregateChecks", () => {
@@ -47,6 +48,10 @@ describe("aggregateChecks", () => {
 			expected: ["typecheck", "Dependency catalogs", "Generated files"],
 			statuses: ["codecov/patch", "codecov/project", "codecov/patch/documentation"],
 		});
+	});
+
+	it("does not wait on the DCO check, which stays its own required context, in either spelling", () => {
+		expect(aggregateChecks({ extraRequiredChecks: [DCO_CHECK, "DCO"] })).toEqual({ expected: [], statuses: [] });
 	});
 
 	it("keeps an extra that has no ` / ` whole, drops `DCO`, and lists an id once", () => {

@@ -543,9 +543,8 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	}
 
 	// Same PR-only scoping and soft-skip reasoning as commit standards above.
-	// Runs alongside the existing probot/dcoapp installation, not instead of
-	// it yet -- see lint-dco.ts's own module docstring for why
-	// this exists at all.
+	// The required DCO check (it replaced the probot/dcoapp installation, #1044)
+	// -- see lint-dco.ts's own module docstring for why this exists at all.
 	let dcoCheckRun;
 	if (event.type !== "push.default-branch" && context.pullNumber !== undefined) {
 		try {
