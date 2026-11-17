@@ -1,7 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
 import { loadConfig } from "../../config/index.js";
-import { type IssueOrder, PluginLoader, type Source } from "../../plugin/index.js";
+import { PluginLoader } from "../../plugin/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../global-args/index.js";
 import { type LimitArgs, limitOptions } from "../migrate/limit-options/index.js";
@@ -46,12 +46,12 @@ export const syncIssuesCommand: CommandModule<GlobalArgs, Args> = {
 			readAssignees: async () => {
 				const loader = new PluginLoader(loaded.resolved, context);
 				await loader.load();
-				return readAssignees(loader.has("source") ? (loader.get("source") as Source) : undefined, org);
+				return readAssignees(loader.has("source") ? loader.get("source") : undefined, org);
 			},
 			from: argv.from,
 			to: argv.to,
 			...(since ? { since } : {}),
-			...(limit === undefined ? {} : { limit, order: argv.order as IssueOrder }),
+			...(limit === undefined ? {} : { limit, order: argv.order }),
 			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

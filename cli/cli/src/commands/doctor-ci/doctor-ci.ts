@@ -29,7 +29,7 @@ export async function runDoctorCi(input: RunDoctorCiInput): Promise<DoctorCiRepo
 	const tasks = config.tasks ?? [];
 
 	const callers = io.workflows().flatMap(({ file, text }) => parseCaller(file, text) ?? []);
-	const tasksConfig: TasksConfig = { tasks: tasks as TasksConfig["tasks"] };
+	const tasksConfig: TasksConfig = { tasks: tasks };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 	const names = tasks.map((entry) => (typeof entry === "string" ? entry : entry.name));
 

@@ -27,7 +27,7 @@ export function codecovComponentBlock(components: CoverageConfigComponent[]): st
 		"\n" +
 		components
 			.flatMap(({ id, path }) => {
-				const root = path.split("/")[0]!;
+				const root = path.split("/")[0];
 				const heading = root === group ? [] : [`    # ${root}`];
 				group = root;
 				return [

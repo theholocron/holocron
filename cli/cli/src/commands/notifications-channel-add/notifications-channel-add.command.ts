@@ -18,7 +18,7 @@ export const notificationsChannelAddCommand: CommandModule<GlobalArgs, Notificat
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [name] = await promptForPositionals(getEntry("new channel"), argv as Record<string, unknown>);
+		const [name] = await promptForPositionals(getEntry("new channel"), argv);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		const report = await runNotificationsChannelAdd({
@@ -29,14 +29,14 @@ export const notificationsChannelAddCommand: CommandModule<GlobalArgs, Notificat
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			name: name!,
-			...(argv.category ? { category: argv.category as string } : {}),
-			...(argv.topic ? { topic: argv.topic as string } : {}),
+			name: name,
+			...(argv.category ? { category: argv.category } : {}),
+			...(argv.topic ? { topic: argv.topic } : {}),
 			...(argv.withWebhook ? { withWebhook: true } : {}),
-			...(argv.webhookName ? { webhookName: argv.webhookName as string } : {}),
-			...(argv.secret ? { secret: argv.secret as string } : {}),
-			...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
-			...(argv.provider ? { provider: argv.provider as string } : {}),
+			...(argv.webhookName ? { webhookName: argv.webhookName } : {}),
+			...(argv.secret ? { secret: argv.secret } : {}),
+			...(argv.scope ? { scope: parseScope(argv.scope) } : {}),
+			...(argv.provider ? { provider: argv.provider } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

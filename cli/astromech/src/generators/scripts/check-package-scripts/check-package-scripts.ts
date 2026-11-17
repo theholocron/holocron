@@ -41,7 +41,7 @@ export function checkPackageScripts(
 			problems.push({ level: "fail", script, message });
 		};
 		const isLeaf = resolveTaskName(script).length > 0;
-		const suite = script.split(":")[0]!;
+		const suite = script.split(":")[0];
 
 		if (RESERVED_SCRIPT_NAMES.has(script) && !(role === "root" && script === "prepare")) {
 			fail(`"${script}" is a name npm and pnpm give a meaning of their own, so no script may carry it`);

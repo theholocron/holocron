@@ -33,6 +33,6 @@ export function buildAppManifest(input: BuildAppManifestInput): AppManifest {
 		redirect_url: input.redirectUrl,
 		hook_attributes: { url: webhook.href, active: true },
 		default_permissions: permissions as Record<string, string>,
-		default_events: events as string[],
+		default_events: events,
 	};
 }

@@ -33,11 +33,11 @@ function isPrivateIpv6(host: string): boolean {
 	// An IPv4 address written inside IPv6 (the URL parser turns `::ffff:127.0.0.1` into `::ffff:7f00:1`).
 	const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(host);
 	if (mapped) {
-		const hi = parseInt(mapped[1]!, 16);
-		const lo = parseInt(mapped[2]!, 16);
+		const hi = parseInt(mapped[1], 16);
+		const lo = parseInt(mapped[2], 16);
 		return isPrivateIpv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
 	}
-	const first = parseInt(host.split(":")[0]!, 16);
+	const first = parseInt(host.split(":")[0], 16);
 	// fc00::/7 unique local, fe80::/10 link-local.
 	return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80;
 }

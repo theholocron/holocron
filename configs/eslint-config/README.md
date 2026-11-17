@@ -51,6 +51,16 @@ import { base, typescript } from "@theholocron/eslint-config";
 export default [...base(), ...typescript()];
 ```
 
+`typescript()` is type-aware: `typescript-eslint`'s `recommendedTypeChecked` rules for TypeScript files, read through the
+project service, which finds each package's own `tsconfig.json` (no per-package setup). It catches what the plain
+recommended set cannot, such as a floating promise or an `any` flowing into a typed parameter. Tool config files
+(`*.config.ts`, `vitest.*.ts`), `.holocron/` files, declaration files, examples and tests are linted without type
+information, since a package's `tsconfig.json` does not usually include them. Four rules are off because their findings
+were noise here: `require-await` (an `async` function with nothing to await is how a method satisfies a Promise-returning
+interface), `unbound-method`, `no-base-to-string` and `no-redundant-type-constituents`. A package whose `tsconfig.json`
+does not include its source files fails to parse until it does. Lint takes roughly two to three times as long as the
+plain preset.
+
 `node()` pins `n/no-unsupported-features/node-builtins` and `es-builtins` to the org-wide Node floor (`>=22.0.0`)
 instead of reading `engines.node`, so a run with no `package.json` to read (Sentinel's in-memory check) does not fall
 back to `>=16.0.0` and flag `Object.hasOwn` or `Response`. `packageJson()` turns both off (a JSON file has no global

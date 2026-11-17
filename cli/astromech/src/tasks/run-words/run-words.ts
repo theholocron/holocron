@@ -78,7 +78,7 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 			}));
 			return runGroup({ ...deps, cwd, label: words.join(" "), members, dryRun, ...scope });
 		}
-		const { id, passthrough: implied = [] } = targets[0]!;
+		const { id, passthrough: implied = [] } = targets[0];
 		return runTask({
 			...deps,
 			task: id,
@@ -97,11 +97,11 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 	// not in this directory, so each leaf runs its own tool or script here); the repo-wide ones need the root.
 	const configured = new Set(entries.flatMap((e) => resolveTaskName(e.name).map((t) => t.id)));
 	const chosen = fromPackage
-		? all.filter((id) => TASKS[id]!.scope === "package")
+		? all.filter((id) => TASKS[id].scope === "package")
 		: all.filter((id) => configured.has(id));
 	const skipped = fromPackage
 		? all
-				.filter((id) => TASKS[id]!.scope === "repo")
+				.filter((id) => TASKS[id].scope === "repo")
 				.map((task) => ({ task, message: "skipped (repo-wide, run from the root)" }))
 		: [];
 	if (chosen.length === 0) {

@@ -25,7 +25,7 @@ export const uploadCoverageCommand: CommandModule<GlobalArgs, Args> = {
 				type: "boolean",
 				describe:
 					"Let a run with no coverage file in any group finish quietly (an affected run that selected nothing)",
-			}) as never,
+			}),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;

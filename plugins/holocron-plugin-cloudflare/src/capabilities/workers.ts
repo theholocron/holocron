@@ -77,7 +77,7 @@ export class CloudflareWorkers implements Workers {
 
 	/** Idempotent create-or-update for one route pattern — shared by both public methods. */
 	private async upsertRoute(pattern: string, scriptName: string): Promise<void> {
-		const hostname = pattern.split("/")[0]!;
+		const hostname = pattern.split("/")[0];
 		const zoneId = await this.resolveZone(hostname);
 		const routes = await this.client().workers.listRoutes(zoneId);
 		const existing = routes.find((r) => r.pattern === pattern);
@@ -99,8 +99,8 @@ export class CloudflareWorkers implements Workers {
 			const candidate = parts.slice(i).join(".");
 			const zones = await this.client().zones.list({ name: candidate });
 			if (zones.length > 0) {
-				this.zoneCache.set(domain, zones[0]!.id);
-				return zones[0]!.id;
+				this.zoneCache.set(domain, zones[0].id);
+				return zones[0].id;
 			}
 		}
 		throw new ProviderApiError(`No Cloudflare zone found for domain: ${domain}`, 404, undefined);

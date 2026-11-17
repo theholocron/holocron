@@ -32,7 +32,7 @@ export const cloneCommand: CommandModule<GlobalArgs, CloneArgs> = {
 			process.exitCode = 1;
 			return;
 		}
-		const [targetInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
+		const [targetInput] = await promptForPositionals(getEntry("clone"), argv);
 		const { org, repo } = parseCloneTarget(targetInput);
 		const report = await runClone({
 			org,

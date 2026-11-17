@@ -19,7 +19,7 @@ export const monitoringCheckCommand: CommandModule<GlobalArgs, MonitoringCheckAr
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [url] = await promptForPositionals(getEntry("check monitor"), argv as Record<string, unknown>);
+		const [url] = await promptForPositionals(getEntry("check monitor"), argv);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		// Deployment Protection (on by default for Vercel Preview
@@ -37,8 +37,8 @@ export const monitoringCheckCommand: CommandModule<GlobalArgs, MonitoringCheckAr
 		// project. This is the exact same gate `monitoring
 		// check resolved` uses for the CI split.
 		const { headers } = await resolveVercelBypassHeaders({
-			url: url!,
-			...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),
+			url: url,
+			...(argv.vercelProject ? { vercelProject: argv.vercelProject } : {}),
 			...resolveVercelCredentials(loaded.resolved),
 		});
 		const report = await runMonitoringCheck({
@@ -49,7 +49,7 @@ export const monitoringCheckCommand: CommandModule<GlobalArgs, MonitoringCheckAr
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			url: url!,
+			url: url,
 			...(headers ? { headers } : {}),
 		});
 		if (report.status === "fail") {

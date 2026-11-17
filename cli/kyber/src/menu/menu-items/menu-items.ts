@@ -30,13 +30,13 @@ export function menuItems(entries: MenuEntry[], path: string[] = []): MenuItem[]
 	const items: MenuItem[] = [];
 	if (own) {
 		items.push({
-			name: `${path[path.length - 1]!} (run it)`,
+			name: `${path[path.length - 1]} (run it)`,
 			value: own.name,
 			description: own.description,
 			haystack: haystackOf([own]),
 		});
 	}
-	const words = [...new Set(under.map((e) => e.name.split(" ")[path.length]!))];
+	const words = [...new Set(under.map((e) => e.name.split(" ")[path.length]))];
 	for (const word of words) {
 		const full = [...path, word].join(" ");
 		const family = under.filter((e) => e.name === full || e.name.startsWith(`${full} `));
@@ -50,7 +50,7 @@ export function menuItems(entries: MenuEntry[], path: string[] = []): MenuItem[]
 				haystack: haystackOf([self]),
 			});
 		} else {
-			const children = [...new Set(nested.map((e) => e.name.split(" ")[path.length + 1]!))];
+			const children = [...new Set(nested.map((e) => e.name.split(" ")[path.length + 1]))];
 			items.push({
 				name: `${word} ›`,
 				value: `${GROUP}${full}`,

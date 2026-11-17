@@ -29,11 +29,11 @@ export function parseCaller(file: string, text: string): ParsedCaller | undefine
 		const key = /^ {2}([\w-]+):\s*$/.exec(line);
 		if (key) {
 			close();
-			current = { id: key[1]! };
+			current = { id: key[1] };
 			continue;
 		}
 		const name = /^ {4}name:\s*(.+?)\s*$/.exec(line);
-		if (name && current) current.name = unquote(name[1]!);
+		if (name && current) current.name = unquote(name[1]);
 		const uses = /^ {4}uses:\s*(\S+)/.exec(line);
 		if (uses && current) current.uses = uses[1]!;
 	}

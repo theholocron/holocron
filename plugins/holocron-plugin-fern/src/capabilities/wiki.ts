@@ -77,7 +77,7 @@ export class FernWiki implements Wiki {
 
 	proxyConfig(): WikiProxyConfig | null {
 		if (!this.opts.domain) return null;
-		const hostname = this.opts.domain.split("/")[0]!;
+		const hostname = this.opts.domain.split("/")[0];
 		return {
 			target: "https://app.buildwithfern.com",
 			headers: { "X-Fern-Host": hostname },
@@ -119,7 +119,7 @@ export class FernWiki implements Wiki {
 		if (!domain) return null;
 		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
 		// Strip any basepath to get just the hostname for the CNAME.
-		const hostname = domain.split("/")[0]!;
+		const hostname = domain.split("/")[0];
 		// Derive zone: last two labels (works for most TLDs).
 		const labels = hostname.split(".");
 		const zone = labels.slice(-2).join(".");

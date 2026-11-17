@@ -103,7 +103,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			listed = (await importer(pkg)).tokens;
 		} catch (err) {
 			unavailable.push(pkg);
-			reasons.set(pkg, errorMessage(err).split("\n")[0] as string);
+			reasons.set(pkg, errorMessage(err).split("\n")[0]);
 			continue;
 		}
 		for (const token of listed ?? []) {
@@ -227,9 +227,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			try {
 				// One token asked for by name is for pasting into a field: the value alone, with no name and no line break.
 				const pasted =
-					input.only?.length && lines.length === 1 && exported.length === 1
-						? values.get(exported[0] as string)!
-						: text;
+					input.only?.length && lines.length === 1 && exported.length === 1 ? values.get(exported[0])! : text;
 				await (input.copy ?? copyToClipboard)(pasted);
 			} catch (err) {
 				return refuse(

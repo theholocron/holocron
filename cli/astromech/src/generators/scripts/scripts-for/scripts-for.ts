@@ -51,7 +51,7 @@ export function scriptsFor(
 		else out[task.script] = `holocron run ${runWords(task.id)} --`;
 	}
 	for (const task of planned) {
-		const suite = registry[task.id]!.suite;
+		const suite = registry[task.id].suite;
 		if (suite !== undefined && !isLegacySpelling(task.entry)) out[suite] = `holocron run ${suite} --`;
 	}
 	return out;

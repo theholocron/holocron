@@ -85,7 +85,7 @@ export async function credentialsRows(input: CredentialsRowsInput): Promise<Cred
 	const expected = await expectedTokens(input);
 	// `credentials` is a many-cardinality capability, so its entry always has a list of providers.
 	const { tuples } = resolved.providers.credentials as Extract<ResolvedProviderEntry, { cardinality: "many" }>;
-	for (const impl of loader.get("credentials") as Credentials[]) {
+	for (const impl of loader.get("credentials")) {
 		const tuple = tuples.find((t) => t.provider === impl.providerName);
 		const explicit = tuple && credentialsEnvironment(tuple, resolved);
 		if (!explicit && !derivesEnvironment(impl.providerName)) {

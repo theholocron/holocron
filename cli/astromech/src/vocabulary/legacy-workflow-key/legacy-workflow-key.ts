@@ -9,5 +9,5 @@ import { LEGACY_NAMES } from "../legacy-names/index.js";
  */
 export function legacyWorkflowKey(name: string): string {
 	const legacy = LEGACY_NAMES[name] ? name : legacyName(name);
-	return legacy === undefined ? name : LEGACY_NAMES[legacy]![0]!.id;
+	return legacy === undefined ? name : LEGACY_NAMES[legacy][0].id;
 }

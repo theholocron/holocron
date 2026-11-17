@@ -11,10 +11,10 @@ export const authCheckCommand: CommandModule<GlobalArgs, AuthCheckArgs> = {
 	describe: "Re-verify a stored bootstrap token",
 	builder: authCheckArgs,
 	handler: async (argv) => {
-		const [provider] = await promptForPositionals(getEntry("check token"), argv as Record<string, unknown>);
+		const [provider] = await promptForPositionals(getEntry("check token"), argv);
 		const result = await runAuthCheck({
-			provider: provider!,
-			...(argv.org ? { org: argv.org as string } : {}),
+			provider: provider,
+			...(argv.org ? { org: argv.org } : {}),
 		});
 		if (result.status === "fail") process.exitCode = 1;
 	},

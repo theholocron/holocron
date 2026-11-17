@@ -105,7 +105,7 @@ export async function runNotificationsSyncRoles(
 	}
 	const conflict = roleTeamProblem(layout);
 	if (conflict) return refuse(conflict);
-	const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
+	const source = loader.has("source") ? loader.get("source") : undefined;
 	const problem = sourceProblem(source);
 	if (problem) return refuse(loader.has("source") ? problem : whyMissing(loader, "source", problem));
 

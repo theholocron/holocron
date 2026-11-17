@@ -1,4 +1,4 @@
-import type { Coverage, CoverageStatusContext } from "../../plugin/capabilities/index.js";
+import type { CoverageStatusContext } from "../../plugin/capabilities/index.js";
 import { coverageExpectations } from "../coverage-expectations/index.js";
 import type { CoverageStatusContextsInput } from "./coverage-status-contexts.type.js";
 
@@ -10,7 +10,7 @@ import type { CoverageStatusContextsInput } from "./coverage-status-contexts.typ
  */
 export function coverageStatusContexts(input: CoverageStatusContextsInput): CoverageStatusContext[] | undefined {
 	if (!input.loader.has("coverage")) return undefined;
-	const provider = input.loader.get("coverage") as Coverage;
+	const provider = input.loader.get("coverage");
 	if (provider.statusContexts === undefined) return undefined;
 	const documentation = input.docsCoverage ?? "off";
 	return provider.statusContexts({

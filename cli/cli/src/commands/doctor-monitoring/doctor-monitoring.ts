@@ -26,7 +26,6 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	type Monitoring,
 	type MonitoringAssertion,
 	type MonitoringCheckInput,
 	PluginLoader,
@@ -76,7 +75,7 @@ async function checkRow(loader: PluginLoader): Promise<CheckRow> {
 		}
 		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
 	}
-	const monitoring = loader.get("monitoring") as Monitoring;
+	const monitoring = loader.get("monitoring");
 	if (monitoring.checks.length === 0) {
 		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
 	}

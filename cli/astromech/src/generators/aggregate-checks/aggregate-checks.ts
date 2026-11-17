@@ -27,7 +27,7 @@ export function aggregateChecks(config: TasksConfig, statusContexts?: readonly S
 	for (const context of taskCheckContexts(config, statusContexts)) {
 		if (context === DCO_CHECK || context === "DCO") continue;
 		if (isStatus(context)) statuses.add(context);
-		else expected.add(context.split(" / ")[0]!);
+		else expected.add(context.split(" / ")[0]);
 	}
 	return { expected: [...expected], statuses: [...statuses] };
 }

@@ -11,7 +11,7 @@ export const authUnsetCommand: CommandModule<GlobalArgs, AuthUnsetArgs> = {
 	describe: "Remove a stored bootstrap token",
 	builder: authUnsetArgs,
 	handler: async (argv) => {
-		const [provider] = await promptForPositionals(getEntry("remove token"), argv as Record<string, unknown>);
-		runAuthUnset({ provider: provider! });
+		const [provider] = await promptForPositionals(getEntry("remove token"), argv);
+		runAuthUnset({ provider: provider });
 	},
 };

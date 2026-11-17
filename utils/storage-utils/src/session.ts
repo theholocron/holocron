@@ -111,7 +111,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 				try {
 					const storedData = sessionStorage.getItem(prefixedNamespace);
 					if (storedData) {
-						const parsedData = JSON.parse(storedData);
+						const parsedData = JSON.parse(storedData) as object;
 						Object.assign(storage, parsedData); // Merge stored data into current storage
 					}
 				} catch (error) {

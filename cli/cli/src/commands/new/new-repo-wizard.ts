@@ -50,22 +50,22 @@ export async function askNewRepoAnswers(
 	prompts: WizardPrompts = { input, select }
 ): Promise<NewRepoAnswers> {
 	const { input: ask, select: choose } = prompts;
-	let type = argv.type as string | undefined;
-	let name = argv.name as string | undefined;
-	let description = argv.description as string | undefined;
-	let homepage = argv.homepage as string | undefined;
-	let vaultProvider = argv.vault as string | undefined;
+	let type = argv.type;
+	let name = argv.name;
+	let description = argv.description;
+	let homepage = argv.homepage;
+	let vaultProvider = argv.vault;
 	let vaultProject: string | undefined;
 	let vaultConfig: string | undefined;
-	let deploymentProvider = argv.deployment as string | undefined;
-	let agent = argv.agent as string | undefined;
-	let runtimeEnvironment = argv["runtime-environment"] as string | undefined;
-	let topics: string[] = parseTopics(argv.topics as string | undefined);
-	let protection = argv.protection as string | undefined;
-	let openSource = argv["open-source"] as boolean | undefined;
-	let usesExternalPackages = argv["uses-external-packages"] as boolean | undefined;
-	let skills: string[] = parseTopics(argv.skills as string | undefined);
-	const isTemplate = argv["is-template"] as boolean | undefined;
+	let deploymentProvider = argv.deployment;
+	let agent = argv.agent;
+	let runtimeEnvironment = argv["runtime-environment"];
+	let topics: string[] = parseTopics(argv.topics);
+	let protection = argv.protection;
+	let openSource = argv["open-source"];
+	let usesExternalPackages = argv["uses-external-packages"];
+	let skills: string[] = parseTopics(argv.skills);
+	const isTemplate = argv["is-template"];
 
 	// Interactive wizard — skip any field already supplied as a CLI arg
 	if (!type) {

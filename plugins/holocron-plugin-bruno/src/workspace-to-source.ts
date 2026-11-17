@@ -58,7 +58,7 @@ function itemsIn(files: Map<string, string>, prefix: string): Item[] {
 		const text = files.get(`${folderPath}folder.yml`);
 		const root =
 			text === undefined ? {} : reading(`${folderPath}folder.yml`, () => parseFolder(text, { format: "yml" }));
-		const meta = (root.meta ?? {}) as { name?: string; seq?: number };
+		const meta = root.meta ?? {};
 		items.push({
 			type: "folder",
 			name: meta.name ?? name,

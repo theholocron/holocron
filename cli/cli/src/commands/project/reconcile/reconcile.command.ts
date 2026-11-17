@@ -25,7 +25,7 @@ export const projectReconcileCommand: CommandModule<GlobalArgs, ProjectReconcile
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			...(argv.board ? { board: argv.board as string } : {}),
+			...(argv.board ? { board: argv.board } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

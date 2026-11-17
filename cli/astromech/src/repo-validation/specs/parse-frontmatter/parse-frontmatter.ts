@@ -10,17 +10,17 @@ export function parseFrontmatter(content: string): SpecFrontmatter | null {
 	if (!match) return null;
 	const fields: SpecFrontmatter = new Map();
 	let parent: string | undefined;
-	match[1]!.split("\n").forEach((text, i) => {
+	match[1].split("\n").forEach((text, i) => {
 		// +2: line 1 is the opening `---`.
 		const line = i + 2;
 		const kv = /^(\w[\w-]*):\s*(.*)/.exec(text);
 		if (kv) {
-			fields.set(kv[1]!, { value: kv[2]!.trim(), line });
+			fields.set(kv[1], { value: kv[2].trim(), line });
 			parent = kv[1];
 			return;
 		}
 		const nested = /^\s+(\w[\w-]*):\s*(.*)/.exec(text);
-		if (nested && parent) fields.set(`${parent}.${nested[1]!}`, { value: nested[2]!.trim(), line });
+		if (nested && parent) fields.set(`${parent}.${nested[1]}`, { value: nested[2].trim(), line });
 	});
 	return fields;
 }

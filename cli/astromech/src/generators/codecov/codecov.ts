@@ -27,7 +27,7 @@ const FLAGLESS_FOLDERS = new Set(["docs"]);
  * tests one package of a group would otherwise drop the group's other packages.
  */
 export function codecovFlagNames(packages: WorkspacePackage[]): string[] {
-	return packages.filter((pkg) => !FLAGLESS_FOLDERS.has(packageLocation(pkg).split("/")[0]!)).map((pkg) => pkg.slug);
+	return packages.filter((pkg) => !FLAGLESS_FOLDERS.has(packageLocation(pkg).split("/")[0])).map((pkg) => pkg.slug);
 }
 
 /**
@@ -63,7 +63,7 @@ export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
 		.map(({ name, relativeDir, folder }): WorkspacePackage => {
 			const slug = taken.get(folder)! > 1 ? relativeDir.replaceAll("/", "-") : folder;
 			const segments = relativeDir.split("/");
-			if (segments.length === 2 && slug === folder) return { slug, name, dir: segments[0]! };
+			if (segments.length === 2 && slug === folder) return { slug, name, dir: segments[0] };
 			return { slug, name, path: relativeDir };
 		})
 		.sort((a, b) => packageLocation(a).localeCompare(packageLocation(b)));

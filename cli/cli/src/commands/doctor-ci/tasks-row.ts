@@ -11,7 +11,7 @@ import { problemRow } from "./problem-row.js";
 export function tasksRow(names: readonly string[]): CheckRow {
 	const problems = names.flatMap((name) => {
 		if (!Object.hasOwn(LEGACY_NAMES, name)) return [];
-		const replacement = LEGACY_NAMES[name]!.map((target) => target.id).join(", ");
+		const replacement = LEGACY_NAMES[name].map((target) => target.id).join(", ");
 		return [`${name}: a deprecated alias; use ${replacement}`];
 	});
 	return problemRow("tasks", "tasks use flat ids", problems, `${names.length} of ${names.length} use flat ids`);

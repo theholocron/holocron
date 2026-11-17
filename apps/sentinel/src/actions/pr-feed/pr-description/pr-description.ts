@@ -18,7 +18,7 @@ function withoutSourcerySections(text: string): string {
 	for (const line of text.split("\n")) {
 		const heading = /^(#{1,6})\s/.exec(line);
 		if (heading) {
-			const level = heading[1]!.length;
+			const level = heading[1].length;
 			if (/sourcery/i.test(line)) {
 				skipping = level;
 				continue;

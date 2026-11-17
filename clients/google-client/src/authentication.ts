@@ -37,6 +37,8 @@ export const oauth = async (scopes: string[], env: EnvLookup = holocronEnv()): P
 		});
 
 		const server = http
+			// The handler rejects the sign-in itself (its own try/catch), so no rejection reaches the server.
+			// eslint-disable-next-line @typescript-eslint/no-misused-promises
 			.createServer(async (req, res) => {
 				try {
 					if (req.url && req.url.indexOf("/oauth2callback") > -1) {
@@ -48,13 +50,16 @@ export const oauth = async (scopes: string[], env: EnvLookup = holocronEnv()): P
 						resolve(oauth2Client);
 					}
 				} catch (e) {
-					reject(e);
+					reject(e instanceof Error ? e : new Error(String(e)));
 				}
 			})
 			.listen(port, () => {
-				open(authorizeUrl, { wait: false }).then((cp) => cp.unref());
+				// A browser that cannot be opened fails the sign-in instead of an unhandled rejection.
+				open(authorizeUrl, { wait: false })
+					.then((cp) => cp.unref())
+					.catch(reject);
 			});
-		destroyer(server as unknown as Parameters<typeof destroyer>[0]);
+		destroyer(server);
 	});
 };
 

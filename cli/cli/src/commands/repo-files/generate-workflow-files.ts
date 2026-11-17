@@ -14,7 +14,6 @@ import {
 	workflowKey,
 	workflowKeys,
 } from "@theholocron/astromech";
-import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync } from "@theholocron/fs-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -47,7 +46,7 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	const tasks = withAutoPreviewDeployPaths(config.tasks, gitRoot);
 	const astromech = createAstromech({
 		cwd: input.repoRoot,
-		config: { tasks: tasks as TasksConfig["tasks"], extraRequiredChecks: config.extraRequiredChecks },
+		config: { tasks: tasks, extraRequiredChecks: config.extraRequiredChecks },
 		orgContext: { org: config.org, domain: config.domain },
 		...(input.statusContexts ? { statusContexts: input.statusContexts } : {}),
 		logger: input.logger ?? getLogger(),

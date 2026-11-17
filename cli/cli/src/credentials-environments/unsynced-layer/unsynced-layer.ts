@@ -25,7 +25,7 @@ export function isUnsyncedLayer(layer: unknown): layer is EnvironmentLayer {
  */
 export function unsyncedLayerMessage(what: string, layer: EnvironmentLayer): string {
 	const synced = ENVIRONMENT_LAYERS.filter((l) => !isUnsyncedLayer(l))
-		.map((l) => `\`${l}\``)
+		.map((l) => `\`${String(l)}\``)
 		.join(" and ");
 	return `${what} names the \`${layer}\` layer: \`local\` and \`dev\` are read by this machine and are never synced. Only ${synced} can be synced`;
 }

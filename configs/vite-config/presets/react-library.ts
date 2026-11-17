@@ -15,7 +15,7 @@ export async function reactLibrary({
 	name,
 	formats = ["es", "cjs"] as ("es" | "cjs" | "umd" | "iife")[],
 	external = [] as string[],
-	overrides = {} as UserConfig,
+	overrides = {},
 }: {
 	entry?: string;
 	name?: string;

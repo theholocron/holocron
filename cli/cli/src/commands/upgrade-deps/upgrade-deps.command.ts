@@ -13,7 +13,7 @@ export const upgradeDepsCommand: CommandModule<GlobalArgs, UpgradeDepsArgs> = {
 		const report = await runUpgradeDeps({
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
-			pinsOnly: argv.pinsOnly as boolean,
+			pinsOnly: argv.pinsOnly,
 		});
 		if (report.status === "fail") {
 			if (report.message) reportError(`upgrade deps: ${report.message}`);

@@ -53,7 +53,7 @@ export async function launchMenu(
 	const stack: string[][] = [startPath];
 	let picked: MenuEntry | undefined;
 	while (!picked) {
-		const path = stack[stack.length - 1]!;
+		const path = stack[stack.length - 1];
 		const items = menuItems(entries, path);
 		if (stack.length > 1) {
 			items.push({ name: "← back", value: BACK, description: "Return to the previous menu", haystack: "back" });

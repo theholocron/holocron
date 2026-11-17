@@ -13,7 +13,7 @@ import { type CheckRow, declaredVsActual } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
-import type { PluginLoader, Source } from "../../plugin/index.js";
+import type { PluginLoader } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type {
@@ -101,7 +101,7 @@ export async function variableRows(
 			observations.push({ scope: check.scope, unread: why });
 		}
 	} else {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 		for (const check of checks) {
 			try {
 				const result = await check.run(source);

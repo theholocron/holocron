@@ -11,12 +11,9 @@ export const npmBumpVersionsCommand: CommandModule<GlobalArgs, NpmBumpVersionsAr
 	describe: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 	builder: npmBumpVersionsArgs,
 	handler: async (argv) => {
-		const [newVersion] = await promptForPositionals(
-			getEntry("publish bump-versions"),
-			argv as Record<string, unknown>
-		);
+		const [newVersion] = await promptForPositionals(getEntry("publish bump-versions"), argv);
 		const report = await runNpmBumpVersions({
-			version: newVersion!,
+			version: newVersion,
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
 			...(argv.group ? { group: argv.group } : {}),

@@ -73,7 +73,7 @@ function misreadsMdxComment(file: string, content: string, e: LintError): boolea
 		file.endsWith(".mdx") &&
 		e.ruleNames.includes("MD037") &&
 		e.errorRange !== null &&
-		insideJsxComment(content, e.lineNumber, e.errorRange[0]!, e.errorRange[1])
+		insideJsxComment(content, e.lineNumber, e.errorRange[0], e.errorRange[1])
 	);
 }
 
@@ -100,7 +100,7 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 	const messages: MarkdownLintMessage[] = [];
 	const fixes: MarkdownLintFix[] = [];
 	for (const [file, found] of Object.entries(results)) {
-		const errors = found.filter((e) => !misreadsMdxComment(file, strings[file]!, e));
+		const errors = found.filter((e) => !misreadsMdxComment(file, strings[file], e));
 		if (errors.length === 0) continue;
 
 		for (const e of errors) {
@@ -114,13 +114,13 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 			});
 		}
 
-		const fixed = applyFixes(strings[file]!, errors);
+		const fixed = applyFixes(strings[file], errors);
 		// markdownlint's edits are one line's own, so a line the pull request did not add is left alone (holocron#1950).
 		if (fixed !== strings[file]) {
 			fixes.push({
 				file,
 				fixed,
-				scopedFix: scopeFix(strings[file]!, fixed, addedLines(patches.get(file)), { perLine: true }),
+				scopedFix: scopeFix(strings[file], fixed, addedLines(patches.get(file)), { perLine: true }),
 			});
 		}
 	}

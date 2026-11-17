@@ -114,7 +114,7 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	/* v8 ignore stop */
 	await loader.load();
 	assertPluginsResolvable(loader, "sync requests");
-	const loaded = loader.has("tooling") ? (loader.get("tooling") as Tooling[]) : [];
+	const loaded = loader.has("tooling") ? loader.get("tooling") : [];
 
 	const rows: CheckRow[] = [];
 	const targets: Target[] = [];

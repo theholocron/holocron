@@ -25,8 +25,8 @@ export const notificationsSyncRolesCommand: CommandModule<GlobalArgs, Notificati
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			...(argv.provider ? { provider: argv.provider as string } : {}),
-			keep: argv.keep as boolean,
+			...(argv.provider ? { provider: argv.provider } : {}),
+			keep: argv.keep,
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

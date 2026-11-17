@@ -21,7 +21,7 @@ export function findGuildId(source: string): GuildIdSpan[] {
 	const tokens: Token[] = [];
 	let i = 0;
 	while (i < source.length) {
-		const ch = source[i]!;
+		const ch = source[i];
 		if (/\s/.test(ch)) {
 			i++;
 		} else if (source.startsWith("//", i)) {
@@ -37,7 +37,7 @@ export function findGuildId(source: string): GuildIdSpan[] {
 			i = j + 1;
 		} else if (/[\w$]/.test(ch)) {
 			let j = i + 1;
-			while (j < source.length && /[\w$]/.test(source[j]!)) j++;
+			while (j < source.length && /[\w$]/.test(source[j])) j++;
 			tokens.push({ kind: "word", text: source.slice(i, j), start: i, end: j });
 			i = j;
 		} else {
@@ -48,7 +48,7 @@ export function findGuildId(source: string): GuildIdSpan[] {
 
 	const found: GuildIdSpan[] = [];
 	for (let t = 0; t + 2 < tokens.length; t++) {
-		const [key, colon, value] = [tokens[t]!, tokens[t + 1]!, tokens[t + 2]!];
+		const [key, colon, value] = [tokens[t], tokens[t + 1], tokens[t + 2]];
 		if (key.kind === "punct" || key.text !== "guildId") continue;
 		if (colon.text !== ":" || colon.kind !== "punct") continue;
 		if (value.kind === "string" && /^\d{1,20}$/.test(value.text))

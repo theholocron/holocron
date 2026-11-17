@@ -31,9 +31,9 @@ export function permissionTables(page: string): PermissionTable[] {
 	const tables: PermissionTable[] = [];
 	let heading = "";
 	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!;
+		const line = lines[i];
 		const title = /^#{1,6}\s+(.*)$/.exec(line);
-		if (title) heading = title[1]!.trim();
+		if (title) heading = title[1].trim();
 		if (!isTableLine(line) || !isSeparator(lines[i + 1])) continue;
 		const header = cells(line).map(clean);
 		const idColumn = header.indexOf("id");

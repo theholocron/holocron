@@ -12,7 +12,7 @@ const FIX = "run `holocron provider linear setup`";
 
 /** `ok` with the detail when nothing differs, otherwise `fail` with a line per difference and the fix. */
 const verdict = (id: string, title: string, detail: string, problems: string[]): ProviderRow =>
-	problems.length === 0 ? row(id, title, "ok", detail) : row(id, title, "fail", problems[0]!, [...problems, FIX]);
+	problems.length === 0 ? row(id, title, "ok", detail) : row(id, title, "fail", problems[0], [...problems, FIX]);
 
 /**
  * `provider linear doctor`: one row for the team and one for each label, the project, each auto-close and

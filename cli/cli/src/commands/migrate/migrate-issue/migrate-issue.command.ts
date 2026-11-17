@@ -12,6 +12,6 @@ export const migrateIssueCommand: CommandModule<GlobalArgs, MigrateArgs & { key:
 			type: "string",
 			demandOption: true,
 			describe: "The issue in the source tracker (#42, ENG-42)",
-		}) as never,
+		}),
 	handler: (argv) => handleMigrate(argv, () => ({ kind: "issue", key: argv.key })),
 };

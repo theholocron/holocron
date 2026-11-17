@@ -134,7 +134,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				...(refreshTitles ? { refreshTitles: true } : {}),
 				...(input.refresh ? { refreshLinks: true } : {}),
 				// The id links to the file on the default branch, which a pull request still open is not on yet: its `PR:` line is the link.
-				...(linking ? { link: { repo: repo!, branch } } : {}),
+				...(linking ? { link: { repo: repo, branch } } : {}),
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
 				...(repo && prNumber(doc.path)
 					? {

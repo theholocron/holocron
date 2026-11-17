@@ -10,13 +10,7 @@
 import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
-import {
-	assertPluginsResolvable,
-	type Dns,
-	type EnsuredTunnel,
-	PluginLoader,
-	type Tunnels,
-} from "../../plugin/index.js";
+import { assertPluginsResolvable, type EnsuredTunnel, PluginLoader } from "../../plugin/index.js";
 import { runCloudflared } from "../run-cloudflared/index.js";
 import type { RunTunnelUpInput, TunnelUpReport } from "./tunnel-up.type.js";
 
@@ -64,8 +58,8 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 		row(false, "dns", missing(loader, "dns", "needs a `dns` provider in holocron.config.ts (cloudflare)"));
 		return finish("fail");
 	}
-	const tunnels = loader.get("tunnels") as Tunnels;
-	const dns = loader.get("dns") as Dns;
+	const tunnels = loader.get("tunnels");
+	const dns = loader.get("dns");
 	const service = `http://localhost:${input.port}`;
 	const url = `https://${input.hostname}`;
 

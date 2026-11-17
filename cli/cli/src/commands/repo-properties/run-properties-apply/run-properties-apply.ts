@@ -11,7 +11,7 @@
 import { confirm } from "@inquirer/prompts";
 import { describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
 
-import { assertPluginsResolvable, PluginLoader, type Source } from "../../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
 import { whyMissing } from "../../notifications-channel-add/index.js";
 import { CAPABILITIES_PROPERTY, capabilityValues } from "../capability-property/index.js";
 import type { PropertiesApplyReport, RunPropertiesApplyInput } from "./run-properties-apply.type.js";
@@ -29,7 +29,7 @@ export async function runPropertiesApply(input: RunPropertiesApplyInput): Promis
 	if (!loader.has("source")) {
 		return stop("skip", whyMissing(loader, "source", "no `source` provider to read the property with"));
 	}
-	const source = loader.get("source") as Source;
+	const source = loader.get("source");
 	if (!source.getOrgPropertyValues || !source.addOrgPropertyValues) {
 		return stop("skip", `the \`${source.providerName}\` provider cannot read or change an organization property`);
 	}

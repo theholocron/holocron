@@ -17,7 +17,7 @@ export const cleanupPreviewCommand: CommandModule<DeployArgs, CleanupPreviewArgs
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [pr] = await promptForPositionals(getEntry("deploy cleanup-preview"), argv as Record<string, unknown>);
+		const [pr] = await promptForPositionals(getEntry("deploy cleanup-preview"), argv);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		const report = await runCleanupPreview({
@@ -29,8 +29,8 @@ export const cleanupPreviewCommand: CommandModule<DeployArgs, CleanupPreviewArgs
 				org: resolveOrg(argv, loaded.resolved),
 			},
 			prNumber: Number(pr),
-			project: argv.project as string,
-			...(argv.repo ? { repo: argv.repo as string } : {}),
+			project: argv.project,
+			...(argv.repo ? { repo: argv.repo } : {}),
 			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") {

@@ -113,7 +113,7 @@ export class BrunoTooling implements Tooling {
 				}
 			);
 			for (const issue of converted.issues) issues.push({ file, message: issue });
-			const name = names[index] as string;
+			const name = names[index];
 			if (!input.dryRun) {
 				await mkdir(outDir, { recursive: true });
 				await writeFile(join(outDir, name), converted.json);

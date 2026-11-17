@@ -40,6 +40,8 @@ export function hermeticCreateRequire(
 			}
 			return found;
 		};
+		// The merged `require` is cast to `typeof createRequire`'s return by the enclosing `as`.
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 		return Object.assign((id: string) => real(id), real, { resolve: Object.assign(resolve, real.resolve) });
 	}) as typeof NodeModule.createRequire;
 }

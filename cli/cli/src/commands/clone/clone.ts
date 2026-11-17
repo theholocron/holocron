@@ -200,7 +200,7 @@ export async function runClone(input: RunCloneInput): Promise<CloneReport> {
 	);
 
 	if (input.confirmOpen) {
-		const openTarget = input.repo ? join(targetDir, repoDirName(repos[0]!)) : targetDir;
+		const openTarget = input.repo ? join(targetDir, repoDirName(repos[0])) : targetDir;
 		if (existsSync(openTarget)) await input.confirmOpen(openTarget, dryRun && cloned > 0);
 	}
 

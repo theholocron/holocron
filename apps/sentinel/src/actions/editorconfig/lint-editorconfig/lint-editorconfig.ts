@@ -95,7 +95,7 @@ function checkContent(text: string, props: Props): Array<{ line: number; reason:
 
 	if (props.end_of_line === "lf" && text.includes("\r\n")) {
 		messages.push({
-			line: text.split("\r\n")[0]!.split("\n").length,
+			line: text.split("\r\n")[0].split("\n").length,
 			reason: "Expected LF line endings, found CRLF.",
 		});
 	} else if (props.end_of_line === "crlf") {

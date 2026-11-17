@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 
 export function getPackageName() {
 	try {
-		return JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf-8")).name ?? "unknown";
+		const pkg = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf-8")) as { name?: string };
+		return pkg.name ?? "unknown";
 	} catch {
 		return "unknown";
 	}

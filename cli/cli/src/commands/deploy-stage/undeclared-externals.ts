@@ -1,7 +1,7 @@
 /** `"@scope/pkg/sub"` → `"@scope/pkg"`, `"pkg/sub"` → `"pkg"`. */
 function packageName(specifier: string): string {
 	const parts = specifier.split("/");
-	return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0]!;
+	return specifier.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
 }
 
 /**
@@ -20,7 +20,7 @@ function packageName(specifier: string): string {
 export function undeclaredExternals(source: string, dependencies: Record<string, string>): string[] {
 	const STATIC = /^\s*(?:import|export)\b[^"'\n;]*?["']([^"'./][^"']*)["']/gm;
 	const DYNAMIC = /\bimport\(\s*["']([^"'./][^"']*)["']\s*\)/g;
-	const specifiers = [...source.matchAll(STATIC), ...source.matchAll(DYNAMIC)].map((m) => m[1]!);
+	const specifiers = [...source.matchAll(STATIC), ...source.matchAll(DYNAMIC)].map((m) => m[1]);
 	const imported = new Set(specifiers.filter((s) => !s.startsWith("node:")).map(packageName));
 	return [...imported].filter((name) => !(name in dependencies)).sort();
 }

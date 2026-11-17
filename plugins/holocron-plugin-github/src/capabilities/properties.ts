@@ -20,7 +20,7 @@ function githubMessage(details: unknown): string {
 /** The organization's property definitions, or `undefined` when they cannot be read (permission, an older client). */
 async function orgSchema(client: GitHubClient, repo: string): Promise<OrgProperty[] | undefined> {
 	try {
-		return await client.properties.orgSchema(repo.split("/")[0] as string);
+		return await client.properties.orgSchema(repo.split("/")[0]);
 	} catch {
 		return undefined;
 	}
@@ -91,7 +91,7 @@ export async function addOrgPropertyValues(
 	values: string[],
 	viaOrgToken = true
 ): Promise<string[]> {
-	const org = repo.split("/")[0] as string;
+	const org = repo.split("/")[0];
 	const current = (await client.properties.orgSchema(org)).find((p) => p.property_name === name);
 	if (!current) throw new Error(`the organization ${org} has no custom property "${name}"; create it first`);
 	if (!current.allowed_values)

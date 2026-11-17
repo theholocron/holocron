@@ -34,8 +34,8 @@ export class CloudflareDns implements Dns {
 			// When multiple same-type records exist (e.g. TXT for SPF + DKIM),
 			// update only the first match. Callers managing multiple TXT records
 			// should use listRecords + deleteRecord + explicit upserts.
-			const updated = await client.dns.update(zoneId, existing[0]!.id, {
-				type: record.type as Parameters<typeof client.dns.update>[2]["type"],
+			const updated = await client.dns.update(zoneId, existing[0].id, {
+				type: record.type,
 				name: record.name,
 				content: record.content,
 				...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
@@ -44,7 +44,7 @@ export class CloudflareDns implements Dns {
 			return mapRecord(updated);
 		}
 		const created = await client.dns.create(zoneId, {
-			type: record.type as Parameters<typeof client.dns.create>[1]["type"],
+			type: record.type,
 			name: record.name,
 			content: record.content,
 			...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
@@ -81,8 +81,8 @@ export class CloudflareDns implements Dns {
 			const candidate = parts.slice(i).join(".");
 			const zones = await this.client().zones.list({ name: candidate });
 			if (zones.length > 0) {
-				this.zoneCache.set(domain, zones[0]!.id);
-				return zones[0]!.id;
+				this.zoneCache.set(domain, zones[0].id);
+				return zones[0].id;
 			}
 		}
 		throw new ProviderApiError(`No Cloudflare zone found for domain: ${domain}`, 404, undefined);

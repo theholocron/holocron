@@ -47,7 +47,7 @@ export async function runDoctorLogs(input: RunDoctorLogsInput): Promise<DoctorLo
 			: "no `logs` provider is configured in holocron.config.ts";
 		rows.push(row("logs", "logs", "skip", why));
 	} else {
-		rows.push(...(await checkLogs(loader.get("logs") as Logs, datasetTargets(input.loaded.resolved))));
+		rows.push(...(await checkLogs(loader.get("logs"), datasetTargets(input.loaded.resolved))));
 	}
 
 	printCheckRows(rows, print);

@@ -25,5 +25,5 @@ export function fakeAnalyticsSink(): FakeAnalyticsSink {
 		identify: vi.fn(),
 		capture: vi.fn(),
 		shutdown: vi.fn().mockResolvedValue(undefined),
-	} as unknown as FakeAnalyticsSink;
+	};
 }

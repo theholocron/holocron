@@ -25,8 +25,8 @@ export const notificationsDedupeCommand: CommandModule<GlobalArgs, Notifications
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			...(argv.channel ? { channel: argv.channel as string } : {}),
-			...(argv.provider ? { provider: argv.provider as string } : {}),
+			...(argv.channel ? { channel: argv.channel } : {}),
+			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

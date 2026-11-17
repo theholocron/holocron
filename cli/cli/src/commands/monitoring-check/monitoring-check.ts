@@ -28,12 +28,7 @@
 import { runCheckAgainstUrl } from "@theholocron/kyber/checks";
 
 import { getLogger } from "../../observability/logger/index.js";
-import {
-	assertPluginsResolvable,
-	type Monitoring,
-	type MonitoringCheckInput,
-	PluginLoader,
-} from "../../plugin/index.js";
+import { assertPluginsResolvable, type MonitoringCheckInput, PluginLoader } from "../../plugin/index.js";
 import type {
 	ReportChecksInput,
 	ResolveMonitoringChecksInput,
@@ -57,7 +52,7 @@ export async function resolveMonitoringChecks(input: ResolveMonitoringChecksInpu
 	// token, a constructor throw, …) when it was configured but failed to
 	// load — never swallowed behind a generic "not configured" message,
 	// which would send an operator chasing the wrong fix.
-	const monitoring = loader.get("monitoring") as Monitoring;
+	const monitoring = loader.get("monitoring");
 	return [...monitoring.checks];
 }
 

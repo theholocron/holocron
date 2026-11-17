@@ -131,7 +131,7 @@ export async function runDeploy(input: RunDeployInput): Promise<DeployReport> {
 			"deployment capability is not configured — add a `deployment` provider to holocron.config.json"
 		);
 	}
-	const deploy = loader.get("deployment") as Deployment;
+	const deploy = loader.get("deployment");
 
 	if (dryRun) {
 		const message = `would: ${deploy.providerName}.triggerDeployment(projectId=${input.projectId}, branch=${input.branch}${
@@ -225,7 +225,7 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 			"deployment capability is not configured — add a `deployment` provider to holocron.config.json"
 		);
 	}
-	const deploy = loader.get("deployment") as Deployment;
+	const deploy = loader.get("deployment");
 	if (!deploy.deployFunction) {
 		throw new Error(
 			`deployment provider "${deploy.providerName}" does not support deploying from files — deployFunction() is not implemented`

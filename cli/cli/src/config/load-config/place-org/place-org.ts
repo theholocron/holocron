@@ -113,11 +113,11 @@ export function placeOrg(raw: HolocronConfig, area: ConfigDirArea): HolocronConf
 	const withDomain = domain === undefined ? raw : { ...raw, domain: domain.value };
 	if (withDomain.providers === undefined) return withDomain;
 	const providers: Record<string, RawProviderEntry> = { ...withDomain.providers };
-	for (const [capability, entry] of Object.entries(withDomain.providers) as [string, RawProviderEntry][]) {
+	for (const [capability, entry] of Object.entries(withDomain.providers)) {
 		providers[capability] =
 			Array.isArray(entry) && !isTuple(entry)
 				? entry.map((item) => fill(item, org, capability))
-				: fill(entry as string | Tuple, org, capability);
+				: fill(entry, org, capability);
 	}
 	return { ...withDomain, providers };
 }

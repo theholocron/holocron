@@ -36,11 +36,11 @@ export function detectIndent(text: string): string | undefined {
 	const lines = text.split(/\r?\n/);
 	const rootAt = lines.findIndex((line) => line.trim() !== "");
 	if (rootAt === -1) return undefined;
-	const rootPad = (/^[ \t]*/.exec(lines[rootAt] as string) as RegExpExecArray)[0];
+	const rootPad = (/^[ \t]*/.exec(lines[rootAt]) as RegExpExecArray)[0];
 	for (const line of lines.slice(rootAt + 1)) {
 		const match = /^([ \t]+)\S/.exec(line);
 		if (!match) continue;
-		const pad = match[1] as string;
+		const pad = match[1];
 		const nested = pad.startsWith(rootPad) ? pad.slice(rootPad.length) : pad;
 		if (nested) return nested;
 	}

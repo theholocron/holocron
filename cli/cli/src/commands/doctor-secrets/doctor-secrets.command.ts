@@ -67,7 +67,7 @@ export const doctorSecretsCommand: CommandModule<GlobalArgs, Args> = {
 			.option("name", {
 				type: "string",
 				describe: "Print how each place stands for this one name, and why. Informational: exit 0",
-			}) as never,
+			}),
 	handler: async (argv) => {
 		const environments = parseEnvList(argv.env);
 		const tokens = tokenContext(argv.token);

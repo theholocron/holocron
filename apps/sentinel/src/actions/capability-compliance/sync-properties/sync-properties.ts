@@ -32,7 +32,6 @@ import {
 	deriveProfile,
 	deriveStack,
 	type PackageJsonLike,
-	type ResolvedProvidersConfig,
 } from "@theholocron/cli";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
@@ -122,7 +121,7 @@ export async function syncPropertiesFromConfig(input: SyncPropertiesInput): Prom
 	});
 	properties["holocron_stack"] = deriveStack(rootPackageJson);
 
-	const capabilities = deriveCapabilities(cfg.providers as ResolvedProvidersConfig | undefined);
+	const capabilities = deriveCapabilities(cfg.providers);
 	properties["holocron_capabilities"] = capabilities;
 	properties["holocron_compliance"] = deriveCompliance(capabilities);
 

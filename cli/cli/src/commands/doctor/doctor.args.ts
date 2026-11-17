@@ -20,8 +20,5 @@ export const doctorArgs = (y: Argv<GlobalArgs>): Argv<DoctorArgs> => {
 			type: "string",
 			describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 		});
-	return DEEP_CHECKS.reduce(
-		(acc, check) => acc.command(check.command as never),
-		withRepo
-	) as unknown as Argv<DoctorArgs>;
+	return DEEP_CHECKS.reduce((acc, check) => acc.command(check.command as never), withRepo);
 };

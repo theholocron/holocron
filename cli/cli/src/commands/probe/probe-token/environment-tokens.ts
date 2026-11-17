@@ -60,7 +60,7 @@ export async function environmentTokens(input: EnvironmentTokenInput): Promise<E
 	for (const declared of input.tokens) {
 		const variables = [declared.envName, ...(declared.vendorEnvName ? [declared.vendorEnvName] : [])];
 		const variable = variables.find((v) => values[v]);
-		if (variable) held.push({ token: values[variable]!, variable, envName: declared.envName });
+		if (variable) held.push({ token: values[variable], variable, envName: declared.envName });
 		else missing.push(declared.envName);
 	}
 	if (held.length === 0) {

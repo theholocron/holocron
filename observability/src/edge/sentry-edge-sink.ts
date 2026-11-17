@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/vercel-edge";
 
-import { SentryCompatibleSink, type SentrySdkLike, type SentrySinkOptions } from "../shared/sentry-compatible-sink.js";
+import { SentryCompatibleSink, type SentrySinkOptions } from "../shared/sentry-compatible-sink.js";
 
 /**
  * `SentryEdgeSink` is the `@sentry/vercel-edge` call site, an `ErrorSink` for an
@@ -13,6 +13,6 @@ import { SentryCompatibleSink, type SentrySdkLike, type SentrySinkOptions } from
 export class SentryEdgeSink extends SentryCompatibleSink {
 	/** Builds the sink over `@sentry/vercel-edge`, or over `options.sdk` when given. */
 	constructor(options: SentrySinkOptions = {}) {
-		super(options.sdk ?? (Sentry as SentrySdkLike), options);
+		super(options.sdk ?? Sentry, options);
 	}
 }

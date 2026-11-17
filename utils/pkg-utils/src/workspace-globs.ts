@@ -24,7 +24,7 @@ export function readWorkspacePatterns(workspaceYaml: string): string[] {
 		if (line.trim() === "" || /^\s*#/.test(line)) continue;
 		const item = /^\s*-\s*(.*)$/.exec(line);
 		if (!item) break;
-		const value = item[1]!
+		const value = item[1]
 			.replace(/(^|\s)#.*$/, "")
 			.trim()
 			.replace(/^["']|["']$/g, "")

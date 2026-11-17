@@ -31,7 +31,7 @@ export async function writeGuildId(filepath: string, id: string): Promise<GuildI
 					: "the config has more than one `guildId` to choose from",
 		};
 	}
-	const { start, end } = spans[0]!;
+	const { start, end } = spans[0];
 	try {
 		await writeFile(filepath, `${text.slice(0, start)}${id}${text.slice(end)}`, "utf8");
 	} catch (err) {

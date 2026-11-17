@@ -23,7 +23,7 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 					: "run";
 		const { logger } = buildCliLogger(argv, { command: commandKey });
 		// Positional words after the job still name the task (`run test unit storybook`); only what follows `--` is for the tool.
-		const args = (argv.passthrough as string[] | undefined) ?? [];
+		const args = argv.passthrough ?? [];
 		const passthrough = (argv["--"] as string[] | undefined) ?? [];
 		// `run lint commit-msg <file>` is the `.husky/commit-msg` hook: a real
 		// commit-message linter, not astromech's filesystem-driven `lint` task.
@@ -34,7 +34,7 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 				process.exitCode = 1;
 				return;
 			}
-			const result = await lintCommitMsgFile(file, argv.cwd as string);
+			const result = await lintCommitMsgFile(file, argv.cwd);
 			if (!result.valid) {
 				for (const violation of result.violations) {
 					console.error(`✖ ${violation.rule}: ${violation.message}`);
@@ -45,31 +45,31 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 		}
 		// `ci` isn't a manifest task: it's the merge-gating suite, in CI order.
 		if (argv.task === "ci") {
-			const ciConfig = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
+			const ciConfig = await loadTasksConfig(argv.cwd).catch(() => undefined);
 			const report = createAstromech({ cwd: argv.cwd, logger, config: ciConfig }).ci({
 				dryRun: argv.dryRun,
 				scope: argv.all ? "all" : "required",
-				...(argv.filter ? { filter: argv.filter as string } : {}),
+				...(argv.filter ? { filter: argv.filter } : {}),
 				...(argv.affected ? { affected: true } : {}),
-				...(argv.base ? { base: argv.base as string } : {}),
+				...(argv.base ? { base: argv.base } : {}),
 			});
 			if (report.status === "fail") process.exitCode = 1;
 			return;
 		}
 		// The task manifest drives `lint`'s linter set; other tasks are
 		// filesystem-driven and ignore it. Missing / unparseable config → undefined.
-		const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
+		const config = await loadTasksConfig(argv.cwd).catch(() => undefined);
 		const astromech = createAstromech({ cwd: argv.cwd, logger, config });
-		const report = astromech.run(argv.task as string, {
-			...(argv.job !== undefined ? { job: argv.job as string } : {}),
+		const report = astromech.run(argv.task, {
+			...(argv.job !== undefined ? { job: argv.job } : {}),
 			...(args.length > 0 ? { args } : {}),
 			passthrough,
 			...(argv.check ? { check: true } : {}),
 			dryRun: argv.dryRun,
 			required: argv.required,
-			...(argv.filter ? { filter: argv.filter as string } : {}),
+			...(argv.filter ? { filter: argv.filter } : {}),
 			...(argv.affected ? { affected: true } : {}),
-			...(argv.base ? { base: argv.base as string } : {}),
+			...(argv.base ? { base: argv.base } : {}),
 		});
 		if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
 	},

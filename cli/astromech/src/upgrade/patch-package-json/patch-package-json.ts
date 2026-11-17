@@ -21,7 +21,7 @@ export function patchPackageJson(content: string, from: number, to: number): str
 
 	const engines = pkg.engines as Record<string, string> | undefined;
 	if (engines?.node && /^>=\d+(?:\.0\.0)?$/.test(engines.node)) {
-		const major = parseInt(engines.node.match(/\d+/)![0]!, 10);
+		const major = parseInt(engines.node.match(/\d+/)![0], 10);
 		if (major === from) {
 			engines.node = `>=${to}.0.0`;
 			changed = true;

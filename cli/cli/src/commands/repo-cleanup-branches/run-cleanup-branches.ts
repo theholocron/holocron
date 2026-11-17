@@ -3,7 +3,7 @@ import { NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
 import { classifyBranches } from "./classify-branches.js";
 import { BASE_BRANCHES } from "./constants.js";
 import { groupBranches } from "./group-branches.js";
@@ -64,7 +64,7 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 	if (!loader.has("source")) {
 		throw new Error("source capability is not configured — add a source provider to holocron.config.json");
 	}
-	const source = loader.get("source") as Source;
+	const source = loader.get("source");
 	const { listPullRequests, listPullRequestCommits, listBranches, deleteBranch } = source;
 	if (!listPullRequests || !listPullRequestCommits) {
 		throw new Error(`${source.providerName} source provider does not support listing pull requests`);
@@ -150,7 +150,7 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 				];
 			}),
 		});
-		chosen = picked.map((index) => entries[index]!);
+		chosen = picked.map((index) => entries[index]);
 	}
 
 	for (const entry of chosen) {

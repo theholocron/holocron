@@ -18,8 +18,8 @@ export const secretSetCommand: CommandModule<GlobalArgs, SecretSetArgs> = {
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [name] = await promptForPositionals(getEntry("new secret"), argv as Record<string, unknown>);
-		const scopeArg = argv.scope as string;
+		const [name] = await promptForPositionals(getEntry("new secret"), argv);
+		const scopeArg = argv.scope;
 		const scope = parseScope(scopeArg);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
@@ -31,10 +31,10 @@ export const secretSetCommand: CommandModule<GlobalArgs, SecretSetArgs> = {
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			name: name!,
-			...(argv.value ? { value: argv.value as string } : {}),
+			name: name,
+			...(argv.value ? { value: argv.value } : {}),
 			...(argv.fromStdin ? { fromStdin: true } : {}),
-			...(argv.fromEnv ? { fromEnv: argv.fromEnv as string } : {}),
+			...(argv.fromEnv ? { fromEnv: argv.fromEnv } : {}),
 			scope,
 		});
 		if (report.status === "fail") {

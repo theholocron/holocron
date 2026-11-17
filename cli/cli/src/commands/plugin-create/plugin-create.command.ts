@@ -15,12 +15,12 @@ export const pluginCreateCommand: CommandModule<GlobalArgs, PluginCreateArgs> = 
 	builder: pluginCreateArgs,
 	handler: async (argv) => {
 		try {
-			const [slug, vendor] = await promptForPositionals(getEntry("new plugin"), argv as Record<string, unknown>);
+			const [slug, vendor] = await promptForPositionals(getEntry("new plugin"), argv);
 			const { capability, vendorEnv, baseUrl } = await resolvePluginCreateInputs(
 				{
-					capability: argv.capability as string | undefined,
-					vendorEnv: argv.vendorEnv as string | undefined,
-					baseUrl: argv.baseUrl as string | undefined,
+					capability: argv.capability,
+					vendorEnv: argv.vendorEnv,
+					baseUrl: argv.baseUrl,
 				},
 				{
 					selectCapability: () =>
@@ -40,12 +40,12 @@ export const pluginCreateCommand: CommandModule<GlobalArgs, PluginCreateArgs> = 
 			);
 
 			const report = runPluginCreate({
-				slug: slug!,
-				vendorName: vendor!,
+				slug: slug,
+				vendorName: vendor,
 				capability,
 				vendorEnv,
 				baseUrl,
-				...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv as string } : {}),
+				...(argv.tokenEnv ? { tokenEnv: argv.tokenEnv } : {}),
 				dryRun: argv.dryRun,
 				// Yargs: `--no-verify` flips `argv.verify` to false. We pass
 				// the inverse to preserve the internal `noVerify` naming.

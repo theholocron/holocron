@@ -12,7 +12,7 @@ const DEFAULT_PORT = 3000;
 export function resolveDevOptions(
 	flags: DevFlags,
 	config: DevConfig | undefined,
-	self: readonly string[] = [process.execPath, process.argv[1] as string]
+	self: readonly string[] = [process.execPath, process.argv[1]]
 ): ResolvedDevOptions {
 	const environment = flags.environment ?? config?.environment;
 	const name = flags.name ?? config?.tunnel?.name;

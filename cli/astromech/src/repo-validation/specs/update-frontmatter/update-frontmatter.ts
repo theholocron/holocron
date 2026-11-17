@@ -22,11 +22,11 @@ function setDiscussionUrl(lines: string[], url: string): string[] {
 	const at = lines.findIndex((line) => /^discussion:/.test(line));
 	if (at === -1) return [...lines, "discussion:", `  url: ${url}`];
 
-	if (lines[at]!.slice("discussion:".length).trim() !== "")
+	if (lines[at].slice("discussion:".length).trim() !== "")
 		return [...lines.slice(0, at), "discussion:", `  url: ${url}`, ...lines.slice(at + 1)];
 
 	let end = at + 1;
-	while (end < lines.length && /^\s+\S/.test(lines[end]!)) end++;
+	while (end < lines.length && /^\s+\S/.test(lines[end])) end++;
 	const existing = lines.slice(at + 1, end).findIndex((line) => /^\s+url:/.test(line));
 	if (existing !== -1) {
 		return lines.map((line, i) => (i === at + 1 + existing ? `  url: ${url}` : line));
@@ -42,7 +42,7 @@ function setDiscussionUrl(lines: string[], url: string): string[] {
 export function updateFrontmatter(text: string, changes: FrontmatterChanges): string {
 	const match = BLOCK.exec(text);
 	if (!match) return text;
-	let lines = match[1]!.split("\n");
+	let lines = match[1].split("\n");
 	if (changes.id !== undefined) lines = setField(lines, "id", changes.id, true);
 	if (changes.status !== undefined) lines = setField(lines, "status", changes.status);
 	if (changes.discussionUrl !== undefined) lines = setDiscussionUrl(lines, changes.discussionUrl);

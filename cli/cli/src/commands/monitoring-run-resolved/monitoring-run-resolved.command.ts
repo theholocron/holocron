@@ -14,13 +14,13 @@ export const monitoringRunResolvedCommand: CommandModule<GlobalArgs, MonitoringR
 		"Run an already-resolved check list (from `resolve checks`) against a URL — no config/plugin loading at all, the trusted half of the delivery.previewCheck split (holocron#1030/#1032)",
 	builder: monitoringRunResolvedArgs,
 	handler: async (argv) => {
-		const checks = JSON.parse(readFileSync(argv.checksFile as string, "utf8")) as Awaited<
+		const checks = JSON.parse(readFileSync(argv.checksFile, "utf8")) as Awaited<
 			ReturnType<typeof resolveMonitoringChecks>
 		>;
 		const report = await runMonitoringRunResolved({
 			checks,
 			url: argv.url as string,
-			...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),
+			...(argv.vercelProject ? { vercelProject: argv.vercelProject } : {}),
 			...resolveVercelCredentials(),
 		});
 		if (report.status === "fail") {

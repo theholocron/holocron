@@ -13,7 +13,7 @@ export function blockedAutoFixKinds(messages: string[]): AutoFixKind[] {
 	const kinds = Object.keys(AUTO_FIX_SUBJECTS) as AutoFixKind[];
 	const committed = new Set<AutoFixKind>();
 	for (let i = messages.length - 1; i >= 0; i--) {
-		const subject = messages[i]!.split("\n")[0]!.trim();
+		const subject = messages[i].split("\n")[0].trim();
 		const kind = kinds.find((k) => AUTO_FIX_SUBJECTS[k] === subject);
 		if (!kind) break;
 		committed.add(kind);

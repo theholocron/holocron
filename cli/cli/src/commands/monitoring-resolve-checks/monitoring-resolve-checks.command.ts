@@ -26,7 +26,7 @@ export const monitoringResolveChecksCommand: CommandModule<GlobalArgs, Monitorin
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			outFile: argv.out as string,
+			outFile: argv.out,
 		});
 	},
 };

@@ -13,16 +13,11 @@ import { printCheckRows, printCheckSummary } from "@theholocron/kyber/ui";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	type Errors,
-	type Monitoring,
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsOnboardingLayout,
 	type NotificationsWelcomeLayout,
 	PluginLoader,
-	type Secrets,
-	type Source,
-	type Workers,
 } from "../../plugin/index.js";
 import { botPermissionChecks } from "../bot-permission-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
@@ -657,7 +652,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					else if (have.state === "missing") {
 						pinnedProblems.push(`#${shown(have.channel)}: no pinned message from the bot`);
 					} else if (have.state === "different") {
-						const source = wantPinned[i]!.file;
+						const source = wantPinned[i].file;
 						pinnedProblems.push(
 							`#${shown(have.channel)}: the pinned messages differ from ${source ? shown(source) : "the layout"}`
 						);
@@ -761,9 +756,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			failed("secrets", SECRETS_TITLE, "no org to look under — pass --scope or set `org` in holocron.config.ts");
 		} else {
 			try {
-				const have = new Set(
-					(await (loader.get("secrets") as Secrets).listSecrets(scope)).map((n) => n.toUpperCase())
-				);
+				const have = new Set((await loader.get("secrets").listSecrets(scope)).map((n) => n.toUpperCase()));
 				// A layout whose names collide cannot be provisioned (setup refuses it), so it cannot pass here either.
 				const clash = layoutSecretProblem(layout);
 				add(
@@ -801,7 +794,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			problems: [],
 		});
 	} else {
-		const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
+		const source = loader.has("source") ? loader.get("source") : undefined;
 		const problem = !notifications.roleMembers
 			? `the \`${notifications.providerName}\` provider cannot list who holds a role`
 			: sourceProblem(source);
@@ -848,7 +841,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	checks.push(
 		...(await monitoringFeedChecks({
 			layout,
-			monitoring: loader.has("monitoring") ? (loader.get("monitoring") as Monitoring) : undefined,
+			monitoring: loader.has("monitoring") ? loader.get("monitoring") : undefined,
 			missingReason: whyMissing(loader, "monitoring", "no `monitoring` provider is configured"),
 			found,
 		}))
@@ -864,7 +857,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	checks.push(
 		...(await notificationsWorkflowChecks({
 			layout,
-			source: loader.has("source") ? (loader.get("source") as Source) : undefined,
+			source: loader.has("source") ? loader.get("source") : undefined,
 			sourceMissingReason: whyMissing(loader, "source", "no `source` provider is configured"),
 		}))
 	);
@@ -874,9 +867,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	checks.push(
 		...(await relayChecks({
 			layout,
-			errors: loader.has("errors") ? (loader.get("errors") as Errors) : undefined,
+			errors: loader.has("errors") ? loader.get("errors") : undefined,
 			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
-			workers: loader.has("workers") ? (loader.get("workers") as Workers) : undefined,
+			workers: loader.has("workers") ? loader.get("workers") : undefined,
 			workersMissingReason: whyMissing(loader, "workers", "no `workers` provider is configured"),
 			found,
 			...(input.fetch ? { fetch: input.fetch } : {}),
@@ -887,7 +880,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	checks.push(
 		...(await sentryRelayChecks({
 			layout,
-			errors: loader.has("errors") ? (loader.get("errors") as Errors) : undefined,
+			errors: loader.has("errors") ? loader.get("errors") : undefined,
 			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
 		}))
 	);
@@ -963,7 +956,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			problems,
 			mode === "all"
 				? `${targets.length} of ${targets.length} delivered`
-				: `delivered through #${shown(targets[0]!.channel.name)} (left there)`
+				: `delivered through #${shown(targets[0].channel.name)} (left there)`
 		);
 	}
 

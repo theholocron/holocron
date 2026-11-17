@@ -368,8 +368,8 @@ export class GitHubProjects implements Projects {
 					description: w.description ?? have.description,
 				});
 				if (
-					next[next.length - 1]!.color !== have.color ||
-					next[next.length - 1]!.description !== have.description
+					next[next.length - 1].color !== have.color ||
+					next[next.length - 1].description !== have.description
 				) {
 					changes.push(`${have.name} updated`);
 				}
@@ -722,7 +722,7 @@ export class GitHubProjects implements Projects {
 		const m = /^(?:([^#\s]+))?#?(\d+)$/.exec(key.trim());
 		const hasRepo = key.includes("#") && m?.[1];
 		if (!m) throw new Error(`not an issue key: ${key}`);
-		return { repo: hasRepo ? m[1]! : this.repo, number: Number(m[2]) };
+		return { repo: hasRepo ? m[1] : this.repo, number: Number(m[2]) };
 	}
 }
 

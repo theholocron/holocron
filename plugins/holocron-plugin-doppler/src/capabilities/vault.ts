@@ -166,7 +166,7 @@ function parseReference(reference: string): ParsedReference {
 		);
 	}
 	const [project, config, ...nameParts] = parts;
-	return { project: project!, config: config!, name: nameParts.join("/") };
+	return { project: project, config: config, name: nameParts.join("/") };
 }
 
 /**

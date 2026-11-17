@@ -31,24 +31,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
-import {
-	assertPluginsResolvable,
-	type Auth,
-	type Deployment,
-	type Dns,
-	type DnsRecordRequest,
-	type Environments,
-	type Errors,
-	type Logs,
-	type Monitoring,
-	PluginLoader,
-	type Secrets,
-	type Source,
-	type Tooling,
-	type Vault,
-	type Wiki,
-	type Workers,
-} from "../../plugin/index.js";
+import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "../../plugin/index.js";
 import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
@@ -116,7 +99,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 	// ── source: security toggles + repo policy ──────────────────────────
 	if (loader.has("source")) {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 		print(style.step("source"));
 		const SECURITY_SKIP_CODES: Partial<Record<string, number[]>> = {
 			enableSecretScanning: [422],
@@ -140,7 +123,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					{ skipCodes: SECURITY_SKIP_CODES[method] }
 				)
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		const usesAdvancedCodeQL = (config.tasks ?? [])
@@ -160,7 +143,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				}
 			)
 		);
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 
 		if (effectivePreset && effectivePreset !== "none") {
 			steps.push(
@@ -171,9 +154,9 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					});
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 
-			const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+			const tasksConfig: TasksConfig = { tasks: config.tasks };
 			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 			const requiredChecks =
 				effectivePreset === "strict"
@@ -185,7 +168,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						}).requiredChecks(hostsReusables(input.context.repoRoot))
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
@@ -193,7 +176,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// Thin-caller workflows, config files, git hooks, codecov.yml and turbo.json come from `generateRepoFiles`, which
 	// needs no provider; this only writes what it returns through the source. `sync` writes the same files.
 	if (loader.has("source")) {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));
 
 		for (const entry of await generateRepoFiles({
@@ -228,7 +211,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					})
 				);
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 
 			if (entry.kind === "file" && entry.path === ".husky/pre-commit" && config.syncScripts !== false) {
 				steps.push(
@@ -238,13 +221,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							: "already runs husky";
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 			}
 		}
 	}
 
 	if (loader.has("source")) {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 
 		if (source.syncLabels) {
 			steps.push(
@@ -252,7 +235,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return source.syncLabels!(CANONICAL_LABELS, STALE_LABELS);
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		const properties: Record<string, string | string[]> = {};
@@ -293,13 +276,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		if (source.syncProperties) {
 			steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		const topics = repo?.topics ?? [];
 		if (topics.length > 0 && source.syncTopics) {
 			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		const variables = repo?.variables;
@@ -327,10 +310,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					)
 				);
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 		if (declares(variables?.org)) {
-			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0]!;
+			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0];
 			if (!source.syncOrgVariables) {
 				steps.push({
 					capability: "source",
@@ -360,19 +343,19 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					)
 				);
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		if (config.description && source.syncDescription) {
 			steps.push(
 				await runStep("source", "sync description", dryRun, () => source.syncDescription!(config.description!))
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		if (config.homepage && source.syncHomepage) {
 			steps.push(await runStep("source", "sync homepage", dryRun, () => source.syncHomepage!(config.homepage!)));
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		const teams = repo?.teams ?? [];
@@ -381,10 +364,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				steps.push(
 					await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams), { skipCodes: [422] })
 				);
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 
 				const repoCoord = input.context.repo ?? repo?.name ?? "";
-				const org = repoCoord.includes("/") ? repoCoord.split("/")[0]! : "";
+				const org = repoCoord.includes("/") ? repoCoord.split("/")[0] : "";
 				const writeableTeams = teams
 					.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
 					.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
@@ -395,7 +378,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							await source.writeRepoFile(".github/CODEOWNERS", content);
 						})
 					);
-					print(formatStep(steps[steps.length - 1]!));
+					print(formatStep(steps[steps.length - 1]));
 				}
 			} else {
 				steps.push({
@@ -404,14 +387,14 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					status: "skip",
 					message: "provider does not implement syncTeams",
 				});
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 			}
 		}
 	}
 
 	// ── environments ────────────────────────────────────────────────────
 	if (loader.has("environments")) {
-		const envs = loader.get("environments") as Environments;
+		const envs = loader.get("environments");
 		print(style.step("environments"));
 		for (const envName of SETUP_ENVIRONMENTS) {
 			steps.push(
@@ -419,13 +402,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					await envs.upsertEnvironment({ name: envName });
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── docs: configure GitHub Pages ────────────────────────────────────
 	if (loader.has("source") && config.docs) {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 		const resolveDeployToken = createFeatureResolver({
 			envName: "HOLOCRON_DEPLOY_TOKEN",
 			keyringKey: "github.deploy",
@@ -445,7 +428,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				message:
 					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron new token github.deploy <PAT>",
 			});
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		} else if (source.configurePages) {
 			steps.push(
 				await runStep("source", "configure GitHub Pages", dryRun, async () => {
@@ -456,25 +439,25 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return parts.join(", ");
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── wiki: provision engineering wiki config ──────────────────────────
 	if (loader.has("wiki")) {
-		const wiki = loader.get("wiki") as Wiki;
+		const wiki = loader.get("wiki");
 		print(style.step("wiki"));
 		steps.push(
 			await runStep("wiki", "provision wiki config", dryRun, async () => {
 				return await wiki.provision({ name: config.name });
 			})
 		);
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 
 		const wikiDns = wiki.dnsRecord?.();
 		const wikiProxy = wiki.proxyConfig?.();
 		if (wikiDns && loader.has("dns")) {
-			const dns = loader.get("dns") as Dns;
+			const dns = loader.get("dns");
 			steps.push(
 				await runStep("dns", `upsertRecord ${wikiDns.record.name}`, dryRun, async () => {
 					await dns.upsertRecord(wikiDns.zone, {
@@ -484,23 +467,23 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					});
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		if (wikiProxy && wikiDns && loader.has("workers")) {
-			const workers = loader.get("workers") as Workers;
+			const workers = loader.get("workers");
 			steps.push(
 				await runStep("workers", `upsertProxy ${wikiDns.record.name}`, dryRun, async () => {
 					await workers.upsertProxy(wikiDns.record.name, wikiProxy);
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── deployment: ensure project + preview infrastructure ─────────────
 	if (loader.has("deployment")) {
-		const deploy = loader.get("deployment") as Deployment;
+		const deploy = loader.get("deployment");
 		print(style.step("deployment"));
 
 		const previewCfg = previewConfigOf(config);
@@ -512,17 +495,17 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					customDomainDns.value = await deploy.ensureCustomDomain!(projectId, hostname);
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 
 			if (customDomainDns.value && loader.has("dns")) {
-				const dns = loader.get("dns") as Dns;
+				const dns = loader.get("dns");
 				const dnsRecord = customDomainDns.value;
 				steps.push(
 					await runStep("dns", `upsertRecord ${dnsRecord.record.name}`, dryRun, async () => {
 						await dns.upsertRecord(dnsRecord.zone, { ...dnsRecord.record, ttl: 1 });
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 			}
 		};
 
@@ -532,7 +515,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					await deploy.ensureProject({ name: config.name });
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 			if (deploy.domain) {
 				await ensureCustomDomain(config.name, deploy.domain);
 			}
@@ -544,7 +527,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					await deploy.ensureProject({ name: previewCfg.project });
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		if (previewCfg?.domain) {
@@ -555,7 +538,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		// provider-specific apex + wildcard records. Other providers return
 		// their required record from ensureCustomDomain() above.
 		if (previewCfg?.domain && deploy.providerName === "cloudflare" && loader.has("dns")) {
-			const dns = loader.get("dns") as Dns;
+			const dns = loader.get("dns");
 			const wildcardDomain = `*.${previewCfg.domain}`;
 			steps.push(
 				await runStep("dns", `upsertRecord ${previewCfg.domain}`, dryRun, async () => {
@@ -567,7 +550,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					});
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 			steps.push(
 				await runStep("dns", `upsertRecord ${wildcardDomain}`, dryRun, async () => {
 					await dns.upsertRecord(previewCfg.domain!, {
@@ -578,13 +561,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					});
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── auth: ensure webhook app (optional method) ──────────────────────
 	if (loader.has("auth")) {
-		const auth = loader.get("auth") as Auth;
+		const auth = loader.get("auth");
 		print(style.step("auth"));
 		if (auth.ensureWebhookApp) {
 			steps.push(
@@ -593,7 +576,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `webhook ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		} else {
 			steps.push({
 				capability: "auth",
@@ -601,13 +584,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				status: "skip",
 				message: "provider does not implement ensureWebhookApp",
 			});
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── vault: bootstrap project + configs, then read-only probe ───────
 	if (loader.has("vault")) {
-		const vault = loader.get("vault") as Vault;
+		const vault = loader.get("vault");
 		print(style.step("vault"));
 
 		if (vault.ensureProject) {
@@ -617,7 +600,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `project ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		if (vault.ensureEnvironment) {
@@ -628,7 +611,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						return `${envName} ${result.alreadyExists ? "exists" : "created"}`;
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
+				print(formatStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -648,12 +631,12 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				message: errorMessage(err),
 			});
 		}
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 	}
 
 	// ── errors: provision the tracker project + push the DSN to secrets ─
 	if (loader.has("errors")) {
-		const errors = loader.get("errors") as Errors;
+		const errors = loader.get("errors");
 		print(style.step("errors"));
 
 		if (errors.ensureProject) {
@@ -665,10 +648,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `project ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 
 			if (dsn && loader.has("secrets")) {
-				const secrets = loader.get("secrets") as Secrets;
+				const secrets = loader.get("secrets");
 				// `envKeys` always; a framework's `frameworkEnvKeys` (`NEXT_PUBLIC_SENTRY_DSN` for `next`)
 				// only when the root or a workspace package depends on it. No package.json means no framework.
 				// Reading the workspace packages can throw (an unreadable directory): the root alone is
@@ -689,7 +672,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						status: "skip",
 						message: `workspace packages not read (${errorMessage(err)}); using the root package.json only`,
 					});
-					print(formatStep(steps[steps.length - 1]!));
+					print(formatStep(steps[steps.length - 1]));
 				}
 				const stack = deriveRepoStack(rootPackageJson, workspacePackageJsons);
 				const { keys, unknown } = errorsEnvKeys(await errors.describe(), stack);
@@ -700,7 +683,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						status: "skip",
 						message: `"${name}" is not a known framework name (${KNOWN_STACK_DEPS.join(", ")}); its keys are not pushed`,
 					});
-					print(formatStep(steps[steps.length - 1]!));
+					print(formatStep(steps[steps.length - 1]));
 				}
 				for (const key of keys) {
 					steps.push(
@@ -708,7 +691,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);
 						})
 					);
-					print(formatStep(steps[steps.length - 1]!));
+					print(formatStep(steps[steps.length - 1]));
 				}
 			}
 		}
@@ -716,7 +699,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 	// ── logs: provision the aggregation dataset ───────────────────────
 	if (loader.has("logs")) {
-		const logs = loader.get("logs") as Logs;
+		const logs = loader.get("logs");
 		print(style.step("logs"));
 
 		if (logs.ensureDataset) {
@@ -737,13 +720,13 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					message: "no dataset named (set HOLOCRON_AXIOM_DATASET or AXIOM_DATASET)",
 				});
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
 	// ── monitoring: ensure each configured check exists ─────────────────
 	if (loader.has("monitoring")) {
-		const monitoring = loader.get("monitoring") as Monitoring;
+		const monitoring = loader.get("monitoring");
 		print(style.step("monitoring"));
 
 		for (const checkInput of monitoring.checks) {
@@ -753,7 +736,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return `${checkInput.name} ${result.alreadyExists ? "exists" : "created"}`;
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 
 		// Dashboards: private unless declared otherwise. A key the provider returns is handed over, never shown.
@@ -831,7 +814,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 	// ── tooling: sync each (many cardinality) ───────────────────────────
 	if (loader.has("tooling")) {
-		const tools = loader.get("tooling") as Tooling[];
+		const tools = loader.get("tooling");
 		print(style.step("tooling"));
 		for (const tool of tools) {
 			steps.push(
@@ -839,7 +822,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					await tool.sync();
 				})
 			);
-			print(formatStep(steps[steps.length - 1]!));
+			print(formatStep(steps[steps.length - 1]));
 		}
 	}
 
@@ -864,7 +847,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				})
 			);
 		}
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 	}
 
 	// ── prompts: write agent role prompts to .agents/prompts/ ────────────
@@ -875,7 +858,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				return await installAgentPrompts({ repoRoot: input.context.repoRoot });
 			})
 		);
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 	}
 
 	// ── engineering: provision docs/decisions/ and docs/engineering/ ─────
@@ -886,7 +869,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				return await installEngineeringStructure({ repoRoot: input.context.repoRoot });
 			})
 		);
-		print(formatStep(steps[steps.length - 1]!));
+		print(formatStep(steps[steps.length - 1]));
 	}
 
 	const summary = steps.reduce(

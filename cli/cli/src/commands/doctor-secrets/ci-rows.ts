@@ -103,7 +103,7 @@ export async function ciRows(
 			if (!("problem" in scope)) observations.push({ scope, needed: names, unread: why });
 		}
 	} else {
-		const secrets = loader.get("secrets") as Secrets;
+		const secrets = loader.get("secrets");
 		for (const check of checks) {
 			const checked = await checkScope(secrets, check);
 			rows.push(checked.row);

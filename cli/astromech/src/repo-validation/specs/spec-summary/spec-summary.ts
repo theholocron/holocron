@@ -11,11 +11,11 @@ const SUMMARY_HEADINGS = /^#{2,3}[ \t]+(problem|why|context|summary|overview)[ \
 function paragraphFrom(lines: readonly string[], from: number): string | undefined {
 	let i = from;
 	while (i < lines.length) {
-		const line = lines[i]!;
+		const line = lines[i];
 		if (line.startsWith("```")) {
 			// A fenced block is not prose: skip to the line that closes it (or to the end when it never does).
 			i++;
-			while (i < lines.length && !lines[i]!.startsWith("```")) i++;
+			while (i < lines.length && !lines[i].startsWith("```")) i++;
 			i++;
 			continue;
 		}
@@ -24,7 +24,7 @@ function paragraphFrom(lines: readonly string[], from: number): string | undefin
 			continue;
 		}
 		const block: string[] = [];
-		while (i < lines.length && lines[i]!.trim() !== "") block.push(lines[i++]!.trimEnd());
+		while (i < lines.length && lines[i].trim() !== "") block.push(lines[i++].trimEnd());
 		return block.join("\n");
 	}
 	return undefined;

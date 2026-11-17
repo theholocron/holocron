@@ -12,6 +12,6 @@ export const groupMenu = (
 	describe: false,
 	builder: (y) => y,
 	handler: async (argv) => {
-		await open(parent, argv as Record<string, unknown>);
+		await open(parent, argv);
 	},
 });

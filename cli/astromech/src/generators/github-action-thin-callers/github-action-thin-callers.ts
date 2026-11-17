@@ -162,7 +162,7 @@ export function generateThinCallerContent(
 	if (additionalPaths && additionalPaths.length > 0) {
 		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
 		if (pathsBlockRe.test(result)) {
-			result = result.replace(pathsBlockRe, (_, header, existing) => {
+			result = result.replace(pathsBlockRe, (_: string, header: string, existing: string) => {
 				const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
 				const newEntries = additionalPaths
 					.filter((p) => !existingPaths.has(p))

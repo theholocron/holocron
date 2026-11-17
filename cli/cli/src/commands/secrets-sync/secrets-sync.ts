@@ -56,15 +56,11 @@ import { assertSyncableLayer } from "../../credentials-environments/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	type Deployment,
 	type DeploymentTarget,
 	PluginLoader,
 	type SecretAccess,
 	type Secrets,
 	type SecretScope,
-	type Source,
-	type Vault,
-	type Workers,
 } from "../../plugin/index.js";
 import { accessNote } from "./access-note/index.js";
 import type { DeployFilter } from "./deploy-filter/index.js";
@@ -147,7 +143,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	print("");
 
 	// ── Read the vault ─────────────────────────────────────────────────
-	const vault = loader.get("vault") as Vault;
+	const vault = loader.get("vault");
 	if (!vault.readEnvironment) {
 		throw new Error(
 			`vault provider (${vault.providerName}) does not implement readEnvironment — sync needs bulk env reads`
@@ -187,7 +183,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 
 	// ── Push to `secrets` (CI/Actions secrets) ─────────────────────────
 	if (loader.has("secrets")) {
-		const secrets = loader.get("secrets") as Secrets;
+		const secrets = loader.get("secrets");
 		// With neither an entry nor a flag naming `secrets` (a deployment or Worker sync), nothing goes to it (#2104).
 		const routes =
 			input.secretRoutes ??
@@ -232,7 +228,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	// through the same `pushRow()` as secrets: a blank is skipped, a dry run writes nothing, nothing is printed.
 	const variableRoutes = input.variableRoutes ?? [];
 	if (variableRoutes.length > 0) {
-		const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
+		const source = loader.has("source") ? loader.get("source") : undefined;
 		for (const route of variableRoutes) {
 			const scope = scopeLabel(route.scope);
 			print(style.step(`variables (${scope})`));
@@ -273,14 +269,14 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 						nameCheck(source!.providerName)
 					)
 				);
-				print(formatRow(rows[rows.length - 1]!));
+				print(formatRow(rows[rows.length - 1]));
 			}
 		}
 	}
 
 	// ── Push to `deployment` (Vercel env vars) ─────────────────────────
 	if (loader.has("deployment") && !variablesOnly) {
-		const deploy = loader.get("deployment") as Deployment;
+		const deploy = loader.get("deployment");
 		if (!input.projectId) {
 			print(style.step("deployment"));
 			const row: SyncRow = {
@@ -310,7 +306,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 							await deploy.setEnvVar(input.projectId!, target, key, value);
 						})
 					);
-					print(formatRow(rows[rows.length - 1]!));
+					print(formatRow(rows[rows.length - 1]));
 				}
 			}
 		}
@@ -320,7 +316,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	if (input.workerScript) {
 		const script = input.workerScript;
 		print(style.step(`workers (script=${script})`));
-		const workers = loader.has("workers") ? (loader.get("workers") as Workers) : undefined;
+		const workers = loader.has("workers") ? loader.get("workers") : undefined;
 		if (!workers?.setSecret) {
 			const row: SyncRow = {
 				destination: "workers",
@@ -355,7 +351,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 						}
 					)
 				);
-				print(formatRow(rows[rows.length - 1]!));
+				print(formatRow(rows[rows.length - 1]));
 			}
 		}
 	}
@@ -468,7 +464,7 @@ async function pushRow(
 ): Promise<SyncRow> {
 	const problem = nameProblem?.(key);
 	if (problem) return { destination, scope, key, status: "skip", message: `invalid name: ${problem}` };
-	const value = Object.hasOwn(envVars, key) ? envVars[key]! : undefined;
+	const value = Object.hasOwn(envVars, key) ? envVars[key] : undefined;
 	if (value === undefined) {
 		return { destination, scope, key, status: "skip", message: "not in the vault environment" };
 	}
@@ -525,5 +521,5 @@ function scopeLabel(scope: SecretScope | VariableRoute["scope"]): string {
 
 function vaultProviderName(loader: PluginLoader): string {
 	if (!loader.has("vault")) return "<missing>";
-	return (loader.get("vault") as Vault).providerName;
+	return loader.get("vault").providerName;
 }

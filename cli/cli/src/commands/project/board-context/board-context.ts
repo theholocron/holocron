@@ -2,7 +2,6 @@ import { join } from "node:path";
 
 import { describeError } from "@theholocron/kyber/ui";
 
-import type { Projects } from "../../../plugin/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { resolveProjectOptions } from "../project-options/index.js";
@@ -45,7 +44,7 @@ export async function openBoardContext(input: OpenBoardContextInput): Promise<Bo
 	return {
 		ok: true,
 		context: {
-			projects: loader.get("projects") as Projects,
+			projects: loader.get("projects"),
 			owner,
 			boards,
 			templates,

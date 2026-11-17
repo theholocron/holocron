@@ -2,7 +2,7 @@ import type { AppManifest } from "../build-app-manifest/index.js";
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
-const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (c) => ESCAPES[c]!);
+const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
 /**
  * The page the local server shows: a form that posts the manifest to GitHub on load (the manifest flow takes a form

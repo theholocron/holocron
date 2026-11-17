@@ -15,7 +15,7 @@ import { EXPECTED } from "./probes/token/expectations.js";
 
 /** Adds what a layer's token must and must not be able to do (`EXPECTED`, by `envName`) to a token. */
 function declared(token: PluginToken): PluginToken {
-	return { ...token, expect: EXPECTED[token.envName]! };
+	return { ...token, expect: EXPECTED[token.envName] };
 }
 
 /**

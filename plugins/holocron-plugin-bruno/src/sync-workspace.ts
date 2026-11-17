@@ -91,7 +91,8 @@ export function addCollections(text: string, collections: { name: string; path: 
 	const lines = text.split("\n");
 	const at = lines.findIndex((line) => /^collections:(\s|$)/.test(line));
 	if (at === -1) return undefined;
-	const value = lines[at]!.slice("collections:".length)
+	const value = lines[at]
+		.slice("collections:".length)
 		.replace(/\s+#.*$/, "")
 		.trim();
 	if (value === "[]" || value === "null" || value === "~") {
@@ -102,7 +103,7 @@ export function addCollections(text: string, collections: { name: string; path: 
 	// The list runs while a line is blank, indented or a `- ` item at the key's own column; it ends at the last of those with text.
 	let last = at;
 	for (let i = at + 1; i < lines.length; i += 1) {
-		const line = lines[i]!;
+		const line = lines[i];
 		if (line.trim() === "") continue;
 		if (/^\s/.test(line) || line.startsWith("- ")) last = i;
 		else break;

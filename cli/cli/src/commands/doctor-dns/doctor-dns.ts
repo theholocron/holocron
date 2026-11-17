@@ -29,7 +29,6 @@ import {
 	type Dns,
 	type DnsRecord,
 	PluginLoader,
-	type Wiki,
 } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
@@ -75,14 +74,14 @@ export async function runDoctorDns(input: RunDoctorDnsInput): Promise<DoctorDnsR
 	assertPluginsResolvable(loader, "doctor dns");
 
 	const expected = expectedDnsRecords(input.loaded.resolved, {
-		...(loader.has("deployment") ? { deployment: loader.get("deployment") as Deployment } : {}),
-		...(loader.has("wiki") ? { wiki: loader.get("wiki") as Wiki } : {}),
+		...(loader.has("deployment") ? { deployment: loader.get("deployment") } : {}),
+		...(loader.has("wiki") ? { wiki: loader.get("wiki") } : {}),
 		layouts: (loader.has("notifications") ? loader.get("notifications") : []).flatMap((p) =>
 			p.layout ? [p.layout] : []
 		),
 	});
 	const zones = [...new Set(expected.map((e) => e.zone))];
-	const deploy = loader.has("deployment") ? (loader.get("deployment") as Deployment) : undefined;
+	const deploy = loader.has("deployment") ? loader.get("deployment") : undefined;
 	const domains = deploy?.expectedDomainRecord ? deploymentDomains(input.loaded.resolved, deploy) : [];
 
 	const rows: CheckRow[] = [];
@@ -93,7 +92,7 @@ export async function runDoctorDns(input: RunDoctorDnsInput): Promise<DoctorDnsR
 		for (const zone of zones) rows.push(row(zone, "skip", why));
 		for (const { hostname } of domains) rows.push(domainRow(hostname, "skip", why));
 	} else {
-		const dns = loader.get("dns") as Dns;
+		const dns = loader.get("dns");
 		for (const zone of zones) {
 			rows.push(
 				await checkZone(

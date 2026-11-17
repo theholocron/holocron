@@ -17,7 +17,7 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
-import { assertPluginsResolvable, PluginLoader, type Tooling } from "../../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
 import type { RunSyncToolingInput, SyncToolingReport } from "./run-sync-tooling.type.js";
 
 const row = (id: string, status: CheckRow["status"], detail: string): CheckRow => ({
@@ -74,7 +74,7 @@ export async function runSyncTooling(input: RunSyncToolingInput): Promise<SyncTo
 	}
 
 	const rows: CheckRow[] = [];
-	for (const tool of loader.get("tooling") as Tooling[]) {
+	for (const tool of loader.get("tooling")) {
 		if (dryRun) {
 			rows.push(row(tool.providerName, "skip", "would sync"));
 			continue;

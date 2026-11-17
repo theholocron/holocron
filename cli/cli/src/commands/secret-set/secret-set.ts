@@ -21,7 +21,7 @@ import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Secrets, type SecretScope } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader, type SecretScope } from "../../plugin/index.js";
 import type { RunSecretSetInput, SecretSetReport } from "./secret-set.type.js";
 
 const env = createEnvLookup();
@@ -57,7 +57,7 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	}
 
 	try {
-		const secrets = loader.get("secrets") as Secrets;
+		const secrets = loader.get("secrets");
 		await secrets.setSecret(scope, input.name, value);
 		print(`  ✓ set ${input.name} via ${secrets.providerName}`);
 		// `name` is a secret NAME, never the value.

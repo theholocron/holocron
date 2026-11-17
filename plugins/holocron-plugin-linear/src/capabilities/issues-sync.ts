@@ -92,7 +92,7 @@ export async function syncIssues(
 				});
 				const named = record.status !== undefined && wanted?.name.toLowerCase() === record.status.toLowerCase();
 				const stateDiffers = named
-					? wanted!.id !== issue.state.id
+					? wanted.id !== issue.state.id
 					: statusCategory(issue.state) !== record.statusCategory;
 				if (wanted && stateDiffers) {
 					patch.stateId = wanted.id;

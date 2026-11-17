@@ -40,5 +40,5 @@ export function parsePackageJson(text: string): PackageJson | undefined {
 		if (map) pkg[field] = map;
 		else delete pkg[field];
 	}
-	return pkg as PackageJson;
+	return pkg;
 }

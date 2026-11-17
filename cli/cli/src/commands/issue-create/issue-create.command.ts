@@ -18,7 +18,7 @@ export const issueCreateCommand: CommandModule<GlobalArgs, Args> = {
 			.option("body", { type: "string", describe: "The issue's text" })
 			.option("label", { type: "string", array: true, describe: "A label to put on it (repeatable)" })
 			.option("milestone", { type: "string", describe: "The milestone: its number or its exact title" })
-			.option("yes", { type: "boolean", describe: "File without asking (required without a terminal)" }) as never,
+			.option("yes", { type: "boolean", describe: "File without asking (required without a terminal)" }),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;

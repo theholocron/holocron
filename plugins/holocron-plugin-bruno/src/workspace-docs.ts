@@ -35,7 +35,7 @@ function docsRange(lines: string[]): { start: number; end: number } | undefined 
 	if (start === -1) return undefined;
 	let end = start;
 	for (let i = start + 1; i < lines.length; i += 1) {
-		const line = lines[i]!;
+		const line = lines[i];
 		if (line.trim() === "") continue;
 		if (/^\s/.test(line)) end = i;
 		else break;
@@ -52,7 +52,7 @@ export function readDocs(text: string): string | undefined {
 	const lines = text.replace(/\r\n?/g, "\n").split("\n");
 	const range = docsRange(lines);
 	if (!range) return undefined;
-	const value = lines[range.start]!.slice("docs:".length).trim();
+	const value = lines[range.start].slice("docs:".length).trim();
 	const block = /^([|>])(\d?)[+-]?(\s+#.*)?$/.exec(value);
 	if (block) {
 		if (block[1] === ">") {

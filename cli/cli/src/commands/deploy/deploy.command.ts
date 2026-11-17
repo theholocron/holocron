@@ -46,9 +46,9 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 			const report = await runDeployFromFiles({
 				loaded,
 				context,
-				projectId: argv.projectId as string,
-				dir: argv.files as string,
-				...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+				projectId: argv.projectId,
+				dir: argv.files,
+				...(argv.target ? { target: argv.target } : {}),
 				...(env.get("HOLOCRON_PREVIEW_KEY") ? { previewKey: env.get("HOLOCRON_PREVIEW_KEY") as string } : {}),
 			});
 			if (report.status === "fail") {
@@ -57,13 +57,13 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 			return;
 		}
 
-		const [branch] = await promptForPositionals(getEntry("deploy"), argv as Record<string, unknown>);
+		const [branch] = await promptForPositionals(getEntry("deploy"), argv);
 		const report = await runDeploy({
 			loaded,
 			context,
-			projectId: argv.projectId as string,
-			branch: branch!,
-			...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+			projectId: argv.projectId,
+			branch: branch,
+			...(argv.target ? { target: argv.target } : {}),
 		});
 		if (report.status === "fail") {
 			process.exitCode = 1;

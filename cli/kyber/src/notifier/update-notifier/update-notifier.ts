@@ -143,6 +143,6 @@ export async function checkForUpdates(options: UpdateCheckOptions): Promise<(() 
 
 	const installCommand = options.installCommand ?? `npm install -g ${name}`;
 	return () => {
-		process.stderr.write(formatNotice(currentVersion, latestVersion as string, installCommand) + "\n");
+		process.stderr.write(formatNotice(currentVersion, latestVersion, installCommand) + "\n");
 	};
 }

@@ -31,15 +31,15 @@ export function compareLayers(layers: LayerSecrets[], allow: string[]): SharedPa
 	for (let later = 1; later < layers.length; later++) {
 		for (let earlier = 0; earlier < later; earlier++) {
 			const names = new Set<string>();
-			for (const [digest, laterNames] of digests[later]!) {
+			for (const [digest, laterNames] of digests[later]) {
 				for (const a of laterNames) {
-					for (const b of digests[earlier]!.get(digest) ?? []) {
+					for (const b of digests[earlier].get(digest) ?? []) {
 						if (allowed.has(a.toUpperCase()) || allowed.has(b.toUpperCase())) continue;
 						names.add(a.toUpperCase() === b.toUpperCase() ? a : `${a} = ${b}`);
 					}
 				}
 			}
-			pairs.push({ layer: layers[later]!.layer, other: layers[earlier]!.layer, names: [...names].sort() });
+			pairs.push({ layer: layers[later].layer, other: layers[earlier].layer, names: [...names].sort() });
 		}
 	}
 	return pairs;

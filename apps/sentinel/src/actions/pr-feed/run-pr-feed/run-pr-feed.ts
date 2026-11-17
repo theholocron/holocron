@@ -31,7 +31,7 @@ export async function runPrFeed(input: RunPrFeedInput): Promise<RunPrFeedResult>
 		}
 		if (trigger.numbers.length === 0) return { status: "skipped", reason: "no pull request to follow" };
 
-		const loaded = await (input.loadFeed ?? loadPrFeed)({ client, env: input.env, org: repo.split("/")[0]! });
+		const loaded = await (input.loadFeed ?? loadPrFeed)({ client, env: input.env, org: repo.split("/")[0] });
 		if (!loaded.ok) return { status: "skipped", reason: loaded.reason };
 		const { notifications, channel } = loaded;
 		if (channel.excludeRepos.some((r) => r.toLowerCase() === repo.toLowerCase())) {
