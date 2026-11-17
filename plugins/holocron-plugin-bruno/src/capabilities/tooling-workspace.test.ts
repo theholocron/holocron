@@ -243,6 +243,18 @@ describe("BrunoTooling.workspace", () => {
 			);
 		});
 
+		it("makes the whole file when `collections:` is a flow list it cannot add to in place", async () => {
+			await first();
+			writeFileSync(
+				join(root, ".bruno/workspace.yml"),
+				'opencollection: 1.0.0\ncollections: [{ name: "Old", path: "collections/old" }]\ndocs: x\n'
+			);
+			await tool("The Holocron").workspace(input());
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App A"');
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App B"');
+			expect(read(".bruno/workspace.yml")).not.toContain("Old");
+		});
+
 		it("makes the whole file when it has no `collections:` key", async () => {
 			await first();
 			writeFileSync(join(root, ".bruno/workspace.yml"), "opencollection: 1.0.0\ndocs: x\n");
