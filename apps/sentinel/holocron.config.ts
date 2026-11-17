@@ -40,11 +40,10 @@
  * and the role-sync settings live there; `holocron sync secrets --env Sentinel`
  * fans them out. The Environment is made by hand — `op` cannot create one.
  *
- * `secrets`: GitHub — only ONE of the 5 runtime keys has a GH Actions
- * consumer at all (`SENTINEL_AXIOM_INGEST_TOKEN`, read by
- * `theholocron/.github`'s `platform.dispatchedCheck.yml`, org-wide since
- * any repo with Bucket 2 dispatch enabled needs it there, not only this
- * one) — every sync invocation must pass `--github-secret
+ * `secrets`: GitHub — only ONE of the 5 runtime keys ever had a GH Actions
+ * consumer (`SENTINEL_AXIOM_INGEST_TOKEN`, read at org scope by the dispatched
+ * check workflow in `theholocron/.github`, which Sentinel no longer dispatches,
+ * #2263; nothing reads it now) — every sync invocation must pass `--github-secret
  * SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron` to
  * scope it down to that one key; the other 4 are Vercel-only and would
  * otherwise get pushed as pointless repo secrets on `holocron` (nothing
