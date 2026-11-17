@@ -86,7 +86,7 @@ here.
    repo: its gate was the exact task name `platform.repoValidation`, and this repo's config names the flat ids. The gate
    (`declaresRepoValidation()`) now accepts `validate`, `validate:specs`, `validate:docs` and the old name. Without this the
    aggregate would wait for two names nothing posts.
-3. **Sentinel, in one change:** the `sentinel:` prefix goes (the constant itself, not just its value, since nothing is left to
+3. **Sentinel, in one change:** the `sentinel:` prefix goes (the constant itself, and not only its value, since nothing is left to
    tell apart), and the docs that quote the names are updated. The eslint, actionlint and typecheck checks were removed
    first (#2265), so the prefix change cannot make two checks share a task id.
 4. **This repo, in the same pull request:** the five tasks are marked `sentinel: true` and their callers are removed
