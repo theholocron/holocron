@@ -1,3 +1,9 @@
+## [8.9.0-alpha.19](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.18...configs-v8.9.0-alpha.19) (2026-11-17)
+
+### Features
+
+* **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
+
 ## [8.9.0-alpha.18](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.17...configs-v8.9.0-alpha.18) (2026-11-16)
 
 ### Features
