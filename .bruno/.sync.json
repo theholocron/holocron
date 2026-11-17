@@ -3,14 +3,14 @@
   "pairs": [
     {
       "kind": "collection",
-      "source": "apps/comlink/api/worker.collection.json",
+      "source": "apps/comlink/src/worker.collection.json",
       "workspace": "collections/comlink-relay",
       "sourceHash": "2dfab0abfc6a732d6b29e9ec190fadd1c449a5b6c8b98d53ee4a95d475a0924c",
       "workspaceHash": "34bdc0cefcabfd49a5c7c6df4f1c96a1935233d42f54dd16bf475e233f8fb3a9"
     },
     {
       "kind": "environment",
-      "source": "apps/comlink/api/worker.environment.json",
+      "source": "apps/comlink/src/worker.environment.json",
       "workspace": "collections/comlink-relay/environments/Comlink (local).yml",
       "sourceHash": "ac422cbaf40ea7052f72478e0a3e6cb22dc151299e13d674a7152d7673f05abe",
       "workspaceHash": "f1fb1ab178305ef9b15fafb4f01836dfe0d1cca47141b242e4370d81407ce5de"

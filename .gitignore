@@ -142,6 +142,7 @@ lcov.info
 
 # Written by `holocron export requests`, one folder per tool
 **/api/.export/
+**/src/.export/
 
 # managed by holocron setup — private directory
 .holocron/.private/*
