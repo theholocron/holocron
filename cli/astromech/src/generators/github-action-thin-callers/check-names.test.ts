@@ -87,7 +87,11 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"check-tokens": ["check-tokens / Run holocron doctor secrets --verify"],
 	"doctor-tokens": ["doctor-tokens / Run holocron doctor tokens"],
 	deploy: ["deploy / Deploy"],
-	"deploy-preview": ["deploy-preview / Deploy preview", "deploy-preview / Report deployment status"],
+	"deploy-preview": [
+		"deploy-preview / Deploy preview",
+		"deploy-preview / Report deployment status",
+		"deploy-preview / Clean up previews",
+	],
 	greet: ["greet / Greet first-time contributors"],
 	label: ["label / Apply Labels"],
 	"lint:code": ["lint:code / Run eslint, actionlint and prettier"],
