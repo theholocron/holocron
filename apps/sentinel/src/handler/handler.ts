@@ -79,7 +79,7 @@
  *   `[skip docs] <reason>` marker. Editing a PR's title or description
  *   (`pull_request.edited`) re-runs that one check and nothing else.
  * - **PR Config Validation** (`validateConfig` against the PR's own head
- *   ref, holocron#827): posted as `sentinel:validate:config / Run Holocron
+ *   ref, holocron#827): posted as `validate:config / Run Holocron
  *   config compatibility (pull_request)` — a "(pull_request)" suffix, not
  *   a distinct name; the same Run Holocron config compatibility concept,
  *   just validated against the PR's own branch. Advisory, never required,
@@ -215,6 +215,7 @@ import {
 	validateDocsPresence,
 } from "../actions/index.js";
 import {
+	declaresRepoValidation,
 	githubAppCredentials,
 	parseWebhookEvent,
 	readAutoFix,
@@ -233,7 +234,6 @@ import {
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 	SENTINEL_PR_FEED_LOG_MSG,
-	SENTINEL_REPO_VALIDATION_TASK,
 	SENTINEL_ROLE_SYNC_LOG_MSG,
 	type SentinelEvent,
 	validateConfig,
@@ -497,9 +497,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 		const editedConfig = await validateConfig({ client, repo });
 		const declared =
 			editedConfig.status === "valid" &&
-			(editedConfig.config.tasks ?? [])
-				.map(normalizeTaskEntry)
-				.some((t) => t.name === SENTINEL_REPO_VALIDATION_TASK);
+			declaresRepoValidation((editedConfig.config.tasks ?? []).map(normalizeTaskEntry).map((t) => t.name));
 		const docsPresenceCheckRun =
 			declared && context.pullNumber !== undefined
 				? await runDocsPresence(client, repo, context.pullNumber, context)
@@ -807,11 +805,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// as every Bucket 1 check above, each in its own try.
 	let adrsCheckRun;
 	let docsPresenceCheckRun;
-	if (
-		event.type !== "push.default-branch" &&
-		context.pullNumber !== undefined &&
-		taskNames.includes(SENTINEL_REPO_VALIDATION_TASK)
-	) {
+	if (event.type !== "push.default-branch" && context.pullNumber !== undefined && declaresRepoValidation(taskNames)) {
 		try {
 			const result = await validateAdrs({ client, repo, pullNumber: context.pullNumber, ref: context.headSha });
 			adrsCheckRun = await postAdrsCheck({

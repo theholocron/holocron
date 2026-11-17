@@ -30,7 +30,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * `markdownlint`'s real Node API (`lint()` from `markdownlint/promise`)
  * works directly on fetched file content — no checkout.
  *
- * Named `sentinel:lint:markdown / Run markdownlint` (`sentinelCheckName()`,
+ * Named `lint:markdown / Run markdownlint` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`).
  *
  * **Not purely advisory** (same treatment inclusive language got in

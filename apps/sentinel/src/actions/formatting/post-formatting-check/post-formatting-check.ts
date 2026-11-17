@@ -26,7 +26,7 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * scoping), and `prettier`'s real Node API (`check()`/`format()`/
  * `getFileInfo()`) works directly on fetched file content — no checkout.
  *
- * Named `sentinel:format / Run prettier` (`sentinelCheckName()`,
+ * Named `format / Run prettier` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
  * editorconfig check.
  */
