@@ -3,6 +3,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
 import { ProviderApiError } from "../../../plugin/index.js";
+import { describeProviderError } from "../describe-provider-error/index.js";
 
 export async function runStep(
 	capability: string,
@@ -11,10 +12,11 @@ export async function runStep(
 	body: () => Promise<string | void>,
 	opts: { skipCodes?: number[] } = {}
 ): Promise<SetupStepResult> {
-	const result = await execStep(capability, step, dryRun, body, opts);
-	const { status, message, reason } = result;
+	const { result, logged } = await execStep(capability, step, dryRun, body, opts);
+	const { status, reason } = result;
+	// The log gets the error's own message, never the provider's response text that the row shows after it.
 	getLogger()[status === "fail" ? "warn" : "info"](
-		{ capability, step, status, ...(message ? { detail: message } : {}), ...(reason ? { reason } : {}) },
+		{ capability, step, status, ...(logged ? { detail: logged } : {}), ...(reason ? { reason } : {}) },
 		`${capability}.${step}`
 	);
 	return result;
@@ -26,32 +28,42 @@ async function execStep(
 	dryRun: boolean,
 	body: () => Promise<string | void>,
 	opts: { skipCodes?: number[] } = {}
-): Promise<SetupStepResult> {
+): Promise<{ result: SetupStepResult; logged?: string }> {
 	if (dryRun) {
-		return { capability, step, status: "dry-run" };
+		return { result: { capability, step, status: "dry-run" } };
 	}
 	try {
 		const note = await withProgress(`${capability}: ${step}…`, body);
 		const result: SetupStepResult = { capability, step, status: "ok" };
 		if (typeof note === "string") result.message = note;
-		return result;
+		return { result, logged: result.message };
 	} catch (err) {
 		if (err instanceof ProviderApiError) {
 			if (err.status !== undefined && opts.skipCodes?.includes(err.status)) {
-				return { capability, step, status: "skip", message: err.message };
+				return {
+					result: { capability, step, status: "skip", message: describeProviderError(err) },
+					logged: err.message,
+				};
 			}
 			if (err.status === 403) {
 				const reason = classify403(err);
 				// Plan-restriction 403s mean the feature is unavailable on the current
 				// plan — not a setup failure, just a capability gap. Report as skip.
-				return { capability, step, status: reason === "plan" ? "skip" : "fail", message: err.message, reason };
+				return {
+					result: {
+						capability,
+						step,
+						status: reason === "plan" ? "skip" : "fail",
+						message: describeProviderError(err),
+						reason,
+					},
+					logged: err.message,
+				};
 			}
 		}
 		return {
-			capability,
-			step,
-			status: "fail",
-			message: errorMessage(err),
+			result: { capability, step, status: "fail", message: describeProviderError(err) },
+			logged: errorMessage(err),
 		};
 	}
 }

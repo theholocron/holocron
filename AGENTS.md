@@ -471,7 +471,7 @@ apps/` must return **nothing** (source). The CLI's
 - **Soft-skip over hard-fail when a capability fails.** Orchestrator
   commands (`setup`, `sync secrets`, `doctor`) wrap each step in
   `try/catch` and continue; final summary reports `ok / fail / skip`
-  counts. Per-step failure does not abort the run.
+  counts. Per-step failure does not abort the run. A failing or skipped step's row also carries what the provider said (`describeProviderError()`, over kyber's `describeError()`: the message, then the response's own `message` or `error` field, else the start of its text, with control characters stripped and cut to 200 characters), so a 400 or 402 names its field or plan limit (#2314); the structured log gets only the error's own message, never the response text.
 - **Idempotent capability operations.** Probe-then-act, treat
   "already exists" / 409 / EPRECONDITION as success, never break
   on re-runs.
