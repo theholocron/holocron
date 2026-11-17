@@ -44,6 +44,7 @@ function sign(folder: Item, request: NonNullable<Item["request"]>): Record<strin
 	if (!exec) return headers;
 	const pm = {
 		variables: { get: (name: string) => VARIABLES[name], replaceIn: fill },
+		environment: { get: (name: string) => VARIABLES[name] },
 		request: {
 			body: { raw: request.body?.raw ?? "" },
 			headers: { upsert: ({ key, value }: Header) => void (headers[key] = value) },
