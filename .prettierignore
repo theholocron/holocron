@@ -12,3 +12,7 @@ CHANGELOG.md
 # Posted verbatim to a Discord channel (holocron#1533). Prettier drops the angle brackets around a link
 # address, and Discord uses them to keep a link from expanding into a preview card.
 .holocron/pinned/rules.md
+
+# The workspace docs: the same text as the `docs` of `.bruno/workspace.yml`, which Bruno writes, so it must stay byte for
+# byte what the sync copies (holocron#2276). Prettier would pad the table and the sync would see a change.
+.bruno/README.md

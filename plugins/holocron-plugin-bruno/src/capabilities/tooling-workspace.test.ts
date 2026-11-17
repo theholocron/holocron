@@ -152,6 +152,119 @@ describe("BrunoTooling.workspace", () => {
 		expect(read(".bruno/workspace.yml")).toContain("collections/app-b");
 	});
 
+	describe("a collection added to a workspace file that Bruno has written to", () => {
+		const first = () =>
+			tool("The Holocron").workspace(input({ collectionFiles: ["apps/a/api/webhook.collection.json"] }));
+		const bruno = [
+			"opencollection: 1.0.0",
+			"info:",
+			'  name: "The Holocron"',
+			"  type: workspace",
+			"",
+			"collections:",
+			'  - name: "App A"',
+			'    path: "collections/app-a"',
+			"",
+			"specs:",
+			"",
+			"docs: |-",
+			"  # The Holocron",
+			"",
+			"  Some words.",
+			"activeEnvironmentUid: abc",
+			"",
+		].join("\n");
+
+		it("keeps the docs, the specs and the active environment, and adds only the entry", async () => {
+			await first();
+			writeFileSync(join(root, ".bruno/workspace.yml"), bruno);
+			const result = await tool("The Holocron").workspace(input());
+			expect(states(result.files)[".bruno/workspace.yml"]).toBe("changed");
+			expect(read(".bruno/workspace.yml")).toBe(
+				bruno.replace(
+					'    path: "collections/app-a"\n',
+					'    path: "collections/app-a"\n  - name: "App B"\n    path: "collections/app-b"\n'
+				)
+			);
+		});
+
+		it("writes the entry in the style of a whole file", async () => {
+			await first();
+			await tool("The Holocron").workspace(input());
+			const grown = read(".bruno/workspace.yml");
+			rmSync(join(root, ".bruno"), { recursive: true });
+			await tool("The Holocron").workspace(input());
+			expect(grown).toBe(read(".bruno/workspace.yml"));
+		});
+
+		it("fills in an empty `collections: []`", async () => {
+			await first();
+			writeFileSync(
+				join(root, ".bruno/workspace.yml"),
+				'opencollection: 1.0.0\ninfo:\n  name: "W"\n  type: workspace\n\ncollections: []\ndocs: x\n'
+			);
+			await tool("The Holocron").workspace(input());
+			expect(read(".bruno/workspace.yml")).toBe(
+				[
+					"opencollection: 1.0.0",
+					"info:",
+					'  name: "W"',
+					"  type: workspace",
+					"",
+					"collections:",
+					'  - name: "App A"',
+					'    path: "collections/app-a"',
+					'  - name: "App B"',
+					'    path: "collections/app-b"',
+					"docs: x",
+					"",
+				].join("\n")
+			);
+		});
+
+		it("fills in a `collections:` with no entries", async () => {
+			await first();
+			writeFileSync(join(root, ".bruno/workspace.yml"), "info:\n  name: W\n\ncollections:\n\ndocs: x\n");
+			await tool("The Holocron").workspace(input());
+			expect(read(".bruno/workspace.yml")).toBe(
+				[
+					"info:",
+					"  name: W",
+					"",
+					"collections:",
+					'  - name: "App A"',
+					'    path: "collections/app-a"',
+					'  - name: "App B"',
+					'    path: "collections/app-b"',
+					"",
+					"docs: x",
+					"",
+				].join("\n")
+			);
+		});
+
+		it("makes the whole file when `collections:` is a flow list it cannot add to in place", async () => {
+			await first();
+			writeFileSync(
+				join(root, ".bruno/workspace.yml"),
+				'opencollection: 1.0.0\ncollections: [{ name: "Old", path: "collections/old" }]\ndocs: x\n'
+			);
+			await tool("The Holocron").workspace(input());
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App A"');
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App B"');
+			expect(read(".bruno/workspace.yml")).not.toContain("Old");
+		});
+
+		it("makes the whole file when it has no `collections:` key", async () => {
+			await first();
+			writeFileSync(join(root, ".bruno/workspace.yml"), "opencollection: 1.0.0\ndocs: x\n");
+			await tool("The Holocron").workspace(input());
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App B"');
+			expect(read(".bruno/workspace.yml")).toContain('  - name: "App A"');
+			expect(read(".bruno/workspace.yml")).not.toContain("docs: x");
+		});
+	});
+
 	it("names the workspace `Workspace` when no name is set", async () => {
 		await tool().workspace(input());
 		expect(read(".bruno/workspace.yml")).toContain('name: "Workspace"');
