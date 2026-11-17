@@ -11,4 +11,8 @@
 # built dev environment — the hook has nothing to add there.
 [ -n "$CI" ] && exit 0
 
+if [ ! -f "cli/cli/dist/cli.mjs" ]; then
+	echo "pre-push: cli/cli/dist/cli.mjs is not built yet. Run: pnpm install && pnpm build (or push with --no-verify)." >&2
+	exit 1
+fi
 node cli/cli/dist/cli.mjs run ci

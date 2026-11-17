@@ -5,4 +5,5 @@
 # built dev environment — the hook has nothing to add there.
 [ -n "$CI" ] && exit 0
 
+__BUILD_CHECK__
 __HOLOCRON_SCRIPT__ run ci
