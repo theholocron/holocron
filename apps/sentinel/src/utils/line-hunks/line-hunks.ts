@@ -32,8 +32,8 @@ export function lineHunks(original: string[], fixed: string[]): LineHunk[] {
 		for (let j = m - 1; j >= 0; j--) {
 			table[i * width + j] =
 				original[start + i] === fixed[start + j]
-					? table[(i + 1) * width + j + 1]! + 1
-					: Math.max(table[(i + 1) * width + j]!, table[i * width + j + 1]!);
+					? table[(i + 1) * width + j + 1] + 1
+					: Math.max(table[(i + 1) * width + j], table[i * width + j + 1]);
 		}
 	}
 
@@ -47,7 +47,7 @@ export function lineHunks(original: string[], fixed: string[]): LineHunk[] {
 			open = undefined;
 			i++;
 			j++;
-		} else if (j < m && (i === n || table[i * width + j + 1]! >= table[(i + 1) * width + j]!)) {
+		} else if (j < m && (i === n || table[i * width + j + 1] >= table[(i + 1) * width + j])) {
 			open ??= { from: start + i, to: start + i, fixedFrom: start + j, fixedTo: start + j };
 			j++;
 			open.fixedTo = start + j;

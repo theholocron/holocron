@@ -37,5 +37,5 @@ export function fakeErrorSink(): FakeErrorSink {
 		captureException: vi.fn(),
 		endSession: vi.fn(),
 		flush: vi.fn().mockResolvedValue(undefined),
-	} as unknown as FakeErrorSink;
+	};
 }

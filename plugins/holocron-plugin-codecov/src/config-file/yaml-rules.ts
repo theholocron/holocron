@@ -23,15 +23,15 @@ export function ensureIfNotFound(yaml: string): string {
 	const lines = yaml.split("\n");
 	const out: string[] = [];
 	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!;
+		const line = lines[i];
 		out.push(line);
 		const m = /^(\s{8,})target:\s+\S+\s*$/.exec(line);
 		if (!m) continue;
-		const indent = m[1]!;
+		const indent = m[1];
 		// Look at the sibling lines of this mapping (same indent, until it dedents).
 		let alreadySet = false;
 		for (let j = i + 1; j < lines.length; j++) {
-			const sib = lines[j]!;
+			const sib = lines[j];
 			if (sib.trim() === "") continue;
 			const sibIndent = sib.match(/^\s*/)![0].length;
 			if (sibIndent < indent.length) break;
@@ -58,7 +58,7 @@ function section(lines: string[], key: string): [number, number] | null {
 	if (start === -1) return null;
 	let end = lines.findIndex((line, i) => i > start && /^[A-Za-z_]/.test(line));
 	if (end === -1) end = lines.length;
-	while (lines[end - 1]!.trim() === "") end--;
+	while (lines[end - 1].trim() === "") end--;
 	return [start, end];
 }
 
@@ -105,7 +105,7 @@ export function ensureFlagManagement(yaml: string, flags: string[]): string {
 	const list = lines.findIndex((line, i) => i > start && i < end && /^ {2}individual_flags:/.test(line));
 	if (list === -1) {
 		lines.splice(end, 0, listHead, ...flags.map(flagEntry));
-	} else if (/\[\s*\]\s*$/.test(lines[list]!)) {
+	} else if (/\[\s*\]\s*$/.test(lines[list])) {
 		if (flags.length > 0) lines.splice(list, 1, listHead, ...flags.map(flagEntry));
 	} else {
 		appendMissingItems(lines, list, end, flags, FLAG_ENTRY, flagEntry);
@@ -126,13 +126,13 @@ export function scopeAggregateStatuses(yaml: string, flags: string[]): string {
 		const at = lines.indexOf(`    ${kind}:`);
 		if (at === -1 || lines[at + 1] !== "      default:") continue;
 		let end = at + 2;
-		while (end < lines.length && /^ {8}/.test(lines[end]!)) end++;
+		while (end < lines.length && /^ {8}/.test(lines[end])) end++;
 		const flagsAt = lines.findIndex((line, i) => i >= at + 2 && i < end && /^ {8}flags:/.test(line));
 		if (flagsAt === -1) {
 			lines.splice(at + 2, 0, "        flags:", ...flags.map((name) => `          - ${name}`));
-		} else if (!/^ {8}flags:\s*\S/.test(lines[flagsAt]!)) {
+		} else if (!/^ {8}flags:\s*\S/.test(lines[flagsAt])) {
 			let listEnd = flagsAt + 1;
-			while (listEnd < end && /^ {10}- /.test(lines[listEnd]!)) listEnd++;
+			while (listEnd < end && /^ {10}- /.test(lines[listEnd])) listEnd++;
 			appendMissingItems(lines, flagsAt, listEnd, flags, /^ {10}- (\S+)/, (name) => `          - ${name}`);
 		}
 	}
@@ -152,7 +152,7 @@ export function ensureInformationalComponentStatuses(yaml: string): string {
 	const starts = lines.flatMap((line, i) => (i > range[0] && i < limit && /^ {6}- type:/.test(line) ? [i] : []));
 	for (const first of starts.reverse()) {
 		let last = first + 1;
-		while (last < limit && /^ {8}\S/.test(lines[last]!)) last++;
+		while (last < limit && /^ {8}\S/.test(lines[last])) last++;
 		if (!lines.slice(first, last).some((line) => /^ {8}informational:/.test(line))) {
 			lines.splice(last, 0, "        informational: true");
 		}
@@ -216,15 +216,15 @@ export function ensureDocumentationCoverage(yaml: string, mode: CoverageConfigDo
 		if (at === -1) continue;
 		// the status block ends at the next line that is not indented deeper than the kind, minus trailing blanks
 		let end = at + 1;
-		while (end < lines.length && (lines[end]!.trim() === "" || /^ {5}/.test(lines[end]!))) end++;
-		while (lines[end - 1]!.trim() === "") end--;
+		while (end < lines.length && (lines[end].trim() === "" || /^ {5}/.test(lines[end]))) end++;
+		while (lines[end - 1].trim() === "") end--;
 		const own = lines.findIndex((line, i) => i > at && i < end && line === `      ${DOCUMENTATION_FLAG}:`);
 		if (own === -1) {
 			lines.splice(end, 0, ...documentationStatus(kind, mode));
 			continue;
 		}
 		let ownEnd = own + 1;
-		while (ownEnd < end && /^ {8}/.test(lines[ownEnd]!)) ownEnd++;
+		while (ownEnd < end && /^ {8}/.test(lines[ownEnd])) ownEnd++;
 		const keep = lines.slice(own, ownEnd).filter((line) => !/^ {8}informational:/.test(line));
 		lines.splice(own, ownEnd - own, ...keep, ...(mode === "warn" ? ["        informational: true"] : []));
 	}

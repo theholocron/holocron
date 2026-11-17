@@ -317,7 +317,7 @@ function strictChecks(
 	repoRoot: string,
 	statusContexts: readonly StatusContext[] | undefined
 ): string[] {
-	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+	const tasksConfig: TasksConfig = { tasks: config.tasks };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 	return createAstromech({
 		cwd: repoRoot,

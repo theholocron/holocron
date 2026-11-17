@@ -29,6 +29,8 @@ export async function startDevServer<E>(input: DevServerInput<E>): Promise<DevSe
 	const path = input.path ?? "/api/webhook";
 	const log = input.log ?? (() => {});
 
+	// The handler answers a failure itself (its own try/catch), so no rejection reaches the server.
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	const server = createServer(async (req, res) => {
 		const method = req.method as string;
 		const url = new URL(req.url as string, `http://${LOOPBACK}`);
@@ -45,7 +47,7 @@ export async function startDevServer<E>(input: DevServerInput<E>): Promise<DevSe
 
 		const headers = new Headers();
 		// rawHeaders is [name, value, name, value, ...], with a header sent twice kept as two entries.
-		for (let i = 0; i < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i]!, req.rawHeaders[i + 1]!);
+		for (let i = 0; i < req.rawHeaders.length; i += 2) headers.append(req.rawHeaders[i], req.rawHeaders[i + 1]);
 		try {
 			const response = await input.handle(
 				new Request(`http://${req.headers.host}${req.url}`, { method, headers, ...(body ? { body } : {}) }),

@@ -10,7 +10,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { PluginLoader, type Source } from "../../plugin/index.js";
+import { PluginLoader } from "../../plugin/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import {
 	generateAgentFiles,
@@ -129,7 +129,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 	print("");
 
 	if (loader.has("source")) {
-		const source = loader.get("source") as Source;
+		const source = loader.get("source");
 		print("  → source");
 
 		for (const stepName of SYNC_STEPS) {
@@ -146,7 +146,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							source.syncLabels!(CANONICAL_LABELS, STALE_LABELS)
 						)
 					);
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				} else {
 					steps.push({
 						capability: "source",
@@ -154,7 +154,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "provider does not implement syncLabels",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 			}
 
@@ -198,7 +198,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					steps.push(
 						await runSyncStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))
 					);
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				} else {
 					steps.push({
 						capability: "source",
@@ -206,7 +206,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "provider does not implement syncProperties",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 			}
 
@@ -219,13 +219,13 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "no teams configured",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				} else if (source.syncTeams) {
 					steps.push(await runSyncStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 
 					const repoCoord = input.context.repo ?? config.repo?.name ?? "";
-					const org = repoCoord.includes("/") ? repoCoord.split("/")[0]! : "";
+					const org = repoCoord.includes("/") ? repoCoord.split("/")[0] : "";
 					const writeableTeams = teams
 						.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
 						.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
@@ -236,7 +236,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 								await source.writeRepoFile(".github/CODEOWNERS", content);
 							})
 						);
-						print(formatSyncStep(steps[steps.length - 1]!));
+						print(formatSyncStep(steps[steps.length - 1]));
 					}
 				} else {
 					steps.push({
@@ -245,7 +245,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "provider does not implement syncTeams",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 			}
 
@@ -258,10 +258,10 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "no topics configured",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				} else if (source.syncTopics) {
 					steps.push(await runSyncStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				} else {
 					steps.push({
 						capability: "source",
@@ -269,7 +269,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "provider does not implement syncTopics",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 			}
 		}
@@ -284,7 +284,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: `unknown step "${name}"`,
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 			}
 		}
@@ -321,7 +321,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "no topics configured",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			} else {
 				steps.push(
 					await runSyncStep("local", "sync keywords", dryRun, async () => {
@@ -331,7 +331,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							: `${topics.length} topics (no package.json)`;
 					})
 				);
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -344,9 +344,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "no description configured",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			} else {
-				const source = loader.has("source") ? (loader.get("source") as Source) : null;
+				const source = loader.has("source") ? loader.get("source") : null;
 				steps.push(
 					await runSyncStep("local", "sync description", dryRun, async () => {
 						const pkgWrote = await writePackageJsonField(
@@ -365,7 +365,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
 					})
 				);
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -378,9 +378,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "no homepage configured",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			} else {
-				const source = loader.has("source") ? (loader.get("source") as Source) : null;
+				const source = loader.has("source") ? loader.get("source") : null;
 				steps.push(
 					await runSyncStep("local", "sync homepage", dryRun, async () => {
 						const pkgWrote = await writePackageJsonField(input.context.repoRoot, "homepage", homepage);
@@ -393,7 +393,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						return parts.length > 0 ? parts.join(", ") + " updated" : "homepage synced";
 					})
 				);
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -411,7 +411,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						? { message: report.message }
 						: {}),
 			});
-			print(formatSyncStep(steps[steps.length - 1]!));
+			print(formatSyncStep(steps[steps.length - 1]));
 		}
 
 		if (stepName === "workflows") {
@@ -434,7 +434,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "no tasks configured",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 			for (const entry of entries) {
 				if (entry.kind === "skip") {
@@ -450,7 +450,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						})
 					);
 				}
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -462,9 +462,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "syncScripts: false",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			} else {
-				const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+				const tasksConfig: TasksConfig = { tasks: config.tasks };
 				if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
 				const astromechScripts = createAstromech({
 					cwd: input.context.repoRoot,
@@ -489,7 +489,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						return `${changed.join(", ")} set`;
 					})
 				);
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -510,7 +510,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "--cwd is a monorepo subpackage, not the git root — run from the root to sync turbo.json",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 				continue;
 			}
 
@@ -530,7 +530,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						})
 					);
 				}
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -543,7 +543,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 				continue;
 			}
 			for (const entry of await generateAgentFiles({
@@ -560,7 +560,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						})
 					);
 				}
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -573,7 +573,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					status: "skip",
 					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
 				});
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 				continue;
 			}
 			for (const entry of await generatePrivateDirFiles({
@@ -587,7 +587,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
 					})
 				);
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 
@@ -601,7 +601,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						status: "skip",
 						message: "--cwd is a monorepo subpackage, not the git root — run from the root",
 					});
-					print(formatSyncStep(steps[steps.length - 1]!));
+					print(formatSyncStep(steps[steps.length - 1]));
 				}
 				continue;
 			}
@@ -620,7 +620,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						})
 					);
 				}
-				print(formatSyncStep(steps[steps.length - 1]!));
+				print(formatSyncStep(steps[steps.length - 1]));
 			}
 		}
 

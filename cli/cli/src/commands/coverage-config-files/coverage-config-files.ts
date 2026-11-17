@@ -3,7 +3,6 @@ import { join } from "node:path";
 
 import { codecovFlagNames, packageLocation, readWorkspacePackages } from "@theholocron/astromech";
 
-import type { Coverage } from "../../plugin/capabilities/index.js";
 import type { CoverageConfigFilesInput } from "./coverage-config-files.type.js";
 
 /** The text of a file in the repository, or `null` when it is not there or cannot be read. */
@@ -25,7 +24,7 @@ function readExisting(repoRoot: string, path: string): string | null {
  */
 export function coverageConfigFiles(input: CoverageConfigFilesInput): (() => Record<string, string>) | undefined {
 	if (!input.loader.has("coverage")) return undefined;
-	const provider = input.loader.get("coverage") as Coverage;
+	const provider = input.loader.get("coverage");
 	if (provider.configFiles === undefined) return undefined;
 	const documentation = input.docsCoverage ?? "off";
 	return () => {

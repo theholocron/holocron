@@ -46,12 +46,12 @@ export function relayProblem(
 	const fed = (layout.categories ?? []).flatMap((c) => c.channels ?? []).filter((ch) => ch.feeds?.errors);
 	if (fed.length === 0) return undefined;
 	if (!layout.relay?.host) {
-		return `channel \`${fed[0]!.name}\` is fed by the error tracker, which needs \`relay.host\` — where the relay Worker answers`;
+		return `channel \`${fed[0].name}\` is fed by the error tracker, which needs \`relay.host\` — where the relay Worker answers`;
 	}
 	if (fed.length > 1) {
 		return `channels ${fed.map((c) => `\`${c.name}\``).join(" and ")} are all fed by the error tracker, but its relay posts to one channel — feed one`;
 	}
-	const channel = fed[0]!;
+	const channel = fed[0];
 	const errorsFeed = channel.feeds!.errors!;
 	const picture = typeof errorsFeed === "object" ? errorsFeed.avatar : undefined;
 	const pictureProblem = avatarProblem(channel.name, "feeds.errors.avatar", picture);

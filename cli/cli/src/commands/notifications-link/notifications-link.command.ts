@@ -25,7 +25,7 @@ export const notificationsLinkCommand: CommandModule<GlobalArgs, NotificationsLi
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			...(argv.provider ? { provider: argv.provider as string } : {}),
+			...(argv.provider ? { provider: argv.provider } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

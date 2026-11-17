@@ -14,5 +14,5 @@ export function parseSkipDocs(text: string): SkipDocs | null {
 				.map((s) => s.trim())
 				.filter(Boolean)
 		: null;
-	return { scope, reason: match[2]!.trim() };
+	return { scope, reason: match[2].trim() };
 }

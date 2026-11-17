@@ -28,9 +28,9 @@ export const notificationsCreateServerCommand: CommandModule<GlobalArgs, Notific
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			owner: argv.owner as string,
-			...(argv.name ? { name: argv.name as string } : {}),
-			...(argv.provider ? { provider: argv.provider as string } : {}),
+			owner: argv.owner,
+			...(argv.name ? { name: argv.name } : {}),
+			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.force ? { force: true } : {}),
 			...(argv.resume ? { resume: true } : {}),
 		});

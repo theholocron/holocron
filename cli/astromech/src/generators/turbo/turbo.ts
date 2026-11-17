@@ -78,7 +78,7 @@ function validatedGlobList(
 function turboRef(ref: string, keys: ReadonlyMap<string, string>, entryName: string): string {
 	const prefix = ref.startsWith("^") ? "^" : "";
 	const [task, ...scope] = ref.slice(prefix.length).split("#").reverse();
-	const known = TASKS[task!] ? (keys.get(task!) ?? taskKey(entryName, task!)) : task!;
+	const known = TASKS[task] ? (keys.get(task) ?? taskKey(entryName, task)) : task;
 	return `${prefix}${[known, ...scope].reverse().join("#")}`;
 }
 

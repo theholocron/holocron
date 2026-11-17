@@ -1,20 +1,12 @@
 import { vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../../config/index.js";
-import {
-	type BoardState,
-	type BoardSummary,
-	type PluginImporter,
-	PluginLoader,
-	type Projects,
-} from "../../../plugin/index.js";
+import { type BoardState, type BoardSummary, PluginLoader, type Projects } from "../../../plugin/index.js";
 import type { TemplatesIo } from "../load-templates/index.js";
-
-type Raw = Parameters<typeof resolveConfig>[0];
 
 /** A config with the given providers, resolved. */
 export const loadedWith = (providers: Record<string, unknown>, extra: Record<string, unknown> = {}): LoadedConfig => ({
-	resolved: resolveConfig({ name: "demo", org: "acme", providers, ...extra } as Raw),
+	resolved: resolveConfig({ name: "demo", org: "acme", providers, ...extra }),
 	filepath: "/tmp/test/holocron.config.json",
 });
 
@@ -30,15 +22,15 @@ export function loaderWith(loaded: LoadedConfig, caps: Record<string, unknown>):
 				name: pkg,
 				capabilities: Object.fromEntries(keys.map((k) => [k, () => caps[k]])),
 			}),
-		} as unknown as Awaited<ReturnType<PluginImporter>>;
+		};
 	});
-	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer);
 }
 
 /** A template directory held in memory. */
 export const memoryIo = (files: Record<string, string> = {}): TemplatesIo => ({
 	listFiles: async () => Object.keys(files),
-	readFile: async (path) => files[path.split("/").pop() as string] as string,
+	readFile: async (path) => files[path.split("/").pop() as string],
 });
 
 export const board = (name: string, over: Partial<BoardSummary> = {}): BoardSummary => ({

@@ -49,7 +49,7 @@ export async function exportCollections(input: ToolingExportInput, cli: PostmanC
 	try {
 		if (!input.dryRun) await mkdir(outDir, { recursive: true });
 		for (const [index, file] of collectionFiles.entries()) {
-			const name = names[index] as string;
+			const name = names[index];
 			cli.migrate(resolve(repoRoot, file), join(base, name));
 			const written = await listFiles(join(base, name));
 			if (written.length === 0) issues.push({ file, message: "`postman collection migrate` wrote no files" });

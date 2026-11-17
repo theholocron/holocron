@@ -12,7 +12,7 @@ export function cypressConfig(): Linter.FlatConfig[] {
 			extends: [cypress.configs.recommended],
 		},
 	];
-	return config as unknown as Linter.FlatConfig[];
+	return config;
 }
 
 export { cypressConfig as cypress };

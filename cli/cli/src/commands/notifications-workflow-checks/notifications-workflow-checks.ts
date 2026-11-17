@@ -77,7 +77,7 @@ export async function notificationsWorkflowChecks(
 		];
 	}
 
-	const read = [...text.matchAll(/secrets\.(HOLOCRON_NOTIFY_[A-Z0-9_]+)/g)].map((m) => m[1]!);
+	const read = [...text.matchAll(/secrets\.(HOLOCRON_NOTIFY_[A-Z0-9_]+)/g)].map((m) => m[1]);
 	const readSet = upper(read);
 	const problems = [
 		...[...new Set(read)]

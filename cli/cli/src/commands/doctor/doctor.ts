@@ -90,7 +90,7 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 			// to load is missing from `impls` but still in the configured list, so
 			// indexing the list would put a later provider's result under the wrong name.
 			for (const [idx, impl] of impls.entries()) {
-				const name = (impl as { providerName?: string }).providerName ?? providers[idx]!;
+				const name = (impl as { providerName?: string }).providerName ?? providers[idx];
 				rows.push(await withProgress(`Checking ${key} (${name})…`, () => smokeCheck(key, name, impl)));
 			}
 		} else {
@@ -147,7 +147,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 			},
 			(err: unknown) => {
 				clearTimeout(timer);
-				reject(err);
+				reject(err instanceof Error ? err : new Error(String(err)));
 			}
 		);
 	});
@@ -185,7 +185,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 				key,
 				provider,
 				"ok",
-				runs.length === 0 ? "runs: none recent" : `most recent: ${runs[0]!.workflowName} (${runs[0]!.status})`
+				runs.length === 0 ? "runs: none recent" : `most recent: ${runs[0].workflowName} (${runs[0].status})`
 			);
 		}
 		case "vault": {
@@ -240,7 +240,7 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			const who = await (impl as Auth).whoami();
 			const details = who.details
 				? ` (${Object.entries(who.details)
-						.map(([k, v]) => `${k}=${v}`)
+						.map(([k, v]) => `${k}=${String(v)}`)
 						.join(", ")})`
 				: "";
 			return mk(key, provider, "ok", `whoami: ${who.provider}${details}`);

@@ -130,7 +130,7 @@ export function pickProvider(
 			`several \`notifications\` providers can ${verb.infinitive} (${names(capable)}) — pass --provider <name>`
 		);
 	}
-	return capable[0]!;
+	return capable[0];
 }
 
 /** Pick the provider that can provision. Any ensure* method counts: a role-only layout needs no channel support. */
@@ -463,7 +463,7 @@ export async function runNotificationsChannelAdd(
 					)
 				);
 			}
-			secrets = loader.get("secrets") as Secrets;
+			secrets = loader.get("secrets");
 		}
 		const org = input.context.org;
 		let scope: SecretScope | undefined =

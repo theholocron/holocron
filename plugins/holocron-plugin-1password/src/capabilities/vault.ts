@@ -186,5 +186,5 @@ function parseReference(reference: string): ParsedReference {
 		);
 	}
 	const [vault, item, ...fieldParts] = parts;
-	return { vault: vault!, item: item!, field: fieldParts.join("/") };
+	return { vault: vault, item: item, field: fieldParts.join("/") };
 }

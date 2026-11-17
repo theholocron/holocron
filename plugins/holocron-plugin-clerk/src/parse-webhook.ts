@@ -86,7 +86,7 @@ async function verifySignature(input: ParseWebhookInput): Promise<void> {
 	const h = (name: string): string | undefined => {
 		const target = lower(name);
 		for (const [k, v] of Object.entries(input.headers)) {
-			if (lower(k) === target) return Array.isArray(v) ? v[0] : (v as string | undefined);
+			if (lower(k) === target) return Array.isArray(v) ? v[0] : v;
 		}
 		return undefined;
 	};

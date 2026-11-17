@@ -13,7 +13,7 @@ import type { SkillLockEntry, SkillsLock } from "./skills.type.js";
 async function fetchExternalSkill(entry: SkillLockEntry): Promise<{ content: string; stale: boolean }> {
 	if (entry.sourceType !== "github") {
 		/* c8 ignore next */
-		throw new Error(`unsupported sourceType: ${entry.sourceType}`);
+		throw new Error(`unsupported sourceType: ${String(entry.sourceType)}`);
 	}
 	const url = `https://raw.githubusercontent.com/${entry.source}/HEAD/${entry.skillPath}`;
 	const res = await fetch(url);

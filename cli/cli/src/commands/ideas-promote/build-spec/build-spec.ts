@@ -21,7 +21,7 @@ export function buildSpec(input: BuildSpecInput): BuiltSpec {
 		return true;
 	});
 	const first = kept.findIndex((line) => line.trim() !== "");
-	if (first >= 0 && kept[first]!.trim() === `# ${input.title.trim()}`) kept.splice(first, 1);
+	if (first >= 0 && kept[first].trim() === `# ${input.title.trim()}`) kept.splice(first, 1);
 
 	const problem = kept
 		.map((line) => line.replace(/[ \t]+$/, ""))

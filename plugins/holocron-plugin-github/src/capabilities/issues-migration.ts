@@ -48,7 +48,7 @@ function splitLabels(names: string[]): { labels: string[]; priority?: IssuePrior
 	const labels: string[] = [];
 	for (const name of names) {
 		const match = PRIORITY_LABEL.exec(name);
-		if (match) priority = match[1]!.toLowerCase() as IssuePriority;
+		if (match) priority = match[1].toLowerCase() as IssuePriority;
 		else labels.push(name);
 	}
 	return { labels, ...(priority ? { priority } : {}) };
@@ -72,7 +72,7 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
 	const worker = async (): Promise<void> => {
 		while (next < items.length) {
 			const at = next++;
-			results[at] = await fn(items[at] as T);
+			results[at] = await fn(items[at]);
 		}
 	};
 	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));

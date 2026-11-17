@@ -77,5 +77,5 @@ export async function readSecurity(client: GitHubClient, repo: string): Promise<
 		privateVulnerabilityReporting: reporting,
 		codeScanningDefaultSetup: codeScanning === undefined ? undefined : codeScanning === "configured",
 	};
-	return Object.fromEntries(Object.entries(found).filter(([, v]) => v !== undefined)) as SourceSecurity;
+	return Object.fromEntries(Object.entries(found).filter(([, v]) => v !== undefined));
 }

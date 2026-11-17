@@ -10,7 +10,7 @@ const isObject = (value: unknown): value is Json =>
 function runsDcg(hook: unknown): boolean {
 	if (!isObject(hook) || typeof hook.command !== "string") return false;
 	// `split` always returns at least one piece, so the first is there even for an empty command.
-	const program = hook.command.trim().split(/\s+/)[0]!;
+	const program = hook.command.trim().split(/\s+/)[0];
 	return program === DCG_COMMAND || program.endsWith(`/${DCG_COMMAND}`);
 }
 
@@ -24,8 +24,9 @@ export function withDcgHook(settings: unknown): Json {
 	if (!isObject(settings)) throw new Error("the settings file is not a JSON object");
 	const hooks = settings.hooks ?? {};
 	if (!isObject(hooks)) throw new Error("`hooks` in the settings file is not an object");
-	const preToolUse = hooks.PreToolUse ?? [];
-	if (!Array.isArray(preToolUse)) throw new Error("`hooks.PreToolUse` in the settings file is not a list");
+	const listed = hooks.PreToolUse ?? [];
+	if (!Array.isArray(listed)) throw new Error("`hooks.PreToolUse` in the settings file is not a list");
+	const preToolUse: unknown[] = listed;
 
 	const wired = preToolUse.some(
 		(entry) =>

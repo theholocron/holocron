@@ -5,7 +5,7 @@ import jsdoc from "eslint-plugin-jsdoc";
 export function jsdocConfig(): Linter.Config[] {
 	return [
 		{
-			...(jsdoc.configs["flat/recommended-typescript"] as Linter.Config),
+			...jsdoc.configs["flat/recommended-typescript"],
 			name: "@theholocron/jsdoc/recommended",
 		},
 		{

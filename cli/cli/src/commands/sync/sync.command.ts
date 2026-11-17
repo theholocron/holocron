@@ -46,7 +46,7 @@ export const syncCommand: CommandModule<GlobalArgs, SyncArgs> = {
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
-			...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps as string[] } : {}),
+			...(argv.steps && argv.steps.length > 0 ? { steps: argv.steps } : {}),
 		});
 		if (report.summary.fail > 0) {
 			process.exitCode = 1;

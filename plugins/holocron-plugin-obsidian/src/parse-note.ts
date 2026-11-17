@@ -20,7 +20,7 @@ export function parseNote(text: string, fileName: string): ParsedNote {
 	const heading = /^#[ \t]+(.+?)[ \t]*$/m.exec(prose);
 	const wiki = [...prose.matchAll(/!\[\[[^\]]+\]\]/g)].map((m) => m[0]);
 	const links = [...prose.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)]
-		.filter((m) => !WEB_ADDRESS.test(m[1]!))
+		.filter((m) => !WEB_ADDRESS.test(m[1]))
 		.map((m) => m[0]);
 	return {
 		status: unquote(fields?.get("status")?.value ?? ""),

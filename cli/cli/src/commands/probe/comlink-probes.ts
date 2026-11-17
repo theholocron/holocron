@@ -36,7 +36,7 @@ function relayOf(loader: PluginLoader): Relay {
 	const host = layout?.relay?.host;
 	if (!host) throw new Error("no relay is declared: add `relay.host` to the notifications layout");
 	const found = loader.has("errors") ? loader.get("errors") : undefined;
-	const errors: Errors | undefined = Array.isArray(found) ? found[0] : found;
+	const errors: Errors | undefined = Array.isArray(found) ? (found[0] as Errors | undefined) : found;
 	if (!errors) throw new Error("the relay carries an error tracker's alerts, and no `errors` provider is available");
 	return {
 		host,
@@ -164,7 +164,7 @@ export function comlinkProbes(deps: ComlinkProbeDeps): PluginProbes {
 						headers: {
 							"content-type": "application/json",
 							"sentry-hook-resource": "event_alert",
-							"sentry-hook-signature": createHmac("sha256", secret!).update(body).digest("hex"),
+							"sentry-hook-signature": createHmac("sha256", secret).update(body).digest("hex"),
 						},
 						body,
 					});

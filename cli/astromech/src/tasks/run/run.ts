@@ -123,7 +123,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 			// this CLI. Split on whitespace: each word is its own argv
 			// entry (a nested yargs command path like "sync github" needs
 			// two separate tokens, not one string containing a space).
-			return run(process.execPath, [process.argv[1]!, ...def.local.command.split(" "), ...passthrough]);
+			return run(process.execPath, [process.argv[1], ...def.local.command.split(" "), ...passthrough]);
 		}
 		const runner = resolveRunner(def.local, cwd, listDir, readFile);
 		if (runner) {

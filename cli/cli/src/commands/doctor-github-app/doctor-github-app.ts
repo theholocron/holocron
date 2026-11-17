@@ -22,7 +22,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { type GitHubAppConfig, resolvedEnvironment } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Vault } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
 import { appRows } from "./app-rows.js";
 import type {
 	DoctorGitHubAppReport,
@@ -91,7 +91,7 @@ async function readCredentials(
 	instance: GitHubAppConfig,
 	loader: PluginLoader
 ): Promise<{ creds: GitHubAppCredentials } | { reason: string }> {
-	const vault = loader.has("vault") ? (loader.get("vault") as Vault) : undefined;
+	const vault = loader.has("vault") ? loader.get("vault") : undefined;
 	if (!vault?.readEnvironment) {
 		return {
 			reason: vault

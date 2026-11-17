@@ -8,7 +8,7 @@ import { vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../../config/index.js";
 import type { BoardSummary, Projects } from "../../../plugin/index.js";
-import { type PluginImporter, PluginLoader } from "../../../plugin/index.js";
+import { PluginLoader } from "../../../plugin/index.js";
 import type { TemplatesIo } from "../load-templates/index.js";
 import type { ProjectPrompt } from "../terminal-prompt/index.js";
 
@@ -18,7 +18,7 @@ export function board(over: Partial<BoardSummary> = {}): BoardSummary {
 
 export function loadedWith(providers: Record<string, unknown>, org = "acme"): LoadedConfig {
 	return {
-		resolved: resolveConfig({ name: "demo", org, providers } as Parameters<typeof resolveConfig>[0]),
+		resolved: resolveConfig({ name: "demo", org, providers }),
 		filepath: "/tmp/test/holocron.config.json",
 	};
 }
@@ -45,9 +45,9 @@ export function loaderFor(loaded: LoadedConfig, projects: unknown): PluginLoader
 		if (pkg !== "@theholocron/holocron-plugin-github") throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
 		return {
 			createPlugin: () => ({ name: "github", capabilities: { projects: () => projects } }),
-		} as unknown as Awaited<ReturnType<PluginImporter>>;
+		};
 	});
-	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer);
 }
 
 /** A directory of template files held in memory. */

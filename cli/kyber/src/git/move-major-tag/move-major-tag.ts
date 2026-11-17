@@ -7,7 +7,7 @@ const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
 /** Orders stable versions, newest last. */
 function compare(a: string, b: string): number {
 	const [pa, pb] = [a, b].map((v) => STABLE.exec(v)!.slice(1).map(Number));
-	return pa!.reduce((diff, n, i) => diff || n - pb![i]!, 0);
+	return pa.reduce((diff, n, i) => diff || n - pb[i], 0);
 }
 
 /**

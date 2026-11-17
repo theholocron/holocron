@@ -16,7 +16,7 @@ export function writeProperty(text: string, name: string, value: string): string
 	const at = lines.findIndex((l) => l.startsWith(`${name}:`));
 	const next = at === -1 ? [...lines, line] : lines.map((l, i) => (i === at ? line : l));
 	// Each line keeps the ending it had; an added line takes the one before the closing fence.
-	let rebuilt = next[0]!;
+	let rebuilt = next[0];
 	next.slice(1).forEach((l, i) => {
 		rebuilt += (separators[i] ?? close) + l;
 	});

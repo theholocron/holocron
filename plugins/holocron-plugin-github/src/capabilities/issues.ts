@@ -364,7 +364,7 @@ function parseIssueNumber(key: string, owner: string, repoName: string): number 
 				`Issue key "${key}" references ${crossMatch[1]}/${crossMatch[2]} but this adapter is bound to ${owner}/${repoName}.`
 			);
 		}
-		return parseInt(crossMatch[3]!, 10);
+		return parseInt(crossMatch[3], 10);
 	}
 	const num = trimmed.replace(/^#/, "");
 	if (!/^\d+$/.test(num)) {

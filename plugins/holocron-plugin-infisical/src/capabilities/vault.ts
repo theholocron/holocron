@@ -186,7 +186,7 @@ function parseReference(reference: string): ParsedReference {
 		);
 	}
 	const [workspace, environment, ...nameParts] = parts;
-	return { workspace: workspace!, environment: environment!, name: nameParts.join("/") };
+	return { workspace: workspace, environment: environment, name: nameParts.join("/") };
 }
 
 function isConflict(err: unknown): boolean {

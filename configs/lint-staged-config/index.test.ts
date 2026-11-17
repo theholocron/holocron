@@ -38,7 +38,7 @@ describe("lint-staged-config", () => {
 	});
 
 	it("points --config at the shared packages' built entry points when installed — required for astromech's --config resolution to survive a deleted local prettier.config.ts/eslint.config.ts (theholocron/holocron#749)", async () => {
-		vi.doMock("node:fs", () => ({ existsSync: () => true }));
+		vi.doMock("node:fs", () => ({ existsSync: (path: string) => !path.includes("eslint.config.") }));
 		const { default: config } = await import("./index.js");
 		const prettierConfig = resolve(process.cwd(), "node_modules/@theholocron/prettier-config/dist/index.js");
 		const eslintConfig = resolve(process.cwd(), "node_modules/@theholocron/eslint-config/dist/bundles/library.js");
@@ -46,6 +46,14 @@ describe("lint-staged-config", () => {
 			`prettier --config ${prettierConfig} --write`,
 			`eslint --config ${eslintConfig}`,
 		]);
+	});
+
+	it("lints with the repo's own eslint.config.* instead of the shared bundle when it has one (holocron#851)", async () => {
+		vi.doMock("node:fs", () => ({ existsSync: () => true }));
+		const { default: config } = await import("./index.js");
+		const prettierConfig = resolve(process.cwd(), "node_modules/@theholocron/prettier-config/dist/index.js");
+		expect(config["*.{ts,tsx}"]).toEqual([`prettier --config ${prettierConfig} --write`, "eslint"]);
+		expect(config["*.{js,jsx}"]).toEqual([`prettier --config ${prettierConfig} --write`, "eslint"]);
 	});
 
 	it("resolves --config to an absolute path — a relative one silently fails to resolve under lint-staged's own spawn context (theholocron/clients#348)", async () => {

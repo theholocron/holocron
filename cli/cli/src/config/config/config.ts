@@ -59,7 +59,7 @@ function isOptionsTuple(value: unknown): value is [string, ProviderOptions] {
 	if (!Array.isArray(value)) return false;
 	if (value.length !== 2) return false;
 	if (typeof value[0] !== "string") return false;
-	const opt = value[1];
+	const opt: unknown = value[1];
 	return typeof opt === "object" && opt !== null && !Array.isArray(opt);
 }
 
@@ -220,7 +220,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	const providers: ResolvedProvidersConfig = {};
 	for (const [key, entry] of Object.entries(raw.providers)) {
 		if (entry === undefined) continue;
-		providers[key as CapabilityKey] = resolveEntry(key as CapabilityKey, entry as RawProviderEntry);
+		providers[key as CapabilityKey] = resolveEntry(key as CapabilityKey, entry);
 	}
 
 	for (const required of REQUIRED_CAPABILITIES) {

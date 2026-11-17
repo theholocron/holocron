@@ -94,7 +94,7 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 				extension: ext,
 			});
 			const areas = await loadConfigDir({ cwd: tmpDir, dir: CONFIG_DIR, areas: HOLOCRON_AREAS });
-			loaded = { config: placeAreas(areas, base.config as HolocronConfig) as TasksConfig };
+			loaded = { config: placeAreas(areas, base.config as HolocronConfig) };
 		} catch (err) {
 			// A GitHub failure is not the repo's config being wrong; it propagates as every other read does.
 			if (err instanceof ProviderApiError) throw err;

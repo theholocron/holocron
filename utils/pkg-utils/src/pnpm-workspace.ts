@@ -84,8 +84,8 @@ export function addWorkspaceMember(workspaceYaml: string, member: string): Works
 
 	const items: string[] = [];
 	let cursor = packagesLineIdx + 1;
-	while (cursor < lines.length && /^\s*-\s*/.test(lines[cursor]!)) {
-		items.push(lines[cursor]!);
+	while (cursor < lines.length && /^\s*-\s*/.test(lines[cursor])) {
+		items.push(lines[cursor]);
 		cursor++;
 	}
 
@@ -138,7 +138,7 @@ export async function bumpCatalogPins(
 	const wanted = new Set<string>();
 	for (const line of lines) {
 		const m = CATALOG_LINE.exec(line);
-		if (m && include(m[2]!)) wanted.add(m[2]!);
+		if (m && include(m[2])) wanted.add(m[2]);
 	}
 
 	const latest = new Map<string, string | null>();
@@ -153,9 +153,9 @@ export async function bumpCatalogPins(
 		const m = CATALOG_LINE.exec(line);
 		if (!m) return line;
 		const [, pre, pkg, mid, prefix, current, post] = m;
-		const next = latest.get(pkg!);
-		if (!next || next === current || !gt(next, current!)) return line;
-		bumps.push({ pkg: pkg!, from: current!, to: next });
+		const next = latest.get(pkg);
+		if (!next || next === current || !gt(next, current)) return line;
+		bumps.push({ pkg: pkg, from: current, to: next });
 		return `${pre}${pkg}${mid}${prefix}${next}${post}`;
 	});
 

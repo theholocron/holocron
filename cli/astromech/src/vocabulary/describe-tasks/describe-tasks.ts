@@ -11,13 +11,13 @@ const GROUP_ORDER: TaskGroup[] = ["Verification", "Source Quality", "Security", 
 export function describeTasks(): string {
 	const lines: string[] = [];
 	for (const group of GROUP_ORDER) {
-		const ids = Object.keys(TASKS).filter((id) => TASKS[id]!.group === group);
+		const ids = Object.keys(TASKS).filter((id) => TASKS[id].group === group);
 		lines.push(`${group}:`);
 		for (const suite of SUITES) {
 			const leaves = suiteMembers(suite).filter((id) => ids.includes(id));
 			if (leaves.length > 0) lines.push(`  ${suite} (suite)  ${leaves.join(", ")}`);
 		}
-		lines.push(`  ${ids.filter((id) => !TASKS[id]!.suite).join(", ")}`);
+		lines.push(`  ${ids.filter((id) => !TASKS[id].suite).join(", ")}`);
 	}
 	lines.push(
 		"",

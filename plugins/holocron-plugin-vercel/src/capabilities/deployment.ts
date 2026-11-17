@@ -95,9 +95,7 @@ export class VercelDeployment implements Deployment {
 			// createDeployments accepts boolean at runtime; client type is narrower than needed
 			gitProviderOptions:
 				settings.gitProviderCreateDeployments !== undefined
-					? ({ createDeployments: settings.gitProviderCreateDeployments } as unknown as {
-							createDeployments?: string;
-						})
+					? { createDeployments: settings.gitProviderCreateDeployments }
 					: undefined,
 		});
 		return mapProject(result);
@@ -108,14 +106,12 @@ export class VercelDeployment implements Deployment {
 	/** Lists the names of the project's environment variables that apply to `target`. */
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
 		const { envs } = await this.client().env.list(projectId);
-		return envs
-			.filter((e) => e.target.includes(target as "production" | "preview" | "development"))
-			.map((e) => e.key);
+		return envs.filter((e) => e.target.includes(target)).map((e) => e.key);
 	}
 
 	/** Creates or updates (upsert) an environment variable on the project for `target`. */
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
-		await this.client().env.set(projectId, target as "production" | "preview" | "development", name, value);
+		await this.client().env.set(projectId, target, name, value);
 	}
 
 	// ── deployments ─────────────────────────────────────────────────────
@@ -138,7 +134,7 @@ export class VercelDeployment implements Deployment {
 			projectName: project.name,
 			branch: input.branch,
 			repoId,
-			target: input.target as "production" | "staging" | undefined,
+			target: input.target,
 		});
 		return mapDeployment(raw, input.branch);
 	}
@@ -158,7 +154,7 @@ export class VercelDeployment implements Deployment {
 			// ensureProject()'s Git-linked-project path.
 			framework: null,
 			...installCommandOf(config.files),
-			target: config.target as "production" | "staging" | undefined,
+			target: config.target,
 			...(config.meta ? { meta: config.meta } : {}),
 		});
 		return { deploymentId: raw.id, url: raw.url };
@@ -320,7 +316,7 @@ function mapDeployment(raw: RawDeployment, branch: string | null): DeploymentRec
 		branch,
 		status: normalizeState(raw.readyState),
 	};
-	if (raw.target) record.target = raw.target as DeploymentTrigger;
+	if (raw.target) record.target = raw.target;
 	if (raw.errorMessage) record.errorMessage = raw.errorMessage;
 	return record;
 }

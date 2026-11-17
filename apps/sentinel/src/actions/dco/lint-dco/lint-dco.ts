@@ -52,7 +52,7 @@ function parseSignoffs(message: string): Array<{ name: string; email: string }> 
 	const signoffs: Array<{ name: string; email: string }> = [];
 	let match: RegExpExecArray | null;
 	while ((match = SIGNOFF_RE.exec(message)) !== null) {
-		signoffs.push({ name: match[1]!.toLowerCase(), email: match[2]!.toLowerCase() });
+		signoffs.push({ name: match[1].toLowerCase(), email: match[2].toLowerCase() });
 	}
 	return signoffs;
 }

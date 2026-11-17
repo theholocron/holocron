@@ -51,7 +51,7 @@ export const devCommand: CommandModule<GlobalArgs, DevArgs> = {
 				command: argv["--"] as string[] | undefined,
 			},
 			loaded.resolved.dev,
-			[process.execPath, process.argv[1] as string, "--cwd", argv.cwd]
+			[process.execPath, process.argv[1], "--cwd", argv.cwd]
 		);
 		const report = await runDev({
 			loaded,

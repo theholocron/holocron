@@ -156,7 +156,7 @@ export function deploys(rest: RestClient, raw: NetlifyRawTransport) {
 
 			const requiredFunctions = new Set(deploy.required_functions ?? []);
 			for (const fn of functions) {
-				if (!requiredFunctions.has(functionHashes[fn.name]!)) continue;
+				if (!requiredFunctions.has(functionHashes[fn.name])) continue;
 				await uploadRaw(
 					`/deploys/${deploy.id}/functions/${encodeURIComponent(fn.name)}?runtime=${fn.runtime ?? "js"}`,
 					fn.zip

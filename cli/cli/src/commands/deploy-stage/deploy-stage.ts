@@ -63,6 +63,14 @@ import { pinAlphaReleases } from "./pin-alpha-releases/index.js";
 import { undeclaredExternals } from "./undeclared-externals.js";
 import { vercelEngines } from "./vercel-engines.js";
 
+/** The fields of a `package.json` this module reads. */
+interface PackageJson {
+	name: string;
+	version: string;
+	dependencies?: Record<string, string>;
+	engines?: Record<string, string>;
+}
+
 function installedVersion(packageDir: string, name: string): string {
 	const pkgPath = join(packageDir, "node_modules", name, "package.json");
 	if (!existsSync(pkgPath)) {
@@ -70,7 +78,7 @@ function installedVersion(packageDir: string, name: string): string {
 			`cannot resolve installed version of "${name}" — run \`pnpm install\` first (looked in ${pkgPath})`
 		);
 	}
-	return JSON.parse(readFileSync(pkgPath, "utf8")).version;
+	return (JSON.parse(readFileSync(pkgPath, "utf8")) as PackageJson).version;
 }
 
 /**
@@ -92,7 +100,7 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 			throw new Error(`${distIndex} not found — run \`pnpm run delivery.build\` first`);
 		}
 
-		const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
+		const pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8")) as PackageJson;
 		const missing = undeclaredExternals(readFileSync(distIndex, "utf8"), pkg.dependencies ?? {});
 		if (missing.length > 0) {
 			throw new Error(

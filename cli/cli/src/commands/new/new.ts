@@ -60,7 +60,7 @@ export function deriveVariants(slug: string, name: string): Array<[string, strin
 		[sw.join("_"), nw.join("_")],
 		[sw.join("_").toUpperCase(), nw.join("_").toUpperCase()],
 		[sw.map(cap).join(""), nw.map(cap).join("")],
-		[sw[0]!.toLowerCase() + sw.slice(1).map(cap).join(""), nw[0]!.toLowerCase() + nw.slice(1).map(cap).join("")],
+		[sw[0].toLowerCase() + sw.slice(1).map(cap).join(""), nw[0].toLowerCase() + nw.slice(1).map(cap).join("")],
 		[sw.map(cap).join(" "), nw.map(cap).join(" ")],
 	];
 

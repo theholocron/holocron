@@ -14,7 +14,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const { version, dryRun = false, group, excludeGroups, includePrivate = false } = input;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
 	const writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
-	const listDir = input.listDir ?? ((p: string) => readdirSync(p) as string[]);
+	const listDir = input.listDir ?? ((p: string) => readdirSync(p));
 	const isDir = input.isDir ?? ((p: string) => statSync(p).isDirectory());
 
 	const bumped: string[] = [];

@@ -38,7 +38,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		exec: options.exec ?? realExec,
 		readFile: options.readFile ?? ((path: string) => readFileSync(path, "utf8")),
 		fileExists: options.fileExists ?? ((path: string) => existsSync(path)),
-		listDir: options.listDir ?? ((path: string) => readdirSync(path) as string[]),
+		listDir: options.listDir ?? ((path: string) => readdirSync(path)),
 		lookPath: options.lookPath ?? realLookPath,
 	};
 	const env = options.env ?? process.env;

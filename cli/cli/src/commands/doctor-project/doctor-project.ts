@@ -13,7 +13,7 @@ import { describeError } from "@theholocron/kyber/ui";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { openBoardContext } from "../project/board-context/index.js";
 import { boardRows } from "./board-rows.js";
@@ -65,7 +65,7 @@ async function post(
 	rows: CheckRow[],
 	summary: { ok: number; fail: number; skip: number }
 ): Promise<string> {
-	const providers = loader.has("notifications") ? (loader.get("notifications") as Notifications[]) : [];
+	const providers = loader.has("notifications") ? loader.get("notifications") : [];
 	const provider = providers.find((p) => p.postMessage) ?? providers[0];
 	if (!provider) return "not posted: no `notifications` provider is configured";
 	return postDoctorReport(

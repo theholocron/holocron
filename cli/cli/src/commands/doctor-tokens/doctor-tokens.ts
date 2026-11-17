@@ -238,7 +238,7 @@ async function runWith(
 	{
 		const reloaded = c.makeLoader(context);
 		await reloaded.load();
-		const probe = reloaded.probes().get(provider)?.[PROBE] ?? c.probes.get(provider)![PROBE]!;
+		const probe = reloaded.probes().get(provider)?.[PROBE] ?? c.probes.get(provider)![PROBE];
 		const report = await runProbe({
 			name: `${provider} ${PROBE}`,
 			provider,

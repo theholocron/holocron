@@ -37,7 +37,7 @@ function defaultForum(layout: NotificationsLayout | undefined): { name: string }
 		.flatMap((cat) => cat.channels ?? [])
 		.filter((channel) => channel.feeds?.prs)
 		.map((channel) => channel.name);
-	if (fed.length === 1) return { name: fed[0]! };
+	if (fed.length === 1) return { name: fed[0] };
 	return {
 		problem:
 			fed.length === 0

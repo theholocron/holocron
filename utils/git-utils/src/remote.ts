@@ -47,15 +47,15 @@ export function parseGitRemoteUrl(url: string): GitRemote | undefined {
 	const match = withScheme ?? scp;
 	if (!match) return undefined;
 
-	const host = match[1]!.replace(/^\[|\]$/g, "");
+	const host = match[1].replace(/^\[|\]$/g, "");
 	// Split before trimming: dropping empty segments also drops trailing slashes
 	// without a `/+$` regex, which backtracks quadratically on a long run of `/`.
-	const segments = match[2]!.split("/").filter(Boolean);
+	const segments = match[2].split("/").filter(Boolean);
 	const last = segments.pop()!.replace(/\.git$/, "");
 	if (last) segments.push(last);
 	if (segments.length < 2) return undefined;
 
-	const repo = segments[segments.length - 1]!;
+	const repo = segments[segments.length - 1];
 	const owner = segments.slice(0, -1).join("/");
 	return { host, owner, repo, slug: `${owner}/${repo}` };
 }

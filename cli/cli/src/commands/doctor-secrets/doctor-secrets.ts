@@ -61,7 +61,7 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	const notes: string[] = [];
 	const vaultOf = (loader: PluginLoader): Vault | { why: string } =>
 		loader.has("vault")
-			? (loader.get("vault") as Vault)
+			? loader.get("vault")
 			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") };
 	// The plugins are loaded once, the first time a part needs them (this also fills the credential store).
 	let loading: Promise<PluginLoader> | undefined;

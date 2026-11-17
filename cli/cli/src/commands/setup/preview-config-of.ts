@@ -11,7 +11,5 @@ export function previewConfigOf(config: ResolvedHolocronConfig): PreviewConfig |
 	const entry = (config.tasks ?? [])
 		.map((e) => (typeof e === "string" ? { name: e } : e))
 		.find((e) => isTask(e.name, "deploy") || isTask(e.name, "deploy-docs") || isTask(e.name, "deploy-components"));
-	return entry?.with
-		? extractPreviewConfig(entry.with as Record<string, unknown>, { org: config.org, domain: config.domain })
-		: null;
+	return entry?.with ? extractPreviewConfig(entry.with, { org: config.org, domain: config.domain }) : null;
 }

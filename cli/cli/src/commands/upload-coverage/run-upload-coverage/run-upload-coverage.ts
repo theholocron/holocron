@@ -17,7 +17,7 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
-import { assertPluginsResolvable, type Coverage, PluginLoader } from "../../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
 import { parseUploads } from "../parse-uploads/index.js";
 import type { RunUploadCoverageInput, UploadCoverageReport } from "./run-upload-coverage.type.js";
 
@@ -78,7 +78,7 @@ export async function runUploadCoverage(input: RunUploadCoverageInput): Promise<
 			),
 		]);
 	}
-	const provider = loader.get("coverage") as Coverage;
+	const provider = loader.get("coverage");
 	if (!provider.upload) {
 		return finish([row("coverage", "fail", `the \`${provider.providerName}\` provider cannot upload coverage`)]);
 	}

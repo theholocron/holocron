@@ -46,17 +46,17 @@ export function findLeftovers(
 			[...text.matchAll(dottedPattern), ...text.matchAll(barePattern)].map((m) => ({
 				file: file.path,
 				line: i + 1,
-				old: m[1]!,
-				replacement: names[m[1]!]!,
+				old: m[1],
+				replacement: names[m[1]],
 			}))
 		);
 		const asKey = (field === undefined ? [] : scriptKeys(file.text, field))
 			.filter(({ key }) => bare.includes(key))
-			.map(({ key, line }) => ({ file: file.path, line, old: key, replacement: names[key]! }));
+			.map(({ key, line }) => ({ file: file.path, line, old: key, replacement: names[key] }));
 		const seen = new Set<string>();
 		return [...inText, ...asKey, ...findReserved(file)]
 			.sort((a, b) => a.line - b.line)
 			.filter(({ line, old }) => !seen.has(`${line}:${old}`) && seen.add(`${line}:${old}`))
-			.filter(({ line }) => !lines[line - 1]!.includes(ALLOW_MARKER) && !lines[line - 2]?.includes(ALLOW_MARKER));
+			.filter(({ line }) => !lines[line - 1].includes(ALLOW_MARKER) && !lines[line - 2]?.includes(ALLOW_MARKER));
 	});
 }

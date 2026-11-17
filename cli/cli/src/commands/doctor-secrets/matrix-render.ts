@@ -19,10 +19,10 @@ function pad(text: string, width: number): string {
 function table(name: string, rows: MatrixRow[], columns: MatrixColumn[]): string[] {
 	const nameWidth = Math.max(name.length, ...rows.map((row) => row.name.length));
 	const widths = columns.map((column) =>
-		Math.max(heading(column).length, ...rows.map((row) => row.cells[column.id]!.length))
+		Math.max(heading(column).length, ...rows.map((row) => row.cells[column.id].length))
 	);
 	const line = (first: string, cells: string[]) =>
-		[pad(first, nameWidth), ...cells.map((cell, i) => pad(cell, widths[i]!))].join("  ").trimEnd();
+		[pad(first, nameWidth), ...cells.map((cell, i) => pad(cell, widths[i]))].join("  ").trimEnd();
 	return [
 		line(
 			name,
@@ -31,7 +31,7 @@ function table(name: string, rows: MatrixRow[], columns: MatrixColumn[]): string
 		...rows.map((row) =>
 			line(
 				row.name,
-				columns.map((column) => row.cells[column.id]!)
+				columns.map((column) => row.cells[column.id])
 			)
 		),
 	];

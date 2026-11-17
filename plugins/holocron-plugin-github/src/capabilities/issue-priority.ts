@@ -50,7 +50,7 @@ function refusal(err: unknown): string | undefined {
 }
 
 export function createPrioritySetter(client: GitHubClient, repo: string): PrioritySetter {
-	const org = repo.split("/")[0]!;
+	const org = repo.split("/")[0];
 	let lookup: Promise<Lookup> | undefined;
 	const findField = (): Promise<Lookup> =>
 		(lookup ??= client.issueFields.list(org).then(

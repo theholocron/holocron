@@ -87,7 +87,7 @@ export const sentry: Source = {
 			title: clip(event.title ?? event.message ?? "Error", 256),
 			...(description ? { description } : {}),
 			...(event.web_url ? { url: event.web_url } : {}),
-			color: COLORS[level] ?? COLORS["error"]!,
+			color: COLORS[level] ?? COLORS["error"],
 			fields,
 			...(event.datetime ? { timestamp: event.datetime } : {}),
 		});

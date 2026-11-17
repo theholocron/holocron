@@ -114,7 +114,7 @@ export function exportEnvironmentProbe(deps: ExportEnvironmentDeps): Probe {
 			const lines: string[] = [];
 			const exported: string[] = [];
 			for (const name of names) {
-				const value = all[name]!;
+				const value = all[name];
 				probe.secret(value);
 				const line = dotenvLine(name, value);
 				if (line === null) {

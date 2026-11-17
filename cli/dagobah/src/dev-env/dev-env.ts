@@ -25,7 +25,7 @@ export function loadDevEnv<K extends string>(input: LoadDevEnvInput<K>): DevEnv<
 			{ encoding: "utf8", stdio: ["inherit", "pipe", "pipe"] }
 		);
 		if (result.error || result.status !== 0) {
-			const why = result.error?.message ?? (result.stderr as string).trim().split("\n")[0];
+			const why = result.error?.message ?? result.stderr.trim().split("\n")[0];
 			throw new Error(`could not read the 1Password Environment "${input.environment}": ${why || "op failed"}`);
 		}
 		merged = {

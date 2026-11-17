@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/browser";
 
-import { SentryCompatibleSink, type SentrySdkLike, type SentrySinkOptions } from "../shared/sentry-compatible-sink.js";
+import { SentryCompatibleSink, type SentrySinkOptions } from "../shared/sentry-compatible-sink.js";
 
 /**
  * `SentryBrowserSink` is the `@sentry/browser` call site, an `ErrorSink` for a
@@ -10,6 +10,6 @@ import { SentryCompatibleSink, type SentrySdkLike, type SentrySinkOptions } from
 export class SentryBrowserSink extends SentryCompatibleSink {
 	/** Builds the sink over `@sentry/browser`, or over `options.sdk` when given. */
 	constructor(options: SentrySinkOptions = {}) {
-		super(options.sdk ?? (Sentry as SentrySdkLike), options);
+		super(options.sdk ?? Sentry, options);
 	}
 }

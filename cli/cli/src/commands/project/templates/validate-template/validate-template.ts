@@ -1,4 +1,3 @@
-import type { BoardTemplateFile } from "../../../../plugin/index.js";
 import type { ValidateTemplateResult } from "./validate-template.type.js";
 
 const CATEGORIES = ["backlog", "planned", "active", "blocked", "done"];
@@ -103,5 +102,5 @@ export function validateTemplateFile(value: unknown): ValidateTemplateResult {
 			problems.push("a template without extends must list its views");
 	}
 
-	return problems.length > 0 ? { ok: false, problems } : { ok: true, file: value as BoardTemplateFile };
+	return problems.length > 0 ? { ok: false, problems } : { ok: true, file: value };
 }

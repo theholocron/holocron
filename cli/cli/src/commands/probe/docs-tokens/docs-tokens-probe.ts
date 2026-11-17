@@ -14,7 +14,7 @@ const MIN_RESOLVERS = 10;
 /** Every `key: "value"` string a source declares for one of the given token resolver settings. */
 function declared(text: string, keys: readonly string[]): string[] {
 	return keys.flatMap((key) =>
-		[...text.matchAll(new RegExp(`\\b${key}:\\s*"([^"]+)"`, "g"))].map((match) => match[1]!)
+		[...text.matchAll(new RegExp(`\\b${key}:\\s*"([^"]+)"`, "g"))].map((match) => match[1])
 	);
 }
 

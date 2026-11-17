@@ -63,7 +63,7 @@ export async function withElevation<T extends { updated: string[]; todo?: string
 		}
 		if (failure !== undefined) {
 			if (leftover) print(`  ${style.fail(leftover)}`);
-			throw failure;
+			throw failure instanceof Error ? failure : new Error(String(failure));
 		}
 		return {
 			...result!,

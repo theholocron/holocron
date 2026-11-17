@@ -50,7 +50,7 @@ export async function verifyVercelDeploymentProject(
 
 	let response: Response;
 	try {
-		response = await doFetch(`${baseUrl}/v13/deployments/get?${params}`, {
+		response = await doFetch(`${baseUrl}/v13/deployments/get?${params.toString()}`, {
 			headers: { Authorization: `Bearer ${token}` },
 		});
 	} catch {

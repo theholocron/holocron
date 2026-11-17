@@ -9,10 +9,10 @@ import { PNPM_BUILTIN_COMMANDS, resolveTaskName, SUITES } from "@theholocron/ast
 export function readmeScriptProblems(readme: string, scripts: Readonly<Record<string, string>>): string[] {
 	const missing = new Set<string>();
 	for (const [, run, name] of readme.matchAll(/\bpnpm (run )?([a-z][\w:.-]*)/g)) {
-		const isScriptName = SUITES.includes(name!) || resolveTaskName(name!).length > 0;
-		if (!isScriptName || name! in scripts) continue;
-		if (run === undefined && PNPM_BUILTIN_COMMANDS.has(name!)) continue;
-		missing.add(name!);
+		const isScriptName = SUITES.includes(name) || resolveTaskName(name).length > 0;
+		if (!isScriptName || name in scripts) continue;
+		if (run === undefined && PNPM_BUILTIN_COMMANDS.has(name)) continue;
+		missing.add(name);
 	}
 	return [...missing].map(
 		(name) => `README.md tells the reader to run \`pnpm ${name}\`, but package.json has no "${name}" script`

@@ -18,7 +18,7 @@ const unquote = (value: string) => value.trim().replace(/^(["'])(.*)\1$/, "$2");
  */
 export function workflowNameProblems(text: string): string[] {
 	const list = /^ {2}workflow_run:\n {4}workflows:\n((?: {6}- [^\n]+\n)+)/m.exec(text)?.[1] ?? "";
-	const names = [...list.matchAll(/^ {6}- ([^\n#]+)/gm)].map((m) => unquote(m[1]!));
+	const names = [...list.matchAll(/^ {6}- ([^\n#]+)/gm)].map((m) => unquote(m[1]));
 	return names.flatMap((name) => {
 		if (GROUP_NAMES.has(name)) return [`${name}: an old group name; a caller's workflow is named for its task id`];
 		if (!ID.test(name)) return [];

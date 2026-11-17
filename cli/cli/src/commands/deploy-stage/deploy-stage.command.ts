@@ -13,10 +13,10 @@ export const deployStageCommand: CommandModule<DeployArgs, DeployStageArgs> = {
 		"Assemble the payload `deploy --files` uploads for a Vercel Function package (built bundle, entry, trimmed package.json)",
 	builder: deployStageArgs,
 	handler: (argv) => {
-		const packageDir = resolve(argv.cwd as string, (argv.packageDir as string | undefined) ?? ".");
+		const packageDir = resolve(argv.cwd, argv.packageDir ?? ".");
 		const report = stageDeploy({
 			packageDir,
-			...(argv.out ? { outDir: resolve(argv.cwd as string, argv.out as string) } : {}),
+			...(argv.out ? { outDir: resolve(argv.cwd, argv.out) } : {}),
 			print: (line) => console.log(line),
 		});
 		if (report.status === "fail") {

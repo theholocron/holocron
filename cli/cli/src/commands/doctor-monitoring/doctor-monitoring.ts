@@ -26,7 +26,6 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	type Monitoring,
 	type MonitoringAssertion,
 	type MonitoringCheckInput,
 	PluginLoader,
@@ -49,8 +48,8 @@ export async function runDoctorMonitoring(input: RunDoctorMonitoringInput): Prom
 	assertPluginsResolvable(loader, "doctor monitoring");
 
 	const rows: CheckRow[] = [await checkRow(loader)];
-	if (loader.has("monitoring")) rows.push(...(await dashboardRows(loader.get("monitoring") as Monitoring)));
-	if (loader.has("monitoring")) rows.push(...(await statusPageRows(loader.get("monitoring") as Monitoring)));
+	if (loader.has("monitoring")) rows.push(...(await dashboardRows(loader.get("monitoring"))));
+	if (loader.has("monitoring")) rows.push(...(await statusPageRows(loader.get("monitoring"))));
 	rows.push(...(await heartbeatRowsOf(loader)));
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);
@@ -76,7 +75,7 @@ async function checkRow(loader: PluginLoader): Promise<CheckRow> {
 		}
 		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
 	}
-	const monitoring = loader.get("monitoring") as Monitoring;
+	const monitoring = loader.get("monitoring");
 	if (monitoring.checks.length === 0) {
 		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
 	}
@@ -97,7 +96,7 @@ async function checkRow(loader: PluginLoader): Promise<CheckRow> {
 
 /** The heartbeat rows, only when a monitoring provider is loaded and declares heartbeats. */
 async function heartbeatRowsOf(loader: PluginLoader): Promise<CheckRow[]> {
-	return loader.has("monitoring") ? heartbeatRows(loader.get("monitoring") as Monitoring) : [];
+	return loader.has("monitoring") ? heartbeatRows(loader.get("monitoring")) : [];
 }
 
 /** One assertion as a line: `status_code equals 405`, `header[x-a] contains b`. */

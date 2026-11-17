@@ -16,7 +16,7 @@ export const ideasSyncCommand: CommandModule<GlobalArgs, Args> = {
 		y.option("yes", {
 			type: "boolean",
 			describe: "File without asking (required without a terminal)",
-		}) as never,
+		}),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;

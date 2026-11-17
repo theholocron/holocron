@@ -11,11 +11,11 @@ export const deployOnReleaseCommand: CommandModule<DeployArgs, DeployOnReleaseAr
 	builder: deployOnReleaseArgs,
 	handler: async (argv) => {
 		const report = await deployOnRelease({
-			cwd: argv.cwd as string,
-			channel: argv.channel as string,
+			cwd: argv.cwd,
+			channel: argv.channel,
 			// An empty value (an unset workflow output) means "not given".
-			...(argv.from ? { from: argv.from as string } : {}),
-			...(argv.to ? { to: argv.to as string } : {}),
+			...(argv.from ? { from: argv.from } : {}),
+			...(argv.to ? { to: argv.to } : {}),
 			dryRun: argv.dryRun,
 			print: (line) => console.log(line),
 		});

@@ -3,14 +3,7 @@ import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import {
-	assertPluginsResolvable,
-	type Deployment,
-	type DeploymentRecord,
-	PluginLoader,
-	type PullRequest,
-	type Source,
-} from "../../plugin/index.js";
+import { assertPluginsResolvable, type DeploymentRecord, PluginLoader, type PullRequest } from "../../plugin/index.js";
 import type { CleanupPreviewReport, RunCleanupPreviewInput } from "./cleanup-preview.type.js";
 
 function prStateLabel(pr: PullRequest): string {
@@ -32,7 +25,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	if (!loader.has("source")) {
 		throw new Error("source capability is not configured — add a source provider to holocron.config.json");
 	}
-	const source = loader.get("source") as Source;
+	const source = loader.get("source");
 	if (!source.getPullRequest) {
 		throw new Error(`${source.providerName} source provider does not support getPullRequest`);
 	}
@@ -62,7 +55,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	if (!loader.has("deployment")) {
 		throw new Error("deployment capability is not configured — add a deployment provider to holocron.config.json");
 	}
-	const deploy = loader.get("deployment") as Deployment;
+	const deploy = loader.get("deployment");
 	if (!deploy.listPreviewDeployments || !deploy.deletePreviewDeployments) {
 		throw new Error(`${deploy.providerName} deployment provider does not support preview cleanup`);
 	}

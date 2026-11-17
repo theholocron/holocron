@@ -16,7 +16,7 @@ export async function loadPrFeed(input: LoadPrFeedInput): Promise<LoadPrFeedResu
 
 	const repo = env.SENTINEL_ROLE_SYNC_REPO;
 	if (!repo) return { ok: false, reason: "the pull request feed is off: SENTINEL_ROLE_SYNC_REPO is not set" };
-	if (repo.split("/")[0]!.toLowerCase() !== org.toLowerCase()) {
+	if (repo.split("/")[0].toLowerCase() !== org.toLowerCase()) {
 		return {
 			ok: false,
 			reason: `the pull request feed is configured for ${repo}, not for the ${org} organisation`,

@@ -28,12 +28,12 @@ export const authSetCommand: CommandModule<GlobalArgs, AuthSetArgs> = {
 	describe: "Verify + store a bootstrap token for a provider",
 	builder: authSetArgs,
 	handler: async (argv) => {
-		const [provider] = await promptForPositionals(getEntry("new token"), argv as Record<string, unknown>);
+		const [provider] = await promptForPositionals(getEntry("new token"), argv);
 		const credentials = await credentialsOf(argv.cwd);
 		const result = await runAuthSet({
-			provider: provider!,
-			...(argv.value ? { positional: argv.value as string } : {}),
-			...(argv.org ? { org: argv.org as string } : {}),
+			provider: provider,
+			...(argv.value ? { positional: argv.value } : {}),
+			...(argv.org ? { org: argv.org } : {}),
 			...(credentials ? { credentials } : {}),
 		});
 		if (result.status === "fail") process.exitCode = 1;

@@ -69,8 +69,8 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 				const pipes = child.stdio as unknown as [null, Readable, Readable, Readable];
 				let stdout = "";
 				let stderr = "";
-				pipes[1].on("data", (d: Buffer) => (stdout += d));
-				pipes[2].on("data", (d: Buffer) => (stderr += d));
+				pipes[1].on("data", (d: Buffer) => (stdout += d.toString()));
+				pipes[2].on("data", (d: Buffer) => (stderr += d.toString()));
 				const timeoutMs = run.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 				const startTimeoutMs = run.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS;
 				const spawned = Date.now();

@@ -10,7 +10,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Secrets, type SecretScope } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader, type SecretScope } from "../../plugin/index.js";
 import type { RunSecretsListInput, SecretsListGroup, SecretsListReport } from "./secrets-list.type.js";
 
 export async function runSecretsList(input: RunSecretsListInput): Promise<SecretsListReport> {
@@ -23,7 +23,7 @@ export async function runSecretsList(input: RunSecretsListInput): Promise<Secret
 	if (!loader.has("secrets")) {
 		throw new Error("`secrets` capability is not configured — add a `secrets` provider to holocron.config.json");
 	}
-	const secrets = loader.get("secrets") as Secrets;
+	const secrets = loader.get("secrets");
 
 	const groups: SecretsListGroup[] = [];
 	for (const scope of input.scopes) {

@@ -5,7 +5,7 @@
 export function parseChecksum(text: string, name: string): string | undefined {
 	for (const line of text.split("\n")) {
 		const match = /^([0-9a-fA-F]{64}) [ *](.+?)\r?$/.exec(line);
-		if (match && match[2] === name) return (match[1] as string).toLowerCase();
+		if (match && match[2] === name) return match[1].toLowerCase();
 	}
 	return undefined;
 }

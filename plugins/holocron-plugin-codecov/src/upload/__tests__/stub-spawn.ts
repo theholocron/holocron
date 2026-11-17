@@ -49,7 +49,7 @@ export function stubSpawn(
 				status: next.status ?? 0,
 				signal: null,
 				...(next.error ? { error: next.error } : {}),
-			} as SpawnSyncReturns<string>;
+			};
 		}
 	);
 	return { spawn: mock as unknown as SpawnFn, calls, mock };

@@ -10,9 +10,9 @@ const NOT_ALLOWED = /Value '([^']+)' is not allowed for property '([^']+)'/g;
 export function propertyFixHints(githubMessage: string): string[] {
 	const byProperty = new Map<string, string[]>();
 	for (const [, value, property] of githubMessage.matchAll(NOT_ALLOWED)) {
-		const values = byProperty.get(property as string) ?? [];
-		if (!values.includes(value as string)) values.push(value as string);
-		byProperty.set(property as string, values);
+		const values = byProperty.get(property) ?? [];
+		if (!values.includes(value)) values.push(value);
+		byProperty.set(property, values);
 	}
 	return [...byProperty].map(
 		([property, values]) =>

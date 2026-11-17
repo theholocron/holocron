@@ -193,7 +193,7 @@ function matchSegments(pattern: readonly Segment[], path: readonly string[]): bo
 		return matchSegments(rest, path) || (path.length > 0 && matchSegments(pattern, path.slice(1)));
 	}
 	if (path.length === 0) return false;
-	const matched = "literal" in head ? head.literal === path[0] : head.regex.test(path[0]!);
+	const matched = "literal" in head ? head.literal === path[0] : head.regex.test(path[0]);
 	return matched && matchSegments(rest, path.slice(1));
 }
 

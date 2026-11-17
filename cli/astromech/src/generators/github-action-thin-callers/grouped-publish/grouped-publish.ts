@@ -133,7 +133,7 @@ export function groupedPublishCaller(
 
 	// the plain caller template always has a `with:` block; if it ever stops, this fails rather than guesses
 	const templateWith = base
-		.match(/ {4}with:\n((?: {6}[^\n]+\n)*)/)![1]!
+		.match(/ {4}with:\n((?: {6}[^\n]+\n)*)/)![1]
 		.split("\n")
 		.filter(Boolean);
 	const sharedWith = Object.entries(shared).map(([key, value]) => `      ${key}: ${yamlScalar(value)}`);

@@ -14,7 +14,7 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 	describe: "Publish @theholocron/* packages to npm",
 	builder: publishArgs,
 	handler: async (argv) => {
-		const otp = resolveOtp(argv.otp as string | undefined, env);
+		const otp = resolveOtp(argv.otp, env);
 		if (argv.syncTrust) {
 			const [oldFile, newFile] = argv.syncTrust as [string?, string?];
 			if (!oldFile || !newFile) {
@@ -28,10 +28,10 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				newFile,
 				dryRun: argv.dryRun,
 				force: argv.force,
-				...(argv.group ? { group: argv.group as string } : {}),
-				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
-				...(argv.package?.length ? { onlyPackages: argv.package as string[] } : {}),
-				...(argv.repo ? { repo: argv.repo as string } : {}),
+				...(argv.group ? { group: argv.group } : {}),
+				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup } : {}),
+				...(argv.package?.length ? { onlyPackages: argv.package } : {}),
+				...(argv.repo ? { repo: argv.repo } : {}),
 			});
 			if (report.status === "fail") {
 				process.exitCode = 1;
@@ -42,10 +42,10 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 			const report = await runPublish({
 				cwd: argv.cwd,
 				dryRun: argv.dryRun,
-				...(argv.group ? { group: argv.group as string } : {}),
-				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
-				...(argv.package?.length ? { onlyPackages: argv.package as string[] } : {}),
-				...(argv.tag ? { tag: argv.tag as string } : {}),
+				...(argv.group ? { group: argv.group } : {}),
+				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup } : {}),
+				...(argv.package?.length ? { onlyPackages: argv.package } : {}),
+				...(argv.tag ? { tag: argv.tag } : {}),
 				...(otp ? { otp } : {}),
 			});
 			if (report.status === "fail") {
@@ -73,11 +73,11 @@ export const publishPackageCommand: CommandModule<GlobalArgs, PublishArgs> = {
 		const report = await runSteadyPublish({
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
-			provenance: argv.provenance as boolean,
-			skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
-			...(argv.group ? { group: argv.group as string } : {}),
-			...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
-			...(argv.tag ? { tag: argv.tag as string } : {}),
+			provenance: argv.provenance,
+			skipAlreadyPublished: argv.skipAlreadyPublished,
+			...(argv.group ? { group: argv.group } : {}),
+			...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup } : {}),
+			...(argv.tag ? { tag: argv.tag } : {}),
 			...(otp ? { otp } : {}),
 		});
 		if (report.status === "fail") {

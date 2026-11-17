@@ -8,7 +8,7 @@ export function parseExportArgs(args: readonly string[]): ExportEnvironmentArgs 
 	const positional: string[] = [];
 	let copy = false;
 	for (let i = 0; i < args.length; i++) {
-		const arg = args[i]!;
+		const arg = args[i];
 		if (arg === "--copy") copy = true;
 		else if (arg === "--only") {
 			const name = args[++i];
@@ -19,5 +19,5 @@ export function parseExportArgs(args: readonly string[]): ExportEnvironmentArgs 
 		else positional.push(arg);
 	}
 	if (positional.length !== 1) throw new Error(`name one Environment. ${USAGE}`);
-	return { environment: positional[0]!, only, copy };
+	return { environment: positional[0], only, copy };
 }

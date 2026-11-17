@@ -17,7 +17,7 @@ import {
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Environments, PluginLoader } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { SETUP_ENVIRONMENTS } from "../setup/setup-environments.js";
@@ -67,7 +67,7 @@ async function checkEnvironments(loader: PluginLoader, named: string[]): Promise
 	// The provider creates these on `setup`, so they must be there, along with any a secret is set on.
 	const names = [...new Set([...SETUP_ENVIRONMENTS, ...named].map((n) => n.toLowerCase()))];
 	try {
-		const have = await (loader.get("environments") as Environments).listEnvironments();
+		const have = await loader.get("environments").listEnvironments();
 		const problems = declaredVsActual(
 			new Map(names.map((name) => [name, true])),
 			new Map(have.map((env) => [env.name.toLowerCase(), true])),

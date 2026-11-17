@@ -31,7 +31,7 @@ function readScripts(path: string): Record<string, string> {
 /** The scripts of the root and of every workspace package, and the scripts the root should have. */
 function scriptsInput(loaded: LoadedConfig, repoRoot: string) {
 	const config = loaded.resolved;
-	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+	const tasksConfig: TasksConfig = { tasks: config.tasks };
 	if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
 	const astromech = createAstromech({ cwd: repoRoot, config: tasksConfig });
 	const turbo = astromech.turboConfig();

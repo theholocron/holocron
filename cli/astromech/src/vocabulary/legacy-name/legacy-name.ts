@@ -21,5 +21,5 @@ export function legacyName(id: string): string | undefined {
  */
 export function ownLegacyName(id: string): string | undefined {
 	const legacy = BY_ID.get(id);
-	return legacy !== undefined && LEGACY_NAMES[legacy]!.length === 1 ? legacy : undefined;
+	return legacy !== undefined && LEGACY_NAMES[legacy].length === 1 ? legacy : undefined;
 }

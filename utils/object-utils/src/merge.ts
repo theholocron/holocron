@@ -28,7 +28,7 @@ export function deepMerge<T>(base: T, override: unknown): T {
 		if (value === undefined) continue;
 		const prev = out[key];
 		if (Array.isArray(prev) && Array.isArray(value)) {
-			out[key] = [...prev, ...value];
+			out[key] = prev.concat(value);
 		} else if (isPlainObject(prev) && isPlainObject(value)) {
 			out[key] = deepMerge(prev, value);
 		} else {

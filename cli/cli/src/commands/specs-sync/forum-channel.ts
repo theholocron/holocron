@@ -14,7 +14,7 @@ export function forumChannel(layout: NotificationsLayout, wanted?: string): { ch
 			: { problem: `the layout declares no forum named \`${wanted}\` -- add it with \`kind: "forum"\`` };
 	}
 	const documents = forums.filter((c) => !c.feeds?.prs);
-	if (documents.length === 1) return { channel: documents[0]!.name };
+	if (documents.length === 1) return { channel: documents[0].name };
 	return {
 		problem:
 			documents.length === 0

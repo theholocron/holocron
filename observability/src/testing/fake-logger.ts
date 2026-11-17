@@ -31,6 +31,6 @@ export function fakeLogger(): FakeLogger {
 		error: vi.fn(),
 		child: vi.fn(() => log),
 		flush: vi.fn().mockResolvedValue(undefined),
-	} as unknown as FakeLogger;
+	};
 	return log;
 }

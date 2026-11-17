@@ -5,7 +5,7 @@ export function parseTokenArgs(args: readonly string[]): TokenProbeArgs {
 	let layer: string | undefined;
 	let tokenName: string | undefined;
 	for (let i = 0; i < args.length; i++) {
-		const arg = args[i]!;
+		const arg = args[i];
 		if (arg === "--layer") layer = args[++i];
 		else if (arg.startsWith("--layer=")) layer = arg.slice("--layer=".length);
 		else if (arg === "--token-name") tokenName = args[++i];

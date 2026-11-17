@@ -11,9 +11,9 @@ export const moveTagCommand: CommandModule<GlobalArgs, MoveTagArgs> = {
 	describe: "Move a version group's major tag (ci-v1) to its latest stable release (semantic-release publishCmd)",
 	builder: moveTagArgs,
 	handler: async (argv) => {
-		const [group] = await promptForPositionals(getEntry("publish tag"), argv as Record<string, unknown>);
+		const [group] = await promptForPositionals(getEntry("publish tag"), argv);
 		const report = await runMoveTag({
-			group: group!,
+			group: group,
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
 			remote: argv.remote,

@@ -1,5 +1,4 @@
 import { loadConfig } from "../../../config/index.js";
-import type { IssueOrder } from "../../../plugin/index.js";
 import { applyResolvedConfig } from "../../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../../global-args/index.js";
 import { resolveOrg } from "../../resolve-org/index.js";
@@ -34,7 +33,7 @@ export async function handleMigrate(argv: MigrateArgs, scope: (owner: string) =>
 		to: argv.to,
 		scope: scope(org ?? ""),
 		...(argv.openOnly ? { openOnly: true } : {}),
-		...(limit === undefined ? {} : { limit, order: argv.order as IssueOrder }),
+		...(limit === undefined ? {} : { limit, order: argv.order }),
 		...(argv.milestone ? { milestone: argv.milestone } : {}),
 		...(argv.template ? { template: argv.template } : {}),
 		...(argv.yes ? { yes: true } : {}),

@@ -11,7 +11,7 @@ export function parseDotenv(text: string): Record<string, string> {
 	const out: Record<string, string> = {};
 	const lines = text.split(/\r?\n/);
 	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!.trim();
+		const line = lines[i].trim();
 		if (!line || line.startsWith("#")) continue;
 		const eq = line.indexOf("=");
 		if (eq < 0) continue;
@@ -26,7 +26,7 @@ export function parseDotenv(text: string): Record<string, string> {
 			// A quoted value ends at the first unescaped closing quote, which may be on a later line.
 			let body = value.slice(1);
 			while (!hasClosingQuote(body) && i + 1 < lines.length) {
-				body += `\n${lines[++i]!}`;
+				body += `\n${lines[++i]}`;
 			}
 			out[key] = unescapeDouble(body.slice(0, closingQuoteAt(body)));
 			continue;
@@ -39,7 +39,7 @@ export function parseDotenv(text: string): Record<string, string> {
 			// `op` prints a multi-line value (a PEM key) unquoted, so read on to its END line.
 			let block = value;
 			while (!/-----END [^-]+-----\s*$/.test(block) && i + 1 < lines.length) {
-				block += `\n${lines[++i]!.trim()}`;
+				block += `\n${lines[++i].trim()}`;
 			}
 			out[key] = block;
 			continue;

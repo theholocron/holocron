@@ -110,7 +110,7 @@ export class DiscordDiscussions {
 			const footer = first ? FOOTER.exec(first.content) : null;
 			if (first && footer) {
 				const entry: Entry = {
-					key: footer[1]!,
+					key: footer[1],
 					thread,
 					content: first.content,
 					synced: footer[2] || undefined,
@@ -144,7 +144,7 @@ export class DiscordDiscussions {
 			...(state ? { state } : {}),
 			...(entry.synced ? { synced: entry.synced } : {}),
 			...(PR_LINE.test(entry.content) ? { prLine: PR_LINE.exec(entry.content)![0] } : {}),
-			...(ID_LINE.test(entry.content.split("\n")[0]!) ? { idLine: entry.content.split("\n")[0]! } : {}),
+			...(ID_LINE.test(entry.content.split("\n")[0]) ? { idLine: entry.content.split("\n")[0] } : {}),
 			...(entry.thread.thread_metadata.locked ? { closed: true } : {}),
 		};
 	}
@@ -178,7 +178,7 @@ export class DiscordDiscussions {
 	 * they were. A message that does not start with an id is refused rather than guessed at.
 	 */
 	private static withIdLine(content: string, line: string): string {
-		const first = content.split("\n")[0]!;
+		const first = content.split("\n")[0];
 		if (!ID_LINE.test(first)) throw new Error("the first message does not start with the document's id");
 		const next = `${line}${content.slice(first.length)}`;
 		if (next.length > MAX_MESSAGE) {
@@ -380,7 +380,7 @@ export class DiscordDiscussions {
 		let deleted = 0;
 		while (entry.duplicates.length > 0) {
 			// A duplicate another instance deleted a moment ago is a 404, which `threads.delete` counts as done.
-			await bot.threads.delete(entry.duplicates[0]!.id);
+			await bot.threads.delete(entry.duplicates[0].id);
 			entry.duplicates.shift(); // only once it is gone, so a failed run is retried
 			deleted++;
 		}

@@ -108,7 +108,7 @@ async function readBodyCapped(response: Response, maxBytes: number): Promise<str
 	let total = 0;
 	try {
 		for (;;) {
-			const { done, value } = await reader.read();
+			const { done, value } = (await reader.read()) as { done: boolean; value: Uint8Array };
 			if (done) break;
 			const remaining = maxBytes - total;
 			if (remaining <= 0) break;

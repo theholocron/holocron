@@ -8,7 +8,7 @@ const UNITS: Record<string, number> = { m: 60_000, h: 3_600_000, d: 86_400_000, 
  */
 export function parseSince(value: string, now: number = Date.now()): string {
 	const span = /^(\d+)([mhdw])$/.exec(value.trim());
-	if (span) return new Date(now - Number(span[1]) * UNITS[span[2]!]!).toISOString();
+	if (span) return new Date(now - Number(span[1]) * UNITS[span[2]]).toISOString();
 	const at = Date.parse(value);
 	if (Number.isNaN(at)) {
 		throw new ConfigError(`sync issues: --since "${value}" is not a date or a span like 30m, 12h, 7d or 2w`);

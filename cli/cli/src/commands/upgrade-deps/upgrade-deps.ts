@@ -80,7 +80,7 @@ export function migrateConfig(content: string): ConfigMigration {
 		(_m, names: string, expr: string) => {
 			destructured = names
 				.split(",")
-				.map((n) => n.trim().split(":")[0]!.trim())
+				.map((n) => n.trim().split(":")[0].trim())
 				.filter(Boolean);
 			transforms.push("destructured preset → `const preset = …`");
 			return `const preset = ${expr.trim()};`;
@@ -127,7 +127,7 @@ export function migrateConfig(content: string): ConfigMigration {
 	// Pull the custom entries out to a top-level `extraRequiredChecks`.
 	const rc = /(\n\s*)requiredChecks\s*:\s*\[\s*\n?\s*\.\.\.repo\.requiredChecks\s*,?\s*([\s\S]*?)\n\s*\]\s*,/.exec(s);
 	if (rc) {
-		const custom = rc[2]!.trim().replace(/,\s*$/, "");
+		const custom = rc[2].trim().replace(/,\s*$/, "");
 		s = s.replace(rc[0], "");
 		if (custom) {
 			const block = `\textraRequiredChecks: [\n\t\t${custom

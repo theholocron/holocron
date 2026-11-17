@@ -11,7 +11,7 @@ import { type Environment, PREFIX } from "@theholocron/env-utils/lookup";
 import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Tunnels, type Vault } from "../../plugin/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
 import { runTunnelUp } from "../tunnel-up/index.js";
 import type { DevReport, RunDevInput } from "./dev.type.js";
 
@@ -49,7 +49,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	print(style.header(`Holocron dev — ${input.hostname}${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
-	const vault = loader.has("vault") ? (loader.get("vault") as Vault) : undefined;
+	const vault = loader.has("vault") ? loader.get("vault") : undefined;
 	if (!vault?.readEnvironment) {
 		row(
 			false,
@@ -98,7 +98,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 
 	let token: string;
 	try {
-		token = await (loader.get("tunnels") as Tunnels).tunnelToken(tunnel.tunnelId as string);
+		token = await loader.get("tunnels").tunnelToken(tunnel.tunnelId as string);
 	} catch (err) {
 		row(false, "cloudflared", describeError(err));
 		return finish("fail");
@@ -110,7 +110,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	try {
 		({ exitCode } = await (input.runProcesses ?? superviseProcesses)({
 			primary: {
-				command: program as string,
+				command: program,
 				args,
 				env: {
 					// Both names, the same value (as with PORT): a vault that sets either one decides for both.

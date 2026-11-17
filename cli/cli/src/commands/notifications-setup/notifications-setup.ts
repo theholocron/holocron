@@ -390,7 +390,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				)
 			);
 		}
-		secrets = loader.get("secrets") as Secrets;
+		secrets = loader.get("secrets");
 	}
 	const org = input.context.org;
 	let scope: SecretScope | undefined =
@@ -413,12 +413,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				)
 			);
 		}
-		monitoring = loader.get("monitoring") as Monitoring;
+		monitoring = loader.get("monitoring");
 		const problem = feedProblem(layout, monitoring);
 		if (problem) return refuse(problem);
 	} else if (loader.has("monitoring")) {
 		// No channel is fed by monitoring, so a check routed to an alert channel is routed to nothing.
-		const orphan = feedProblem(layout, loader.get("monitoring") as Monitoring);
+		const orphan = feedProblem(layout, loader.get("monitoring"));
 		if (orphan) return refuse(orphan);
 	}
 
@@ -440,9 +440,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				);
 			}
 		}
-		errors = loader.get("errors") as Errors;
-		workers = loader.get("workers") as Workers;
-		dns = loader.get("dns") as Dns;
+		errors = loader.get("errors");
+		workers = loader.get("workers");
+		dns = loader.get("dns");
 		const clash = relayProblem(layout, errors, monitoring);
 		if (clash) return refuse(clash);
 	}
@@ -744,14 +744,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				const rule = tracker.rule ?? DEFAULT_RELAY_RULE;
 				if (dryRun) {
 					print(
-						`  ${style.skip(`would ensure the ${errors!.providerName} integration ${integration} and the alert rule ${rule} on ${tracker.projects.join(", ")}`)}`
+						`  ${style.skip(`would ensure the ${errors.providerName} integration ${integration} and the alert rule ${rule} on ${tracker.projects.join(", ")}`)}`
 					);
 					tally.skip += 2;
 					return;
 				}
-				const result = await errors!.ensureRelay!({
+				const result = await errors.ensureRelay!({
 					name: integration,
-					webhookUrl: `https://${layout.relay!.host}/${errors!.providerName}`,
+					webhookUrl: `https://${layout.relay!.host}/${errors.providerName}`,
 					projects: tracker.projects,
 					rule: { name: rule, ...(tracker.frequency ? { frequency: tracker.frequency } : {}) },
 				});
@@ -764,13 +764,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					const verb = outcome.created ? "created" : changed ? "updated" : "exists ";
 					const detail = outcome.updated.length > 0 ? `: ${outcome.updated.join(", ")}` : "";
 					print(
-						`  ${(changed ? style.success : style.skip)(`${verb} ${errors!.providerName} ${what} ${name}${detail}`)}`
+						`  ${(changed ? style.success : style.skip)(`${verb} ${errors.providerName} ${what} ${name}${detail}`)}`
 					);
 					made(changed);
 				}
 				if (!signingSecret) {
 					print(
-						`  ${style.warn(`${errors!.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors!.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
+						`  ${style.warn(`${errors.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
 					);
 				}
 			});
@@ -786,12 +786,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			}
 			const deployed = await deployRelay({
 				relay: layout.relay!,
-				source: errors!.providerName,
+				source: errors.providerName,
 				webhook: relayWebhook,
 				...(signingSecret ? { signingSecret } : {}),
 				repoRoot: input.context.repoRoot,
-				workers: workers!,
-				dns: dns!,
+				workers: workers,
+				dns: dns,
 				...(input.readRelayCode ? { readCode: input.readRelayCode } : {}),
 			});
 			print(`  ${style.success(`deployed ${deployed.script} at ${deployed.host}`)}`);

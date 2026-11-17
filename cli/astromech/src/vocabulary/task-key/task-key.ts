@@ -10,7 +10,7 @@ import { scriptName } from "../script-name/index.js";
 export function isLegacySpelling(name: string): boolean {
 	const targets = LEGACY_NAMES[name];
 	if (targets === undefined) return false;
-	return !(targets.length === 1 && scriptName(targets[0]!.id) === scriptName(name));
+	return !(targets.length === 1 && scriptName(targets[0].id) === scriptName(name));
 }
 
 /**

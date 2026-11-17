@@ -70,6 +70,18 @@ describe("deploy", () => {
 		expect("target" in runDeployFromFiles.mock.calls[1]![0]).toBe(false);
 	});
 
+	it("tags a preview from files with HOLOCRON_PREVIEW_KEY when CI sets it, and tags nothing otherwise (holocron#1021)", async () => {
+		vi.stubEnv("HOLOCRON_PREVIEW_KEY", "holocron-pr-7");
+		try {
+			await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+			expect(runDeployFromFiles.mock.calls[0]![0]).toMatchObject({ previewKey: "holocron-pr-7" });
+		} finally {
+			vi.unstubAllEnvs();
+		}
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		expect("previewKey" in runDeployFromFiles.mock.calls[1]![0]).toBe(false);
+	});
+
 	it("exits 1 when a deploy failed, from a branch or from files", async () => {
 		runDeploy.mockResolvedValue({ status: "fail" });
 		await go(["deploy", "main", "--project-id", "p1"]);
@@ -101,6 +113,13 @@ describe("deploy cleanup-preview", () => {
 		});
 		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
 		expect("repo" in runCleanupPreview.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("deletes without asking only when --yes was given (CI, holocron#1021)", async () => {
+		await go(["deploy", "cleanup-preview", "42", "--project", "web", "--yes"]);
+		expect(runCleanupPreview.mock.calls[0]![0]).toMatchObject({ yes: true });
+		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
+		expect("yes" in runCleanupPreview.mock.calls[1]![0]).toBe(false);
 	});
 
 	it("exits 1 when the cleanup failed, and stops when --token cannot be parsed", async () => {

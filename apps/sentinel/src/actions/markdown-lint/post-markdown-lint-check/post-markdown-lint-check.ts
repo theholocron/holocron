@@ -80,7 +80,7 @@ function buildAnnotations(messages: MarkdownLintMessage[]): CheckRunAnnotation[]
 			start_line: m.line,
 			end_line: m.line,
 			...(m.errorRange
-				? { start_column: m.errorRange[0], end_column: m.errorRange[0]! + m.errorRange[1]! - 1 }
+				? { start_column: m.errorRange[0], end_column: m.errorRange[0] + m.errorRange[1] - 1 }
 				: {}),
 			annotation_level: "notice" as const,
 			message: m.reason,

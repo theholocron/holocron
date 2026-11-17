@@ -18,7 +18,7 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
 		// Only a scope given on the command line counts as naming a destination (#2104).
-		const githubSecretScope = argv.githubSecretScope ? parseScope(argv.githubSecretScope as string) : undefined;
+		const githubSecretScope = argv.githubSecretScope ? parseScope(argv.githubSecretScope) : undefined;
 		const environmentId = argv.env;
 		// `local` and `dev` are read by this machine and never synced, whatever else is given (#2104).
 		await assertSyncableLayer(environmentId, { repoRoot: argv.cwd });

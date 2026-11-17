@@ -154,9 +154,9 @@ export function resolveLinters(opts: {
 		}
 		const wanted = new Set(opts.explicit);
 		return order
-			.filter((n) => wanted.has(n) && configPresent(n, LINTERS[n]!))
-			.map((name) => ({ name, def: LINTERS[name]! }));
+			.filter((n) => wanted.has(n) && configPresent(n, LINTERS[n]))
+			.map((name) => ({ name, def: LINTERS[name] }));
 	}
 
-	return order.filter((name) => configPresent(name, LINTERS[name]!)).map((name) => ({ name, def: LINTERS[name]! }));
+	return order.filter((name) => configPresent(name, LINTERS[name])).map((name) => ({ name, def: LINTERS[name] }));
 }

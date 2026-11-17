@@ -47,8 +47,8 @@ export async function placeOnBoard(input: PlaceOnBoardInput): Promise<BoardPlace
 		items: placed.map((p, i) => ({
 			source: p.source,
 			key: p.item.key,
-			added: added[i]!.added,
-			dropped: added[i]!.dropped,
+			added: added[i].added,
+			dropped: added[i].dropped,
 		})),
 	};
 }

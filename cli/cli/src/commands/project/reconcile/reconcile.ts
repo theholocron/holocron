@@ -15,7 +15,7 @@ import { style } from "@theholocron/kyber/ui";
 import { describeError, logReason } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../../observability/logger/index.js";
-import { assertPluginsResolvable, type BoardSummary, PluginLoader, type Projects } from "../../../plugin/index.js";
+import { assertPluginsResolvable, type BoardSummary, PluginLoader } from "../../../plugin/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { planReconcile, type ReconcileChange } from "../plan-reconcile/index.js";
@@ -59,7 +59,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 			'no `projects` provider is configured — add `projects: ["github", { boards: [...] }]` to holocron.config.ts'
 		);
 	}
-	const projects = loader.get("projects") as Projects;
+	const projects = loader.get("projects");
 	if (typeof projects.items !== "function" || typeof projects.setStatus !== "function") {
 		print(
 			`  ${style.skip(`the \`${projects.providerName}\` provider cannot list items or set a status: nothing to reconcile`)}`

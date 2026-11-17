@@ -537,7 +537,7 @@ export class DiscordNotifications implements Notifications {
 		// Who can see and post comes from the overwrites already in the channel list: no extra requests.
 		const roleName = (id: string): string => roles.find((r) => r.id === id)?.name ?? id;
 		found.forEach((entry, i) => {
-			entry.access = this.accessOf(text[i]!.permission_overwrites, roleName);
+			entry.access = this.accessOf(text[i].permission_overwrites, roleName);
 		});
 		const categoryAccess: Record<string, Required<NotificationsAccess> | "custom"> = {};
 		for (const c of channels.filter((c) => c.type === ChannelType.Category)) {
@@ -617,7 +617,7 @@ export class DiscordNotifications implements Notifications {
 				`${who} names the role \`${name}\`, but ${found.length} roles have that name (ids ${found.map((r) => r.id).join(", ")}) -- delete or rename the extras`
 			);
 		}
-		return found[0]!.id;
+		return found[0].id;
 	}
 
 	/**
@@ -646,7 +646,7 @@ export class DiscordNotifications implements Notifications {
 				`${who} name the channel \`${name}\`, but ${named.length} channels have that name (ids ${named.map((c) => c.id).join(", ")}) -- rename one`
 			);
 		}
-		return named[0]!.id;
+		return named[0].id;
 	}
 
 	/** True for a 403 that is about permissions, not about the bot being unable to see the server at all. */
@@ -2279,7 +2279,7 @@ export class DiscordNotifications implements Notifications {
 				`${matches.length} roles are named \`${name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so it is clear which one to manage`
 			);
 		}
-		return matches[0]!;
+		return matches[0];
 	}
 
 	async roleMembers(roleName: string): Promise<NotificationsMember[]> {

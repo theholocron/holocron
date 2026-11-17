@@ -32,7 +32,20 @@ const prettierConfig = resolveConfig("node_modules/@theholocron/prettier-config/
 const eslintConfig = resolveConfig("node_modules/@theholocron/eslint-config/dist/bundles/library.js");
 
 const prettierWrite = prettierConfig ? `prettier --config ${prettierConfig} --write` : "prettier --write";
-const eslint = eslintConfig ? `eslint --config ${eslintConfig}` : "eslint";
+/**
+ * A repo's own `eslint.config.*` at the root wins over the shared bundle: it is the config CI lints with, and it carries
+ * what is specific to the repo (per-package overrides, ignores). Linting staged files with the bare bundle instead made
+ * a commit fail on a file that passes in CI, and left the type-aware rules (holocron#851) without the repo's own setup.
+ */
+const LOCAL_ESLINT_CONFIGS = [
+	"eslint.config.ts",
+	"eslint.config.mts",
+	"eslint.config.js",
+	"eslint.config.mjs",
+	"eslint.config.cjs",
+];
+const hasLocalEslintConfig = LOCAL_ESLINT_CONFIGS.some((name) => existsSync(resolve(process.cwd(), name)));
+const eslint = !hasLocalEslintConfig && eslintConfig ? `eslint --config ${eslintConfig}` : "eslint";
 
 /**
  * @see https://github.com/lint-staged/lint-staged?tab=readme-ov-file#configuration

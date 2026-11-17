@@ -1,6 +1,6 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
-import type { Dns, DnsRecord, Monitoring, MonitoringStatusPageResult, PluginLoader } from "../../../plugin/index.js";
+import type { DnsRecord, Monitoring, MonitoringStatusPageResult, PluginLoader } from "../../../plugin/index.js";
 import { runStep, type SetupStepResult } from "../run-step/index.js";
 
 /** The records Checkly asks for a status page's custom domain, as DNS records. */
@@ -90,7 +90,7 @@ export async function statusPagesStep(
 			}
 			continue;
 		}
-		const dns = loader.get("dns") as Dns;
+		const dns = loader.get("dns");
 		for (const r of records) {
 			try {
 				await dns.upsertRecord(r.name, r);

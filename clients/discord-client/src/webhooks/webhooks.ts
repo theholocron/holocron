@@ -92,5 +92,5 @@ export function webhooks(base: string, f: typeof fetch) {
 export function parseWebhookUrl(url: string): { id: string; token: string } {
 	const match = url.match(/webhooks\/(\d+)\/([^/?#]+)/);
 	if (!match) throw new Error(`Invalid Discord webhook URL: ${url}`);
-	return { id: match[1]!, token: match[2]! };
+	return { id: match[1], token: match[2] };
 }

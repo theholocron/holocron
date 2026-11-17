@@ -15,7 +15,7 @@ export const syncGithubCommand: CommandModule<GlobalArgs, SyncGithubArgs> = {
 	describe: "Sync workflow templates and composite actions to theholocron/.github",
 	builder: syncGithubArgs,
 	handler: async (argv) => {
-		const outputDir = argv["output-dir"] as string | undefined;
+		const outputDir = argv["output-dir"];
 		const parsed = tokenContext(argv.token);
 		if (!parsed) return;
 		let token: string;

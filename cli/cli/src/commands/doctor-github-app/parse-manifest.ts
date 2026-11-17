@@ -20,5 +20,5 @@ export function parseManifest(text: string): GitHubAppManifest {
 	if (!Array.isArray(events) || !events.every((e) => typeof e === "string")) {
 		throw new Error("`default_events` must be a list of event names");
 	}
-	return { permissions: permissions as Record<string, AppPermissionLevel>, events: events as string[] };
+	return { permissions: permissions as Record<string, AppPermissionLevel>, events: events };
 }

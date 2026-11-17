@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createAstromech } from "@theholocron/astromech";
-import type { TasksConfig } from "@theholocron/astromech/config";
 
 import { getLogger } from "../../observability/logger/index.js";
 import type { GeneratedRepoFile, RepoFilesInput, SkippedRepoFile } from "./repo-files.type.js";
@@ -15,7 +14,7 @@ import type { GeneratedRepoFile, RepoFilesInput, SkippedRepoFile } from "./repo-
 export async function generateTurboFiles(input: RepoFilesInput): Promise<(GeneratedRepoFile | SkippedRepoFile)[]> {
 	const astromech = createAstromech({
 		cwd: input.repoRoot,
-		config: { tasks: input.loaded.resolved.tasks as TasksConfig["tasks"] },
+		config: { tasks: input.loaded.resolved.tasks },
 		logger: input.logger ?? getLogger(),
 	});
 	const content = astromech.turboConfig();

@@ -55,7 +55,7 @@ function groupByFolder(files: string[]): string[][] {
  * its own environments. When none sits there, all of them: an environment kept elsewhere is shared by every collection.
  */
 function envFilesBeside(group: string[], envFiles: string[]): string[] {
-	const folder = dirname(group[0] as string);
+	const folder = dirname(group[0]);
 	const beside = envFiles.filter((file) => dirname(file) === folder);
 	return beside.length > 0 ? beside : envFiles;
 }
@@ -113,7 +113,7 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 	/* v8 ignore stop */
 	await loader.load();
 	assertPluginsResolvable(loader, "export requests");
-	const loaded = loader.has("tooling") ? (loader.get("tooling") as Tooling[]) : [];
+	const loaded = loader.has("tooling") ? loader.get("tooling") : [];
 
 	const rows: CheckRow[] = [];
 	const targets: Array<Target & { tool: Tooling & Required<Pick<Tooling, "export">> }> = [];
@@ -141,7 +141,7 @@ export async function runRequestsExport(input: RunRequestsExportInput): Promise<
 		// app's files and never into another app's `.export` folder. With --out everything goes under the one folder.
 		const groups = input.out === undefined ? groupByFolder(collectionFiles) : [collectionFiles];
 		for (const group of groups) {
-			const label = groups.length > 1 ? `${id}: ${dirname(group[0] as string)}` : id;
+			const label = groups.length > 1 ? `${id}: ${dirname(group[0])}` : id;
 			// A folder's collections get the environments beside them (an app's own), not every app's; under --out
 			// everything is one call and keeps them all.
 			const envs = input.out === undefined ? envFilesBeside(group, envFiles) : envFiles;

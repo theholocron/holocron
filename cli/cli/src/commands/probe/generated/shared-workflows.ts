@@ -14,7 +14,7 @@ export function sharedWorkflows(files: readonly GeneratedRepoFile[], packages: r
 		const shared = pkg.files.filter((f) => owners.has(f.path));
 		for (const file of pkg.files) if (!owners.has(file.path)) owners.set(file.path, `package ${pkg.path}`);
 		if (shared.length === 0) continue;
-		const first = shared[0]!;
+		const first = shared[0];
 		lines.push(
 			`package ${pkg.path} also generates ${shared.length} workflow(s) that another config writes, only that copy is checked (${first.path}, from ${owners.get(first.path)}, is one)`
 		);

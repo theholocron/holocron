@@ -31,7 +31,7 @@ export const syncRequestsCommand: CommandModule<GlobalArgs, Args> = {
 			.option("yes", {
 				type: "boolean",
 				describe: "Write without asking (required without a terminal)",
-			}) as never,
+			}),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;

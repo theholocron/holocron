@@ -66,8 +66,7 @@ export async function validateDocsPresence(input: ValidateDocsPresenceInput): Pr
 	const names = changedFiles.map((f) => f.filename);
 
 	const addedEntries = names.filter(
-		(name, i) =>
-			changedFiles[i]!.status === "added" && name.endsWith(ENTRY_SUFFIX) && !name.includes("node_modules")
+		(name, i) => changedFiles[i].status === "added" && name.endsWith(ENTRY_SUFFIX) && !name.includes("node_modules")
 	);
 	const dirsToRead = new Set([
 		...names.flatMap(candidateDirs),
@@ -99,7 +98,7 @@ export async function validateDocsPresence(input: ValidateDocsPresenceInput): Pr
 	if (changedPackages.length === 0) return result;
 
 	const commits = await client.pulls.listCommits(repo, pullNumber);
-	const subjects = [prTitle, ...commits.map((c) => c.commit.message.split("\n")[0]!)].filter(Boolean);
+	const subjects = [prTitle, ...commits.map((c) => c.commit.message.split("\n")[0])].filter(Boolean);
 	result.isFeat = isFeat(subjects);
 	if (!result.isFeat) return result;
 

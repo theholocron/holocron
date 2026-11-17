@@ -24,7 +24,7 @@ export function fakeRun({
 			};
 		}
 		if (command === "npm") {
-			const spec = args[1] as string;
+			const spec = args[1];
 			const version = spec.slice(spec.lastIndexOf("@") + 1);
 			return served
 				? { status: 0, stdout: `${version}\n`, stderr: "" }

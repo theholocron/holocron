@@ -113,6 +113,57 @@ describe("eslint-config — individual configs", () => {
 		expect(config.length).toBeGreaterThan(0);
 	});
 
+	describe("typescript() is type-aware (#851)", () => {
+		const config = typescript();
+		const rulesOf = (name: string) =>
+			config.filter((c) => c.name === name).flatMap((c) => Object.entries(c.rules ?? {}));
+
+		it("keeps the rules that need no type information for every file, as before", () => {
+			const untyped = config.filter((c) => c.files === undefined && c.rules);
+			expect(untyped.some((c) => "@typescript-eslint/no-unused-vars" in (c.rules ?? {}))).toBe(true);
+		});
+
+		it("turns on the type-checked rules for TypeScript files only, through the project service", () => {
+			const typed = config.filter(
+				(c) =>
+					c.rules?.["@typescript-eslint/no-floating-promises"] !== undefined &&
+					c.rules["@typescript-eslint/no-floating-promises"] !== "off"
+			);
+			expect(typed.length).toBeGreaterThan(0);
+			for (const c of typed) expect(c.files).toEqual(["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"]);
+			const service = config.find((c) => c.name === "@theholocron/typescript");
+			expect(service?.languageOptions?.parserOptions).toMatchObject({ projectService: true });
+		});
+
+		it("lints tool config, declaration, example and test files without type information", () => {
+			const untyped = config.find((c) => c.name === "@theholocron/typescript/untyped");
+			expect(untyped?.files).toEqual(
+				expect.arrayContaining([
+					"**/*.config.{ts,mts,cts}",
+					"**/vitest.*.ts",
+					"**/.holocron/**/*.ts",
+					"**/*.d.ts",
+					"**/*.{test,spec}.{ts,tsx,mts,cts}",
+				])
+			);
+			expect(untyped?.rules).toMatchObject({ "@typescript-eslint/no-floating-promises": "off" });
+		});
+
+		it("turns off the rules whose findings here are noise, and keeps the underscore rule for unused names", () => {
+			const rules = Object.fromEntries(rulesOf("@theholocron/typescript"));
+			expect(rules).toMatchObject({
+				"@typescript-eslint/require-await": "off",
+				"@typescript-eslint/unbound-method": "off",
+				"@typescript-eslint/no-base-to-string": "off",
+				"@typescript-eslint/no-redundant-type-constituents": "off",
+			});
+			expect(rules["@typescript-eslint/no-unused-vars"]).toEqual([
+				"error",
+				{ argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+			]);
+		});
+	});
+
 	it("node() returns a non-empty flat config array", () => {
 		const config = node();
 		expect(Array.isArray(config)).toBe(true);

@@ -21,7 +21,7 @@ export function detectNodeMajor(cwd: string, readFile: (path: string) => string)
 		const node = (pkg.engines as Record<string, string> | undefined)?.node;
 		if (node) {
 			const m = node.match(/(\d+)/);
-			if (m) return parseInt(m[1]!, 10);
+			if (m) return parseInt(m[1], 10);
 		}
 	} catch {
 		/* absent */

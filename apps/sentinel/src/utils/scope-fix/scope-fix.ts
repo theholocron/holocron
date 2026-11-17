@@ -38,7 +38,7 @@ export function scopeFix(
 		if (options.perLine && size > 1 && size === hunk.fixedTo - hunk.fixedFrom) {
 			for (let k = 0; k < size; k++) {
 				const keep = added.has(hunk.from + k + 1) ? fixedLines : originalLines;
-				scoped += (keep === fixedLines ? fixedLines[hunk.fixedFrom + k] : originalLines[hunk.from + k])!;
+				scoped += keep === fixedLines ? fixedLines[hunk.fixedFrom + k] : originalLines[hunk.from + k];
 			}
 		} else {
 			const touchesAdded =
