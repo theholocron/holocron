@@ -63,7 +63,7 @@ describe("workspaceToSource: the committed Sentinel collection, written and read
 			const was = script(folder);
 			if (was === undefined) continue;
 			const now = script((back.item as Loose[])[index]) as string;
-			expect(now).toContain('pm.variables.get("webhookSecret")');
+			expect(now).toContain('pm.environment.get("webhookSecret")');
 			expect(now).toContain("CryptoJS.HmacSHA256(body, secret)");
 			expect(now).toContain("X-Hub-Signature-256");
 			expect(now).toContain("// Signs the body exactly as it is sent");

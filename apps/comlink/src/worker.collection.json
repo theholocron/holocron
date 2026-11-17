@@ -167,7 +167,7 @@
             "type": "text/javascript",
             "exec": [
               "// Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.",
-              "const secret = pm.variables.get(\"sentrySecret\");",
+              "const secret = pm.environment.get(\"sentrySecret\");",
               "if (!secret) throw new Error(\"Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).\");",
               "const body = pm.variables.replaceIn(pm.request.body.raw);",
               "pm.request.headers.upsert({ key: \"Sentry-Hook-Signature\", value: CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex) });"
@@ -268,7 +268,7 @@
             "type": "text/javascript",
             "exec": [
               "// Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.",
-              "const secret = pm.variables.get(\"sentrySecret\");",
+              "const secret = pm.environment.get(\"sentrySecret\");",
               "if (!secret) throw new Error(\"Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).\");",
               "const body = pm.variables.replaceIn(pm.request.body.raw);",
               "pm.request.headers.upsert({ key: \"Sentry-Hook-Signature\", value: CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex) });"
