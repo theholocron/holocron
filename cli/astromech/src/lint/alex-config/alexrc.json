@@ -10,6 +10,7 @@
     "hooks",
     "host-hostess",
     "husky",
-    "period"
+    "period",
+    "postman-postwoman"
   ]
 }
