@@ -65,7 +65,7 @@ workspaceHash }] }`). The request file's hash is the hash of what the workspace 
    generated from the `environment*.json` files beside its collection file (all of them when none sits there), so one
    app's workspace never lists another app's environments. A workspace-level `environments/` folder would be shared by
    every collection. A secret-type variable is written without its value in both.
-6. **`export requests`** stays for Postman. The Bruno provider's OpenCollection YAML output (which Bruno rejects) and
+6. **`export requests`** stays for Postman. The Bruno provider's OpenCollection YAML output (which Bruno does not accept) and
    its `@opencollection/converters` / `js-yaml` dependencies go in the last part, once the workspace replaces them.
 7. **A version in `info.version`** is not committed: the apps are `0.0.0` and the release version changes on every
    release, which would make every release commit change a generated file. The stamp stays an export-time option if
