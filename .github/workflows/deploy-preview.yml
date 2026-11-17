@@ -25,6 +25,13 @@ on: # yamllint disable-line rule:truthy
         required: false
         type: string
         default: "[]"
+      project:
+        description: >
+          The Vercel project the previews are deployed to (the `--project-id` of the package's deploy script). The
+          cleanup that runs when a PR closes looks for the PR's previews in it; without it, nothing is cleaned up.
+        required: false
+        type: string
+        default: ""
     secrets:
       HOLOCRON_VERCEL_TOKEN:
         description: The Vercel token. Read first; the vendor-native VERCEL_TOKEN secret is the fallback.
@@ -188,6 +195,9 @@ jobs:
         if: ${{ steps.creds.outputs.available == 'true' }}
         env:
           VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+          # Tags the preview with the PR it belongs to (`<repo>-pr-<number>`, the alias `deploy cleanup-preview` derives from
+          # a PR), so the cleanup on close finds it without depending on anything this workflow records afterwards.
+          HOLOCRON_PREVIEW_KEY: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
           command: run deploy-preview
@@ -347,83 +357,81 @@ jobs:
           echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- marked it failed instead of leaving it pending"
           exit 1
 
-  # When the PR closes (merged or not), its previews go: the Vercel deployments this workflow made for the PR's branch,
-  # and the GitHub deployments that point at them (marked inactive, not deleted, so the PR keeps its history). Like
-  # "report", it checks nothing out, so none of the PR's own code runs with the Vercel token (holocron#1021).
+  # When the PR closes (merged or not), its previews go: `holocron deploy cleanup-preview` finds the Vercel deployments
+  # the deploy job tagged for this PR (HOLOCRON_PREVIEW_KEY, `<repo>-pr-<number>`) in the project and deletes them, then
+  # the GitHub deployments that pointed at them are marked inactive (not deleted, so the PR keeps its history). The
+  # CLI is the base branch's, never the PR's: the checkout is the commit the PR targets, so none of the PR's own code
+  # runs with the Vercel token (holocron#1021, #1020).
   cleanup:
     name: Clean up previews
     if: ${{ github.event.action == 'closed' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      contents: read
       deployments: write
+      pull-requests: read
     steps:
-      - name: Delete the PR's Vercel previews and mark its deployments inactive
+      - name: Check what the cleanup needs
+        id: needs
         env:
-          GH_TOKEN: ${{ github.token }}
           VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
-          # Not a secret: the org's Vercel team id (the synced org variable HOLOCRON_VERCEL_TEAM_ID, the bare
-          # VERCEL_TEAM_ID until it is renamed), which scopes the requests to the team that owns the project.
-          VERCEL_TEAM_ID: ${{ vars.HOLOCRON_VERCEL_TEAM_ID || vars.VERCEL_TEAM_ID }}
-          # The PR's head branch: how the deploy workflow's "report" job named the GitHub deployments it made.
-          REF: ${{ github.event.pull_request.head.ref }}
+          PROJECT: ${{ inputs.project }}
         run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
+          if [ -z "$PROJECT" ]; then
+            echo "::warning title=No previews deleted::This workflow was called without its \`project\` input (the Vercel project the previews are deployed to), so there is nothing to look in."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$VERCEL_TOKEN" ]; then
             # A fork PR never receives this secret (and never had a preview made), so there is nothing to delete.
             echo "::notice title=No previews deleted::This run has no VERCEL_TOKEN available, so no Vercel preview was deleted -- most commonly a pull_request run triggered by a fork, which never had one deployed."
-            exit 0
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-          team=""
-          if [ -n "$VERCEL_TEAM_ID" ]; then team="?teamId=${VERCEL_TEAM_ID}"; fi
 
-          # The GitHub deployments the "report" job made for this branch, and the preview URLs their statuses carry.
-          deploy_ids=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" --method GET --paginate -f ref="$REF" -f environment=Preview --jq '.[].id')
-          if [ -z "$deploy_ids" ]; then
-            echo "No preview deployments recorded for ${REF} -- nothing to clean up."
-            exit 0
-          fi
-          hosts=""
-          for deploy_id in $deploy_ids; do
-            for url in $(gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" --jq '.[].environment_url // empty'); do
-              # Only a hostname that parses to *.vercel.app is ever sent to Vercel (the same check that gates the
-              # URL the deploy job extracts), never whatever a status happens to carry.
-              host=$(node -e 'try { process.stdout.write(new URL(process.argv[1]).hostname) } catch { process.exit(1) }' "$url") || host=""
-              if [[ "$host" == *.vercel.app ]]; then
-                hosts="${hosts}${host}"$'\n'
-              else
-                echo "::warning::skipping '${url}': it does not parse to a *.vercel.app host"
-              fi
-            done
-          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout the base branch
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+        with:
+          # The commit the PR targets, not its head: the CLI that runs below is code already reviewed and merged.
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
 
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+
+      - name: Delete the PR's Vercel previews
+        id: cleanup
+        if: ${{ steps.needs.outputs.ready == 'true' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+          # The pull request is looked up through the `source` provider.
+          GITHUB_TOKEN: ${{ github.token }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: deploy cleanup-preview ${{ github.event.pull_request.number }}
+          args: --cwd=${{ inputs.cwd }} --project=${{ inputs.project }} --repo=${{ github.repository }} --yes
+
+      - name: Mark the PR's GitHub deployments inactive
+        # Only after the previews are confirmed deleted (or there were none): a deployment whose preview is still live
+        # keeps saying so.
+        if: ${{ steps.cleanup.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # The PR's head branch: how the "report" job named the GitHub deployments it made.
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          deploy_ids=$(gh api "repos/${GITHUB_REPOSITORY}/deployments" --method GET --paginate -f ref="$REF" -f environment=Preview --jq '.[].id') || {
+            echo "::error::could not list the GitHub deployments for ${REF}"
+            exit 1
+          }
           failed=0
-          for host in $(printf '%s' "$hosts" | sort -u); do
-            # Vercel resolves a deployment from its hostname as well as its id.
-            lookup=$(curl -s -o /tmp/deployment.json -w '%{http_code}' -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              "https://api.vercel.com/v13/deployments/${host}${team}")
-            if [ "$lookup" = "404" ]; then
-              echo "${host}: already gone"
-              continue
-            fi
-            id=$(jq -r '.id // empty' /tmp/deployment.json)
-            if [ "$lookup" != "200" ] || [ -z "$id" ]; then
-              echo "::error::could not look up ${host} (HTTP ${lookup})"
-              failed=1
-              continue
-            fi
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "Authorization: Bearer ${VERCEL_TOKEN}" \
-              "https://api.vercel.com/v13/deployments/${id}${team}")
-            if [ "$code" = "200" ] || [ "$code" = "404" ]; then
-              echo "${host}: deleted"
-            else
-              echo "::error::could not delete ${host} (HTTP ${code})"
-              failed=1
-            fi
-          done
-
-          # The GitHub side, whether or not Vercel still had the deployment: the preview is gone either way.
           for deploy_id in $deploy_ids; do
             gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
-              --method POST --field state=inactive >/dev/null || echo "::warning::could not mark deployment ${deploy_id} inactive"
+              --method POST --field state=inactive >/dev/null || {
+              echo "::error::could not mark deployment ${deploy_id} inactive"
+              failed=1
+            }
           done
           exit "$failed"

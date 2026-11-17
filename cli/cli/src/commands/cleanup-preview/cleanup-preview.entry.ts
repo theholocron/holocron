@@ -11,9 +11,10 @@ export const cleanupPreviewEntry: MenuEntry = {
 			type: "input",
 			// `demandOption` in yargs: the command exits without it, so it is always asked.
 			required: true,
-			message: "Cloudflare Pages project name (e.g. theholocron-preview):",
+			message:
+				"Deployment project (a Cloudflare Pages project name such as theholocron-preview, or a Vercel project):",
 		},
 	],
-	skipOptions: ["project-id", "target", "files", "repo"],
+	skipOptions: ["project-id", "target", "files", "repo", "yes"],
 	supportsDryRun: true,
 };

@@ -621,43 +621,58 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 			expect(job("cleanup")).toContain("if: ${{ github.event.action == 'closed' }}");
 		});
 
-		it("checks nothing out, so none of the PR's code runs with the Vercel token", () => {
+		it("tags the preview with the PR it belongs to, in the deploy job's environment", () => {
+			expect(job("deploy")).toContain(
+				"HOLOCRON_PREVIEW_KEY: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}"
+			);
+		});
+
+		it("takes the Vercel project to look in as an input, so the cleanup only ever searches that project", () => {
+			expect(previewDeploy).toMatch(/\n {6}project:\n[\s\S]*?required: false\n[\s\S]*?default: ""/);
+			expect(job("cleanup")).toContain("--project=${{ inputs.project }}");
+		});
+
+		it("runs the base branch's CLI, never the PR's, with the Vercel token", () => {
 			const cleanup = job("cleanup");
-			expect(cleanup).not.toContain("actions/checkout");
-			expect(cleanup).not.toContain("uses:");
+			expect(cleanup).toContain("ref: ${{ github.event.pull_request.base.sha }}");
+			expect(cleanup).not.toContain("pull_request.head.sha");
+			expect(cleanup).toContain("persist-credentials: false");
 			expect(cleanup).toContain("VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}");
 		});
 
-		it("is a quiet no-op when there is no token (a fork PR never had a preview made)", () => {
+		it("deletes through `holocron deploy cleanup-preview`, for the closed PR, with no prompt", () => {
 			const cleanup = job("cleanup");
-			expect(cleanup).toContain('if [ -z "$VERCEL_TOKEN" ]; then');
+			expect(cleanup).toContain("command: deploy cleanup-preview ${{ github.event.pull_request.number }}");
+			expect(cleanup).toMatch(/args: [^\n]*--yes/);
+			expect(cleanup).toContain("--repo=${{ github.repository }}");
+			expect(cleanup).toContain("--cwd=${{ inputs.cwd }}");
+		});
+
+		it("is a quiet no-op when there is no token (a fork PR never had a preview made) or no project", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain('elif [ -z "$VERCEL_TOKEN" ]; then');
 			expect(cleanup).toContain("::notice title=No previews deleted::");
+			expect(cleanup).toContain("::warning title=No previews deleted::");
+			expect(cleanup).toContain("if: ${{ steps.needs.outputs.ready == 'true' }}");
 		});
 
-		it("finds the previews from the GitHub deployments the report job made, by the PR's branch", () => {
+		it("marks the GitHub deployments inactive only after the previews were deleted, and never deletes them", () => {
 			const cleanup = job("cleanup");
-			expect(cleanup).toContain("REF: ${{ github.event.pull_request.head.ref }}");
-			expect(cleanup).toContain('-f ref="$REF" -f environment=Preview');
-			expect(cleanup).toContain("environment_url");
-		});
-
-		it("sends only a *.vercel.app host to Vercel", () => {
-			expect(job("cleanup")).toContain('if [[ "$host" == *.vercel.app ]]; then');
-		});
-
-		it("deletes through Vercel, scoped to the org's team, and treats a deployment already gone as done", () => {
-			const cleanup = job("cleanup");
-			expect(cleanup).toContain("https://api.vercel.com/v13/deployments/");
-			expect(cleanup).toContain("-X DELETE");
-			expect(cleanup).toContain("VERCEL_TEAM_ID: ${{ vars.HOLOCRON_VERCEL_TEAM_ID || vars.VERCEL_TEAM_ID }}");
-			expect(cleanup).toContain('"$lookup" = "404"');
-		});
-
-		it("marks the GitHub deployments inactive, never deletes them, and fails the job when a Vercel delete failed", () => {
-			const cleanup = job("cleanup");
+			expect(cleanup).toContain("if: ${{ steps.cleanup.outcome == 'success' }}");
 			expect(cleanup).toContain("--field state=inactive");
 			expect(cleanup).not.toContain("--method DELETE");
+		});
+
+		it("fails the job when a deployment could not be listed or marked, after trying every one", () => {
+			const cleanup = job("cleanup");
+			expect(cleanup).toContain('echo "::error::could not list the GitHub deployments');
+			expect(cleanup).toMatch(/could not mark deployment \$\{deploy_id\} inactive"\n\s+failed=1/);
 			expect(cleanup).toContain('exit "$failed"');
+		});
+
+		it("calls no API directly: Vercel goes through the CLI and its client", () => {
+			expect(job("cleanup")).not.toContain("curl");
+			expect(job("cleanup")).not.toContain("api.vercel.com");
 		});
 	});
 

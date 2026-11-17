@@ -31,6 +31,7 @@ export const cleanupPreviewCommand: CommandModule<DeployArgs, CleanupPreviewArgs
 			prNumber: Number(pr),
 			project: argv.project as string,
 			...(argv.repo ? { repo: argv.repo as string } : {}),
+			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") {
 			process.exitCode = 1;

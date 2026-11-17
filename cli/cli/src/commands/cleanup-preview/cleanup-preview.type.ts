@@ -13,8 +13,13 @@ export interface RunCleanupPreviewInput {
 	 * instead of the one the source plugin is scoped to.
 	 */
 	repo?: string;
-	/** Cloudflare Pages project name (e.g. "theholocron-preview"). */
+	/** The deployment project: a Cloudflare Pages project name (e.g. "theholocron-preview") or a Vercel project. */
 	project: string;
+	/**
+	 * Delete every deployment found, with no checklist (CI). A pull request that is still open is refused: deleting its
+	 * previews would break the live preview link, and nobody is there to confirm it.
+	 */
+	yes?: boolean;
 	loader?: PluginLoader;
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
@@ -23,7 +28,7 @@ export interface RunCleanupPreviewInput {
 
 export interface CleanupPreviewReport {
 	pr: PullRequest;
-	/** Branch alias used to query Cloudflare (e.g. "holocron-pr-42"). */
+	/** Branch alias the previews are found by (e.g. "holocron-pr-42"). */
 	branch: string;
 	found: number;
 	deleted: number;

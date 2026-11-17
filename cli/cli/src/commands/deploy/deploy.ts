@@ -243,7 +243,12 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 	try {
 		const result = await withSpinner(
 			`Deploying ${fileCount} file${fileCount === 1 ? "" : "s"} from ${input.dir}…`,
-			() => deploy.deployFunction!(input.projectId, { files, ...(input.target ? { target: input.target } : {}) })
+			() =>
+				deploy.deployFunction!(input.projectId, {
+					files,
+					...(input.target ? { target: input.target } : {}),
+					...(input.previewKey && !input.target ? { meta: { holocronPreview: input.previewKey } } : {}),
+				})
 		);
 		logger.info({ url: result.url, id: result.deploymentId }, "deploy: triggered (files)");
 		const record = await withSpinner(`Waiting for ${withScheme(result.url)} to finish…`, () =>

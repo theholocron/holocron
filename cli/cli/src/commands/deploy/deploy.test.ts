@@ -481,6 +481,53 @@ describe("runDeployFromFiles", () => {
 		expect(deployCalls[0]?.target).toBe("production");
 	});
 
+	describe("the preview key (holocron#1021)", () => {
+		const deployWith = async (extra: { previewKey?: string; target?: "production" }) => {
+			const deployCalls: Array<{ meta?: Record<string, string> }> = [];
+			const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", deployment: "vercel" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+					deployment: {
+						providerName: "vercel",
+						getDeployment: readyDeployment,
+						deployFunction: async (_projectId: string, config: { meta?: Record<string, string> }) => {
+							deployCalls.push(config);
+							return { deploymentId: "dpl_1", url: "x" };
+						},
+					},
+				}),
+			});
+			const { walkFiles, readFile } = fakeFs({ "index.js": "x" });
+			await runDeployFromFiles({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				projectId: "prj_123",
+				dir: "/tmp/dist",
+				loader,
+				print: () => {},
+				walkFiles,
+				readFile,
+				...extra,
+			});
+			return deployCalls[0];
+		};
+
+		it("tags a preview with the key, so cleanup can find it by the pull request", async () => {
+			expect((await deployWith({ previewKey: "holocron-pr-7" }))?.meta).toEqual({
+				holocronPreview: "holocron-pr-7",
+			});
+		});
+
+		it("tags nothing when there is no key", async () => {
+			expect(await deployWith({})).not.toHaveProperty("meta");
+		});
+
+		it("never tags a named target, which cleanup must not be able to find", async () => {
+			expect(await deployWith({ previewKey: "holocron-pr-7", target: "production" })).not.toHaveProperty("meta");
+		});
+	});
+
 	it("errors when deployment capability is not configured", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

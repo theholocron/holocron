@@ -45,9 +45,9 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 		throw new Error(`Failed to fetch PR #${input.prNumber}: ${message}`, { cause: err });
 	}
 
-	// Derive the Cloudflare branch alias from the repo name and PR number.
-	// Matches the convention the deploy-preview workflow uses:
-	// --branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+	// Derive the branch alias from the repo name and PR number. It is the one the preview workflows use for Cloudflare
+	// (--branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}) and the one a Vercel file
+	// deploy tags its preview with (HOLOCRON_PREVIEW_KEY, deploy-preview.yml).
 	const repoName = (input.repo ?? input.loaded.resolved.repo?.name ?? "").split("/").pop()!;
 	const branch = `${repoName}-pr-${pr.number}`;
 
@@ -55,7 +55,7 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print(`${style.header(`PR #${pr.number}`)} — ${pr.title}`);
 	print(`  Status : ${prStateLabel(pr)}  |  Branch : ${style.dim(pr.branch)}`);
 	print(`  URL    : ${style.dim(pr.url)}`);
-	print(`  CF alias : ${style.dim(branch)}`);
+	print(`  Alias  : ${style.dim(branch)}`);
 	print("");
 
 	// ── 2. List deployments ─────────────────────────────────────────────
@@ -84,6 +84,13 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	print(`Found ${deployments.length} deployment${deployments.length === 1 ? "" : "s"} for ${style.dim(branch)}:`);
 	print("");
 
+	if (input.yes && pr.state === "open") {
+		const message = `PR #${pr.number} is still open: --yes only deletes the previews of a closed pull request.`;
+		print(style.fail(message));
+		logger.warn({ pr: pr.number, branch, status: "fail" }, "cleanup-preview: refused, PR is open");
+		return { pr, branch, found: deployments.length, deleted: 0, status: "fail", message };
+	}
+
 	if (pr.state === "open") {
 		print(
 			style.warn(
@@ -106,15 +113,19 @@ export async function runCleanupPreview(input: RunCleanupPreviewInput): Promise<
 	});
 
 	let selected: string[];
-	try {
-		selected = await checkbox({
-			message: "Select deployments to delete (space to toggle, a to select all, enter to confirm):",
-			choices,
-		});
-	} catch {
-		// Ctrl-C
-		print(style.dim("Aborted."));
-		return { pr, branch, found: deployments.length, deleted: 0, status: "aborted" };
+	if (input.yes) {
+		selected = deployments.map((d) => d.id);
+	} else {
+		try {
+			selected = await checkbox({
+				message: "Select deployments to delete (space to toggle, a to select all, enter to confirm):",
+				choices,
+			});
+		} catch {
+			// Ctrl-C
+			print(style.dim("Aborted."));
+			return { pr, branch, found: deployments.length, deleted: 0, status: "aborted" };
+		}
 	}
 
 	if (selected.length === 0) {

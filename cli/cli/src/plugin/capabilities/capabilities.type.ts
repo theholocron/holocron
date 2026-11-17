@@ -983,6 +983,11 @@ export interface DeployFunctionConfig {
 	 * semantics as `triggerDeployment`'s `target`.
 	 */
 	target?: DeploymentTrigger;
+	/**
+	 * Key-value tags stored on the deployment, for a provider that keeps them. `holocronPreview` names the pull request
+	 * a preview belongs to (`<repo>-pr-<number>`), which is what {@link Deployment.listPreviewDeployments} finds it by.
+	 */
+	meta?: Record<string, string>;
 }
 
 /** What {@link Deployment.deployFunction} made. */

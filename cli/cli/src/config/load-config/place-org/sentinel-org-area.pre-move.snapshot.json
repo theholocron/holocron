@@ -18,7 +18,8 @@
     {
       "name": "deploy-preview",
       "with": {
-        "cwd": "apps/sentinel"
+        "cwd": "apps/sentinel",
+        "project": "sentinel"
       }
     },
     {

@@ -1,3 +1,4 @@
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { Argv, CommandModule } from "yargs";
 
@@ -13,6 +14,8 @@ import { tokenContext } from "../token-context/index.js";
 import { type DeployArgs, deployArgs } from "./deploy.args.js";
 import { deployOnReleaseCommand } from "./deploy-on-release.command.js";
 import { runDeploy, runDeployFromFiles } from "./index.js";
+
+const env = createEnvLookup();
 
 export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 	command: "deploy [branch]",
@@ -46,6 +49,7 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 				projectId: argv.projectId as string,
 				dir: argv.files as string,
 				...(argv.target ? { target: argv.target as "production" | "staging" } : {}),
+				...(env.get("HOLOCRON_PREVIEW_KEY") ? { previewKey: env.get("HOLOCRON_PREVIEW_KEY") as string } : {}),
 			});
 			if (report.status === "fail") {
 				process.exitCode = 1;

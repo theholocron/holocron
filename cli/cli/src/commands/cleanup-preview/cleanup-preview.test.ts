@@ -291,6 +291,70 @@ describe("runCleanupPreview", () => {
 		);
 	});
 
+	describe("--yes (CI, holocron#1021)", () => {
+		it("deletes every deployment found without asking", async () => {
+			const { loaded, loader, deployment } = makePlugins(PR_MERGED);
+			const report = await runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				yes: true,
+				loader,
+				print: () => {},
+			});
+			expect(mockCheckbox).not.toHaveBeenCalled();
+			expect(deployment.deletePreviewDeployments).toHaveBeenCalledWith("my-project", [DEPLOYMENT.id]);
+			expect(report).toMatchObject({ status: "ok", found: 1, deleted: 1 });
+		});
+
+		it("also cleans a closed pull request that was not merged", async () => {
+			const { loaded, loader } = makePlugins(PR_CLOSED_UNMERGED);
+			const report = await runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				yes: true,
+				loader,
+				print: () => {},
+			});
+			expect(report.status).toBe("ok");
+		});
+
+		it("refuses a pull request that is still open, and deletes nothing", async () => {
+			const { loaded, loader, deployment } = makePlugins(PR_OPEN);
+			const report = await runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				yes: true,
+				loader,
+				print: () => {},
+			});
+			expect(report.status).toBe("fail");
+			expect(report.message).toContain("still open");
+			expect(deployment.deletePreviewDeployments).not.toHaveBeenCalled();
+			expect(mockCheckbox).not.toHaveBeenCalled();
+		});
+
+		it("is a success with nothing to do when no deployment is tagged for the pull request", async () => {
+			const { loaded, loader, deployment } = makePlugins(PR_MERGED, []);
+			const report = await runCleanupPreview({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				prNumber: 42,
+				project: "my-project",
+				yes: true,
+				loader,
+				print: () => {},
+			});
+			expect(report.status).toBe("none");
+			expect(deployment.deletePreviewDeployments).not.toHaveBeenCalled();
+		});
+	});
+
 	it("returns status=aborted when nothing is selected", async () => {
 		mockCheckbox.mockResolvedValueOnce([]);
 		const { loaded, loader } = makePlugins(PR_MERGED);

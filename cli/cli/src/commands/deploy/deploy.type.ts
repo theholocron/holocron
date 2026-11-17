@@ -56,6 +56,12 @@ export interface RunDeployFromFilesInput {
 	dir: string;
 	/** Named target — `undefined` means preview. */
 	target?: DeploymentTrigger;
+	/**
+	 * What a preview is tagged with so `deploy cleanup-preview` can find it again: `<repo>-pr-<number>`, the alias that
+	 * command derives from a pull request. Only a preview is tagged; a named target never is. CI sets it through
+	 * `HOLOCRON_PREVIEW_KEY` (`deploy-preview` does).
+	 */
+	previewKey?: string;
 	loader?: PluginLoader;
 	print?: DeployPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */

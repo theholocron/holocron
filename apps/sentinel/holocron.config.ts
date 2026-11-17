@@ -150,7 +150,7 @@ export default defineConfig({
 		// Sentinel has redeployed with the updated bundle (confirmed live:
 		// this exact failure on holocron#1019's sync-templates,
 		// same root cause).
-		{ name: "deploy-preview", with: { cwd: "apps/sentinel" } },
+		{ name: "deploy-preview", with: { cwd: "apps/sentinel", project: "sentinel" } },
 	],
 	// `holocron dev` (and `pnpm dev`): the development instance runs locally behind a named tunnel. The hostname is one
 	// level under the zone because Cloudflare's free certificate covers `*.theholocron.dev` and no deeper name.

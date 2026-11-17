@@ -16,11 +16,36 @@ export interface VercelDeployment {
 	readyState: VercelDeploymentState;
 	/** The environment the deployment was built for; absent or `null` for a preview. */
 	target?: VercelDeploymentTarget | null;
-	/** Git metadata Vercel attaches to the deployment. */
-	meta?: {
-		/** The branch or ref the deployment was built from. */
-		githubCommitRef?: string;
-	};
+	/**
+	 * Metadata on the deployment: what Vercel attaches for a Git deployment (`githubCommitRef`, the branch or ref it was
+	 * built from) and whatever the creator set through `deployments.create()`'s `meta`.
+	 */
+	meta?: Record<string, string | undefined>;
+	/** When the deployment was created, in milliseconds since the epoch (the list endpoint returns it). */
+	createdAt?: number;
+}
+
+/** Input for `deployments.list()`. */
+export interface VercelListDeploymentsInput {
+	/** Only this project's deployments (its id or name). */
+	projectId: string;
+	/** Page size; Vercel's own maximum is 100. */
+	limit?: number;
+	/** Only deployments created before this timestamp (the previous page's `pagination.next`). */
+	until?: number;
+}
+
+/** One page of `deployments.list()`. */
+export interface VercelDeploymentPage {
+	deployments: VercelDeployment[];
+	/** Where the next page starts (pass it as `until`); `null` or absent on the last page. */
+	pagination?: { next?: number | null };
+}
+
+/** What `deployments.remove()` answers with. */
+export interface VercelDeletedDeployment {
+	uid: string;
+	state: string;
 }
 
 /** Input for `deployments.trigger()`: deploy a branch of a linked GitHub repository. */
@@ -64,6 +89,8 @@ export interface VercelCreateDeploymentInput {
 	installCommand?: string;
 	/** The environment to deploy to; omitted, Vercel decides. */
 	target?: VercelDeploymentTarget;
+	/** Key-value metadata stored on the deployment: a creator's own tags, read back through `deployments.list()`. */
+	meta?: Record<string, string>;
 }
 
 export function deployments(rest: RestClient) {
@@ -103,7 +130,24 @@ export function deployments(rest: RestClient) {
 						...(input.installCommand ? { installCommand: input.installCommand } : {}),
 					},
 					...(input.target ? { target: input.target } : {}),
+					...(input.meta && Object.keys(input.meta).length > 0 ? { meta: input.meta } : {}),
 				},
+			}),
+
+		/** One page of a project's deployments, newest first, each with its `meta`. */
+		list: (input: VercelListDeploymentsInput): Promise<VercelDeploymentPage> =>
+			rest.request<VercelDeploymentPage>("/v6/deployments", {
+				query: {
+					projectId: input.projectId,
+					limit: String(input.limit ?? 100),
+					...(input.until !== undefined ? { until: String(input.until) } : {}),
+				},
+			}),
+
+		/** Deletes a deployment. One that is already gone is a `ProviderApiError` with status 404. */
+		remove: (deploymentId: string): Promise<VercelDeletedDeployment> =>
+			rest.request<VercelDeletedDeployment>(`/v13/deployments/${encodeURIComponent(deploymentId)}`, {
+				method: "DELETE",
 			}),
 
 		get: (deploymentId: string): Promise<VercelDeployment> =>
