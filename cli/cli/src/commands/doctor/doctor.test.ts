@@ -970,6 +970,19 @@ describe("runDoctor", () => {
 		}
 	});
 
+	it("reports fail with the message when a provider's smoke check rejects with something that is not an Error", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: { whoami: () => Promise.reject("a plain string, not an Error") },
+			}),
+		});
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const row = report.rows.find((r) => r.capability === "source");
+		expect(row?.status).toBe("fail");
+		expect(row?.message).toContain("a plain string, not an Error");
+	});
+
 	it("logs smoke check reports dataset reachability via whoami", async () => {
 		const loaded = loadedFrom({
 			name: "demo",

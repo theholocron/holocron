@@ -137,6 +137,19 @@ describe("oauth", () => {
 		await expect(promise).rejects.toThrow("token exchange failed");
 	});
 
+	it("rejects with an Error when what getToken threw is not one", async () => {
+		mockGetToken.mockRejectedValue("denied");
+
+		const promise = oauth(["scope"], creds());
+
+		await new Promise<void>((r) => setImmediate(r));
+		await capturedHandler!({ url: "/oauth2callback?code=bad-code" }, { end: vi.fn() });
+
+		const err = await promise.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toBe("denied");
+	});
+
 	it("ignores requests that are not /oauth2callback", async () => {
 		mockGetToken.mockResolvedValue({ tokens: { access_token: "tok" } });
 
