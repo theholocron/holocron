@@ -1,3 +1,9 @@
+## [5.0.0-alpha.454](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.453...v5.0.0-alpha.454) (2026-11-17)
+
+### Refactoring
+
+* **sentinel:** ♻️ post checks under bare task ids and match the flat validate ids ([#2272](https://github.com/theholocron/holocron/issues/2272)) ([c433c76](https://github.com/theholocron/holocron/commit/c433c764c476395f002e7b025120a25730f82a65)), closes [#2263](https://github.com/theholocron/holocron/issues/2263) [#2096](https://github.com/theholocron/holocron/issues/2096)
+
 ## [5.0.0-alpha.453](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.452...v5.0.0-alpha.453) (2026-11-16)
 
 ### Features
