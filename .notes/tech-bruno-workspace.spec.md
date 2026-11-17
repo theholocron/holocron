@@ -1,10 +1,13 @@
 ---
+id: SPEC-0092
 status: draft
 issue: theholocron/holocron#2276
 blocked-by: []
 related:
   - theholocron/holocron#2189
   - theholocron/holocron#2172
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572049055717261482
 ---
 
 # A Bruno workspace in the repo, with each API's requests beside its code
