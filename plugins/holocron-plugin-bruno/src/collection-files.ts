@@ -2,6 +2,7 @@ import { postmanToBruno, postmanToBrunoEnvironment } from "@usebruno/converters"
 import { stringifyCollection, stringifyEnvironment, stringifyFolder, stringifyRequest } from "@usebruno/filestore";
 
 import { describeIssue } from "./describe-issue.js";
+import { repairSigningBody } from "./repair-signing-body.js";
 
 /** What {@link collectionFiles} made of one collection. */
 export interface CollectionFiles {
@@ -67,6 +68,7 @@ function writeItems(items: BrunoItem[], dir: string, files: Map<string, string>)
 export async function collectionFiles(collection: unknown, environments: unknown[]): Promise<CollectionFiles> {
 	const read = await postmanToBruno(collection, { preserveScripts: false });
 	const bruno = read.collection;
+	repairSigningBody(bruno);
 	const name = bruno.name ?? "Untitled Collection";
 	const files = new Map<string, string>();
 	files.set(

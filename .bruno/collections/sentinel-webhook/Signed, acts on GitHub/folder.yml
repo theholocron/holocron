@@ -12,7 +12,7 @@ request:
         // Signs the body exactly as it is sent: HMAC-SHA256 under SENTINEL_WEBHOOK_SECRET, as `sha256=<hex>`.
         const secret = bru.getEnvVar("webhookSecret");
         if (!secret) throw new Error("Set webhookSecret in the environment (the dev App's webhook secret).");
-        const body = bru.interpolate(req.getBody().raw);
+        const body = bru.interpolate(typeof req.getBody() === "string" ? req.getBody() : JSON.stringify(req.getBody()));
         const digest = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);
         req.setHeader("X-Hub-Signature-256", "sha256=" + digest);
 

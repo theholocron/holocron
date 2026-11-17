@@ -1,6 +1,7 @@
 import { postmanToBruno, postmanToBrunoEnvironment } from "@usebruno/converters";
 
 import { describeIssue } from "./describe-issue.js";
+import { repairSigningBody } from "./repair-signing-body.js";
 
 /** What {@link convertCollection} produced. */
 export interface ConvertedCollection {
@@ -34,6 +35,7 @@ function brunoJson(bruno: { name?: string; environments?: unknown[] } & Record<s
 export async function convertCollection(collection: unknown, environments: unknown[]): Promise<ConvertedCollection> {
 	const read = await postmanToBruno(collection, { preserveScripts: false });
 	const bruno = read.collection;
+	repairSigningBody(bruno);
 	const converted = await Promise.all(environments.map((env) => postmanToBrunoEnvironment(env)));
 	if (converted.length > 0) bruno.environments = converted;
 	return { json: brunoJson(bruno), issues: (read.issues ?? []).map(describeIssue) };
