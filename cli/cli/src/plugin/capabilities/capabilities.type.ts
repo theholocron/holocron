@@ -1683,6 +1683,11 @@ export interface MonitoringCheckInput {
 	 * ones named. A name no alert channel carries is refused by `setup notifications`.
 	 */
 	alertChannels?: string[];
+	/**
+	 * Labels that group checks: a dashboard and a status page component pick the checks they show by them. `ensureCheck`
+	 * sends them, so an existing check's tags become exactly this list; absent, none are sent.
+	 */
+	tags?: string[];
 }
 
 /** A check as the provider holds it. */

@@ -161,6 +161,32 @@ describe("ChecklyMonitoring", () => {
 			expect(stub.calls[1]?.body).not.toHaveProperty("shouldFail");
 		});
 
+		it("sends tags when creating, and puts an existing check's tags in line when updating", async () => {
+			const created = makeCapability([
+				{ status: 200, body: [] },
+				{ status: 200, body: { id: "c", name: "tagged" } },
+			]);
+			await created.capability.ensureCheck({ name: "tagged", url: "https://example.com", tags: ["docs"] });
+			expect(created.stub.calls[1]?.body).toMatchObject({ tags: ["docs"] });
+
+			const updated = makeCapability([
+				{ status: 200, body: [{ id: "c", name: "tagged" }] },
+				{ status: 200, body: { id: "c", name: "tagged" } },
+			]);
+			await updated.capability.ensureCheck({ name: "tagged", url: "https://example.com", tags: ["docs", "web"] });
+			expect(updated.stub.calls[1]?.method).toBe("PUT");
+			expect(updated.stub.calls[1]?.body).toMatchObject({ tags: ["docs", "web"] });
+		});
+
+		it("omits tags when none are declared", async () => {
+			const { capability, stub } = makeCapability([
+				{ status: 200, body: [] },
+				{ status: 200, body: { id: "c", name: "plain" } },
+			]);
+			await capability.ensureCheck({ name: "plain", url: "https://example.com" });
+			expect(stub.calls[1]?.body).not.toHaveProperty("tags");
+		});
+
 		it("includes a request body when provided", async () => {
 			const { capability, stub } = makeCapability([
 				{ status: 200, body: [] },
@@ -244,6 +270,11 @@ describe("ChecklyMonitoring", () => {
 			]);
 			expect(stub.calls[0]?.url).toContain("limit=100");
 			expect(stub.calls[0]?.url).toContain("page=1");
+		});
+
+		it("reads a check's tags back", async () => {
+			const { capability } = makeCapability([{ status: 200, body: [api({ tags: ["sentinel", "web"] })] }]);
+			expect((await capability.listChecks())[0]?.tags).toEqual(["sentinel", "web"]);
 		});
 
 		it("leaves out locations that are null, an empty body, other check types and assertions it has no word for", async () => {

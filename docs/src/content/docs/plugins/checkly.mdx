@@ -47,18 +47,19 @@ providers: {
 
 ### Check fields
 
-| Field           | Description                                                                                                 |
-| --------------- | ----------------------------------------------------------------------------------------------------------- |
-| `name`          | Exact name used to find the check                                                                           |
-| `url`           | URL to request                                                                                              |
-| `method`        | HTTP method, `GET` when omitted                                                                             |
-| `body`          | Request body, to simulate a real request (for example an unsigned `POST`)                                   |
-| `locations`     | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default |
-| `frequency`     | How often the check runs                                                                                    |
-| `activated`     | Whether the check is enabled                                                                                |
-| `shouldFail`    | Required when the healthy response is itself an HTTP error status (see below)                               |
-| `assertions`    | List of `{ source, comparison, property?, target? }`                                                        |
-| `alertChannels` | Names of the alert channels this check alerts through. Left out, it alerts through all of them              |
+| Field           | Description                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`          | Exact name used to find the check                                                                                                                            |
+| `url`           | URL to request                                                                                                                                               |
+| `method`        | HTTP method, `GET` when omitted                                                                                                                              |
+| `body`          | Request body, to simulate a real request (for example an unsigned `POST`)                                                                                    |
+| `locations`     | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default                                                  |
+| `frequency`     | How often the check runs                                                                                                                                     |
+| `activated`     | Whether the check is enabled                                                                                                                                 |
+| `shouldFail`    | Required when the healthy response is itself an HTTP error status (see below)                                                                                |
+| `assertions`    | List of `{ source, comparison, property?, target? }`                                                                                                         |
+| `tags`          | Labels that group checks, which a dashboard and a status page pick checks by. An existing check's tags are set to exactly this list; left out, none are sent |
+| `alertChannels` | Names of the alert channels this check alerts through. Left out, it alerts through all of them                                                               |
 
 Assertion `source` is one of `status_code`, `response_time`, `body` or `header`. `comparison` is one of `equals`, `not_equals`, `contains`, `not_contains`, `greater_than` or `less_than`.
 

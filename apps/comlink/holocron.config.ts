@@ -13,6 +13,12 @@
 
 import { defineConfig } from "@theholocron/cli";
 
+import org from "../../.holocron/org.js";
+
+// The zone is spelled once, in the repo root's `.holocron/org.ts` (the same import `apps/sentinel` makes). The loader
+// also sets `domain` on this config from the shared org area, so it is not written below.
+const relayUrl = `https://comlink.${org.domain}/sentry`;
+
 export default defineConfig({
 	repo: {
 		secrets: {
@@ -45,6 +51,37 @@ export default defineConfig({
 					envFiles: ["src/worker.environment.json"],
 				},
 			],
+		],
+		// Two checks watch the relay from outside Cloudflare (#2302), the same pair Sentinel has. Both expect an error
+		// status, so `shouldFail` is set (see apps/sentinel/holocron.config.ts). The answers are the ones the README
+		// documents ("Rejected": a GET is 405, an unsigned POST is 401); the GET was confirmed with a read-only request,
+		// and the unsigned POST was not sent to the live Worker, the README is trusted for it. `accountId` is filled from
+		// the shared org area, as for Sentinel.
+		monitoring: [
+			"checkly",
+			{
+				checks: [
+					{
+						name: "Comlink relay uptime",
+						url: relayUrl,
+						method: "GET",
+						locations: ["us-east-1"],
+						tags: ["comlink"],
+						shouldFail: true,
+						assertions: [{ source: "status_code", comparison: "equals", target: "405" }],
+					},
+					{
+						name: "Comlink relay signature verification",
+						url: relayUrl,
+						method: "POST",
+						locations: ["us-east-1"],
+						tags: ["comlink"],
+						shouldFail: true,
+						body: "{}",
+						assertions: [{ source: "status_code", comparison: "equals", target: "401" }],
+					},
+				],
+			},
 		],
 		// This machine's own tokens (the Cloudflare one `workers` uses, and CLOUDFLARE_ACCOUNT_ID) come from the
 		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.

@@ -118,6 +118,13 @@ describe("the org area in this repo (#1820)", () => {
 			],
 		});
 		delete providers.tooling;
+		// And (#2302): each of Sentinel's two checks carries the tag a dashboard and the status page pick it by.
+		const checks = (providers.monitoring as { tuple: { options: { checks: { tags?: string[] }[] } } }).tuple.options
+			.checks;
+		for (const check of checks) {
+			expect(check.tags).toEqual(["sentinel"]);
+			delete check.tags;
+		}
 		// The tasks whose checks Sentinel posts carry `sentinel: true` (#2263); here, the two the root `astromech.config.ts` adds.
 		for (const task of (expected as unknown as { tasks: { name?: string; sentinel?: boolean }[] }).tasks) {
 			if (task.name === "validate:specs" || task.name === "validate:docs") task.sentinel = true;
@@ -166,7 +173,19 @@ describe("the org area in this repo (#1820)", () => {
 			tuple: {
 				provider: "checkly",
 				packageName: "@theholocron/holocron-plugin-checkly",
-				options: { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" },
+				options: {
+					accountId: "fb82859a-4f62-4773-8404-db0f29f9262c",
+					// And (#2302): the docs site's check, the one declared at the root.
+					checks: [
+						{
+							name: "Docs",
+							url: "https://docs.theholocron.dev/holocron/",
+							locations: ["us-east-1"],
+							tags: ["docs"],
+							assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
+						},
+					],
+				},
 			},
 		});
 	});

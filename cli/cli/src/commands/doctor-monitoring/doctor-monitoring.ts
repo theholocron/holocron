@@ -2,9 +2,10 @@
  * `holocron doctor monitoring` — do the checks the `monitoring` provider declares exist in its account, as declared?
  *
  * Read-only. One row for the declared checks: each must exist by name, and what the config sets on it (URL, method,
- * frequency, locations, activated, should-fail, body, assertions) must be what the provider holds. A setting the
+ * frequency, locations, tags, activated, should-fail, body, assertions) must be what the provider holds. A setting the
  * config leaves out is not compared, and a check in the account that is not declared is never a problem, since the
- * account may hold checks made by hand or by another tool. A provider that cannot list its checks, a missing
+ * account may hold checks made by hand or by another tool. Tags are compared one way: a declared tag the check
+ * lacks fails, an extra tag on it does not. A provider that cannot list its checks, a missing
  * provider that failed to load, or a missing token is a skip with the reason, not a failure.
  *
  * Out of scope: the alert channel and its subscriptions (the notification layout declares those, see
@@ -133,6 +134,16 @@ function compareChecks(declared: readonly MonitoringCheckInput[], have: readonly
 				show: (value) => (value === "" ? "none" : value),
 			})
 		);
+		// A declared tag the check lacks fails; an extra tag the account holds does not.
+		if (want.tags !== undefined) {
+			const tagMap = (tags: readonly string[] | undefined) => new Map((tags ?? []).map((t) => [t, t]));
+			problems.push(
+				...declaredVsActual(tagMap(want.tags), tagMap(found.tags), {
+					noun: `check ${want.name} tag`,
+					flagExtra: false,
+				})
+			);
+		}
 	}
 	return problems;
 }

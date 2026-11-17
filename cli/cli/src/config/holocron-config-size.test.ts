@@ -11,9 +11,10 @@ import { describe, expect, it } from "vitest";
  * this number in the same PR and say why; the point is that growing the file is a decision, not a drift. Raised from
  * 200 for the `doctor.manualSecrets` list (#2183): a declaration of names that is not an area, so it stays here, and to
  * 220 for the `tooling` provider, which names the apps' request files (#2172), and to 230 for the environment files
- * Sentinel's requests gained (a local, a dev and a prod one).
+ * Sentinel's requests gained (a local, a dev and a prod one), and to 250 for the `monitoring` provider, whose docs check,
+ * dashboard and status page span apps and so cannot sit in an app's config (#2302).
  */
-const MAX_LINES = 230;
+const MAX_LINES = 250;
 
 const CONFIG = fileURLToPath(new URL("../../../../holocron.config.ts", import.meta.url));
 
