@@ -29,8 +29,6 @@ on: # yamllint disable-line rule:truthy
       - test:unit
       - typecheck
       - lint:code
-      - lint:editorconfig
-      - lint:markdown
       - lint:data
       - lint:unused
       - annotate
@@ -41,9 +39,6 @@ on: # yamllint disable-line rule:truthy
       - release
       - deploy-preview
       - check-preview
-      - validate:specs
-      - validate:docs
-      - lint:commits
       - sync-templates
       - check-notify
       - label

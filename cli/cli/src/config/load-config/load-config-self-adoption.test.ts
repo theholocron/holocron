@@ -53,6 +53,16 @@ function normalise(resolved: Resolved): Record<string, unknown> {
 	return copy as unknown as Record<string, unknown>;
 }
 
+/** Marks the named tasks of the pre-move snapshot as run by Sentinel (`sentinel: true`), as the config now says. */
+function markSentinelTasks(config: { tasks: { name?: string; sentinel?: boolean }[] }, names: string[]) {
+	for (const task of config.tasks) {
+		if (task.name && names.includes(task.name)) {
+			expect(task.sentinel).toBeUndefined();
+			task.sentinel = true;
+		}
+	}
+}
+
 type NotificationsTuple = { options: { guildId: string; layout?: NotificationsLayout } };
 const notificationsOf = (resolved: Resolved) =>
 	(resolved.providers.notifications as unknown as { tuples: NotificationsTuple[] }).tuples[0];
@@ -342,6 +352,15 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"SENTINEL_VERCEL_PROJECT",
 			"SENTINEL_WEBHOOK_SECRET",
 		];
+
+		// And (#2263): the five tasks whose checks Sentinel posts are marked, so they have no Actions workflow.
+		markSentinelTasks(expected as unknown as { tasks: { name?: string; sentinel?: boolean }[] }, [
+			"lint:editorconfig",
+			"lint:markdown",
+			"lint:commits",
+			"validate:specs",
+			"validate:docs",
+		]);
 
 		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
 		// "claude", and the option is kept beside it.

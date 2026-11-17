@@ -602,6 +602,11 @@ export interface TaskEntryConfig {
 	linters?: string[];
 	/** Emit a `.github/workflows/<name>.yml` thin caller + include in `holocron run ci`. Default `true`. */
 	ci?: boolean;
+	/**
+	 * Sentinel posts this task's check, so no Actions workflow does (#2263): no thin caller is written, but the task stays
+	 * in `holocron run ci` and, with `required: true`, in the `ci` aggregate's expected checks. Default `false`.
+	 */
+	sentinel?: boolean;
 	/** Write a `package.json` script + let `holocron run <name>` resolve the task. Default `true`. */
 	local?: boolean;
 	/** The task's CI check context is a required status check + part of `holocron run ci`'s default run. */
