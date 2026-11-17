@@ -1,3 +1,21 @@
+## [5.0.0-alpha.464](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.463...v5.0.0-alpha.464) (2026-11-17)
+
+### Features
+
+* **monitoring:** ✨ 💓 heartbeats, with the ping URL handed to the 1Password import file ([#2308](https://github.com/theholocron/holocron/issues/2308)) ([9b532b0](https://github.com/theholocron/holocron/commit/9b532b06bd092989a50997c08a8e4f9636e91c3e)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📊 declare and check a private Checkly dashboard ([#2306](https://github.com/theholocron/holocron/issues/2306)) ([40f3b2d](https://github.com/theholocron/holocron/commit/40f3b2d224d28910b0c45a4440c9d3c692c08348)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📟️ declare a status page, its components and rules, and its domain record ([#2307](https://github.com/theholocron/holocron/issues/2307)) ([36cdf41](https://github.com/theholocron/holocron/commit/36cdf41f78d5aec5973b8deca709a4998d8ab1d7)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ tag checks, and declare Comlink's and the docs site's ([#2305](https://github.com/theholocron/holocron/issues/2305)) ([e451d08](https://github.com/theholocron/holocron/commit/e451d083a12b51c238a0985b2def972dce847f58)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+
+### Documentation
+
+* **bruno:** 📚️ 📝 name the Comlink mock server the way Bruno lists it ([#2310](https://github.com/theholocron/holocron/issues/2310)) ([b74633e](https://github.com/theholocron/holocron/commit/b74633e7d852ee329a75376e3224bb7e34d9a02f)), closes [#2276](https://github.com/theholocron/holocron/issues/2276)
+* **specs:** 📚 spec monitoring tags, dashboard, status page and heartbeats ([#2303](https://github.com/theholocron/holocron/issues/2303)) ([c720a97](https://github.com/theholocron/holocron/commit/c720a97e7766f3b89418cfe56a12974d96a1d6cf)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2312](https://github.com/theholocron/holocron/issues/2312)) ([80c3e90](https://github.com/theholocron/holocron/commit/80c3e90fd104451d0f7f93834ee0f9f6652fe62b))
+
 ## [5.0.0-alpha.463](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.462...v5.0.0-alpha.463) (2026-11-17)
 
 ### Features
