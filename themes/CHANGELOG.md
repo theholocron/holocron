@@ -4,6 +4,16 @@
 
 * **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
 
+### Chores
+
+* **release:** themes 1.11.0-alpha.3 [skip ci] ([0a88717](https://github.com/theholocron/holocron/commit/0a88717961e4e93fd493cfbbac41aa7fec44f60c))
+
+## [1.11.0-alpha.3](https://github.com/theholocron/holocron/compare/themes-v1.11.0-alpha.2...themes-v1.11.0-alpha.3) (2026-11-17)
+
+### Features
+
+* **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
+
 ## [1.11.0-alpha.2](https://github.com/theholocron/holocron/compare/themes-v1.11.0-alpha.1...themes-v1.11.0-alpha.2) (2026-11-03)
 
 ### Refactoring
