@@ -46,6 +46,7 @@
     "@commitlint/lint": "catalog:",
     "@commitlint/load": "catalog:",
     "@napi-rs/keyring": "catalog:",
+    "@sentry/node": "catalog:",
     "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
     "@theholocron/commitlint-config": "workspace:^",
