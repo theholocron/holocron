@@ -2,6 +2,13 @@
   "version": 1,
   "pairs": [
     {
+      "kind": "docs",
+      "source": ".bruno/README.md",
+      "workspace": "workspace.yml",
+      "sourceHash": "f1d44c02e75b7a714742a9f77aa88dbd320bcbd164007b5c9dee99e710402b82",
+      "workspaceHash": "f1d44c02e75b7a714742a9f77aa88dbd320bcbd164007b5c9dee99e710402b82"
+    },
+    {
       "kind": "collection",
       "source": "apps/comlink/src/worker.collection.json",
       "workspace": "collections/comlink-relay",

@@ -8,6 +8,7 @@ import { stringifyEnvironment } from "@usebruno/filestore";
 import { type Baseline, BASELINE_FILE, type BaselinePair, readBaseline, serializeBaseline } from "./baseline.js";
 import { collectionFiles } from "./collection-files.js";
 import { formatJson } from "./format-json.js";
+import { comparableDocs, DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 import { canonicalJson, environmentToSource, hashOf, keepOriginal, workspaceToSource } from "./workspace-to-source.js";
 
 /** The folder at the repo root that holds the workspace Bruno opens. */
@@ -479,16 +480,61 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 	const workspacePath = `${WORKSPACE_DIR}/workspace.yml`;
 	const workspaceNow = await readIfThere(join(repoRoot, workspacePath));
 	const listsAll = workspaceNow !== undefined && listed.every((c) => workspaceNow.includes(JSON.stringify(c.path)));
-	if (listsAll) {
-		plan.files.push({ path: workspacePath, state: "unchanged" });
-	} else {
-		plan.files.push({ path: workspacePath, state: workspaceNow === undefined ? "new" : "changed" });
+	let workspaceText = workspaceNow ?? "";
+	if (!listsAll) {
 		const missing = listed.filter(
 			(c) => workspaceNow === undefined || !workspaceNow.includes(JSON.stringify(c.path))
 		);
 		const kept = workspaceNow === undefined ? undefined : addCollections(workspaceNow, missing);
-		plan.write(workspacePath, kept ?? workspaceYml(input.workspaceName, listed));
+		workspaceText = kept ?? workspaceYml(input.workspaceName, listed);
 	}
+
+	// The docs pair: `.bruno/README.md` (the source side) and the `docs` value of `workspace.yml` (Bruno's side).
+	const readmeNow = await readIfThere(join(repoRoot, DOCS_FILE));
+	const docsNow = workspaceNow === undefined ? undefined : readDocs(workspaceNow);
+	const readmeDocs = readmeNow === undefined ? undefined : normalizeDocs(readmeNow);
+	const workspaceDocs = docsNow === undefined || docsNow === "" ? undefined : docsNow;
+	const knownDocs = priorPair(prior?.baseline, "docs", DOCS_FILE);
+	if (readmeDocs !== undefined || workspaceDocs !== undefined) {
+		const direction = decide({
+			sourcePresent: readmeDocs !== undefined,
+			workspacePresent: workspaceDocs !== undefined,
+			prior: knownDocs,
+			// Compared and hashed without a markdown table's padding, which a formatter adds and Bruno does not.
+			sourceHash: readmeDocs === undefined ? "" : hashOf(comparableDocs(readmeDocs)),
+			workspaceHash: workspaceDocs === undefined ? "" : hashOf(comparableDocs(workspaceDocs)),
+			// Asked only when both sides are there.
+			agree: () => comparableDocs(readmeDocs as string) === comparableDocs(workspaceDocs as string),
+			prefer,
+		});
+		if (direction === "conflict") {
+			plan.conflicts += 1;
+			plan.files.push({ path: DOCS_FILE, state: "conflict", note: conflictNote("The docs") });
+			if (knownDocs) plan.pairs.push(knownDocs);
+		} else {
+			// The side that wins; a README is written only from the workspace's docs, and is otherwise left as it is.
+			const finalDocs = (direction === "toSource" ? workspaceDocs : readmeDocs) as string;
+			if (direction === "toWorkspace") workspaceText = withDocs(workspaceText, finalDocs);
+			if (direction === "toSource") plan.write(DOCS_FILE, `${finalDocs}\n`);
+			plan.files.push({
+				path: DOCS_FILE,
+				state: direction !== "toSource" ? "unchanged" : readmeNow === undefined ? "new" : "changed",
+			});
+			plan.pairs.push({
+				kind: "docs",
+				source: DOCS_FILE,
+				workspace: "workspace.yml",
+				sourceHash: hashOf(comparableDocs(finalDocs)),
+				workspaceHash: hashOf(comparableDocs(finalDocs)),
+			});
+		}
+	}
+
+	plan.files.push({
+		path: workspacePath,
+		state: workspaceNow === undefined ? "new" : workspaceNow === workspaceText ? "unchanged" : "changed",
+	});
+	if (workspaceNow !== workspaceText) plan.write(workspacePath, workspaceText);
 
 	// The baseline records both sides as they are once this run's writes are done.
 	const baselineText = serializeBaseline(plan.pairs);

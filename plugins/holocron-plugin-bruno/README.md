@@ -51,7 +51,10 @@ providers: {
   regenerates the workspace, the workspace only regenerates the request file (through `brunoToPostman`, with the request
   file's untouched entries kept as they were), both is a `conflict` that writes nothing unless `prefer` (`source` or
   `workspace`) settles it. A setting only Bruno has stays in the workspace and is reported as an issue. Each file is `new`,
-  `changed`, `unchanged`, `removed` or `conflict`; a dry run writes and deletes nothing.
+  `changed`, `unchanged`, `removed` or `conflict`; a dry run writes and deletes nothing. The workspace's docs are one more
+  pair (kind `docs`): `.bruno/README.md` (`source`) and the `docs` value of `workspace.yml` (`workspace`), compared as text
+  with line endings and the trailing newline ignored, synced by the same rules, and only that value of `workspace.yml` is
+  written.
 - `sync` does nothing and succeeds: Bruno keeps no state, and the files are written by `export` and `workspace`.
 - `doctor` checks `collectionFiles` is set and every file exists and parses as JSON.
 
