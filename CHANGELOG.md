@@ -1,3 +1,9 @@
+## [5.0.0-alpha.455](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.454...v5.0.0-alpha.455) (2026-11-17)
+
+### Refactoring
+
+* **ci:** ♻️ run five checks from Sentinel and drop their Actions workflows ([#2273](https://github.com/theholocron/holocron/issues/2273)) ([1414804](https://github.com/theholocron/holocron/commit/141480482e93a641c9a1f6bfc9ebbe6eb4475354)), closes [#2096](https://github.com/theholocron/holocron/issues/2096) [#2263](https://github.com/theholocron/holocron/issues/2263)
+
 ## [5.0.0-alpha.454](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.453...v5.0.0-alpha.454) (2026-11-17)
 
 ### Refactoring
