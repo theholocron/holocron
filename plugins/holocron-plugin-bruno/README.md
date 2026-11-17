@@ -44,7 +44,8 @@ providers: {
   Converter issues are returned, not thrown. A dry run converts and writes nothing.
 - `workspace` keeps the committed `.bruno/` workspace and the request files in step, both ways (`holocron sync requests`), with Bruno's own
   file writer (`@usebruno/filestore`) and reader (`parseRequest`, `parseFolder`, `parseCollection`, `parseEnvironment`):
-  `workspace.yml`, and one folder per collection under `collections/` holding `opencollection.yml`, a `folder.yml` per folder,
+  `workspace.yml` (made when missing; when it lacks a collection only that entry is added to its `collections:` list, so the
+  `docs`, `specs` and the other settings Bruno keeps there stay as they are), and one folder per collection under `collections/` holding `opencollection.yml`, a `folder.yml` per folder,
   a YAML file per request and an `environments/` folder. A secret variable is written without its value. `.bruno/.sync.json`
   records a hash of both sides of each pair at the last sync, so a run knows which side changed: the request file only
   regenerates the workspace, the workspace only regenerates the request file (through `brunoToPostman`, with the request

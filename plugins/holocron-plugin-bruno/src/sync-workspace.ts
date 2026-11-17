@@ -73,6 +73,36 @@ export function workspaceYml(name: string, collections: { name: string; path: st
 	].join("\n");
 }
 
+/**
+ * The workspace file with `collections` added to its `collections:` list and every other byte kept: the entries are
+ * inserted after the last one, or in place of a `collections: []`. Returns `undefined` when the file has no
+ * `collections:` key, so the caller makes the file whole.
+ */
+export function addCollections(text: string, collections: { name: string; path: string }[]): string | undefined {
+	const entries = collections.map((c) => `  - name: ${JSON.stringify(c.name)}\n    path: ${JSON.stringify(c.path)}`);
+	const lines = text.split("\n");
+	const at = lines.findIndex((line) => /^collections:(\s|$)/.test(line));
+	if (at === -1) return undefined;
+	const value = lines[at]!.slice("collections:".length)
+		.replace(/\s+#.*$/, "")
+		.trim();
+	if (value === "[]" || value === "null" || value === "~") {
+		lines.splice(at, 1, "collections:", ...entries);
+		return lines.join("\n");
+	}
+	if (value !== "") return undefined;
+	// The list runs while a line is blank, indented or a `- ` item at the key's own column; it ends at the last of those with text.
+	let last = at;
+	for (let i = at + 1; i < lines.length; i += 1) {
+		const line = lines[i]!;
+		if (line.trim() === "") continue;
+		if (/^\s/.test(line) || line.startsWith("- ")) last = i;
+		else break;
+	}
+	lines.splice(last + 1, 0, ...entries);
+	return lines.join("\n");
+}
+
 /** The text of a file, or `undefined` when it is not there. */
 async function readIfThere(path: string): Promise<string | undefined> {
 	try {
@@ -225,8 +255,9 @@ function conflictNote(what: string): string {
  * (see {@link decide}). The request file's hash is the hash of what the workspace can carry of it, so a setting that
  * only the workspace holds (a request's timeout) never looks like a change to the request file; the workspace's hash is
  * that of its own files, so such an edit is still seen as a change to the workspace and is never overwritten by a
- * request-file change without a conflict. `workspace.yml` is written when it is missing or does not list a collection,
- * and left alone otherwise, because Bruno adds settings of its own to it, such as the active environment.
+ * request-file change without a conflict. `workspace.yml` is made when it is missing, left alone while it lists every
+ * collection, and otherwise only gets the missing entries ({@link addCollections}), because Bruno keeps settings of
+ * its own in it: the active environment, the `docs` and the `specs`.
  *
  * A file is `new`, `changed` or `unchanged` by its text; a workspace file that is no longer generated is `removed`;
  * a pair that both sides changed is a `conflict`, and with a conflict (and no `prefer`) nothing at all is written.
@@ -452,7 +483,11 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 		plan.files.push({ path: workspacePath, state: "unchanged" });
 	} else {
 		plan.files.push({ path: workspacePath, state: workspaceNow === undefined ? "new" : "changed" });
-		plan.write(workspacePath, workspaceYml(input.workspaceName, listed));
+		const missing = listed.filter(
+			(c) => workspaceNow === undefined || !workspaceNow.includes(JSON.stringify(c.path))
+		);
+		const kept = workspaceNow === undefined ? undefined : addCollections(workspaceNow, missing);
+		plan.write(workspacePath, kept ?? workspaceYml(input.workspaceName, listed));
 	}
 
 	// The baseline records both sides as they are once this run's writes are done.
