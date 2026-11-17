@@ -84,7 +84,7 @@ describe("workspaceToSource: the committed Sentinel collection, written and read
 	});
 
 	it("is the same for the Comlink collection", async () => {
-		const comlink = readRepoJson("apps/comlink/api/worker.collection.json");
+		const comlink = readRepoJson("apps/comlink/src/worker.collection.json");
 		const once = workspaceToSource(await files(comlink));
 		expect(canonicalJson(workspaceToSource(await files(once)))).toBe(canonicalJson(once));
 		expect((once.item as Loose[]).length).toBe(comlink.item.length);

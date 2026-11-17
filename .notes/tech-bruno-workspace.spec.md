@@ -86,14 +86,14 @@ workspaceHash }] }`). The request file's hash is the hash of what the workspace 
    folder name stays `api`. The default export folder follows the files (`api/.export/`, git-ignored by
    `**/api/.export/`), and an export's output name leaves a `.collection` part out (`webhook.collection.json` is
    `webhook.bruno.json`). The workspace pairs each collection with the environments in its own folder, so Sentinel
-   (`api/webhook.*`) and Comlink (`api/worker.*`) still get only their own.
+   (`api/webhook.*`) and Comlink (`src/worker.*`) still get only their own.
 
 ## Open questions
 
-- **Comlink's place (settled, open to change).** It has no `api/` code: its one entry is `src/worker.ts`. Chosen:
-  `apps/comlink/api/worker.collection.json` and `worker.environment.json`, in a folder that holds only those files,
-  to keep the same name for the same idea in both apps. The alternative is beside the code
-  (`src/worker.collection.json`), at the cost of JSON among source files.
+- **Comlink's place (settled).** It has no `api/` code: its one entry is `src/worker.ts`. The files sit beside it,
+  `apps/comlink/src/worker.collection.json` and `worker.environment.json` (they were first in an `api/` folder that
+  held nothing else), so each app keeps its requests next to the code they exercise. The default export folder
+  is `src/.export/`, git-ignored by `**/src/.export/`.
 - **Collections outside the workspace folder.** Part 1 puts the collections under `.bruno/collections/`, the layout
   Bruno documents. Whether a workspace can point at a folder outside `.bruno/` is not verified.
 - **Round-trip fidelity (checked in part 2).** `@usebruno/converters` has `brunoToPostman`, and `@usebruno/filestore`

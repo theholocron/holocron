@@ -191,13 +191,13 @@ export default defineConfig({
 				workspaceName: "The Holocron",
 				collectionFiles: [
 					"apps/sentinel/api/webhook.collection.json",
-					"apps/comlink/api/worker.collection.json",
+					"apps/comlink/src/worker.collection.json",
 				],
 				envFiles: [
 					"apps/sentinel/api/webhook.environment.json",
 					"apps/sentinel/api/webhook.environment.dev.json",
 					"apps/sentinel/api/webhook.environment.prod.json",
-					"apps/comlink/api/worker.environment.json",
+					"apps/comlink/src/worker.environment.json",
 				],
 			},
 		],

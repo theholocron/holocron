@@ -26,13 +26,13 @@ let out: string;
 afterEach(() => rmSync(out, { recursive: true, force: true }));
 
 describe.each([
-	["sentinel", "webhook", "webhookSecret"],
-	["comlink", "worker", "sentrySecret"],
-])("exporting the %s requests", (app, stem, secret) => {
+	["sentinel", "api", "webhook", "webhookSecret"],
+	["comlink", "src", "worker", "sentrySecret"],
+])("exporting the %s requests", (app, folder, stem, secret) => {
 	it("converts the real collection and environment with no issues and no pm.* left", async () => {
 		out = mkdtempSync(join(tmpdir(), "bruno-e2e-"));
-		const files = [`apps/${app}/api/${stem}.collection.json`];
-		const envFiles = [`apps/${app}/api/${stem}.environment.json`];
+		const files = [`apps/${app}/${folder}/${stem}.collection.json`];
+		const envFiles = [`apps/${app}/${folder}/${stem}.environment.json`];
 		const result = await new BrunoTooling().export({
 			collectionFiles: files,
 			envFiles,

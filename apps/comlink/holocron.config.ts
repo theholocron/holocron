@@ -24,7 +24,7 @@ export default defineConfig({
 		// Only `sync` needs this one: it sets the Worker's secrets. It has no `accountId`: the plugin reads
 		// CLOUDFLARE_ACCOUNT_ID through the credential chain, from the Environment named in `credentials` below.
 		workers: "cloudflare",
-		// The requests for sending a delivery by hand, `api/` (#2172): `holocron sync tooling --cwd apps/comlink`
+		// The requests for sending a delivery by hand, beside `src/worker.ts` (#2172): `holocron sync tooling --cwd apps/comlink`
 		// pushes them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
 		// `sentrySecret` is committed empty and keeps the value set there.
 		tooling: [
@@ -32,17 +32,17 @@ export default defineConfig({
 				"postman",
 				{
 					workspace: "Holocron",
-					collectionFiles: ["api/worker.collection.json"],
-					envFiles: ["api/worker.environment.json"],
+					collectionFiles: ["src/worker.collection.json"],
+					envFiles: ["src/worker.environment.json"],
 				},
 			],
 			// Bruno reads files, not an account: `holocron export requests --to bruno` writes the same collection as
-			// a Bruno JSON file into the git-ignored `api/.export/bruno/`.
+			// a Bruno JSON file into the git-ignored `src/.export/bruno/`.
 			[
 				"bruno",
 				{
-					collectionFiles: ["api/worker.collection.json"],
-					envFiles: ["api/worker.environment.json"],
+					collectionFiles: ["src/worker.collection.json"],
+					envFiles: ["src/worker.environment.json"],
 				},
 			],
 		],

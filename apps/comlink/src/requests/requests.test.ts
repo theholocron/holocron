@@ -27,7 +27,7 @@ interface Environment {
 }
 
 const read = <T>(file: string) =>
-	JSON.parse(readFileSync(fileURLToPath(new URL(`../../api/${file}`, import.meta.url)), "utf8")) as T;
+	JSON.parse(readFileSync(fileURLToPath(new URL(`../${file}`, import.meta.url)), "utf8")) as T;
 const collection = read<Collection>("worker.collection.json");
 const environment = read<Environment>("worker.environment.json");
 
