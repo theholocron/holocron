@@ -250,12 +250,13 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 			},
 		];
-		monitoring.tuple.options.dashboards = [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }];
+		monitoring.tuple.options.dashboards = [
+			{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"], private: false },
+		];
 		monitoring.tuple.options.statusPages = [
 			{
 				name: "The Holocron",
 				slug: "theholocron",
-				domain: "status.theholocron.dev",
 				components: [
 					{ name: "Sentinel", tags: ["sentinel"] },
 					{ name: "Comlink", tags: ["comlink"] },

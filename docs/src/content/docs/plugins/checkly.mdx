@@ -147,6 +147,8 @@ monitoring: ["checkly", {
 
 `holocron doctor monitoring` checks each declared dashboard: it exists, its privacy matches (a public dashboard declared private fails), its tags and domain match. Dashboards the account holds that the config does not declare are an `info` row.
 
+**Plan limits.** Checkly's free plan refuses a private dashboard (`400`, "Private dashboards are not supported on your current plan") and a custom domain on a status page (`402`). On that plan declare `private: false` and leave `domain` out of the page, which is then served at `<slug>.checkly-dashboards.com`; a public dashboard shows check names, uptime and response times to anyone with the link. This repo does that. On a paid plan drop `private: false` and add the domain. Taking `domain` out of the config later does not remove one a page already has: `setup` leaves a field the config omits alone and never deletes a DNS record, so clear the domain in Checkly and delete its records by hand.
+
 ## What `monitoring` provides
 
 - `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
