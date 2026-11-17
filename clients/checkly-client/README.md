@@ -74,6 +74,31 @@ const status = await checkly.checkStatuses.get(check.id);
 if (status.lastCheckRunId && status.hasFailures) console.log("failing");
 ```
 
+## Heartbeats
+
+```ts
+// A heartbeat expects a ping from a job each `period`, and alerts when none arrives within `grace`.
+// Units: "seconds" | "minutes" | "hours" | "days".
+const beat = await checkly.heartbeats.create({
+  name: "check-tokens",
+  tags: ["ci"],
+  heartbeat: { period: 1, periodUnit: "days", grace: 2, graceUnit: "hours" },
+});
+// The ping URL a job calls on success. A credential: anyone holding it can fake a success. Never log it.
+const pingUrl = beat.heartbeat.pingUrl;
+
+await checkly.heartbeats.update(beat.id, {
+  name: beat.name,
+  // Send the ping token back so the URL does not change.
+  heartbeat: { period: 2, periodUnit: "days", grace: 2, graceUnit: "hours", pingToken: beat.heartbeat.pingToken },
+});
+
+const some = await checkly.heartbeats.list({ search: "check" }); // one page, heartbeats only
+const all = await checkly.heartbeats.listAll(); // every page
+```
+
+Checkly's `GET /checks` lists every kind of check, heartbeats included (`checkType: "HEARTBEAT"`), and returns each one's `pingUrl` on every read. `heartbeats.list` and `listAll` keep only the heartbeats. Delete one with `checks.delete(id)`, which works for any type.
+
 ## Auth
 
 Generate an [API key](https://www.checklyhq.com/docs/accounts-and-users/creating-api-key/)
@@ -181,5 +206,5 @@ await checkly.statusPages.customDomain.recheck(page.id);
 every field you want to keep.
 
 > **Note:** This client covers API checks (`checks.*`), alert channels (`alertChannels.*`), dashboards
-> (`dashboards.*`) and status pages (`statusPages.*`) — the subset this org currently provisions programmatically.
-> Checkly's full surface (browser checks, check groups, heartbeats) is out of scope until a real consumer needs it.
+> (`dashboards.*`), status pages (`statusPages.*`) and heartbeats (`heartbeats.*`) — the subset this org currently provisions programmatically.
+> Checkly's full surface (browser checks, check groups) is out of scope until a real consumer needs it.

@@ -606,6 +606,153 @@ describe("runSetup", () => {
 		expect(rows[0]?.message).toContain("exists");
 	});
 
+	describe("monitoring heartbeats", () => {
+		// An obviously fake address: a real ping URL is a credential.
+		const FAKE_PING = "https://ping.invalid/00000000-0000-0000-0000-000000000000";
+		const beat = { name: "check-tokens", period: 1, periodUnit: "days", grace: 2, graceUnit: "hours" };
+
+		function withHeartbeat(alreadyExists: boolean) {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const ensureHeartbeat = vi.fn(async (input: typeof beat) => ({
+				heartbeat: { id: "hb-1", name: input.name },
+				alreadyExists,
+				pingUrl: FAKE_PING,
+			}));
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], heartbeats: [beat], ensureCheck: async () => undefined, ensureHeartbeat },
+				}),
+			});
+			return { loaded, loader, ensureHeartbeat };
+		}
+
+		it("hands the ping URL of a heartbeat it made to the import file and never prints it", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const printed: string[] = [];
+			const handOff = vi.fn(
+				async (_input: { pings: readonly { name: string; url: string }[]; base: string }) => ({
+					status: "ok" as const,
+					written: ["HOLOCRON_HEARTBEAT_CHECK_TOKENS"],
+				})
+			);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: (line) => printed.push(line),
+				handOffHeartbeats: handOff,
+			});
+			expect(handOff.mock.calls[0]?.[0].pings).toEqual([{ name: "check-tokens", url: FAKE_PING }]);
+			const rows = report.steps.filter((s) => s.capability === "monitoring");
+			expect(rows.map((r) => r.step)).toEqual(["ensureHeartbeat check-tokens", "heartbeat ping URLs for import"]);
+			expect(rows[0]?.message).toContain("created");
+			expect(rows[1]?.message).toContain("HOLOCRON_HEARTBEAT_CHECK_TOKENS");
+			expect(JSON.stringify(report) + printed.join("\n")).not.toContain("ping.invalid");
+		});
+
+		it("writes no file for a heartbeat that already exists", async () => {
+			const { loaded, loader } = withHeartbeat(true);
+			const handOff = vi.fn();
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				handOffHeartbeats: handOff,
+			});
+			expect(handOff).not.toHaveBeenCalled();
+			expect(report.steps.filter((s) => s.capability === "monitoring")[0]?.message).toContain("exists");
+		});
+
+		it("makes nothing and writes no file on --dry-run", async () => {
+			const { loaded, loader, ensureHeartbeat } = withHeartbeat(false);
+			const handOff = vi.fn();
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				print: () => {},
+				handOffHeartbeats: handOff,
+			});
+			expect(ensureHeartbeat).not.toHaveBeenCalled();
+			expect(handOff).not.toHaveBeenCalled();
+			expect(report.steps.filter((s) => s.capability === "monitoring").map((r) => r.status)).toEqual(["dry-run"]);
+		});
+
+		it("makes no heartbeat when the provider cannot ensure one", async () => {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], heartbeats: [beat], ensureCheck: async () => undefined },
+				}),
+			});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.filter((s) => s.step.startsWith("ensureHeartbeat"))).toEqual([]);
+		});
+
+		it("ensures nothing when the provider can but none is declared", async () => {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const ensureHeartbeat = vi.fn();
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], ensureCheck: async () => undefined, ensureHeartbeat },
+				}),
+			});
+			await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(ensureHeartbeat).not.toHaveBeenCalled();
+		});
+
+		it("reports a skipped hand-off as a skip and indents what it prints", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const printed: string[] = [];
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: (line) => printed.push(line),
+				handOffHeartbeats: async (input) => {
+					input.print("nothing to write");
+					return { status: "skip", written: [], reason: "nothing was made" };
+				},
+			});
+			const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+			expect(last).toMatchObject({ status: "skip", message: "nothing was made" });
+			expect(printed).toContain("    nothing to write");
+		});
+
+		it("falls back to the real hand-off when none is given, and never prints the URL", async () => {
+			const root = await mkdtemp(join(tmpdir(), "run-setup-heartbeat-"));
+			try {
+				const { loaded, loader } = withHeartbeat(false);
+				const printed: string[] = [];
+				const report = await runSetup({
+					loaded: { ...loaded, filepath: join(root, "holocron.config.json") },
+					context: { repoRoot: root },
+					loader,
+					print: (line) => printed.push(line),
+				});
+				const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+				expect(["ok", "fail"]).toContain(last?.status);
+				expect(JSON.stringify(report) + printed.join("\n")).not.toContain("ping.invalid");
+			} finally {
+				await rm(root, { recursive: true, force: true });
+			}
+		});
+
+		it("reports a failed hand-off as a failing step", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				handOffHeartbeats: async () => ({ status: "fail", written: [], reason: "not-ignored" }),
+			});
+			const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+			expect(last).toMatchObject({ status: "fail", message: "not-ignored" });
+		});
+	});
+
 	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
 		const customDomainCalls: Array<[string, string]> = [];
 		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];

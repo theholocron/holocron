@@ -45,6 +45,7 @@ providers: {
 | `accountId`  | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)               |
 | `checks`     | No       | The API checks `holocron setup` ensures exist; each is matched and upserted by `name` |
 | `dashboards` | No       | The dashboards `holocron setup` ensures exist; see [Dashboards](#dashboards)          |
+| `heartbeats` | No       | The heartbeats `holocron setup` ensures exist; each is matched and upserted by `name` |
 
 ### Check fields
 
@@ -67,6 +68,22 @@ Assertion `source` is one of `status_code`, `response_time`, `body` or `header`.
 :::caution
 Checkly classifies any response of 400 or above as a platform-level failure before assertions run. When the healthy response is an error status (a 405 or 401 that proves an endpoint is wired correctly), set `shouldFail: true`. An assertion matching that status does not override it.
 :::
+
+## Heartbeats
+
+A heartbeat is a dead man's switch: a scheduled job calls a ping URL each time it succeeds, and Checkly alerts when no ping arrives within the period plus the grace. It catches the run that never starts, which a failing-run alert cannot.
+
+```ts
+heartbeats: [{ name: "check-tokens", period: 1, periodUnit: "days", grace: 2, graceUnit: "hours", tags: ["ci"] }];
+```
+
+`period` and `grace` take the unit Checkly takes: `seconds`, `minutes`, `hours` or `days`. `tags` and `alertChannels` work as on a check. `ensureHeartbeat` finds the heartbeat by exact name, makes it when absent and puts `period` and `grace` (and `tags`, when stated) right when they differ. It never deletes, and a field left out is left alone. An update sends back the heartbeat's own ping token, so its URL does not change.
+
+Checkly lists a heartbeat among the other checks, so an alert channel subscribes it with the rest (`ensureAlertChannel`), and a heartbeat's `alertChannels` routes it like a check's.
+
+The **ping URL is a credential**: anyone holding it can fake a success. Checkly returns it on every read, not only on create, but the CLI hands it over once, when `holocron setup` makes the heartbeat. The CLI cannot write to 1Password, so the URL goes to the private import file `.holocron/.private/.credentials` as `HOLOCRON_HEARTBEAT_<NAME>=<url>` (the name upper-snake-cased), the way `export tokens` does: mode 0600, never overwritten, deleted once you have imported it (or left, with a warning, when there is no terminal), and never printed, logged or written to a terminal or a redirected file. Import it into the `ci` layer's Environment and sync it to the repository only with a `repo.secrets.sync` entry; see [Environment variables](/holocron/environment-variables/). `--dry-run` makes nothing and writes no file. A ping step in each scheduled workflow is a follow-up.
+
+`holocron doctor monitoring` has a row for the heartbeats: each declared one must exist with the declared period, grace and (when stated) tags; heartbeats the account holds beyond the config are an `info` row, by name.
 
 ## Alert channels
 
@@ -139,6 +156,7 @@ monitoring: ["checkly", {
 - `inspectDashboard(name)`: reads a dashboard without changing it, for `holocron doctor monitoring`: whether it exists, its privacy, tags and domain, and the headers of the account's other dashboards. Never the key.
 - `ensureStatusPage(input)`: finds a status page by exact name or creates it (public unless `private: true`), then its components in the declared order and one automation rule per component. See [Status pages](#status-pages).
 - `inspectStatusPage(input)`: reads the page without changing it, for `holocron doctor monitoring`: whether it exists and is public, which components and rules are missing or misplaced, which exist that the config does not declare, and whether the custom domain is verified (with the DNS record still to make).
+- `ensureHeartbeat(input)`: finds a heartbeat by exact name and creates or updates it, returning the ping URL (a credential) with the result. `listHeartbeats()` reads them back for the doctor, without the URL.
 - `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
 - `checks`: the configured check list, which `holocron setup` loops over.
 - `dashboards`: the configured dashboard list, which `holocron setup` loops over.
