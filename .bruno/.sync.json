@@ -5,8 +5,8 @@
       "kind": "docs",
       "source": ".bruno/README.md",
       "workspace": "workspace.yml",
-      "sourceHash": "f1d44c02e75b7a714742a9f77aa88dbd320bcbd164007b5c9dee99e710402b82",
-      "workspaceHash": "f1d44c02e75b7a714742a9f77aa88dbd320bcbd164007b5c9dee99e710402b82"
+      "sourceHash": "bdd17274bc1c43880b7f55f34c6e12e9f28f983379e391044fff1da958eabd46",
+      "workspaceHash": "bdd17274bc1c43880b7f55f34c6e12e9f28f983379e391044fff1da958eabd46"
     },
     {
       "kind": "collection",
