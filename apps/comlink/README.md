@@ -63,7 +63,7 @@ The two JSON files are the one source. A tool that reads another format gets it 
 
 ### Without a Discord channel
 
-Bruno can stand in for Discord. The workspace's `.bruno/mocks/comlink.yml` is a mock server with two routes on `http://localhost:4000`: `POST /discord/accepts` answers 204, as Discord does when it takes a post, and `POST /discord/refuses` answers 500. In Bruno, open the workspace, start the **Comlink Discord webhook** mock server, and run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`. Send `Signed, posts to Discord` from the collection: Comlink answers 204, and the mock's request log shows the embed it sent, with nothing posted to a channel. With `/discord/refuses` the same request answers 502, the path for a webhook Discord did not take. The mock is committed beside the collections and `holocron sync requests` leaves it alone.
+Bruno can stand in for Discord. The workspace's `.bruno/mocks/comlink.yml` is a mock server with two routes on `http://localhost:4000`: `POST /discord/accepts` answers 204, as Discord does when it takes a post, and `POST /discord/refuses` answers 500. In Bruno, open the workspace, start the **Comlink** mock server, and run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`. Send `Signed, posts to Discord` from the collection: Comlink answers 204, and the mock's request log shows the embed it sent, with nothing posted to a channel. With `/discord/refuses` the same request answers 502, the path for a webhook Discord did not take. The mock is committed beside the collections and `holocron sync requests` leaves it alone.
 
 ## Build
 

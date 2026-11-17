@@ -11,7 +11,7 @@ describe("the committed .bruno/mocks/", () => {
 	const mock = parseMockServer(readFileSync(`${MOCKS}comlink.yml`, "utf8"), { format: "yml" });
 
 	it("has a Discord webhook stand-in that is standalone, so it names no path on anyone's machine", () => {
-		expect(mock.name).toBe("Comlink Discord webhook");
+		expect(mock.name).toBe("Comlink");
 		expect(mock.source).toBeNull();
 	});
 
