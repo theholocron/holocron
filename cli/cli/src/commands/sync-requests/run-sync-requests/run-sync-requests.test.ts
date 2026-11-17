@@ -227,4 +227,73 @@ describe("runSyncRequests", () => {
 			expect(text).toContain("disk full");
 		});
 	});
+	describe("a conflict", () => {
+		const CONFLICT: ToolingWorkspaceFile[] = [
+			{
+				path: "api/webhook.collection.json",
+				state: "conflict",
+				note: "changed on both sides; pass --prefer source or --prefer workspace",
+			},
+			{ path: ".bruno/collections/a/ping.yml", state: "unchanged" },
+		];
+
+		it("fails the provider's row with the note, writes nothing and asks nothing", async () => {
+			const workspace = vi.fn(async () => result(CONFLICT));
+			const confirm = vi.fn(async () => true);
+			const { report, text } = await run([tool("bruno", workspace)], undefined, {
+				yes: false,
+				interactive: true,
+				confirm,
+			});
+			expect(report.status).toBe("fail");
+			expect(workspace).toHaveBeenCalledTimes(1);
+			expect(confirm).not.toHaveBeenCalled();
+			expect(text).toContain("1 conflict(s), so nothing was written (1 conflict, 1 unchanged)");
+			expect(text).toContain("api/webhook.collection.json: changed on both sides; pass --prefer source");
+			expect(text).not.toContain("Wrote:");
+		});
+
+		it("says so with a generic line when the provider gave no note", async () => {
+			const { text } = await run([
+				tool("bruno", async () => result([{ path: "api/webhook.collection.json", state: "conflict" }])),
+			]);
+			expect(text).toContain("api/webhook.collection.json: both sides changed");
+		});
+
+		it("fails --check and --dry-run too", async () => {
+			const checked = await run([tool("bruno", async () => result(CONFLICT))], undefined, { check: true });
+			expect(checked.report.status).toBe("fail");
+			const dry = await run([tool("bruno", async () => result(CONFLICT))], undefined, {
+				context: { repoRoot: "/repo", dryRun: true },
+			});
+			expect(dry.report.status).toBe("fail");
+		});
+
+		it("still writes for a provider with no conflict, asking only about those files", async () => {
+			const clean = vi.fn(async () => result());
+			const confirm = vi.fn(async () => true);
+			const { report } = await run(
+				[tool("bruno", async () => result(CONFLICT)), tool("postman", clean)],
+				undefined,
+				{ yes: false, interactive: true, confirm }
+			);
+			expect(report.status).toBe("fail");
+			expect(confirm).toHaveBeenCalledWith("Write 2 file(s) for postman?");
+			expect(clean).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	describe("--prefer", () => {
+		it("is handed to the comparison and to the write", async () => {
+			const workspace = vi.fn(async (_input: ToolingWorkspaceInput) => result());
+			await run([tool("bruno", workspace)], undefined, { prefer: "workspace" });
+			expect(workspace.mock.calls.map(([input]) => input.prefer)).toEqual(["workspace", "workspace"]);
+		});
+
+		it("is left out when it is not given", async () => {
+			const workspace = vi.fn(async (_input: ToolingWorkspaceInput) => result());
+			await run([tool("bruno", workspace)]);
+			expect(workspace.mock.calls.every(([input]) => !("prefer" in input))).toBe(true);
+		});
+	});
 });

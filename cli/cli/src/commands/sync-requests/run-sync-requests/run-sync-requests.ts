@@ -1,17 +1,16 @@
 /**
- * `holocron sync requests` — keeps each `tooling` provider's own workspace equal to the repo's request files.
+ * `holocron sync requests` — keeps each `tooling` provider's own workspace and the repo's request files in step, both ways.
  *
  * For each `tooling` provider the config names (or only `--to`) that has the optional `Tooling.workspace`, the command
  * reads the provider's `collectionFiles` / `envFiles` options and asks it first, as a dry run, how its files compare:
- * each is `new`, `changed`, `unchanged` or `removed`. The provider owns the folder and the layout (Bruno's is `.bruno/`
- * at the repo root), so this command knows no tool's name or path. With `--check` it stops there and fails when any
- * file is not `unchanged`; with `--dry-run` it prints the same and stops; otherwise it asks first (unless `--yes`;
- * without a terminal it refuses instead) and has the provider write. Nothing is asked when everything is in sync. A
- * provider with no `workspace`, or an entry with no `collectionFiles`, is a skipped row. What the conversion could not
- * carry across is listed under the provider's row and does not fail the run.
- *
- * Part 1 of `tech-bruno-workspace` is one way, the repo's files to the workspace, so a file edited in the workspace is
- * put back; the baseline that tells an edit from a change to the source comes with part 2.
+ * each is `new`, `changed`, `unchanged`, `removed` or `conflict`. The provider owns the folder, the layout and the
+ * record of the last sync (Bruno's is `.bruno/` at the repo root), so this command knows no tool's name or path. It
+ * decides which side to write from that record; a `conflict` is a pair whose two sides both changed, which fails the
+ * provider's row and writes nothing for it unless `--prefer source|workspace` settles it. With `--check` it stops after
+ * the comparison and fails when any file is not `unchanged`; with `--dry-run` it prints the same and stops; otherwise
+ * it asks first (unless `--yes`; without a terminal it refuses instead) and has the provider write. Nothing is asked
+ * when everything is in sync. A provider with no `workspace`, or an entry with no `collectionFiles`, is a skipped row.
+ * What the conversion could not carry across is listed under the provider's row and does not fail the run.
  */
 
 import { confirm } from "@inquirer/prompts";
@@ -48,7 +47,7 @@ const fileList = (value: unknown): string[] =>
 
 /** `2 new, 1 changed, 4 unchanged`: the states that occur, in a fixed order. */
 function tally(result: ToolingWorkspaceResult): string {
-	const states = ["new", "changed", "removed", "unchanged"] as const;
+	const states = ["new", "changed", "removed", "conflict", "unchanged"] as const;
 	return states
 		.map((state) => [state, result.files.filter((file) => file.state === state).length] as const)
 		.filter(([, count]) => count > 0)
@@ -58,6 +57,9 @@ function tally(result: ToolingWorkspaceResult): string {
 
 /** The files that are not `unchanged`. */
 const outOfDate = (result: ToolingWorkspaceResult) => result.files.filter((file) => file.state !== "unchanged");
+
+/** The files of a pair that both sides changed. */
+const conflicts = (result: ToolingWorkspaceResult) => result.files.filter((file) => file.state === "conflict");
 
 /** One provider to sync: the tool and the files it names. */
 interface Target {
@@ -72,6 +74,7 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	const print = input.print ?? ((line: string) => console.log(line));
 	const dryRun = Boolean(input.context.dryRun);
 	const check = Boolean(input.check);
+	const preferred = input.prefer ? { prefer: input.prefer } : {};
 	const { repoRoot } = input.context;
 	const finish = (rows: CheckRow[]): SyncRequestsReport => {
 		printCheckRows(rows, print);
@@ -147,13 +150,19 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	const plans = new Map<string, ToolingWorkspaceResult>();
 	for (const { tool, provider, collectionFiles, envFiles } of targets) {
 		try {
-			plans.set(provider, await tool.workspace({ collectionFiles, envFiles, repoRoot, dryRun: true }));
+			plans.set(
+				provider,
+				await tool.workspace({ collectionFiles, envFiles, repoRoot, dryRun: true, ...preferred })
+			);
 		} catch (err) {
 			rows.push(row(provider, "fail", describeError(err)));
 		}
 	}
-	const pending = [...plans.values()].reduce((sum, plan) => sum + outOfDate(plan).length, 0);
+	// A provider with a conflict is written to by no one: its row fails, and the rest go on.
+	const writable = (plan: ToolingWorkspaceResult) => conflicts(plan).length === 0;
+	const pending = [...plans.values()].reduce((sum, plan) => sum + (writable(plan) ? outOfDate(plan).length : 0), 0);
 	const planned = targets.filter((target) => plans.has(target.provider));
+	const toWrite = planned.filter((target) => writable(plans.get(target.provider) as ToolingWorkspaceResult));
 
 	const write = !dryRun && !check && pending > 0;
 	if (write && !input.yes) {
@@ -164,7 +173,7 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
-			`Write ${pending} file(s) for ${planned.map((t) => t.provider).join(", ")}?`
+			`Write ${pending} file(s) for ${toWrite.map((t) => t.provider).join(", ")}?`
 		);
 		if (!proceed) {
 			print(`  ${style.skip("cancelled; nothing was written")}`);
@@ -175,9 +184,9 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 	const listed: string[] = [];
 	for (const { tool, provider, collectionFiles, envFiles } of planned) {
 		let result = plans.get(provider) as ToolingWorkspaceResult;
-		if (write && outOfDate(result).length > 0) {
+		if (write && writable(result) && outOfDate(result).length > 0) {
 			try {
-				result = await tool.workspace({ collectionFiles, envFiles, repoRoot });
+				result = await tool.workspace({ collectionFiles, envFiles, repoRoot, ...preferred });
 			} catch (err) {
 				rows.push(row(provider, "fail", describeError(err)));
 				continue;
@@ -185,7 +194,16 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 		}
 		const issues = result.issues.map((issue) => `issue in ${issue.file}: ${issue.message}`);
 		const stale = outOfDate(result);
-		if (check && stale.length > 0) {
+		const clashes = conflicts(result);
+		if (clashes.length > 0) {
+			const notes = clashes.map((file) => `${file.path}: ${file.note ?? "both sides changed"}`);
+			rows.push(
+				row(provider, "fail", `${clashes.length} conflict(s), so nothing was written (${tally(result)})`, [
+					...notes,
+					...issues,
+				])
+			);
+		} else if (check && stale.length > 0) {
 			rows.push(
 				row(
 					provider,
@@ -200,7 +218,7 @@ export async function runSyncRequests(input: RunSyncRequestsInput): Promise<Sync
 			const verb = write ? "wrote" : "would write";
 			rows.push(row(provider, "ok", `${verb} ${stale.length} file(s) (${tally(result)})`, issues));
 		}
-		listed.push(...stale.map((file) => `${file.state.padEnd(7)} ${file.path}`));
+		if (clashes.length === 0) listed.push(...stale.map((file) => `${file.state.padEnd(7)} ${file.path}`));
 	}
 	const report = finish(rows.sort((a, b) => a.id.localeCompare(b.id)));
 	if (listed.length > 0) {

@@ -1837,12 +1837,18 @@ export interface Tooling extends ProviderIdentity {
 	export?(input: ToolingExportInput): Promise<ToolingExportResult>;
 
 	/**
-	 * Keep a workspace of this tool's own files, committed in the repo, equal to the repo's request files: the tool
-	 * opens the workspace in place and saves its edits there, where `export` only writes a throwaway copy. The provider
-	 * owns the folder (Bruno's is `.bruno/` at the repo root) and the layout, writes only there, and reports each file as `new`, `changed`,
-	 * `unchanged` or `removed` (a file it no longer generates), so a caller can check without writing. With
-	 * `input.dryRun` it converts and compares but writes and deletes nothing. Optional — a tool with no files of its
-	 * own omits it. Used by `holocron sync requests`.
+	 * Keep a workspace of this tool's own files, committed in the repo, in step with the repo's request files, both
+	 * ways: the tool opens the workspace in place and saves its edits there, where `export` only writes a throwaway
+	 * copy. The provider owns the folder (Bruno's is `.bruno/` at the repo root) and the layout, and records for each
+	 * pair of files what both sides looked like at the last sync (a baseline it commits beside the workspace). A run
+	 * compares each side with that baseline: only the request file changed, so the workspace is regenerated from it;
+	 * only the workspace changed, so the request file is regenerated from the workspace (what the request file cannot
+	 * hold stays in the workspace and is reported as an issue); both changed to different content, a `conflict`
+	 * that is written to neither side unless `input.prefer` names the winner. Each file is reported as `new`,
+	 * `changed`, `unchanged`, `removed` (a workspace file it no longer generates) or `conflict`, so a caller can check
+	 * without writing. With `input.dryRun` it converts and compares but writes and deletes nothing, and with a
+	 * `conflict` it writes nothing at all. Optional — a tool with no files of its own omits it. Used by
+	 * `holocron sync requests`.
 	 */
 	workspace?(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult>;
 }
@@ -1857,17 +1863,31 @@ export interface ToolingWorkspaceInput {
 	repoRoot: string;
 	/** Convert and compare, but write and delete nothing. */
 	dryRun?: boolean;
+	/**
+	 * Settles a `conflict` for this run: `source` regenerates the workspace from the request files, `workspace`
+	 * regenerates the request files from the workspace. Without it a conflict is reported and nothing is written.
+	 */
+	prefer?: ToolingWorkspaceSide;
 }
 
-/** How a file of the workspace compares with what {@link Tooling.workspace} generates from the repo's request files. */
-export type ToolingWorkspaceState = "new" | "changed" | "unchanged" | "removed";
+/** One of the two sides {@link Tooling.workspace} keeps equal: the repo's request files, or the tool's own workspace. */
+export type ToolingWorkspaceSide = "source" | "workspace";
+
+/**
+ * How a file compares with what {@link Tooling.workspace} would write: `new` is not on disk yet, `changed` differs,
+ * `unchanged` is equal, `removed` is on disk but no longer generated, `conflict` is a pair whose two sides both
+ * changed since the last sync (its `path` is the request file).
+ */
+export type ToolingWorkspaceState = "new" | "changed" | "unchanged" | "removed" | "conflict";
 
 /** One file of the workspace, as {@link Tooling.workspace} found it. */
 export interface ToolingWorkspaceFile {
 	/** The path relative to the repo root, with `/` separators. */
 	path: string;
-	/** `new` is not on disk yet, `changed` differs, `unchanged` is equal, `removed` is on disk but no longer generated. */
+	/** How it compares; see {@link ToolingWorkspaceState}. */
 	state: ToolingWorkspaceState;
+	/** For a `conflict`, what to do about it. */
+	note?: string;
 }
 
 /** What {@link Tooling.workspace} found, and wrote unless it was a dry run. */

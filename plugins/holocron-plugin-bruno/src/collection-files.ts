@@ -9,6 +9,8 @@ export interface CollectionFiles {
 	name: string;
 	/** Every file of the collection's folder, by path inside that folder, with `/` separators. */
 	files: Map<string, string>;
+	/** The path inside the folder of each environment, in the order the environments were given. */
+	environmentFiles: string[];
 	/** What the converter reported it could not carry across, one line each. */
 	issues: string[];
 }
@@ -77,12 +79,12 @@ export async function collectionFiles(collection: unknown, environments: unknown
 	);
 	writeItems((bruno.items ?? []) as BrunoItem[], "", files);
 	const taken = new Set<string>();
+	const environmentFiles: string[] = [];
 	for (const source of environments) {
 		const environment = await postmanToBrunoEnvironment(source);
-		files.set(
-			`environments/${uniqueName(safeName(environment.name), taken)}.yml`,
-			stringifyEnvironment(environment, { format: "yml" })
-		);
+		const file = `environments/${uniqueName(safeName(environment.name), taken)}.yml`;
+		environmentFiles.push(file);
+		files.set(file, stringifyEnvironment(environment, { format: "yml" }));
 	}
-	return { name, files, issues: (read.issues ?? []).map(describeIssue) };
+	return { name, files, environmentFiles, issues: (read.issues ?? []).map(describeIssue) };
 }

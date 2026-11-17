@@ -1,7 +1,7 @@
 import type { CheckRow } from "@theholocron/kyber/ui";
 
 import type { LoadedConfig } from "../../../config/index.js";
-import type { PluginLoader, RuntimeContext } from "../../../plugin/index.js";
+import type { PluginLoader, RuntimeContext, ToolingWorkspaceSide } from "../../../plugin/index.js";
 
 /** What {@link runSyncRequests} needs. */
 export interface RunSyncRequestsInput {
@@ -11,8 +11,10 @@ export interface RunSyncRequestsInput {
 	context: RuntimeContext;
 	/** Sync only for this provider. */
 	to?: string;
-	/** Compare only, and fail when any file is out of date. Never writes and never asks. */
+	/** Compare only, and fail when any file is out of date or in conflict. Never writes and never asks. */
 	check?: boolean;
+	/** Settles a pair whose two sides both changed for this run: `source` or `workspace`. Without it a conflict fails the row and writes nothing. */
+	prefer?: ToolingWorkspaceSide;
 	/** Write without asking. */
 	yes?: boolean;
 	/** Loads the `tooling` providers alone. Defaults to a loader over the config's `tooling` entry. */
