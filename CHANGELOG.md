@@ -1,3 +1,9 @@
+## [5.0.0-alpha.461](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.460...v5.0.0-alpha.461) (2026-11-17)
+
+### Features
+
+* **cli:** ✨ decide every command option for the interactive menu, and fail on drift ([#2301](https://github.com/theholocron/holocron/issues/2301)) ([5652d8b](https://github.com/theholocron/holocron/commit/5652d8b4a1510874f1057706349804373859daf4)), closes [#1052](https://github.com/theholocron/holocron/issues/1052)
+
 ## [5.0.0-alpha.460](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.459...v5.0.0-alpha.460) (2026-11-17)
 
 ### Bug Fixes
