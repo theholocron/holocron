@@ -2,8 +2,6 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-	createAlexignore,
-	createAlexrc,
 	createCommitMsg,
 	createDco,
 	createDependabot,
@@ -84,8 +82,6 @@ export function generateConfigFiles(input: RepoFilesInput): RepoFileEntry[] {
 	}
 
 	entries.push(
-		file(".alexrc.json", createAlexrc()),
-		file(".alexignore", createAlexignore()),
 		file(".yamllint.yml", createYamllint()),
 		file(".yamlignore", createYamlignore()),
 		file(".editorconfig", createEditorconfig()),

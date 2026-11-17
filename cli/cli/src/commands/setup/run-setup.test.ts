@@ -3100,7 +3100,7 @@ describe("runSetup", () => {
 		expect(joined).toMatch(/1 ok, 0 fail/);
 	});
 
-	it("writes .alexrc.json whenever source is available", async () => {
+	it("writes the config files whenever source is available", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
@@ -3130,11 +3130,10 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(written[".alexrc.json"]).toBeDefined();
-		const parsed = JSON.parse(written[".alexrc.json"]!);
-		expect(parsed.allow).toContain("hooks");
-		expect(parsed.allow).toContain("hook");
-		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		// The alex config is not written any more (#831): Sentinel reads the org's own allow-list.
+		expect(written[".alexrc.json"]).toBeUndefined();
+		expect(written[".alexignore"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write .editorconfig");
 		expect(step?.status).toBe("ok");
 
 		expect(written[".editorconfig"]).toBeDefined();
@@ -3987,7 +3986,7 @@ describe("runSetup", () => {
 		expect(content).toContain('      - dependency-name: "@x/a-client"');
 	});
 
-	it("dry-run does not write .alexrc.json", async () => {
+	it("dry-run does not write the config files", async () => {
 		let writeCalled = false;
 		const loaded = loadedFrom({
 			name: "demo",
@@ -4018,7 +4017,7 @@ describe("runSetup", () => {
 		});
 
 		expect(writeCalled).toBe(false);
-		const step = report.steps.find((s) => s.step === "write .alexrc.json");
+		const step = report.steps.find((s) => s.step === "write .editorconfig");
 		expect(step?.status).toBe("dry-run");
 	});
 

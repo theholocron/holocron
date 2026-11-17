@@ -9,13 +9,11 @@
  * programmatic API a local `alex` CLI invocation would use internally —
  * never a reimplementation of its rules.
  *
- * Config: this org's canonical `.alexrc.json`/`.alexignore` — read directly
+ * Config: this org's canonical alex config — read directly
  * from `@theholocron/cli`'s `ALEX_CONFIG`/`ALEX_IGNORE_PATTERNS` (the same
  * "one config, not N copies" reasoning `@theholocron/commitlint-config`
- * already established), not fetched per-repo via the Contents API. A
- * repo's own generated `.alexrc.json` is a synced copy of this, never a
- * genuine per-repo override (this repo's own `AGENTS.md`: "do not edit
- * manually").
+ * already established), not fetched per-repo via the Contents API. `holocron
+ * setup` no longer writes a per-repo copy (#831).
  *
  * Security boundary (D6-amended, `tech-sentinel-ci-runner.spec.md`):
  * reads each changed file's content on the PR's own head ref via

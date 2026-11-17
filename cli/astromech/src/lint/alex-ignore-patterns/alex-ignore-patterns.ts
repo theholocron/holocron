@@ -1,10 +1,6 @@
 /**
- * Glob-ish path patterns `alex` skips. Kept as a literal here rather than
- * importing `../templates/configs/alexjs/alexignore` directly — that file
- * (like `commit-msg`/`pre-push`) is deliberately extensionless, matching
- * the real filename `holocron setup` writes, which ECMAScript's own
- * module resolution (`moduleResolution: "nodenext"`) can't import across
- * a package boundary without an extension. Keep in sync with that file by
- * hand; it changes rarely.
+ * Glob-ish path patterns `alex` skips: the one copy of the list. It used to be mirrored by hand in an extensionless
+ * `alexignore` template that `holocron setup` wrote into each repo as `.alexignore`; setup no longer writes it (#831), so
+ * Sentinel's check and the Prettier ignore list read this.
  */
 export const ALEX_IGNORE_PATTERNS: string[] = [".github/*", "CHANGELOG.md", "LICENSE"];

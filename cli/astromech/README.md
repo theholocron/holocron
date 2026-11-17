@@ -283,7 +283,7 @@ config surface don't pull `@commitlint/*` in:
   checks skip exactly what each repo's own CI skips.
 
 The root entry also exports the config-file generators `holocron setup`
-writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
+writes (`createEditorconfig`, `createPrePush`, …) and
 `createHeader`.
 
 ## Repo validation — `@theholocron/astromech/repo-validation`

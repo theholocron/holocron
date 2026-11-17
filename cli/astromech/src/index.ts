@@ -132,10 +132,6 @@ export type { GroupJobReport, GroupOptions, GroupReport } from "./tasks/group/in
 export { runGroup } from "./tasks/group/index.js";
 export { matchNamespace } from "./tasks/match-namespace/index.js";
 export { type ExecFn, type RunLogger, runTask, type RunTaskInput, type RunTaskReport } from "./tasks/run/index.js";
-export {
-	createIgnoreConfig as createAlexignore,
-	createRcConfig as createAlexrc,
-} from "./templates/configs/alexjs/index.js";
 export { createConfig as createCommitMsg } from "./templates/configs/commit-msg/index.js";
 export { createConfig as createDco } from "./templates/configs/dco/index.js";
 export type { DependabotConfigOptions } from "./templates/configs/dependabot/index.js";
