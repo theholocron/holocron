@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { fakeLogger } from "@theholocron/observability/testing";
+import { describe, expect, it, vi } from "vitest";
 
+import { getLogger } from "../../../observability/logger/index.js";
 import { ProviderApiError } from "../../../plugin/index.js";
 import { classify403, formatStep, runStep } from "./run-step.js";
+
+vi.mock("../../../observability/logger/index.js", () => ({ getLogger: vi.fn(() => fakeLogger()) }));
 
 describe("runStep", () => {
 	it("returns dry-run status without calling body when dryRun is true", async () => {
@@ -58,6 +62,55 @@ describe("runStep", () => {
 		});
 		expect(result.status).toBe("fail");
 		expect(result.message).toBe("Server error");
+	});
+
+	it("adds what the provider said to a failing ProviderApiError, on one line with control characters gone", async () => {
+		const result = await runStep("monitoring", "step", false, async () => {
+			throw new ProviderApiError(
+				"Checkly POST /dashboards → 400",
+				400,
+				"header is\nrequired\u001b[31m and\r\nlong"
+			);
+		});
+		expect(result).toMatchObject({ status: "fail" });
+		expect(result.message).toBe("Checkly POST /dashboards → 400: header is required [31m and long");
+	});
+
+	it("cuts a long response body, keeping its start", async () => {
+		const result = await runStep("monitoring", "step", false, async () => {
+			throw new ProviderApiError("Checkly POST /dashboards → 400", 400, `START${"x".repeat(1000)}END`);
+		});
+		expect(result.message).toMatch(/^Checkly POST \/dashboards → 400: START/);
+		expect(result.message).toMatch(/…$/);
+		expect(result.message).not.toContain("END");
+	});
+
+	it("adds it to a plan-restriction skip and to a skipped status code too", async () => {
+		const plan = await runStep("source", "step", false, async () => {
+			throw new ProviderApiError("Forbidden", 403, "upgrade your plan");
+		});
+		expect(plan).toMatchObject({ status: "skip", reason: "plan", message: "Forbidden: upgrade your plan" });
+		const skipped = await runStep(
+			"source",
+			"step",
+			false,
+			async () => {
+				throw new ProviderApiError("exists", 422, "name taken");
+			},
+			{ skipCodes: [422] }
+		);
+		expect(skipped).toMatchObject({ status: "skip", message: "exists: name taken" });
+	});
+
+	it("keeps the provider's response text out of the log", async () => {
+		const log = fakeLogger();
+		vi.mocked(getLogger).mockReturnValue(log);
+		await runStep("monitoring", "step", false, async () => {
+			throw new ProviderApiError("Checkly POST /dashboards → 400", 400, "secret-looking response text");
+		});
+		const logged = JSON.stringify([...log.warn.mock.calls, ...log.info.mock.calls]);
+		expect(logged).toContain("Checkly POST /dashboards → 400");
+		expect(logged).not.toContain("secret-looking");
 	});
 
 	it("returns fail with String(err) when a non-Error value is thrown (line 68 false branch)", async () => {

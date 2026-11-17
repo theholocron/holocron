@@ -1,4 +1,4 @@
-import { errorMessage } from "@theholocron/misc-utils";
+import { describeError } from "@theholocron/kyber/ui";
 
 import type { DnsRecord, Monitoring, MonitoringStatusPageResult, PluginLoader } from "../../../plugin/index.js";
 import { runStep, type SetupStepResult } from "../run-step/index.js";
@@ -105,7 +105,7 @@ export async function statusPagesStep(
 					capability: "monitoring",
 					step: `dns ${r.name}`,
 					status: "fail",
-					message: errorMessage(err),
+					message: describeError(err),
 				});
 			}
 		}

@@ -26,7 +26,7 @@ import type { TasksConfig } from "@theholocron/astromech/config";
 import { holocronEnv } from "@theholocron/env-utils/lookup";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
-import { style, withSpinner } from "@theholocron/kyber/ui";
+import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
@@ -628,7 +628,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				capability: "vault",
 				step: "list",
 				status: "fail",
-				message: errorMessage(err),
+				message: describeError(err),
 			});
 		}
 		print(formatStep(steps[steps.length - 1]));
