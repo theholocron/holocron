@@ -71,6 +71,13 @@ jobs:
         with:
           task: lint:code
 
+      # `holocron run lint:code` runs turbo, which runs each package's eslint and nothing else, so actionlint (installed
+      # above) is run here, on the repo's workflows. It ran in the old `annotate` job; `!cancelled()` runs it even when
+      # eslint failed, so one run shows both.
+      - name: Run actionlint
+        if: ${{ !cancelled() }}
+        run: actionlint
+
       # prettier's check is the `format` action, not a workflow
       # of its own. It is called by path because the action is new and `theholocron/.github` is frozen, so no
       # remote copy of it exists; the path resolves in the repo that hosts the reusables, which is the only caller of
