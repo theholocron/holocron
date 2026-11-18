@@ -1,3 +1,13 @@
+## [5.0.0-alpha.473](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.472...v5.0.0-alpha.473) (2026-11-18)
+
+### Features
+
+* **monitoring:** ✨ declare a status page's footer, policy links and support link ([#2345](https://github.com/theholocron/holocron/issues/2345)) ([7183e87](https://github.com/theholocron/holocron/commit/7183e87038b3d66f2633503a93ccb6bcb0f1c193)), closes [#2344](https://github.com/theholocron/holocron/issues/2344)
+
+### Bug Fixes
+
+* **monitoring:** 🐛 read an empty assertion property from Checkly as none ([#2343](https://github.com/theholocron/holocron/issues/2343)) ([1bc78f2](https://github.com/theholocron/holocron/commit/1bc78f23fa0c4a308404e1be8ac2bbfb914147ef)), closes [#2342](https://github.com/theholocron/holocron/issues/2342)
+
 ## [5.0.0-alpha.472](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.471...v5.0.0-alpha.472) (2026-11-18)
 
 ### Bug Fixes
