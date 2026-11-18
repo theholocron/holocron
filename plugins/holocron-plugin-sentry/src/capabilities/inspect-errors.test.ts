@@ -126,4 +126,12 @@ describe("inspectSentryErrors", () => {
 		await inspectSentryErrors(client, () => alerts, ORG, { projects: ["gone"] });
 		expect(alerts.workflows.detectors).not.toHaveBeenCalled();
 	});
+
+	it("says so when the alert rules fail with something that is not an Error", async () => {
+		const found = await run({
+			projects: { holocron: { id: "1", slug: "holocron" } },
+			alertsError: "denied" as unknown as Error,
+		});
+		expect(found.alertsUnreadable).toBe("the alert rules could not be read");
+	});
 });

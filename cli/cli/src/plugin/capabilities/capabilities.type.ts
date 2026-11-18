@@ -1486,20 +1486,34 @@ export interface InspectErrorsInput {
 	projects: string[];
 }
 
+/** The organization {@link Errors.inspect} asked for. */
+export interface ErrorsOrgState {
+	/** The slug that was asked for. */
+	slug: string;
+	/** Whether the provider has an organization by that slug. */
+	exists: boolean;
+	/** Its display name, when it exists. */
+	name?: string;
+}
+
+/** One project {@link Errors.inspect} looked for. */
+export interface ErrorsProjectState {
+	/** The project slug that was asked for. */
+	slug: string;
+	/** Whether the project exists in the organization. */
+	exists: boolean;
+	/** Whether it has at least one client key (a DSN). Undefined when the project is missing. */
+	hasDsn?: boolean;
+	/** How many enabled alert rules watch its issues. Undefined when the project is missing or the rules could not be read. */
+	alertRules?: number;
+}
+
 /** The tracker as the provider holds it. Carries counts and booleans only: no DSN, key or token. */
 export interface ErrorsInspection {
-	/** The organization asked for: its slug, and whether the provider has it (with its display name when it does). */
-	org: { slug: string; exists: boolean; name?: string };
+	/** The organization asked for, and whether the provider has it. */
+	org: ErrorsOrgState;
 	/** One entry per requested project, in the order asked. */
-	projects: Array<{
-		slug: string;
-		/** Whether the project exists in the organization. */
-		exists: boolean;
-		/** Whether it has at least one client key (a DSN). Undefined when the project is missing. */
-		hasDsn?: boolean;
-		/** How many enabled alert rules watch its issues. Undefined when the project is missing or the rules could not be read. */
-		alertRules?: number;
-	}>;
+	projects: ErrorsProjectState[];
 	/** Why the alert rules could not be read (a token without the scope), when that is so. */
 	alertsUnreadable?: string;
 }
