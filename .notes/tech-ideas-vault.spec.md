@@ -194,7 +194,7 @@ low-sensitivity by choice. A repo that wants them private files them in a privat
 
 1. **The vault gets no git history of its own.** The issue is the record of anything worth keeping, and a repository inside iCloud Drive risks a corrupted `.git/` (see Decision). A scheduled commit of a separate repository is not wanted.
 2. **Council keeps its own small copy of the frontmatter helper** (`apps/council/src/frontmatter/`), not a bundle of `holocron-plugin-obsidian`'s helpers, so it stays one file Obsidian can load. It is installed by hand, as before.
-3. **A `dropped` note stays in the vault.** The state table already says it is kept so it is not re-proposed; nothing moves it, and `listNotes()` skips folders that start with `_`, so a later `_archive/` would simply not be read.
+3. **A `dropped` note stays in the vault.** The state table already says it is kept so it is not re-proposed; nothing moves it, and `listNotes()` skips folders that start with `_`, so a later `_archive/` would not be read.
 
 ## Open questions
 
