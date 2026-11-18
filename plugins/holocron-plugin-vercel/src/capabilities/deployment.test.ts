@@ -682,6 +682,18 @@ describe("VercelDeployment.latestDeployment and listDomains", () => {
 		expect(calls[0]?.url).toContain("projectId=sentinel");
 	});
 
+	it("leaves out the time when Vercel reports none", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { deployments: [{ id: "p", url: "p.vercel.app", readyState: "READY", target: "production" }] },
+			},
+		]);
+		const found = await deployment.latestDeployment("sentinel");
+		expect(found).toMatchObject({ id: "p", status: "ready" });
+		expect(found).not.toHaveProperty("createdAt");
+	});
+
 	it("is null with no production deployment", async () => {
 		const { deployment } = makeDeployment([{ status: 200, body: { deployments: [dpl("prev")] } }]);
 		expect(await deployment.latestDeployment("sentinel")).toBeNull();
