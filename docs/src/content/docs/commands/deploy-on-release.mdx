@@ -12,6 +12,8 @@ Deploys every workspace package whose own `holocron.config` declares `{ name: "d
 - the release is on the task's `channel` (default `main`, the stable release), and
 - the release changes the package, or one of its `workspace:*` dependencies, between `--from` and `--to`.
 
+Each package is compared from the commit it was last deployed at, not only from `--from`. A successful deploy moves a `deployed/<package>` tag (`@theholocron/sentinel` is `deployed/theholocron-sentinel`) to the release commit and pushes it, so when a release's deploy job fails, the next release deploys the package even if it changes nothing in it. A package with no tag yet, or one whose tag is not an ancestor of `--to`, is compared from `--from`, and the skip line then says `No deploy is recorded for it yet.` A tag that cannot be pushed is a warning, not a failed deploy. `--dry-run` writes no tag, and the job needs `contents: write`.
+
 It waits for npm to serve the release's new dependency versions, then runs `pnpm --filter <pkg> deploy`. A package that does not apply is skipped. A deploy that does not succeed exits non-zero.
 
 The shared `release` workflow runs this as its own `deploy` job after the release job; opt in with `deploy-on-release: true`.

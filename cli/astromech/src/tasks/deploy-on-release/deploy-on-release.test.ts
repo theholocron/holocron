@@ -16,6 +16,11 @@ const APP_DEPLOY: TasksConfig = {
 
 const OPTIONS = { cwd: "/repo", channel: "alpha", from: "old", to: "new" };
 
+/** The git subcommands `run` was asked for, in order. */
+function gitCalls(run: ReturnType<typeof fakeRun>): string[] {
+	return run.mock.calls.filter(([command]) => command === "git").map(([, args]) => args[0] ?? "");
+}
+
 /** `deployOnRelease` over the fake tree and clock, so nothing touches git, npm, pnpm, disk or time. */
 function deploy(
 	run: ReturnType<typeof fakeRun>,
@@ -41,8 +46,12 @@ describe("deployOnRelease", () => {
 			status: "ok",
 			results: [{ pkg: "@theholocron/app", status: "ok", message: "deployed." }],
 		});
-		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "npm", "npm", "pnpm"]);
-		expect(run).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
+		expect(gitCalls(run)).toEqual(["rev-parse", "diff", "tag", "push"]);
+		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "git", "npm", "npm", "pnpm", "git", "git"]);
+		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
+		expect(run).toHaveBeenCalledWith("git", ["tag", "--force", "deployed/theholocron-app", "new"], {
+			cwd: "/repo",
+		});
 		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "run", "deploy"], {
 			cwd: "/repo",
 			env: process.env,
@@ -131,7 +140,7 @@ describe("deployOnRelease", () => {
 
 		expect(report.status).toBe("skip");
 		expect(report.results[0]?.message).toContain("not deploying: the release changes nothing under");
-		expect(run).toHaveBeenCalledOnce(); // the diff only: no npm wait, no deploy
+		expect(gitCalls(run)).toEqual(["rev-parse", "diff"]); // no npm wait, no deploy, no marker
 	});
 
 	it("deploys when only a workspace dependency changed", async () => {
@@ -177,13 +186,13 @@ describe("deployOnRelease", () => {
 		const run = fakeRun();
 		const { report } = await deploy(run, { from: undefined });
 		expect(report.status).toBe("ok");
-		expect(run).not.toHaveBeenCalledWith("git", expect.anything(), expect.anything());
+		expect(gitCalls(run)).not.toContain("diff");
 	});
 
 	it("diffs to HEAD when no release commit is named", async () => {
 		const run = fakeRun();
 		await deploy(run, { to: undefined });
-		expect(run).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "old", "HEAD"], { cwd: "/repo" });
+		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "HEAD"], { cwd: "/repo" });
 	});
 
 	it("fails, without deploying, when the diff itself fails", async () => {
@@ -193,7 +202,7 @@ describe("deployOnRelease", () => {
 
 		expect(report.status).toBe("fail");
 		expect(report.results[0]?.message).toContain("git diff old new failed: bad revision");
-		expect(run).toHaveBeenCalledOnce();
+		expect(gitCalls(run)).toEqual(["rev-parse", "diff"]);
 	});
 
 	it("falls back to the exit status when a failed diff printed nothing", async () => {
@@ -280,7 +289,7 @@ describe("deployOnRelease", () => {
 
 		expect(report.status).toBe("ok");
 		expect(report.results[0]).toMatchObject({ status: "dry-run" });
-		expect(run).toHaveBeenCalledOnce(); // the diff only
+		expect(gitCalls(run)).toEqual(["rev-parse", "diff"]); // no wait, no deploy, no marker
 	});
 
 	it("diffs once for several deploying packages, and runs each one's deploy", async () => {
@@ -306,7 +315,7 @@ describe("deployOnRelease", () => {
 		);
 
 		expect(report.status).toBe("ok");
-		expect(run.mock.calls.filter(([command]) => command === "git")).toHaveLength(1);
+		expect(gitCalls(run).filter((sub) => sub === "diff")).toHaveLength(1);
 		const deployed = run.mock.calls.filter(([command]) => command === "pnpm").map(([, args]) => args[1]);
 		expect(deployed).toEqual(["@theholocron/app", "@theholocron/site"]);
 	});
@@ -342,6 +351,82 @@ describe("deployOnRelease", () => {
 			["@theholocron/app", "fail"],
 			["@theholocron/site", "ok"],
 		]);
+	});
+
+	it("recovers a missed deploy: diffs from the last deployed commit, so a later release that touches nothing in the app still deploys it", async () => {
+		// The release's own range (old..new) holds nothing for the app, but the app was last deployed at `deadbeef`.
+		const run = fakeRun({ marker: "deadbeef00" });
+		run.mockImplementation((command, args) => {
+			if (command === "git" && args[0] === "diff") {
+				const changed = args[2] === "deadbeef00" ? "packages/app/src/handler.ts\n" : "docs/x.md\n";
+				return { status: 0, stdout: changed, stderr: "" };
+			}
+			return fakeRun({ marker: "deadbeef00" })(command, args, {});
+		});
+
+		const { report } = await deploy(run);
+
+		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "deadbeef00", "new"], { cwd: "/repo" });
+		expect(report.status).toBe("ok");
+		expect(report.results[0]?.message).toBe("deployed.");
+		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "run", "deploy"], expect.anything());
+	});
+
+	it("skips an app whose recorded deploy is up to date with the release", async () => {
+		const run = fakeRun({ marker: "deadbeef00", changed: [] });
+
+		const { report } = await deploy(run);
+
+		expect(report.status).toBe("skip");
+		expect(report.results[0]?.message).toContain("since its last deploy (deadbee)");
+		expect(report.results[0]?.message).not.toContain("No deploy is recorded");
+		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
+		expect(gitCalls(run)).not.toContain("tag");
+	});
+
+	it("falls back to the previous release for an app with no recorded deploy, saying so, and records one once it deploys", async () => {
+		const skipped = await deploy(fakeRun({ changed: ["docs/x.md"] }));
+		expect(skipped.report.results[0]?.message).toContain("No deploy is recorded for it yet.");
+
+		const run = fakeRun();
+		const { report } = await deploy(run);
+		expect(report.status).toBe("ok");
+		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
+		expect(run).toHaveBeenCalledWith("git", ["push", "--force", "origin", "refs/tags/deployed/theholocron-app"], {
+			cwd: "/repo",
+		});
+	});
+
+	it("ignores a marker that is not an ancestor of the release and uses the previous release", async () => {
+		const run = fakeRun({ marker: "deadbeef00", markerAncestor: false });
+
+		const { report, lines } = await deploy(run);
+
+		expect(report.status).toBe("ok");
+		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
+		expect(lines.join("\n")).toContain("is not an ancestor of new; ignoring it");
+	});
+
+	it("records no deploy when the deploy fails, so the next release tries again", async () => {
+		const run = fakeRun({ deployStatus: 1 });
+
+		await deploy(run);
+
+		expect(gitCalls(run)).not.toContain("tag");
+		expect(gitCalls(run)).not.toContain("push");
+	});
+
+	it("warns, without failing the deploy, when the marker cannot be pushed", async () => {
+		const { report } = await deploy(fakeRun({ pushStatus: 1 }));
+
+		expect(report.status).toBe("ok");
+		expect(report.results[0]?.message).toContain("deployed, but couldn't push deployed/theholocron-app: denied");
+	});
+
+	it("writes no marker on a dry run", async () => {
+		const run = fakeRun();
+		await deploy(run, { dryRun: true });
+		expect(gitCalls(run)).not.toContain("tag");
 	});
 
 	it("keeps going, saying so, when one package's manifest won't load", async () => {

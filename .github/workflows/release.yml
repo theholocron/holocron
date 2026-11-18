@@ -293,7 +293,7 @@ jobs:
     # the release is already on npm, and this job re-runs on its own.
     if: ${{ inputs.deploy-on-release == true && inputs.dry-run != true && needs.release.outputs.commit != '' }}
     permissions:
-      contents: read
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -305,7 +305,8 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.commit }}
           fetch-depth: 0
-          persist-credentials: false
+          # The deploy records each success as a `deployed/<package>` tag (holocron#2330), which needs the job's token.
+          persist-credentials: true
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup

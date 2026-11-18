@@ -253,6 +253,15 @@ job after the release job (opt in with `deploy-on-release: true`), so a deploy
 is its own re-runnable check. A `deploy` task with `on: "release"`
 generates no workflow.
 
+Each package is compared from the commit it was last deployed at, not only from
+`from`: a successful deploy moves a `deployed/<package>` tag
+(`@theholocron/sentinel` is `deployed/theholocron-sentinel`) to the release
+commit and pushes it, so a release whose deploy job failed is made up by the next
+release, even one that touches nothing in the app. A package with no tag yet (or
+one whose tag is not an ancestor of `to`) falls back to `from`, and its skip line
+says `No deploy is recorded for it yet.` A tag that cannot be pushed is a warning,
+not a failed deploy. A dry run writes no tag.
+
 ## Development
 
 | Script               | Description                                 |
