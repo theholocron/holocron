@@ -1,3 +1,20 @@
+## [5.0.0-alpha.492](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.491...v5.0.0-alpha.492) (2026-11-18)
+
+### Bug Fixes
+
+* **github:** 🐛 read board items' pull requests in a second step, and say each GraphQL error once ([#2416](https://github.com/theholocron/holocron/issues/2416)) ([2d9031a](https://github.com/theholocron/holocron/commit/2d9031aadf3acad50816e1e981fbc9153d2c5e3c)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
+### Documentation
+
+* **specs:** 📚️ 📝 archive the Sentinel CI runner spec ([#2413](https://github.com/theholocron/holocron/issues/2413)) ([7f4cc85](https://github.com/theholocron/holocron/commit/7f4cc857dfe5b7046b138b9315c3fe2b26f56aef)), closes [#769](https://github.com/theholocron/holocron/issues/769)
+* **specs:** 📚️ 📝 archive the Sentinel deploy architecture spec ([#2415](https://github.com/theholocron/holocron/issues/2415)) ([7ffc605](https://github.com/theholocron/holocron/commit/7ffc605da6bf626d8c4d247b0754cd51033bd5ce)), closes [#945](https://github.com/theholocron/holocron/issues/945)
+* **specs:** 📚️ 📝 archive the Sentinel enforcement spec ([#2414](https://github.com/theholocron/holocron/issues/2414)) ([bddb4fa](https://github.com/theholocron/holocron/commit/bddb4fa6adb12975f2c3ea3cac0ba09ce395260c)), closes [#769](https://github.com/theholocron/holocron/issues/769)
+* **specs:** 📝 spec how the root's dependencies make every package affected ([#2417](https://github.com/theholocron/holocron/issues/2417)) ([e7d1410](https://github.com/theholocron/holocron/commit/e7d141042e91cd7c47965bd4182334119e177137)), closes [#2407](https://github.com/theholocron/holocron/issues/2407) [#1202](https://github.com/theholocron/holocron/issues/1202)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2418](https://github.com/theholocron/holocron/issues/2418)) ([008af91](https://github.com/theholocron/holocron/commit/008af917efe460191095c46189440ca208f637c2))
+
 ## [5.0.0-alpha.491](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.490...v5.0.0-alpha.491) (2026-11-18)
 
 ### Features
