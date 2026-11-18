@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	aggregateChecks,
-	CLOSING_PULL_REQUESTS,
+	CLOSING_QUERY,
 	type RawCheckRun,
 	type RawClosingPullRequest,
 	toBoardPullRequests,
@@ -117,6 +117,6 @@ describe("toBoardPullRequests", () => {
 	});
 
 	it("filters the check runs by the aggregate's name", () => {
-		expect(CLOSING_PULL_REQUESTS).toContain('checkName: "ci / Required checks"');
+		expect(CLOSING_QUERY).toContain('checkName: "ci / Required checks"');
 	});
 });
