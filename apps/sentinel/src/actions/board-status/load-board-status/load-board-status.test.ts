@@ -1,7 +1,7 @@
 import type { GitHubClient } from "@theholocron/github-client";
 import { describe, expect, it, vi } from "vitest";
 
-import { loadBoardStatus } from "./load-board-status.js";
+import { DEFAULT_BOARD_FACTORIES, loadBoardStatus } from "./load-board-status.js";
 import type { BoardStatusEnv, BoardStatusFactories } from "./load-board-status.type.js";
 
 const CLIENT = { graphql: {} } as unknown as GitHubClient;
@@ -102,5 +102,10 @@ describe("loadBoardStatus", () => {
 			reason: "acme/holocron declares no board with a built-in template",
 		});
 		expect(await load(ENV, factories(github({})))).toMatchObject({ ok: false });
+	});
+
+	it("makes the real projects provider over the installation's own client", () => {
+		const projects = DEFAULT_BOARD_FACTORIES.createProjects(CLIENT, "acme/widgets");
+		expect(projects).toMatchObject({ key: "projects", providerName: "github" });
 	});
 });
