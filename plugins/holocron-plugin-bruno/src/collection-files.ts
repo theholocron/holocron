@@ -3,6 +3,7 @@ import { stringifyCollection, stringifyEnvironment, stringifyFolder, stringifyRe
 
 import { describeIssue } from "./describe-issue.js";
 import { repairSigningBody } from "./repair-signing-body.js";
+import { withSecretReferences } from "./secret-references.js";
 
 /** What {@link collectionFiles} made of one collection. */
 export interface CollectionFiles {
@@ -63,9 +64,14 @@ function writeItems(items: BrunoItem[], dir: string, files: Map<string, string>)
  * collection folder: `opencollection.yml`, a `folder.yml` for each folder, one YAML file for each request and one
  * for each environment under `environments/`. Bruno's reader turns the collection into Bruno's own model and
  * rewrites its `pm.*` scripts to `bru.*` / `req.*`; Bruno's file writer then lays that model out, so the files are
- * what the app would have saved. A secret-type variable is written without its value.
+ * what the app would have saved. A secret-type variable is written without its value, unless `secretRefs` names it:
+ * it is then a plain variable that refers to its entry in the collection's `.env` (see `secret-references.ts`).
  */
-export async function collectionFiles(collection: unknown, environments: unknown[]): Promise<CollectionFiles> {
+export async function collectionFiles(
+	collection: unknown,
+	environments: unknown[],
+	secretRefs?: Record<string, string>
+): Promise<CollectionFiles> {
 	const read = await postmanToBruno(collection, { preserveScripts: false });
 	const bruno = read.collection;
 	repairSigningBody(bruno);
@@ -83,7 +89,7 @@ export async function collectionFiles(collection: unknown, environments: unknown
 	const taken = new Set<string>();
 	const environmentFiles: string[] = [];
 	for (const source of environments) {
-		const environment = await postmanToBrunoEnvironment(source);
+		const environment = withSecretReferences(await postmanToBrunoEnvironment(source), secretRefs);
 		const file = `environments/${uniqueName(safeName(environment.name), taken)}.yml`;
 		environmentFiles.push(file);
 		files.set(file, stringifyEnvironment(environment, { format: "yml" }));

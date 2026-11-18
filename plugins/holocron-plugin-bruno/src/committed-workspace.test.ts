@@ -11,9 +11,36 @@ import { comparableDocs, readDocs } from "./workspace-docs.js";
 /** This repository's root: its real request files and its committed `.bruno/` workspace are compared, not copies. */
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
+/** The `secretRefs` of the root `holocron.config.ts`. */
+const SECRET_REFS = { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" };
+
 describe("the committed .bruno/ workspace", () => {
+	it("refers each signing secret to its 1Password entry, and the request files keep it blank", () => {
+		const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf8");
+		for (const env of ["local", "dev", "prod"]) {
+			expect(read(`.bruno/collections/sentinel-webhook/environments/Sentinel (${env}).yml`)).toContain(
+				'name: webhookSecret\n    value: "{{process.env.SENTINEL_WEBHOOK_SECRET}}"'
+			);
+		}
+		expect(read(".bruno/collections/comlink-relay/environments/Comlink (local).yml")).toContain(
+			'name: sentrySecret\n    value: "{{process.env.COMLINK_SENTRY_SECRET}}"'
+		);
+		for (const file of [
+			"apps/sentinel/api/webhook.environment.json",
+			"apps/sentinel/api/webhook.environment.dev.json",
+			"apps/sentinel/api/webhook.environment.prod.json",
+			"apps/comlink/src/worker.environment.json",
+		]) {
+			expect(read(file)).not.toContain("process.env");
+		}
+	});
+
 	it("is what the repo's request files generate, so `holocron sync requests` has nothing to write", async () => {
-		const result = await new BrunoTooling({ repoRoot: REPO_ROOT, workspaceName: "The Holocron" }).workspace({
+		const result = await new BrunoTooling({
+			repoRoot: REPO_ROOT,
+			workspaceName: "The Holocron",
+			secretRefs: SECRET_REFS,
+		}).workspace({
 			collectionFiles: ["apps/sentinel/api/webhook.collection.json", "apps/comlink/src/worker.collection.json"],
 			envFiles: [
 				"apps/sentinel/api/webhook.environment.json",

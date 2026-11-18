@@ -1,6 +1,6 @@
 ---
 id: SPEC-0094
-status: draft
+status: proposed
 issue: theholocron/holocron#2322
 blocked-by: []
 related:
@@ -41,120 +41,147 @@ that runs the `op` CLI. Anyone who can edit the collection can then change what 
 Bruno's store with no way to clear them (its own README says so), and it is one maintainer with no releases. Reviewed from
 its README only (its source pages were unreachable).
 
-## Design
+## The spike (2026-11-18, the real Bruno desktop app)
 
-`holocron sync requests` is the wrong home: it writes files and reads no secret. A new command opens Bruno:
-`holocron open requests [--environment <layer>]` (a `workspace` command, `COMMAND_CONTEXTS` and `COMMAND_REGISTRY`
-entries, the menu decision in the same PR). It:
+Bruno's docs say `{{process.env.NAME}}` is read from a `.env` file at the collection or workspace root. A throwaway
+collection with `{{process.env.PROBE}}` answered the questions the design hung on:
 
-1. Works out which values the collection wants (see "Which name goes where").
-2. Reads the layer's Environment in memory and takes only those names (see "A concealed value").
-3. Refuses when Bruno is already running (see "Starting Bruno").
-4. Hands the values to Bruno by one of two routes, decided by the spike below.
-5. Prints names and the route, never a value.
+1. **`process.env` does not read the Bruno process's own environment.** Started with `PROBE=from-process` in its
+   environment, a request using `{{process.env.PROBE}}` failed with "variables that could not be resolved", and
+   `bru.getProcessEnv("PROBE")` was `undefined`. The route that starts Bruno with the values in its environment (once
+   "Route A") is dead.
+2. **A `.env` at the collection root works.** `{{process.env.PROBE}}` resolved in a header field, in an environment
+   variable whose value is `{{process.env.PROBE}}` (then read in a field as `{{probe}}`), in a script through
+   `bru.getEnvVar("probe")` (which returns the **resolved** value, not the placeholder, so the signing scripts that read
+   `bru.getEnvVar("webhookSecret")` need no change) and through `bru.getProcessEnv("PROBE")`.
+3. **A `.env` that is a symlink works** (`collection/.env` pointing at `../real.env`), read the same. So the secret stays in
+   `.holocron/.private/` and the private-directory rule has no exception.
+4. **Bruno stored a resolved value**, but only because the spike sent it in a header and the echo server returned it (Bruno's
+   request timeline in its IndexedDB held the request and the response). A signing request sends only the HMAC, so the
+   secret itself should not be stored. **Not tested; an unverified residual.**
+5. **Not answered**, and not needed now: which of a process variable and a `.env` wins when both exist (the process route
+   is dead), how `bru run` behaves, a workspace-level `.env`, and whether Bruno persists a value that only a script reads.
+6. **Considered and rejected:** mounting the Environment through 1Password's "Local .env file" destination (a named pipe;
+   beta, Mac and Linux only, one Environment per path, set up by hand in the app so could be forgotten, and unknown how Bruno
+   reads a pipe). The command could use it later as a source of the file; it is not the design.
+
+## Decision
+
+**A `.env` file, symlinked** (the spike's Route B, the only one left). `holocron open requests [--environment <layer>]`
+(a `workspace` command; `COMMAND_CONTEXTS`, `COMMAND_REGISTRY` and the menu decision in the same change) reads the
+values, writes them to a private file in `.holocron/.private/`, links `<collection>/.env` to it, starts Bruno in the
+foreground and removes the file and the links when Bruno ends.
 
 ### Which name goes where
 
 The collection's variable (`webhookSecret`) and the 1Password entry (`SENTINEL_WEBHOOK_SECRET`) have different names, and
-the Bruno plugin declares no tokens, so nothing maps one to the other yet. The mapping is one place, the committed
-environment itself: the secret variable's value is a reference, `{{process.env.SENTINEL_WEBHOOK_SECRET}}`, and the command
-reads the references out of the collection's environment files and looks up exactly those entry names in the layer's
-Environment. A secret variable with no reference is reported by name and filled by nobody; an entry the Environment lacks
-is a failing row naming it, so a request never goes out unsigned without the person being told.
+the Bruno plugin declares no tokens, so something has to map one to the other. The mapping is the `secretRefs` option of
+the `bruno` tooling provider in `holocron.config.ts` (genuine per-repo variance, declared once):
 
-The reference must not reach the other provider. The request files are the shared source, and Postman reads
-`pm.environment.get("webhookSecret")` as a plain value, so a `{{process.env...}}` string stored in the shared
-`webhook.environment.json` would be sent to Postman as the secret. The reference therefore lives only in the generated
-Bruno workspace (`.bruno/`), and the request files keep the blank value. How a workspace-only value survives
-`sync requests` is part of the spike (the baseline already leaves a setting only the workspace holds alone); if it cannot,
-the command supplies the reference itself when it opens Bruno and the committed files hold nothing.
+```ts
+["bruno", { secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" } }];
+```
+
+`sync requests` writes each named secret into the generated `.bruno/` environments as a reference, and the command reads
+the references back out of those files (the workspace is the one place the mapping reaches the command), so the committed
+files hold a reference, never a value.
+
+#### Answer to the former open question 8: a reference survives `sync requests` only if the sync writes it
+
+Two facts decided it, both checked in the code:
+
+- **Bruno's file format cannot hold a reference on a secret.** `parseEnvironment` drops the `value` of a variable with
+  `secret: true` (Bruno keeps a secret's value in its own store), and `stringifyEnvironment` never writes one. So a
+  secret variable cannot carry `{{process.env.NAME}}`, in the committed file or after Bruno saves it.
+- **The sync does not carry a workspace-only edit through on its own.** A request-file change regenerates the workspace
+  file (dropping a hand-added reference), and when neither side changed the pair is "in step" and left alone, so a
+  reference would never be added to the files already committed.
+
+So the reference is a **plain variable whose value is `{{process.env.NAME}}`**, which is also how Bruno's docs say to read a
+`.env` value, and the sync is taught about it in both directions (`plugins/holocron-plugin-bruno`, `secret-references.ts`):
+
+- Source to workspace: a secret named in `secretRefs` is written as that plain variable (`withSecretReferences()`, in
+  `collectionFiles()` and the environment pairs), and a workspace file already in step gets its references added without
+  any other byte changing (`healReferences()`, reported as a `changed` file so `--check` fails until it is committed).
+- Workspace to source: a variable whose value is exactly one `{{process.env.NAME}}` reads back as the **blank secret** it
+  came from (`environmentToSource()`), so the request files keep a blank secret and Postman never sees a reference. The
+  environment's comparison hash is unchanged by the reference, so no pair turns into a conflict.
+- A secret with no `secretRefs` entry stays a blank secret, and the command lists it as one nobody fills.
+
+The request files (`webhook.environment*.json`, `worker.environment.json`) are unchanged by this work.
+
+### Which values it reads
+
+The command asks the `tooling` provider what the workspace wants (`Tooling.open`, optional: the references found in the
+`.bruno/` environments, the `.env` path of each collection, how to start the tool and how to tell it is running; names and
+paths only, no value) and takes exactly those entry names from the layer's Environment, and nothing else. A name the
+Environment lacks, or holds blank, is a failing row naming it, so a request never goes out unsigned without the person
+being told. A secret variable with no reference is reported by name and filled by nobody.
 
 ### Starting Bruno
 
 Bruno keeps one running instance, and a second launch attaches to it without the new values, so a launch while it is
-running would use an old or empty secret, or another layer's. The command does not guess: it looks for a running Bruno
-first, refuses with a message that says to quit it, and never kills it. A second `open requests` started for a different
-layer while the first is open is the same case and is refused the same way. Two launches that start at the same moment
-race on that check, so the command takes a lock file in `.holocron/.private/` for the duration of the launch.
+running would use an old or empty secret, or another layer's. The command looks for a running Bruno first (the provider's
+`running` text against the process list), refuses with a message that says to quit it, and never kills it. Two launches that
+start at the same moment race on that check, so the command takes a lock file (`.holocron/.private/open-requests.lock`,
+holding its pid; a lock of a process that has ended is replaced) for the whole session.
 
-### Route A: the process environment
+The program is started **in the foreground** (`/Applications/Bruno.app/Contents/MacOS/Bruno <workspace>`; the `app` option
+sets another program, and a platform with no default must set it), not with `open -a`, which hands the launch to
+LaunchServices and returns at once. The values therefore live exactly as long as the Bruno process: until the person quits
+Bruno, or presses Ctrl-C in the terminal. Nothing here has been run against the real app (see "Unverified").
 
-Start the Bruno binary directly (not `open -a`, which does not pass the environment on macOS) with the values in its
-environment, through `superviseProcesses()`-style supervision like `holocron dev`. Nothing is written to disk by Holocron.
+### The values file and the links
 
-The child's environment is built, not inherited. It holds the values the command was asked to pass, and only what the app
-needs to run (`PATH`, `HOME`, `TMPDIR`, `USER`, `LANG`, the display and locale variables the platform requires), as a
-fixed list in one place. Every other variable of the calling shell stays out, because a collection script runs inside
-Bruno and can read its whole environment. For the same reason a declared secret name that the layer's Environment does not
-hold is never inherited from the shell: it is absent from the child, so a stale or wrong-layer value in the shell cannot
-sign a request.
-
-### Route B: a `.env` file
-
-Write the values to `<collection>/.env` (the file Bruno documents for `process.env`). This is an exception to the
-private-directory rule (`.holocron/.private/` holds files that carry secrets), because Bruno reads `.env` from the
-collection root and the spike has not shown it reads another path. A symlink from `<collection>/.env` to a file in
-`.holocron/.private/` would keep the secret inside the private directory and is the first thing the spike tries; if it
-works, Route B uses it and there is no exception.
-
-The file is made with the protections of `export tokens` (mode 0600, git-ignored, refused when the version control system
-does not say the path is ignored, never overwritten), but not with its cleanup. `finishCredentialsFile()` waits for an
-import and, when the command is not interactive, leaves the file on disk on purpose, which is wrong here: this file is
-the command's own, so it is removed in a `finally` and on `SIGINT`, `SIGTERM` and exit whether or not a terminal is
-attached.
-
-Nothing can run on `SIGKILL` or a crash, so the spec does not promise cleanup in that case. The file starts with a marker
-line naming this command. A later run that finds a file with the marker removes it (it is the command's own leftover, and
-says so); one without the marker is somebody else's and is refused, never overwritten. The value is in plaintext on disk
-for the length of the session, which Route A avoids, so B is the fallback only.
+- The file is `.holocron/.private/requests.env`, made with `createPrivateFile()` (mode 0600, set again on the open file,
+  refused when the path exists) after git confirms the path is ignored (`tracked` or `unknown` is a refusal); each line is
+  `dotenvLine(NAME, value)`, and a value dotenv cannot read back as written is a failing row, never a different value.
+- Each `<collection>/.env` is a relative symlink to it, made only after every place is known to be free or this command's
+  own leftover. Nothing is overwritten.
+- It does not use `finishCredentialsFile()` (which waits for a 1Password import and, with no terminal, leaves the file on
+  purpose): this file is the command's own, so it is removed in a `finally` and on `SIGINT`, `SIGTERM`, `SIGHUP` and exit,
+  whether or not a terminal is attached. The links are removed only while they still point at this file.
+- Nothing can run on `SIGKILL` or a crash, so there is no cleanup promise for them. The file starts with a marker line
+  naming the command; a later run removes a leftover that has the marker (and a link to the file) and refuses anything
+  without it. The values are in plaintext on disk for the length of the session.
+- On Windows it refuses (no enforced mode bits, and a link needs rights it may lack).
 
 ### A concealed value
 
-The secrets are concealed entries in the Environment. The rule in `AGENTS.md` for `probe --environment` is that a
-concealed value is never handed over, and `environmentTokens()` returns only the visible ones as `plain`. This command
-cannot work under that rule, so it is a deliberate, narrower exception and needs to be approved as one: the command reads
-the declared entries through `readEnvironmentEntries` (which carries `concealed`), only the names the collection's
-references list, only for a process the person starts on their own machine, never into a plugin or a log, and `AGENTS.md`
-records the exception beside the rule in the same pull request. If the exception is not accepted, the design is limited to
-visible values, which the Sentinel and Comlink secrets are not, and the work stops at the spike.
-
-## Open questions (the spike answers all of them)
-
-Bruno's docs say `{{process.env.NAME}}` is read from a `.env` file at the collection or workspace root. They do not say:
-
-1. Whether `process.env` also reads the Bruno process's own environment. This decides Route A against Route B.
-2. Whether the desktop app and `bru run` behave the same, and whether `bru run` loads the collection `.env` by itself.
-3. Whether a resolved value is written anywhere by Bruno, or cached beyond the session.
-4. Whether a script that reads the variable gets the resolved value. The signing scripts read `webhookSecret` with
-   `bru.getEnvVar` (which the Postman call `pm.environment.get` converts to). If Bruno resolves `{{process.env.X}}` only in
-   request fields and `getEnvVar` returns the literal placeholder, the request is signed with the placeholder. The fallback
-   is a script that reads `bru.getProcessEnv("SENTINEL_WEBHOOK_SECRET")`, which Postman does not have, so it would need the
-   request files to carry a call that works in both or the signing to move out of the shared script; settle this first.
-5. How a collection-root `.env` and a workspace-level `.env` combine when both exist.
-6. How the macOS app gets its environment when started from a terminal, which Route A relies on.
-7. Whether Bruno reads a `.env` that is a symlink (Route B).
-8. Whether a reference stored only in the generated `.bruno/` files is kept by `sync requests` (see "Which name goes where").
-
-The spike: a throwaway collection with `{{process.env.PROBE}}`, started three ways (process environment, collection
-`.env`, workspace `.env`), looking at what Bruno resolves in a field and in a script, and at its store and the collection
-folder afterwards. Record the answer here before any code.
+The secrets are concealed entries in the Environment. The rule in `AGENTS.md` for `probe --environment` is that a concealed
+value is never handed over, and `environmentTokens()` returns only the visible ones as `plain`. This command cannot work
+under that rule, so it is a deliberate, narrower exception, **approved by the maintainer** and recorded in `AGENTS.md`
+beside the rule in the same change: the command reads the declared entries through `readEnvironmentEntries` (which carries
+`concealed`), takes only the names the workspace's references list (every other entry is dropped before the function
+returns), does so only for a process the person starts on their own machine, and never hands a value to a plugin, a log or
+a row. `readEntryValues()` is the one place the exception lives.
 
 ## Security
 
 - The values come from 1Password through the credentials path that already exists; no new token, no new service account.
-- Only names the collection's references list are read and passed; a value is never printed, logged or returned (the probe
-  scrubber applies). The concealed-value exception above is the only place a value leaves the Environment's memory.
-- Bruno starts with a built environment, never the shell's.
-- Route B's file follows the private-file rules except its location, which is the exception stated above unless the
-  symlink works; the committed files hold a reference, never a value.
-- `--dry-run` lists the names that would be passed and starts nothing.
+- Only names the workspace's references list are read and written; a value is never printed, logged or returned. The
+  concealed-value exception above is the only place a value leaves the Environment's memory.
+- The values file follows the private-file rules and lives in the private directory; the symlink in the collection folder
+  is ignored by the existing `.env` rule and holds no secret itself.
+- The committed files hold a reference, never a value; the request files hold a blank.
+- `--dry-run` lists the names that would be filled and starts nothing; without `--yes` the command asks first (and refuses
+  without a terminal).
+
+## Unverified
+
+Built and tested with injected collaborators, because the author could not run Bruno or 1Password:
+
+- That the Bruno binary accepts the workspace folder as its argument and opens it, and that the foreground process stays
+  until the person quits (so that cleanup is tied to the session). If Bruno hands off and exits at once, the file is removed
+  while Bruno is still open, and the program or its arguments need adjusting (`app` option, `ToolingOpenPlan.launch`).
+- That a secret stored by Bruno after a signing request holds only the HMAC and not the secret (spike point 4).
+- That Bruno reads a `.env` that appears after the workspace is open, which the command avoids by writing it before launch.
 
 ## Done when
 
-- The spike's answers are in this spec and one route is chosen.
-- `holocron open requests` starts Bruno with the secrets, with tests for the mapping from references to entry names, the
-  built environment (nothing inherited, a missing entry never filled from the shell), the running-Bruno refusal, the
-  cleanup paths of Route B (interactive and not) and the stale-file rule, and a run with nothing to fill.
+- `holocron open requests` starts Bruno with the secrets, with tests for the mapping from references to entry names, a
+  missing entry, a run with nothing to fill, the running-Bruno refusal, the lock, the marker and stale-file rule, the
+  cleanup paths (success, failure, signal) and `--dry-run`.
 - The committed Bruno environments name their variables, the request files stay unchanged for Postman, and
   `sync requests --check` stays clean.
 - `AGENTS.md` records the command and the concealed-value exception; `apps/sentinel/README.md` and

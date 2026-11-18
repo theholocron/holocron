@@ -9,6 +9,7 @@ import { type Baseline, BASELINE_FILE, type BaselinePair, readBaseline, serializ
 import { collectionFiles } from "./collection-files.js";
 import { stripVersion, withVersion } from "./collection-version.js";
 import { formatJson } from "./format-json.js";
+import { healReferences, withSecretReferences } from "./secret-references.js";
 import { comparableDocs, DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 import { canonicalJson, environmentToSource, hashOf, keepOriginal, workspaceToSource } from "./workspace-to-source.js";
 
@@ -49,6 +50,11 @@ export interface SyncWorkspaceInput {
 	 * date; it is brought up to date whenever a run is not a dry run.
 	 */
 	version?: string;
+	/**
+	 * Secret variable name to the `.env` entry it is read from. A named secret is written as a plain variable whose
+	 * value refers to the entry (`secret-references.ts`); the request file keeps it blank.
+	 */
+	secretRefs?: Record<string, string>;
 }
 
 /** What {@link syncWorkspace} found. */
@@ -226,8 +232,13 @@ function requestFiles(files: Map<string, string>): Map<string, string> {
 }
 
 /** An environment's file text and the `{ name, values }` it carries, from the request file's side. */
-async function carriedEnvironment(json: unknown): Promise<{ text: string; canon: string }> {
-	const text = stringifyEnvironment(await postmanToBrunoEnvironment(json), { format: "yml" });
+async function carriedEnvironment(
+	json: unknown,
+	secretRefs?: Record<string, string>
+): Promise<{ text: string; canon: string }> {
+	const text = stringifyEnvironment(withSecretReferences(await postmanToBrunoEnvironment(json), secretRefs), {
+		format: "yml",
+	});
 	return { text, canon: canonicalJson(environmentToSource(text, "the environment")) };
 }
 
@@ -302,7 +313,8 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 				? undefined
 				: await collectionFiles(
 						c.json,
-						environmentsPresent.map((env) => env.json)
+						environmentsPresent.map((env) => env.json),
+						input.secretRefs
 					).catch((err: unknown) => {
 						throw new Error(`${c.source}: ${(err as Error).message}`, { cause: err });
 					});
@@ -420,7 +432,8 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 			generated ??
 			(await collectionFiles(
 				EMPTY_COLLECTION,
-				environmentsPresent.map((env) => env.json)
+				environmentsPresent.map((env) => env.json),
+				input.secretRefs
 			));
 		const mapped = new Set<string>();
 		let index = 0;
@@ -437,7 +450,7 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 			mapped.add(file);
 			const workspacePath = `${folder}/${file}`;
 			const now = current.get(file);
-			const carried = env.json === undefined ? undefined : await carriedEnvironment(env.json);
+			const carried = env.json === undefined ? undefined : await carriedEnvironment(env.json, input.secretRefs);
 			const envSourceHash = carried ? hashOf(carried.canon) : "";
 			const envDirection = decide({
 				sourcePresent: carried !== undefined,
@@ -463,14 +476,21 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 				plan.conflicts += 1;
 				plan.files.push({ path: env.source, state: "conflict", note: conflictNote("The environment") });
 			} else {
-				plan.files.push({ path, state: "unchanged" });
+				// A workspace file already in step still gets its references: nothing else would ever add them.
+				// Only a pair with both sides present gets here (a missing workspace file is made from the source).
+				const healed = healReferences(now as string, input.secretRefs);
+				plan.files.push({ path, state: healed === now ? "unchanged" : "changed" });
+				if (healed !== now) {
+					plan.write(path, healed);
+					finalText = healed;
+				}
 				if (envDirection === "toSource") {
 					const fromWorkspace = environmentToSource(now as string, workspacePath);
 					if (carried === undefined || canonicalJson(fromWorkspace) !== carried.canon) {
 						const text = formatJson({ ...(isObject(env.json) ? env.json : {}), ...fromWorkspace });
 						plan.files.push({ path: env.source, state: env.json === undefined ? "new" : "changed" });
 						plan.write(env.source, text);
-						const rewritten = await carriedEnvironment(JSON.parse(text) as unknown);
+						const rewritten = await carriedEnvironment(JSON.parse(text) as unknown, input.secretRefs);
 						finalEnvHash = hashOf(rewritten.canon);
 						if (rewritten.text !== now) {
 							plan.issues.push({
