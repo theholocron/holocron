@@ -190,12 +190,12 @@ The note's text becomes the issue body, so an idea filed in Holocron's repo is p
 low-sensitivity by choice. A repo that wants them private files them in a private repo; the command only reads
 `ideas.dir` and the repo's `issues` provider.
 
+## Decisions on the open questions
+
+1. **The vault gets no git history of its own.** The issue is the record of anything worth keeping, and a repository inside iCloud Drive risks a corrupted `.git/` (see Decision). A scheduled commit of a separate repository is not wanted.
+2. **Council keeps its own small copy of the frontmatter helper** (`apps/council/src/frontmatter/`), not a bundle of `holocron-plugin-obsidian`'s helpers, so it stays one file Obsidian can load. It is installed by hand, as before.
+3. **A `dropped` note stays in the vault.** The state table already says it is kept so it is not re-proposed; nothing moves it, and `listNotes()` skips folders that start with `_`, so a later `_archive/` would not be read.
+
 ## Open questions
 
-1. Does the vault get its own git history, for every draft and not only what is filed? It would be a separate small
-   repository committed on a schedule, with its git directory outside iCloud. It is independent of the filing flow, so it
-   can be decided after part 1.
-2. Whether Council bundles the pure helpers of `holocron-plugin-obsidian` (it must stay one file Obsidian can load) or
-   keeps its own small copy of the frontmatter patch. How it is installed (by hand, or through BRAT) is unchanged.
-3. Whether a `dropped` note stays in the vault, or moves to an `_archive/` folder.
-4. Whether `ideas sync` stays a command run by hand, or also runs on a schedule on a Mac.
+1. Whether `ideas sync` stays a command run by hand, or also runs on a schedule on a Mac.
