@@ -1,3 +1,9 @@
+## [5.0.0-alpha.479](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.478...v5.0.0-alpha.479) (2026-11-18)
+
+### Features
+
+* **monitoring:** ✨ 📈 ping a heartbeat from the scheduled workflows ([#2363](https://github.com/theholocron/holocron/issues/2363)) ([1d43fa3](https://github.com/theholocron/holocron/commit/1d43fa35f4269c1872acbdefb599f3b4e20cb7bd)), closes [#2359](https://github.com/theholocron/holocron/issues/2359) [#2302](https://github.com/theholocron/holocron/issues/2302)
+
 ## [5.0.0-alpha.478](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.477...v5.0.0-alpha.478) (2026-11-18)
 
 ### Features
