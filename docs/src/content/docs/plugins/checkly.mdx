@@ -12,7 +12,7 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <CapabilitiesTable rows={[{ capability: "monitoring", token: "HOLOCRON_CHECKLY_TOKEN (checkly)" }]} />
 
-Only API checks and dashboards are managed. Browser checks and heartbeats are out of scope until a real consumer needs them.
+Only API checks, dashboards, status pages and heartbeats are managed. Browser checks are out of scope until a real consumer needs them.
 
 ## Config
 
@@ -81,7 +81,28 @@ heartbeats: [{ name: "check-tokens", period: 1, periodUnit: "days", grace: 2, gr
 
 Checkly lists a heartbeat among the other checks, so an alert channel subscribes it with the rest (`ensureAlertChannel`), and a heartbeat's `alertChannels` routes it like a check's.
 
-The **ping URL is a credential**: anyone holding it can fake a success. Checkly returns it on every read, not only on create, but the CLI hands it over once, when `holocron setup` makes the heartbeat. The CLI cannot write to 1Password, so the URL goes to the private import file `.holocron/.private/.credentials` as `HOLOCRON_HEARTBEAT_<NAME>=<url>` (the name upper-snake-cased), the way `export tokens` does: mode 0600, never overwritten, deleted once you have imported it (or left, with a warning, when there is no terminal), and never printed, logged or written to a terminal or a redirected file. Import it into the `ci` layer's Environment and sync it to the repository only with a `repo.secrets.sync` entry; see [Environment variables](/holocron/environment-variables/). `--dry-run` makes nothing and writes no file. A ping step in each scheduled workflow is a follow-up.
+The **ping URL is a credential**: anyone holding it can fake a success. Checkly returns it on every read, not only on create, but the CLI hands it over once, when `holocron setup` makes the heartbeat. The CLI cannot write to 1Password, so the URL goes to the private import file `.holocron/.private/.credentials` as `HOLOCRON_HEARTBEAT_<NAME>=<url>` (the name upper-snake-cased), the way `export tokens` does: mode 0600, never overwritten, deleted once you have imported it (or left, with a warning, when there is no terminal), and never printed, logged or written to a terminal or a redirected file. Import it into the `ci` layer's Environment and sync it to the repository only with a `repo.secrets.sync` entry; see [Environment variables](/holocron/environment-variables/). `--dry-run` makes nothing and writes no file.
+
+### Pinging from a workflow
+
+A scheduled workflow ends with a step that reads the secret into `PING_URL` through `env` (never into the script text), and does nothing, with a notice, when it is unset, so the workflow runs before the secret exists. It masks the URL, calls `curl -fsS --retry 3 --max-time 10`, and turns a failed ping into a warning, never a failed job. It is the last step, so only a run that got that far pings: a red run and a run that never started are both noticed.
+
+```yaml
+- name: Ping the heartbeat
+  env:
+    PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_CHECK_TOKENS }}
+  run: |
+    if [ -z "$PING_URL" ]; then
+      echo "::notice::HOLOCRON_HEARTBEAT_CHECK_TOKENS is not set, so no heartbeat was sent."
+      exit 0
+    fi
+    echo "::add-mask::$PING_URL"
+    curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."
+```
+
+GitHub scopes a secret to a repository or an Environment, never to one workflow, so the URLs, held as repository secrets (`repo.secrets.sync` with `scope: "repo"`), are readable by every workflow of the repository that runs with secrets. What that exposes is bounded: someone with that access could mask a missed run, and read nothing else. An Actions Environment limited to the protected branches is the stricter choice if that matters more.
+
+The Holocron repository declares four, tagged `scheduled`: `check-tokens` and `doctor-tokens` (period 1 day, grace 6 hours) and `sync-specs` and `reconcile-projects` (period 1 hour, grace 2 hours, because GitHub delays and sometimes drops scheduled runs). To add one, declare it, add its secret name to `repo.secrets.sync`, add the step to the workflow's source in `ci/workflows/`, and run `holocron setup`, import the URL into the `ci` Environment and run `holocron sync secrets --env ci`.
 
 `holocron doctor monitoring` has a row for the heartbeats: each declared one must exist with the declared period, grace and (when stated) tags; heartbeats the account holds beyond the config are an `info` row, by name.
 

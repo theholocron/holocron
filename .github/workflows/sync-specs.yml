@@ -43,6 +43,9 @@ on: # yamllint disable-line rule:truthy
       GH_TOKEN:
         description: Fallback for HOLOCRON_SYNC_TOKEN.
         required: false
+      HOLOCRON_HEARTBEAT_SYNC_SPECS:
+        description: The ping URL of the `sync-specs` heartbeat. Without it the run sends none.
+        required: false
 
 jobs:
   sync-specs:
@@ -149,3 +152,19 @@ jobs:
           else
             gh pr merge "$BRANCH" --auto --squash
           fi
+
+      # Tells Checkly this run finished (#2359, the `sync-specs` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. Not for a dry run, nor when there is no Discord token (the job did nothing).
+      # A no-op until the secret exists; the URL is a credential: it goes in through `env` only, is masked, and a failed
+      # ping never fails the job.
+      - name: Ping the heartbeat
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_SYNC_SPECS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_SYNC_SPECS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

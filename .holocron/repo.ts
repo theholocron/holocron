@@ -75,6 +75,20 @@ export default {
 					"SENTINEL_GITHUB_APP_PRIVATE_KEY",
 				],
 			},
+			// The heartbeats' ping URLs (#2359), one per scheduled workflow, written by `holocron setup` to the `ci` layer's
+			// import file. A repository secret: GitHub scopes a secret to a repository or an Environment, never to one
+			// workflow, so every workflow of this repo that runs with secrets can read them. Someone with that access could
+			// only mask a missed run (a URL accepts a ping and shows nothing), which is why no Environment is used.
+			{
+				layer: "ci",
+				scope: "repo",
+				keys: [
+					"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
+					"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
+					"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
+					"HOLOCRON_HEARTBEAT_SYNC_SPECS",
+				],
+			},
 			{
 				layer: "ci",
 				keys: [

@@ -260,8 +260,10 @@ the new checks open incidents on the page without posting their failures to `#up
   `HOLOCRON_HEARTBEAT_<NAME>`, handed over the same way. GitHub scopes a secret to a repository or an Environment, never
   to one workflow, so a repository secret is readable by every workflow of the repo that runs with secrets. What that
   exposes is bounded (someone with that access could mask a missed run, and read nothing else), and no workflow reads a
-  ping URL in this change. The follow-up that wires the ping must decide the scope before it syncs a URL: an Actions
-  Environment limited to the protected branches is the stricter choice, and the hand-off here does not depend on it.
+  ping URL in this change. The follow-up (#2359) chose a repository secret (`repo.secrets.sync`, `scope: "repo"`) over an Actions
+  Environment limited to the protected branches, which is the stricter choice, because a leaked URL can only mask a missed
+  run; the hand-off here does not depend on it. That follow-up declared `check-tokens`, `doctor-tokens`, `sync-specs` and
+  `reconcile-projects` and added a ping step on success to each workflow's source.
   The config holds names only.
 - The CLI cannot write to 1Password, so the import file is the hand-off in both cases.
 
@@ -307,7 +309,6 @@ config no longer lists (it stays active until removed by hand), or another dashb
 ## Not decided / follow-ups
 
 - Mirroring an incident's text and updates to Discord (above).
-- A ping step in each scheduled workflow, the first declared heartbeats, and the scope of their secret.
 - A doctor row for an undeclared check that carries a declared component's tag.
 - Status page theming and a logo.
 - Subscribers (email) are not declared: people subscribe themselves.

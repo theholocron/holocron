@@ -32,6 +32,9 @@ on: # yamllint disable-line rule:truthy
       SENTINEL_APP_PRIVATE_KEY:
         description: The old name of SENTINEL_GITHUB_APP_PRIVATE_KEY, read when the new one is not set.
         required: false
+      HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS:
+        description: The ping URL of the `reconcile-projects` heartbeat. Without it the run sends none.
+        required: false
 
 jobs:
   reconcile-projects:
@@ -91,3 +94,17 @@ jobs:
           HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           command: doctor project
+
+      # Tells Checkly this run finished (#2359, the `reconcile-projects` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job.
+      - name: Ping the heartbeat
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

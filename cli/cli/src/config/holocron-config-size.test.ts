@@ -13,9 +13,9 @@ import { describe, expect, it } from "vitest";
  * 220 for the `tooling` provider, which names the apps' request files (#2172), and to 230 for the environment files
  * Sentinel's requests gained (a local, a dev and a prod one), and to 260 for the `monitoring` provider (#2302): its docs check,
  * dashboard and status page span the apps, so they are declared at the root and not in an app's config, and to 270 for the
- * dashboard's description and domain (#2339), and to 280 for the status page's footer and links (#2344).
+ * dashboard's description and domain (#2339), and to 280 for the status page's footer and links (#2344), and to 320 for the four scheduled workflows' heartbeats (#2359).
  */
-const MAX_LINES = 280;
+const MAX_LINES = 320;
 
 const CONFIG = fileURLToPath(new URL("../../../../holocron.config.ts", import.meta.url));
 
