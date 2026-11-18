@@ -249,7 +249,7 @@ checkout+install+run shape as today.
 
 ## Update: a cost tension surfaced (2026-10-06)
 
-Discussing Sentinel's hosting-cost problem (`.notes/tech-sentinel-deploy-architecture-reconsideration.spec.md`,
+Discussing Sentinel's hosting-cost problem (`docs/wiki/specifications/tech-sentinel-deploy-architecture-reconsideration.spec.md`,
 issue #945) surfaced a direct conflict with this spec's own design that
 wasn't visible when it was written: Vercel's Active-CPU billing is driven
 by exactly the work Bucket 1 keeps centralized in Sentinel (real
