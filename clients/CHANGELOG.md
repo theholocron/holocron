@@ -1,3 +1,9 @@
+## [1.58.0-alpha.43](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.42...clients-v1.58.0-alpha.43) (2026-11-18)
+
+### Features
+
+* **notifications:** 🎨 custom server emoji for a forum's default and starter reactions ([#2409](https://github.com/theholocron/holocron/issues/2409)) ([285da03](https://github.com/theholocron/holocron/commit/285da0319ae75ce8bb16ac118cd15501f5ad0088)), closes [#2035](https://github.com/theholocron/holocron/issues/2035)
+
 ## [1.58.0-alpha.42](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.41...clients-v1.58.0-alpha.42) (2026-11-18)
 
 ### Features
