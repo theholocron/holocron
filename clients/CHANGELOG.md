@@ -1,3 +1,13 @@
+## [1.58.0-alpha.41](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.40...clients-v1.58.0-alpha.41) (2026-11-18)
+
+### Bug Fixes
+
+* **vitest-config:** 🐛 leave src/testing.ts out of the library bundle's coverage ([#2371](https://github.com/theholocron/holocron/issues/2371)) ([5cd42f7](https://github.com/theholocron/holocron/commit/5cd42f74f46b6bbd026b9c34d69d962fc44271f0)), closes [#1347](https://github.com/theholocron/holocron/issues/1347)
+
+### Documentation
+
+* **monitoring:** 📚️ 📝 a status page is served at <slug>.checkly-status-page.com ([#2337](https://github.com/theholocron/holocron/issues/2337)) ([1ce4b11](https://github.com/theholocron/holocron/commit/1ce4b11d683a0bf729271e44e74ce559724375f5))
+
 ## [1.58.0-alpha.40](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.39...clients-v1.58.0-alpha.40) (2026-11-17)
 
 ### Features
