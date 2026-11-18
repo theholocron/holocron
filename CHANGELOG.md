@@ -1,3 +1,14 @@
+## [5.0.0-alpha.491](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.490...v5.0.0-alpha.491) (2026-11-18)
+
+### Features
+
+* **notifications:** 🎨 custom server emoji for a forum's default and starter reactions ([#2409](https://github.com/theholocron/holocron/issues/2409)) ([285da03](https://github.com/theholocron/holocron/commit/285da0319ae75ce8bb16ac118cd15501f5ad0088)), closes [#2035](https://github.com/theholocron/holocron/issues/2035)
+
+### Documentation
+
+* **specs:** 📚️ 📝 settle the Sentinel check names spec as accepted ([#2411](https://github.com/theholocron/holocron/issues/2411)) ([1d1dd79](https://github.com/theholocron/holocron/commit/1d1dd79dcf9b0f7dfde9abc1489caa335143978e)), closes [#2036](https://github.com/theholocron/holocron/issues/2036)
+* **specs:** 📝 decide the open questions of the flat task vocabulary spec ([#2410](https://github.com/theholocron/holocron/issues/2410)) ([1f600b6](https://github.com/theholocron/holocron/commit/1f600b62787f64d7b0de650e6faa8bab0b15155d)), closes [#1262](https://github.com/theholocron/holocron/issues/1262) [#1478](https://github.com/theholocron/holocron/issues/1478)
+
 ## [5.0.0-alpha.490](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.489...v5.0.0-alpha.490) (2026-11-18)
 
 ### Features
