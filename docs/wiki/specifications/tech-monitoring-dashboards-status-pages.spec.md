@@ -1,6 +1,6 @@
 ---
 id: SPEC-0093
-status: accepted
+status: archived
 issue: theholocron/holocron#2302
 blocked-by: []
 related:
@@ -312,5 +312,5 @@ config no longer lists (it stays active until removed by hand), or another dashb
 
 - Mirroring an incident's text and updates to Discord (above).
 - A doctor row for an undeclared check that carries a declared component's tag.
-- Status page theming and a logo.
+- Status page theming. (The logo, favicon and link shipped in #2375.)
 - Subscribers (email) are not declared: people subscribe themselves.
