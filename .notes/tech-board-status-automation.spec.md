@@ -61,8 +61,8 @@ applying it twice changes nothing. Blocked still wins, because `planReconcile()`
    `closed`) and on the aggregate `check_run` reads the pull request and the issues it closes from the API (never the
    payload) and applies the same function at once. It needs the same env as role sync and the PR feed, is a quiet `skipped`
    when not configured, and shares no state with the hourly run. The GitHub App needs the organization projects
-   permission (a human step, with the permission list in the App manifest). Sentinel production is down (#1100), so this
-   fires only where an instance runs.
+   permission (a human step, with the permission list in the App manifest). Sentinel production is up again (#1100 was
+   resolved), so the handler runs there once deployed; the dev instance (#2203) is where it is tried first.
 
 ### Setting a status by hand
 
@@ -97,4 +97,5 @@ A short section in `.holocron/org.md`, which `holocron sync` writes into every r
   it, since a rule for a category the template lacks is listed as unresolved, not guessed.
 - **A pull request in another repository** that closes the issue: read through `closedByPullRequestsReferences` as far as
   GitHub reports it; otherwise only same-repository pull requests count.
-- **Sentinel's hosting** (#1100, #2203): until an instance runs for this repo, the hourly run is the only applier.
+- **Which Sentinel instance applies it** (#2203): the handler reaches production with Sentinel's next deploy, and how
+  `alpha` deploys is #2203's question; until a deploy carries it, the hourly run is the only applier.
