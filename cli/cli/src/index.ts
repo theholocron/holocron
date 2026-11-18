@@ -11,6 +11,11 @@ export type {
 // What `holocron sync` writes to `codecov.yml`, by name, for a coverage provider's `checkRepo()` (#2167).
 export * from "./commands/coverage-expectations/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
+// Sentinel's board handler reads `providers.projects` and the built-in templates the way `reconcile project` does (#2388).
+export * from "./commands/project/plan-pull-request-status/index.js";
+export * from "./commands/project/plan-reconcile/index.js";
+export * from "./commands/project/project-options/index.js";
+export { BUILTIN_TEMPLATES } from "./commands/project/templates/builtin-templates/index.js";
 export * from "./commands/setup/derived-properties/index.js";
 export { CANONICAL_LABELS } from "./commands/setup/labels.js";
 export type { EnvironmentLayer } from "./credentials-environments/index.js";
