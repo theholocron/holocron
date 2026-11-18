@@ -95,6 +95,8 @@ It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules,
 
 `@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs.
 
+A group whose release left packages off npm is finished without a new release by running the release workflow by hand with `republish_tag`; see [publishing what is missing for an existing tag](/commands/publish-package/#publishing-what-is-missing-for-an-existing-tag).
+
 #### A group that publishes nothing (tag-only)
 
 `ci` is a folder of reusable workflows and composite actions (`@theholocron/ci`, private), not an npm package. It is still a version group, so that callers outside the repo can pin it:

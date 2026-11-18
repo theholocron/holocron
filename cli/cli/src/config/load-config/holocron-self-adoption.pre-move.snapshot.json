@@ -183,7 +183,8 @@
         "ungrouped": {
           "sentry-project": "holocron-cli",
           "deploy-on-release": true
-        }
+        },
+        "republish": true
       }
     },
     "sync-repo",

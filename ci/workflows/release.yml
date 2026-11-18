@@ -68,6 +68,25 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      republish-tag:
+        description: >
+          Publish what npm lacks for an existing release instead of releasing
+          (holocron#1387): the tag of the release, `<group>-v<version>` for a
+          version group or `v<version>` for the rest. Set, the `release` job is
+          skipped (no semantic-release, no tag, no release commit) and the
+          `republish` job checks the tag out and runs `publish package
+          --skip-already-published` for it. The tag must be on a release branch.
+          The caller sets it from a manual run only. Empty is a normal release.
+        type: string
+        required: false
+        default: ""
+      exclude-groups:
+        description: >
+          Space-separated version groups that release on their own, left out of
+          a republish of the repo-wide tag (`v<version>`). Ignored otherwise.
+        type: string
+        required: false
+        default: ""
       sentry-project:
         description: >
           Sentry project slug for sourcemap upload and release creation after
@@ -123,6 +142,7 @@ on: # yamllint disable-line rule:truthy
 jobs:
   release:
     name: Semantic release
+    if: ${{ inputs.republish-tag == '' }}
     permissions:
       contents: write
       id-token: write
@@ -278,6 +298,90 @@ jobs:
           environment: production
           version: ${{ steps.release_version.outputs.release }}
           sourcemaps: "**/dist"
+
+  republish:
+    name: Republish
+    # Publishes what npm lacks for a tag that already exists (holocron#1387). Never tags, never makes a release or a
+    # release commit, never moves a branch: it reads the tag and publishes. It holds no write token for the repository.
+    if: ${{ inputs.republish-tag != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
+    steps:
+      - name: Check the tag
+        id: tag
+        env:
+          TAG: ${{ inputs.republish-tag }}
+          RELEASE_GROUP: ${{ inputs.group }}
+          EXCLUDED_GROUPS: ${{ inputs.exclude-groups }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          # A group's tags are `<group>-v<version>`; the rest of the repo's are `v<version>`.
+          PREFIX="v"
+          if [ -n "$RELEASE_GROUP" ]; then PREFIX="${RELEASE_GROUP}-v"; fi
+          case "$TAG" in
+            "$PREFIX"[0-9]*) ;;
+            *) echo "::error::$TAG is not a ${PREFIX}<version> tag"; exit 1 ;;
+          esac
+          VERSION=${TAG#"$PREFIX"}
+          # The channel is the prerelease identifier (5.0.0-alpha.9 -> alpha), `latest` for a stable version.
+          CHANNEL=latest
+          case "$VERSION" in *-*) PRE=${VERSION#*-}; CHANNEL=${PRE%%.*} ;; esac
+          ARGS="--skip-already-published --tag $CHANNEL"
+          if [ -n "$RELEASE_GROUP" ]; then
+            ARGS="$ARGS --group $RELEASE_GROUP"
+          else
+            for g in $EXCLUDED_GROUPS; do ARGS="$ARGS --exclude-group $g"; done
+          fi
+          # A manual run defaults to a dry run, so a republish is previewed before it publishes.
+          if [ "$DRY_RUN" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          echo "args=$ARGS" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout the tag
+        with:
+          ref: refs/tags/${{ inputs.republish-tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Only a tag on a release branch is republished: a tag pushed to some other branch is not a release.
+      - name: Require a release branch
+        env:
+          TAG: ${{ inputs.republish-tag }}
+        run: |
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main' '+refs/heads/alpha:refs/remotes/origin/alpha' || true
+          for branch in main alpha; do
+            if git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null && git merge-base --is-ancestor HEAD "refs/remotes/origin/$branch"; then
+              echo "$TAG is on $branch"
+              exit 0
+            fi
+          done
+          echo "::error::$TAG is not on main or alpha, so it is not republished"
+          exit 1
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@11 sigstore
+
+      - run: pnpm build
+        name: Build
+        if: ${{ inputs.run-build == true }}
+
+      # Writes the packages left unpublished to the job summary and fails when one is.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Publish what npm lacks
+        env:
+          NPM_CONFIG_PROVENANCE: true
+        with:
+          command: publish package
+          args: ${{ steps.tag.outputs.args }}
 
   deploy:
     name: Deploy

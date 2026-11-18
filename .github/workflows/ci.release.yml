@@ -38,6 +38,15 @@ on: # yamllint disable-line rule:truthy
           - themes
           - clients
           - ci
+      republish_tag:
+        description: >
+          Publish what npm lacks for an existing release instead of releasing (holocron#1387):
+          the tag, `<group>-v<version>` or `v<version>`, with `group` set to its group (or
+          `ungrouped` for `v<version>`). The tag must be on main or alpha. No tag, release or
+          commit is made. Leave empty for a normal release; `dry_run` previews it.
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -61,8 +70,12 @@ jobs:
         name: Choose the groups to release
         env:
           GROUP: ${{ inputs.group }}
+          REPUBLISH_TAG: ${{ inputs.republish_tag }}
           ALL_GROUPS: '[{"group":"utils","run-build":true},{"group":"observability","run-build":true},{"group":"skills","run-build":true},{"group":"configs","run-build":true},{"group":"themes","run-build":true},{"group":"clients","run-build":true},{"group":"ci","run-build":false}]'
         run: |
+          if [ -n "$REPUBLISH_TAG" ] && { [ -z "$GROUP" ] || [ "$GROUP" = "all" ]; }; then
+            echo "::error::republish_tag needs one group (or ungrouped), not all"; exit 1
+          fi
           if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
             groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
           else
@@ -83,6 +96,7 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       dry-run: ${{ inputs.dry_run == true }}
+      republish-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.republish_tag || '' }}
       group: ${{ matrix.group }}
       run-build: ${{ matrix.run-build == true }}
     secrets: inherit
@@ -98,6 +112,8 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       dry-run: ${{ inputs.dry_run == true }}
+      republish-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.republish_tag || '' }}
+      exclude-groups: utils observability skills configs themes clients ci
       from-branch-tip: true
       sentry-project: holocron-cli
       deploy-on-release: true

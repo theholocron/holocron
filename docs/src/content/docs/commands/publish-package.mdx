@@ -31,14 +31,28 @@ With `--skip-already-published` the command publishes one package at a time ([#1
 
 A `409` that survives the retries is not a flake. It means the tarball is byte for byte identical to one already in the transparency log (an earlier publish of the same bytes), so a retry cannot succeed. The report names the package and says so: the fix is a change in the package's contents and a new release. [`holocron doctor releases`](/commands/doctor-releases/) names the tag npm never received for this and the other known cause.
 
-To publish what npm lacks for a version that is already tagged (a failure that is not the identical-tarball case), check out the tag, build, and run the same command; it skips what is on the registry:
+### Publishing what is missing for an existing tag
+
+For a version that is already tagged and tried (a failure that is not the identical-tarball case), run the **release** workflow by hand with the `republish_tag` input:
+
+```bash
+gh workflow run ci.release.yml --ref alpha -f group=configs -f republish_tag=configs-v8.9.0-alpha.3 -f dry_run=false
+```
+
+- `group` names the tag's group; for the repo-wide tag (`v5.0.0-alpha.254`) choose `ungrouped`. `all` with a tag is refused, because one tag belongs to one release.
+- `dry_run` defaults to `true` for a manual run: the job runs `publish package --dry-run` and prints what it would publish. Set it to `false` to publish.
+- The run skips semantic-release: it never makes a tag, a release or a release commit, and holds no write token. It checks out the tag, refuses one that is not on `main` or `alpha`, builds, and runs `publish package --skip-already-published --tag <channel>` (the channel is the tag's prerelease identifier, `latest` for a stable version) for that group, or for everything outside the groups for a `v<version>` tag.
+- It runs from `ci.release.yml`, the filename the Trusted Publisher entries name, so OIDC publishing works. It cannot start from a push: the input is read only for a `workflow_dispatch`.
+- The failure table goes to the job summary as in a release run. A tag-only group (`ci`) publishes nothing, so there is nothing to republish for it.
+
+The same effect locally, with an npm session and `--otp`:
 
 ```bash
 git checkout configs-v8.9.0-alpha.3 && pnpm install --frozen-lockfile && pnpm build
-pnpm exec holocron publish package --group configs --skip-already-published --tag alpha
+pnpm exec holocron publish package --group configs --skip-already-published --tag alpha --otp <code>
 ```
 
-It needs a publisher npm trusts: run it in CI from the release caller workflow (`ci.release.yml`), whose filename the Trusted Publisher entries name, or locally with `--otp`. There is no `workflow_dispatch` input for this yet: the release workflow runs semantic-release, which finds nothing new at an existing tag, so a publish-only path would need its own job (checkout at the tag, build, this command) in the reusable `release.yml` and a new input on the generated caller.
+The generated caller has the input when the release task sets `republish: true` in its `with:` (this repo does). It needs the reusable `release.yml` that has the `republish-tag` input, so a repo that calls the frozen copies in `theholocron/.github` does not set it.
 
 ## Migrating Trusted Publisher config (`--sync-trust`)
 

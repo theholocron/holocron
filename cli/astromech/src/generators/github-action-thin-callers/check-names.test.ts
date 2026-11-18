@@ -107,7 +107,12 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"publish-wiki": ["publish-wiki / Publish to Fern", "publish-wiki / Publish to Fern"],
 	"reconcile-projects": ["reconcile-projects / Reconcile and check the boards"],
 	"remind-doctor": ["remind-doctor / Remind to run the drift check"],
-	release: ["release / Semantic release", "release / Deploy", "release / Post-release readme sync"],
+	release: [
+		"release / Semantic release",
+		"release / Republish",
+		"release / Deploy",
+		"release / Post-release readme sync",
+	],
 	"scan:code": ["scan:code / Analyze (${{ inputs.language }})"],
 	"scan:secrets": ["scan:secrets / Run gitleaks"],
 	"sync-repo": ["sync-repo / Run holocron sync", "sync-repo / Notify of a failed sync"],
