@@ -1,0 +1,55 @@
+---
+title: "open requests"
+description: Open the request tool's workspace with its secrets filled in from the layer's vault Environment.
+---
+
+```bash
+holocron open requests [--environment <layer>] [--to <provider>] [--dry-run] [--yes]
+```
+
+A signed request needs a secret: Sentinel's `webhookSecret`, Comlink's `sentrySecret`. The request files leave it blank on purpose (they are shared with other tools and committed), so each person used to paste it into Bruno by hand, once per environment, on every machine. `open requests` fills it from the layer's 1Password Environment (`<org/repo> - <layer>`) instead, and starts Bruno with it.
+
+## What it does
+
+1. Asks the `tooling` provider that can open its workspace (`Tooling.open`; Bruno's) which values the workspace reads. Each secret variable is a reference to a named entry, `{{process.env.SENTINEL_WEBHOOK_SECRET}}`, that [`sync requests`](/holocron/commands/sync-requests/) writes into `.bruno/` from the provider's `secretRefs` option. A secret with no reference is listed by name and filled by nobody.
+2. Reads the layer's Environment in memory (`--environment`, default `dev`; a layer word, or a name the config names) and takes **only** the entries the references name. An entry the Environment lacks, or holds blank, is a failing row that names it, and nothing starts.
+3. Refuses when Bruno is already running. A second instance would not see the values (or would see another layer's), so the command asks you to quit it and never kills it. A lock file in `.holocron/.private/` covers two launches at the same moment.
+4. Writes the values to `.holocron/.private/requests.env` (mode 0600, only when git says the path is ignored, never over an existing file), links `<collection>/.env` to it, and starts Bruno **in the foreground** with the workspace folder. Bruno reads `{{process.env.NAME}}` from that `.env`, and a script that reads `bru.getEnvVar("webhookSecret")` gets the resolved value, so the signing scripts need no change.
+5. When Bruno quits (or on Ctrl-C), removes the file, the links and the lock. The same happens on an error and on `SIGINT`, `SIGTERM`, `SIGHUP` and exit.
+
+```ts
+providers: {
+	tooling: [
+		[
+			"bruno",
+			{
+				collectionFiles: ["apps/sentinel/api/webhook.collection.json"],
+				envFiles: ["apps/sentinel/api/webhook.environment.json"],
+				// The secret variable, and the 1Password entry that holds its value.
+				secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET" },
+			},
+		],
+	],
+},
+```
+
+Run `holocron sync requests` after adding a `secretRefs` entry, and commit `.bruno/`. The request files keep a blank secret, so Postman is unaffected.
+
+## How long the values live
+
+The values are in plaintext in `.holocron/.private/requests.env` for as long as Bruno runs, which is the length of the session: the command stays in the terminal until you quit Bruno. Nothing can run on `SIGKILL` or a crash, so the file starts with a marker line, and the next run removes a leftover that has it and refuses a `.env` or values file without it.
+
+## Rules
+
+- **A value is never printed.** Rows name entries and paths only. `--dry-run` lists the names it would fill and the route, and reads, writes and starts nothing.
+- **It asks first.** Without `--yes` it asks before it reads and writes; without a terminal and without `--yes` or `--dry-run` it refuses.
+- **It never overwrites.** A `.env` in a collection folder that is not a link to the values file and has no marker line is somebody else's and is refused.
+- **Concealed values are read on purpose.** The secrets are concealed entries. This command is the one exception to "a concealed value is never handed over": it reads only the names the workspace's references list, only for a process you start on your own machine, and never gives one to a plugin or a log.
+- **It needs the plugins and a vault.** It is a `workspace` command, and the `vault` provider must be able to read an Environment's entries (1Password).
+- **macOS by default.** The program is `/Applications/Bruno.app/Contents/MacOS/Bruno`; the `bruno` provider's `app` option sets another. Windows is refused (no enforced file modes).
+
+## See also
+
+- [`sync requests`](/holocron/commands/sync-requests/)
+- [`export requests`](/holocron/commands/export-requests/)
+- [Bruno plugin](/holocron/plugins/bruno/)

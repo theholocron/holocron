@@ -190,6 +190,8 @@ export default defineConfig({
 			"bruno",
 			{
 				workspaceName: "The Holocron",
+				// Each secret variable and the 1Password entry `holocron open requests` fills it from.
+				secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" },
 				collectionFiles: [
 					"apps/sentinel/api/webhook.collection.json",
 					"apps/comlink/src/worker.collection.json",

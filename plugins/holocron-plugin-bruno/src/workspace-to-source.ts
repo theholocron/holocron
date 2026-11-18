@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { brunoToPostman } from "@usebruno/converters";
 import { parseCollection, parseEnvironment, parseFolder, parseRequest } from "@usebruno/filestore";
 
+import { referencedName } from "./secret-references.js";
+
 /** A Bruno item as this reads it: a folder holds `items` and a `root`, a request is Bruno's own object. */
 interface Item {
 	name?: string;
@@ -282,8 +284,9 @@ export function environmentToSource(text: string, path: string): { name: string;
 		name: environment.name,
 		values: (environment.variables ?? []).map((variable) => ({
 			key: variable.name,
-			value: variable.secret ? "" : (variable.value ?? ""),
-			type: variable.secret ? "secret" : "default",
+			// A variable that only refers to a `.env` entry is the workspace's form of a secret: the request file keeps it blank.
+			value: variable.secret || referencedName(variable.value) !== undefined ? "" : (variable.value ?? ""),
+			type: variable.secret || referencedName(variable.value) !== undefined ? "secret" : "default",
 			enabled: variable.enabled ?? true,
 		})),
 	};

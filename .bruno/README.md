@@ -21,7 +21,7 @@ A pre-request script signs each body as it is sent (`X-Hub-Signature-256` for Se
 ## Setup
 
 1. Pick an environment. Use local or dev for anything that acts, and a sandbox repository (`theholocron/sandbox`, already in the environment). `Sentinel (prod)` is for the first two folders only.
-2. Set the secret. `webhookSecret` (Sentinel) and `sentrySecret` (Comlink) are secret variables that the files leave empty. Bruno keeps what you type on this machine. Values: `SENTINEL_WEBHOOK_SECRET` from the 1Password Environment `theholocron/holocron - dev` (or `- prod`), and `COMLINK_SENTRY_SECRET`.
+2. Open Bruno with `pnpm exec holocron open requests` (`--environment prod` for the prod layer; quit Bruno first, it must not be running). The secrets `webhookSecret` (Sentinel) and `sentrySecret` (Comlink) are read from the 1Password Environment `theholocron/holocron - dev` (`SENTINEL_WEBHOOK_SECRET`, `COMLINK_SENTRY_SECRET`) into a private file that lasts until Bruno quits; nothing is pasted or stored in Bruno. The request files keep them blank, so the same files work in Postman.
 3. Run the app: `pnpm --filter @theholocron/sentinel dev` for Sentinel (port 3000, plus the dev tunnel). Comlink runs on `wrangler dev`, port 8787.
 
 ## Without a Discord channel

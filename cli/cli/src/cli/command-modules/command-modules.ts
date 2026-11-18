@@ -15,6 +15,7 @@ import { listCommand } from "../../commands/list/index.js";
 import { migrateCommand } from "../../commands/migrate/index.js";
 import { moveCommand } from "../../commands/move/index.js";
 import { newCommand } from "../../commands/new/new.command.js";
+import { openCommand } from "../../commands/open/index.js";
 import { probeCommand } from "../../commands/probe/index.js";
 import { providerCommand } from "../../commands/provider/index.js";
 import { publishCommand } from "../../commands/publish/publish.command.js";
@@ -49,6 +50,7 @@ export const COMMAND_MODULES = [
 	cleanupCommand,
 	applyCommand,
 	newCommand,
+	openCommand,
 	listCommand,
 	removeCommand,
 	probeCommand,

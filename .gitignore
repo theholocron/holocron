@@ -140,6 +140,10 @@ lcov.info
 /docs/src/content/docs/observability/api/
 /docs/src/content/docs/themes/*/api/
 
+# The link `holocron open requests` makes in each Bruno collection to its private values file (the `.env` rule above
+# already covers it; named here so nobody narrows that rule without seeing it)
+.bruno/collections/*/.env
+
 # Written by `holocron export requests`, one folder per tool
 **/api/.export/
 **/src/.export/

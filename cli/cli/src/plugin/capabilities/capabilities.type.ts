@@ -2103,6 +2103,52 @@ export interface Tooling extends ProviderIdentity {
 	 * `holocron sync requests`.
 	 */
 	workspace?(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult>;
+
+	/**
+	 * Say what it takes to open the tool's workspace with its secrets filled in from outside: which values the
+	 * workspace reads (each a variable that refers to a named entry, e.g. an entry of a vault Environment), where the
+	 * tool reads them from, how to start it and how to tell it is already running. It reads the workspace and nothing
+	 * else: no value, no network, nothing written. The caller reads the entries, writes them where the tool looks and
+	 * starts it, so the provider holds no secret. Optional — a tool with no way to be started this way omits it. Used
+	 * by `holocron open requests`.
+	 */
+	open?(input: ToolingOpenInput): Promise<ToolingOpenPlan>;
+}
+
+/** What {@link Tooling.open} is given. */
+export interface ToolingOpenInput {
+	/** The collection files, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+}
+
+/** One value the workspace reads from outside: a variable of a collection, and the entry it refers to. */
+export interface ToolingOpenWant {
+	/** The collection's folder name, for the report. */
+	collection: string;
+	/** The variable the requests use, e.g. `webhookSecret`. */
+	variable: string;
+	/** The name of the entry that holds its value, e.g. `SENTINEL_WEBHOOK_SECRET`. */
+	entry: string;
+}
+
+/** What {@link Tooling.open} found. Names and paths only; never a value. */
+export interface ToolingOpenPlan {
+	/** The tool's name, for the report (`Bruno`). */
+	app: string;
+	/** The values the workspace reads from outside, one per variable and collection, deduplicated. */
+	wants: ToolingOpenWant[];
+	/** Secret variables (`<collection>: <variable>`) that refer to no entry: nobody fills them. */
+	unfilled: string[];
+	/** The absolute paths where the tool looks for the file that holds the values (one per collection). */
+	targets: string[];
+	/** The program to start, with its arguments; started in the foreground so the values live as long as it does. */
+	launch: { command: string; args: string[] };
+	/** A text that appears in the command line of a running instance of the tool, to refuse a second start. */
+	running: string;
 }
 
 /** What {@link Tooling.workspace} is given. */

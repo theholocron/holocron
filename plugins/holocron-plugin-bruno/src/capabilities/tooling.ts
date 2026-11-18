@@ -4,6 +4,7 @@
  * Bruno has no HTTP API and no account to push to: it reads a folder of files. So this provider works on files only,
  * with no token and no network. `export()` writes each of the repo's collection files as a Bruno JSON file with the
  * environments inside it, for `holocron export requests`.
+ * `open()` says what `holocron open requests` needs to start Bruno with the secrets filled in from outside.
  * `workspace()` keeps the committed `.bruno/` workspace (Bruno's own files, one folder per collection) equal to the
  * repo's request files, for `holocron sync requests`.
  *
@@ -22,12 +23,15 @@ import type {
 	ToolingExportInput,
 	ToolingExportIssue,
 	ToolingExportResult,
+	ToolingOpenInput,
+	ToolingOpenPlan,
 	ToolingWorkspaceInput,
 	ToolingWorkspaceResult,
 } from "@theholocron/cli";
 
 import { rootVersion } from "../collection-version.js";
 import { convertCollection } from "../convert-collection.js";
+import { openPlan } from "../open-plan.js";
 import { outputNames } from "../output-names.js";
 import { type CollectionInput, syncWorkspace } from "../sync-workspace.js";
 
@@ -41,6 +45,15 @@ export interface BrunoToolingOptions {
 	workspaceName?: string;
 	/** The `info.version` of each collection `workspace()` writes. Defaults to the version of the root `package.json`. */
 	version?: string;
+	/**
+	 * Secret variable name to the name of the entry that holds its value, e.g. `{ webhookSecret: "SENTINEL_WEBHOOK_SECRET" }`.
+	 * `workspace()` writes each such secret into the `.bruno/` environments as a plain variable that refers to the entry
+	 * (`{{process.env.SENTINEL_WEBHOOK_SECRET}}`), which `holocron open requests` fills from the layer's vault
+	 * Environment. The request files keep the secret blank.
+	 */
+	secretRefs?: Record<string, string>;
+	/** The program that starts Bruno for `open()`. Defaults to the macOS app's; set it on any other platform. */
+	app?: string;
 	/** Working repo root. Defaults to `process.cwd()`. */
 	repoRoot?: string;
 }
@@ -123,6 +136,10 @@ export class BrunoTooling implements Tooling {
 		return { files, issues };
 	}
 
+	open(input: ToolingOpenInput): Promise<ToolingOpenPlan> {
+		return openPlan(input, { app: this.options.app });
+	}
+
 	async workspace(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult> {
 		const { collectionFiles, envFiles, repoRoot } = input;
 		const collections: CollectionInput[] = [];
@@ -146,6 +163,7 @@ export class BrunoTooling implements Tooling {
 			collections,
 			repoRoot,
 			...(version === undefined ? {} : { version }),
+			...(this.options.secretRefs ? { secretRefs: this.options.secretRefs } : {}),
 			...(input.dryRun ? { dryRun: true } : {}),
 			...(input.prefer ? { prefer: input.prefer } : {}),
 		});

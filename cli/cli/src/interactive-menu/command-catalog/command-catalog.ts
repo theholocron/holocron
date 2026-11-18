@@ -43,6 +43,7 @@ import { notificationsLinkEntry } from "../../commands/notifications-link/notifi
 import { notificationsSetupEntry } from "../../commands/notifications-setup/notifications-setup.entry.js";
 import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-roles/notifications-sync-roles.entry.js";
 import { npmBumpVersionsEntry } from "../../commands/npm-bump-versions/npm-bump-versions.entry.js";
+import { openRequestsEntry } from "../../commands/open-requests/open-requests.entry.js";
 import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.entry.js";
 import { probeEntry } from "../../commands/probe/probe.entry.js";
 import { projectMoveEntry } from "../../commands/project/move/move.entry.js";
@@ -156,6 +157,7 @@ const registry = createCommandRegistry(
 		authListEntry,
 		authExportEntry,
 		requestsExportEntry,
+		openRequestsEntry,
 		uploadCoverageEntry,
 		githubAppCreateEntry,
 		tunnelUpEntry,

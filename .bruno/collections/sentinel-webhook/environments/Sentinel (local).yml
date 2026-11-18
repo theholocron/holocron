@@ -2,8 +2,8 @@ name: Sentinel (local)
 variables:
   - name: baseUrl
     value: http://127.0.0.1:3000
-  - secret: true
-    name: webhookSecret
+  - name: webhookSecret
+    value: "{{process.env.SENTINEL_WEBHOOK_SECRET}}"
   - name: repo
     value: theholocron/sandbox
   - name: pullNumber
