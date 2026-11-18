@@ -12,8 +12,8 @@
       "kind": "collection",
       "source": "apps/comlink/src/worker.collection.json",
       "workspace": "collections/comlink-relay",
-      "sourceHash": "88f99b5d9c185948790e394b59ecc84a4e4733a818ed37dbb8d49f1eec9c90be",
-      "workspaceHash": "106e6d37d4cb6843248ab36c2a405569e63824aa6bd825ea982c19390eee93f3"
+      "sourceHash": "aebd551e9b766d3f76efd3f3ec8cc83f20f27fdbdc7f3c006f586e8afba38c17",
+      "workspaceHash": "779b8d006b852f04aa8b78d71d6143ae664253649727d8983bb82ec09c36a2e7"
     },
     {
       "kind": "environment",
@@ -26,8 +26,8 @@
       "kind": "collection",
       "source": "apps/sentinel/api/webhook.collection.json",
       "workspace": "collections/sentinel-webhook",
-      "sourceHash": "0e26f26d9ff7fbd8e265438d646a0dfacdc144d34158077c8d943bac82470ec7",
-      "workspaceHash": "007ad6608fe0c7a9f969effcf6ae691251a52d3fd548f2a6af8834f435f93a8f"
+      "sourceHash": "d75b3bcc40a0f1ec632b4d68bb5bc547e10dc05348f2def7081b439892747b90",
+      "workspaceHash": "abc32b36478ca1b2dd63d0a51111eb35e1dd17139d0e7f3bd1c8a7911bf1888c"
     },
     {
       "kind": "environment",
