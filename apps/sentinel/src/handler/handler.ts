@@ -14,7 +14,7 @@
  * - **Commit standards** (`lintCommits → postCommitStandardsCheck`,
  *   holocron#769/#771): `pull_request.*` only — a push has no PR commits
  *   to fetch. Config-free by design (D6,
- *   `.notes/tech-sentinel-enforcement.spec.md`) — runs independent of
+ *   `docs/wiki/specifications/tech-sentinel-enforcement.spec.md`) — runs independent of
  *   `validateConfig()`'s result, since it never reads `holocron.config.ts`
  *   at all.
  * - **Inclusive language** (`lintInclusiveLanguage → postInclusiveLanguageCheck`,

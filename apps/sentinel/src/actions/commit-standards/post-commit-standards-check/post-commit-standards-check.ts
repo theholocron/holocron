@@ -1,7 +1,7 @@
 /**
  * Posts one check run reflecting `lintCommits()`'s result — the org-wide,
  * centralized replacement for every repo's own `platform.commitStandards.yml`
- * CI job (holocron#769/#771, `.notes/tech-sentinel-enforcement.spec.md`).
+ * CI job (holocron#769/#771, `docs/wiki/specifications/tech-sentinel-enforcement.spec.md`).
  * Calls `@theholocron/github-client`'s `checks.createCheckRun()` directly,
  * same shape as `post-check-run.ts`'s own capability-compliance check —
  * Sentinel isn't a plugin, and this is a single REST call with nothing
