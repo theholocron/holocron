@@ -11,6 +11,8 @@ export interface RunIssueCreateInput {
 	body?: string;
 	/** Labels to put on the issue. */
 	labels?: string[];
+	/** People to assign, by login (`me` is the token's user). */
+	assignees?: string[];
 	/** The milestone: its number or its exact title. */
 	milestone?: string;
 	/** The repo's config: its `issues` provider. */

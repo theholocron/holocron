@@ -74,8 +74,10 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 	const labels = [...new Set((input.labels ?? []).map((l) => l.trim()).filter(Boolean))];
 	const body = input.body?.trim() ? input.body : undefined;
 	const milestone = input.milestone?.trim() ? input.milestone.trim() : undefined;
+	const assignees = [...new Set((input.assignees ?? []).map((a) => a.trim()).filter(Boolean))];
 	const details = [
 		labels.length > 0 ? `labels: ${labels.join(", ")}` : undefined,
+		assignees.length > 0 ? `assignee: ${assignees.join(", ")}` : undefined,
 		milestone ? `milestone: ${milestone}` : undefined,
 	].filter(Boolean);
 	const summary = details.length > 0 ? ` (${details.join("; ")})` : "";
@@ -104,13 +106,20 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 	}
 
 	try {
-		const { key } = await loader.get("issues").create({
+		const { key, dropped } = await loader.get("issues").create({
 			summary: title,
 			...(body ? { body } : {}),
 			...(labels.length > 0 ? { labels } : {}),
 			...(milestone ? { milestone } : {}),
+			...(assignees.length > 0 ? { assignees } : {}),
 		});
-		return finish([row(title, "ok", `filed ${key}`)], key);
+		return finish(
+			[
+				row(title, "ok", `filed ${key}`),
+				...(dropped ?? []).map((line) => row("not carried across", "skip", line)),
+			],
+			key
+		);
 	} catch (err) {
 		return finish([row(title, "fail", `could not file the issue: ${describeError(err)}`)]);
 	}

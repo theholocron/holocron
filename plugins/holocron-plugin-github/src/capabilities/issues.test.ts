@@ -282,6 +282,22 @@ describe("GitHubIssues.create", () => {
 		expect(calls[1]?.body).toMatchObject({ milestone: 12 });
 	});
 
+	it("sends assignees by login, strips @ and de-duplicates", async () => {
+		const { issues, calls } = makeIssues([{ status: 201, body: rawIssue({ number: 102 }) }]);
+		await issues.create({ summary: "x", assignees: ["@octo", "octo", "hubot"] });
+		expect(calls[0]?.body).toMatchObject({ assignees: ["octo", "hubot"] });
+	});
+
+	it("resolves `me` to the token's login", async () => {
+		const { issues, calls } = makeIssues([
+			{ status: 200, body: { login: "iamnewton" } },
+			{ status: 201, body: rawIssue({ number: 103 }) },
+		]);
+		await issues.create({ summary: "x", assignees: ["me"] });
+		expect(calls[0]?.url).toBe("https://api.github.com/user");
+		expect(calls[1]?.body).toMatchObject({ assignees: ["iamnewton"] });
+	});
+
 	it("throws when the milestone title is unknown", async () => {
 		const { issues } = makeIssues([{ status: 200, body: [{ number: 1, title: "real" }] }]);
 		await expect(issues.create({ summary: "x", milestone: "phantom" })).rejects.toThrow(/not found/);
