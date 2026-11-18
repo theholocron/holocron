@@ -24,6 +24,17 @@ describe("compareVersions", () => {
 		expect(compareVersions("1.0.0-alpha", "1.0.0-beta")).toBeLessThan(0);
 	});
 
+	it("orders the other way round too", () => {
+		expect(compareVersions("1.0.0-alpha.1", "1.0.0-alpha")).toBeGreaterThan(0);
+		expect(compareVersions("1.0.0-alpha", "1.0.0-1")).toBeGreaterThan(0);
+		expect(compareVersions("1.0.0-beta", "1.0.0-alpha")).toBeGreaterThan(0);
+	});
+
+	it("names whichever side is not a version", () => {
+		expect(() => compareVersions("1.0.0", "nope")).toThrow("not a semver version: nope");
+		expect(() => compareVersions("nope", "1.0.0")).toThrow("not a semver version: nope");
+	});
+
 	it("ignores build metadata", () => {
 		expect(compareVersions("1.0.0+a", "1.0.0+b")).toBe(0);
 	});

@@ -72,6 +72,15 @@ describe("checkReleaseLines", () => {
 		]);
 	});
 
+	it("takes the newest tag whichever order the tags come in", () => {
+		const [check] = checkReleaseLines({
+			lines: [configs],
+			tags: [{ name: "configs-v1.0.0-alpha.10" }, { name: "configs-v1.0.0-alpha.9" }],
+			npm: npm({}),
+		});
+		expect(check!.tag).toBe("configs-v1.0.0-alpha.10");
+	});
+
 	it("keeps one line's tags out of another's", () => {
 		const repo: ReleaseLine = { id: "repo", tagPrefix: "v", packages: ["@x/cli"] };
 		const checks = checkReleaseLines({

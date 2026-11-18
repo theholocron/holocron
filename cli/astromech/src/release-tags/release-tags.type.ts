@@ -10,6 +10,7 @@ export interface ReleaseLine {
 
 /** A git tag and, when known, when it was made. */
 export interface GitTag {
+	/** The tag's name: `v1.2.3`. */
 	name: string;
 	/** Seconds since the epoch. */
 	createdAt?: number;
@@ -29,6 +30,7 @@ export type ReleaseTagState =
 
 /** A package that does not serve the line's newest tag. */
 export interface PackageBehind {
+	/** The npm package name. */
 	name: string;
 	/** What npm serves on the channel's dist-tag, or `undefined` when the package or the dist-tag is not there. */
 	onNpm: string | undefined;
@@ -36,6 +38,7 @@ export interface PackageBehind {
 
 /** The newest tag of one channel of one release line, against npm. */
 export interface ReleaseTagCheck {
+	/** The `id` of the release line the tag belongs to. */
 	line: string;
 	/** The npm dist-tag the channel publishes to: `latest`, or the first prerelease identifier (`alpha`). */
 	distTag: string;
@@ -43,12 +46,15 @@ export interface ReleaseTagCheck {
 	tag: string;
 	/** The version in the tag. */
 	version: string;
+	/** Whether npm serves it, is behind it, or may still be receiving it. */
 	state: ReleaseTagState;
 	/** The packages that do not serve it; empty when `published`. */
 	behind: readonly PackageBehind[];
 }
 
+/** What `checkReleaseLines()` compares: the release lines, the repo's git tags and what npm serves. */
 export interface CheckReleaseLinesInput {
+	/** The release lines to check. */
 	lines: readonly ReleaseLine[];
 	/** Every git tag of the repo. */
 	tags: readonly GitTag[];
