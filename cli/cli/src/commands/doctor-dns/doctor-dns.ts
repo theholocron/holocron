@@ -22,6 +22,7 @@ import {
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
+import { type DnsListEntry, readDnsRecords } from "../../dns-records/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -80,11 +81,31 @@ export async function runDoctorDns(input: RunDoctorDnsInput): Promise<DoctorDnsR
 			p.layout ? [p.layout] : []
 		),
 	});
+	// The records `holocron new domain` keeps: each must exist in the zone with its value (spec `tech-new-domain-command`).
+	let listFailure: string | undefined;
+	const listed: DnsListEntry[] = await readDnsRecords(input.context.repoRoot, input.io).catch((err: unknown) => {
+		listFailure = errorMessage(err);
+		return [];
+	});
+	const apex = input.loaded.resolved.domain;
+	for (const e of listed) {
+		const zone = apex && (e.name === apex || e.name.endsWith(`.${apex}`)) ? apex : e.name;
+		expected.push({ zone, record: { type: e.type, name: e.name, content: e.value, proxied: e.proxied ?? false } });
+	}
 	const zones = [...new Set(expected.map((e) => e.zone))];
 	const deploy = loader.has("deployment") ? loader.get("deployment") : undefined;
 	const domains = deploy?.expectedDomainRecord ? deploymentDomains(input.loaded.resolved, deploy) : [];
 
 	const rows: CheckRow[] = [];
+	if (listFailure !== undefined) {
+		rows.push({
+			id: "dns-records-file",
+			title: "dns-records.json reads",
+			status: "fail",
+			detail: listFailure,
+			problems: [],
+		});
+	}
 	if (zones.length === 0 && domains.length === 0) {
 		rows.push({ id: "dns", title: "dns", status: "ok", detail: "none declared", problems: [] });
 	} else if (!loader.has("dns")) {

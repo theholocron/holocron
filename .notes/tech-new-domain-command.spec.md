@@ -41,8 +41,8 @@ DNS at all until someone noticed the page did not load. The same will happen at 
 
 `.holocron/dns-records.json`, one array of `{ type, name, value, note?, proxied? }`. JSON, not TypeScript, so the
 command can rewrite it safely; the values are public DNS data and no secret goes in it. It is not an area file
-(`HOLOCRON_AREAS` stays closed): `holocron.config.ts` reads it by name, as it reads `org.ts`, and Sentinel's remote
-config check fetches the whole `.holocron/` tree, so it sees the same list. A record is keyed by type and name; adding
+(`HOLOCRON_AREAS` stays closed) and not a config key: the CLI reads it from the repository root by its name, as it reads
+`.holocron/projects/<name>.json`, so the config does not change. A record is keyed by type and name; adding
 one that exists replaces its value and note in the file (the command says so).
 
 ### Applying and checking
@@ -50,8 +50,9 @@ one that exists replaces its value and note in the file (the command says so).
 - `holocron setup` re-applies the whole list through the `dns` provider (an upsert, so a record that is right is left
   alone), so a new zone or a lost record comes back with one command. With no `dns` provider each record is a failing
   `todo` row naming what to make. `--dry-run` writes nothing. The step is `dnsRecordsStep()`.
-- `holocron doctor dns` gains a `declared-records` row: each listed record must exist with its type, name and value
-  (TXT quotes, case and a trailing dot ignored). Read-only.
+- `holocron doctor dns` expects each listed record in its zone's row, with its type, name and value (TXT quotes, case and a
+  trailing dot ignored), beside the records the config already makes `setup` write. Read-only. A list that cannot be
+  read is a failing row of its own.
 - The `monitoring` dashboard's `dnsRecords` (#2347) is removed: the dashboard's records are entries in the list, with a
   `note` saying which dashboard they serve. `doctor monitoring` keeps no DNS row of its own.
 

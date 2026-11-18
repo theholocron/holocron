@@ -1,0 +1,33 @@
+---
+title: "new domain"
+description: Make a DNS record through the dns provider and keep it in .holocron/dns-records.json, for a vendor that serves a hostname of yours.
+---
+
+```bash
+holocron new domain --type CNAME --name status.theholocron.dev --value <target> --note "Checkly dashboard"
+holocron new domain --type TXT --name _vercel.theholocron.dev --value <proof>
+holocron new domain
+```
+
+A vendor that serves a hostname of yours asks for DNS records: a `CNAME` to its edge and a `TXT` that proves you own the name. Some vendors return them from their API and `setup` makes those. Others, such as a Checkly dashboard's custom domain, show them only in their own interface. This command takes them from you, makes them through the `dns` provider and keeps them in the repo.
+
+1. It reads what the zone holds for the name and says whether the record is new, already right, or would change, and whether the list already has it.
+2. It asks first (`--yes` skips the question; without a terminal `--yes` is required).
+3. It makes the record, then adds it to `.holocron/dns-records.json`, a list of `{ type, name, value, note?, proxied? }`. The values are public DNS data, so no secret goes in it. An entry with the same type and name is replaced in place.
+
+[`setup`](/holocron/commands/setup/) makes every record in the list again (a record that is already right is left as it is), so a new zone or a lost record comes back with one command, and [`doctor dns`](/holocron/commands/doctor-dns/) checks that each one exists with its value. Nothing is ever deleted: removing an entry stops managing the record, and you delete it in the zone yourself.
+
+A record is **DNS only** unless you pass `--proxied`, because a vendor reads the record itself to verify the name and a proxy would answer in its place.
+
+With a flag left out, a terminal asks for it; without a terminal a missing flag is an error. `--dry-run` shows what would change and writes neither the zone nor the list.
+
+| Option      | Default   | What it does                                              |
+| ----------- | --------- | --------------------------------------------------------- |
+| `--type`    | _(asked)_ | `CNAME`, `TXT`, `A` or `AAAA`.                            |
+| `--name`    | _(asked)_ | The full hostname, the org's `domain` or a name under it. |
+| `--value`   | _(asked)_ | The record's content, exactly as the vendor shows it.     |
+| `--note`    | none      | Why it exists, such as which vendor serves the name.      |
+| `--proxied` | off       | Send traffic through the provider's proxy.                |
+| `--yes`     | off       | Make the record without asking first.                     |
+
+It needs a `dns` provider in the `holocron.config.ts` of the directory it runs in. `MX` and `SRV` records are not taken, because they carry a priority the list does not.

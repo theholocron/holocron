@@ -34,6 +34,7 @@ import { migrateProjectEntry } from "../../commands/migrate/migrate-project/migr
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
 import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
+import { newDomainEntry } from "../../commands/new-domain/new-domain.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
 import { notificationsDedupeEntry } from "../../commands/notifications-dedupe/notifications-dedupe.entry.js";
@@ -156,6 +157,7 @@ const registry = createCommandRegistry(
 		uploadCoverageEntry,
 		githubAppCreateEntry,
 		tunnelUpEntry,
+		newDomainEntry,
 		// project: one entry per subcommand of `holocron project`; add new ones here.
 		projectListEntry,
 		projectCreateEntry,

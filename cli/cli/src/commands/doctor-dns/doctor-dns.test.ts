@@ -345,3 +345,55 @@ describe("doctor dns", () => {
 		expect(report.status).toBe("ok");
 	});
 });
+
+describe("the records holocron new domain keeps", () => {
+	const LIST = JSON.stringify([
+		{ type: "CNAME", name: "status.example.dev", value: "target.example.net" },
+		{ type: "TXT", name: "_v.example.dev", value: "proof" },
+	]);
+
+	async function runWithList(text: string | null, records: unknown[]) {
+		const loaded = loadedWith({ dns: "cloudflare" }, { domain: "example.dev" });
+		const provider = dns(records);
+		const lines: string[] = [];
+		const report = await runDoctorDns({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: loaderWith(loaded, { dns: provider }),
+			io: { read: async () => text, write: async () => undefined },
+			print: (l) => lines.push(stripVTControlCharacters(l)),
+			logger: fakeLogger(),
+		});
+		return { report, provider };
+	}
+
+	it("checks each listed record in the zone, whatever the case, a final dot or TXT quotes", async () => {
+		const { report, provider } = await runWithList(LIST, [
+			{ type: "CNAME", name: "Status.example.dev.", content: "TARGET.example.net.", proxied: false },
+			{ type: "TXT", name: "_v.example.dev", content: '"proof"', proxied: false },
+		]);
+		expect(provider.listRecords).toHaveBeenCalledWith("example.dev");
+		expect(report.rows).toEqual([
+			expect.objectContaining({ id: "dns-example.dev", status: "ok", detail: "2 of 2 exist" }),
+		]);
+	});
+
+	it("fails a listed record that is missing or holds another value", async () => {
+		const { report } = await runWithList(LIST, [{ type: "TXT", name: "_v.example.dev", content: "other" }]);
+		expect(report.status).toBe("fail");
+		expect(report.rows[0]?.problems).toHaveLength(2);
+	});
+
+	it("puts a listed name outside the org's domain in a zone of its own", async () => {
+		const other = JSON.stringify([{ type: "A", name: "x.other.dev", value: "1.2.3.4" }]);
+		const { report, provider } = await runWithList(other, [{ type: "A", name: "x.other.dev", content: "1.2.3.4" }]);
+		expect(provider.listRecords).toHaveBeenCalledWith("x.other.dev");
+		expect(report.rows[0]).toMatchObject({ id: "dns-x.other.dev", status: "ok" });
+	});
+
+	it("fails with a row of its own when the list cannot be read", async () => {
+		const { report } = await runWithList("{", []);
+		expect(report.rows[0]).toMatchObject({ id: "dns-records-file", status: "fail" });
+		expect(report.rows.some((r) => r.id === "dns")).toBe(true);
+	});
+});

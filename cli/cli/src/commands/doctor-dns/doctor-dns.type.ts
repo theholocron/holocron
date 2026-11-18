@@ -2,6 +2,7 @@ import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui"
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
+import type { DnsRecordsIo } from "../../dns-records/index.js";
 import type { DnsRecord, PluginLoader, RuntimeContext } from "../../plugin/index.js";
 
 export interface RunDoctorDnsInput {
@@ -14,6 +15,8 @@ export interface RunDoctorDnsInput {
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */
 	logger?: Logger;
+	/** Where `.holocron/dns-records.json` is read from. The disk by default. */
+	io?: DnsRecordsIo;
 }
 
 export interface DoctorDnsReport {
