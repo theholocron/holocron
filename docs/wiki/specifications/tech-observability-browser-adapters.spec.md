@@ -1,6 +1,6 @@
 ---
 id: SPEC-0049
-status: proposed
+status: accepted
 issue: theholocron/holocron#637
 blocked-by: []
 related:
@@ -48,11 +48,14 @@ Behaviour shared by the adapters:
 
 `@sentry/react-native` and `posthog-react-native` have required `react-native` peers. Installed as devDependencies for tests, they bring a whole React Native and Metro tree into `pnpm-lock.yaml` (about 1,800 lines) and change the peer variants of unrelated packages such as vite and astro. So these two sinks import no SDK: the app passes `import * as Sentry from "@sentry/react-native"` as `sdk` and a `new PostHog(key, { host })` as `client`. The SDKs are still declared as optional peers, the module loads in Node, tests use fakes, and, because nothing is imported, no vendor call site is added to the repo. The cost is that the SDK types are matched structurally (`SentrySdkLike`, `PostHogReactNativeClient`) and were not checked against the real React Native packages in this repo.
 
-## Open questions
+## Decisions
 
-- Does `createObservability(config)` belong in the library, or is every consumer's wiring different enough that `.` stays pure re-exports?
-- The cross-language event and redaction contract for the Swift side.
-- Check `SentrySdkLike` and `PostHogReactNativeClient` (`getDistinctId()`) against the real React Native SDKs in the first app that adopts them.
+- **`createObservability(config)` is not in the library; `.` stays pure re-exports.** Each consumer's wiring differs (the CLI wires its own through kyber's `createCliLogger` and `createCliTelemetry`). Revisit if a second consumer writes the same wiring.
+
+## Not decided or not verified
+
+- The cross-language event and redaction contract for the Swift side. There is no Swift consumer to design against yet.
+- `SentrySdkLike` and `PostHogReactNativeClient` (`getDistinctId()`) against the real React Native SDKs. This waits on the first app that adopts them.
 
 ## Status
 
