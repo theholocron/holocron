@@ -1,3 +1,13 @@
+## [5.0.0-alpha.485](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.484...v5.0.0-alpha.485) (2026-11-18)
+
+### Bug Fixes
+
+* **monitoring:** 🐛 use a JPEG for the Checkly logo, which does not take WebP ([#2381](https://github.com/theholocron/holocron/issues/2381)) ([4e98ba9](https://github.com/theholocron/holocron/commit/4e98ba94154bf0c00ad6d5245964273f3b40c71e))
+
+### Documentation
+
+* **specs:** 📚️ 📝 archive the monitoring spec, its work shipped ([#2382](https://github.com/theholocron/holocron/issues/2382)) ([edf4361](https://github.com/theholocron/holocron/commit/edf4361379746812a467cb8df0d3017b4250d5a2)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+
 ## [5.0.0-alpha.484](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.483...v5.0.0-alpha.484) (2026-11-18)
 
 ### Features
