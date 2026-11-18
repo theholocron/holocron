@@ -1,6 +1,6 @@
 ---
 id: SPEC-0066
-status: proposed
+status: accepted
 issue: theholocron/holocron#1599
 blocked-by: []
 related:
@@ -50,7 +50,7 @@ names the count and leaves the checking to a person). `notifications setup` refu
 channel name no `feeds.monitoring` declares, including when the layout declares no `feeds.monitoring` at all.
 
 When a channel must be replaced (a new URL, template or alert setting) Checkly's update replaces the whole channel. The
-settings the config does not state go back as a read taken just before the update has them, and every subscription
+settings the config does not state go back as a read taken right before the update has them, and every subscription
 that read holds is checked after it; one Checkly will not take back fails `setup`. A subscription added in the instant
 between that read and the update cannot be kept, which the API gives no way to prevent.
 
