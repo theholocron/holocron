@@ -5,6 +5,7 @@ import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
 import { docsPreset } from "@theholocron/cli/presets";
 
+import monitoring from "./.holocron/monitoring.js";
 import orgArea from "./.holocron/org.js";
 
 // docsPreset() provides: org, docs, strict repo protection, the base
@@ -168,91 +169,8 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
-		// Monitoring: Checkly (#2302). Checks sit next to the service they watch (apps/sentinel, apps/comlink); the docs
-		// site's is here, with the dashboard and status page, which pick checks by tag (with `automation` on, a failing
-		// check also opens an incident on its component). The free plan refuses a private dashboard (400), a status page
-		// domain (402) and automated incidents (403), so the dashboard is public and served on `status.${domain}` (its
-		// CNAME and TXT records are made by hand), the page has none and `automation: false`. On a paid plan drop
-		// `private: false` (the view key goes to `dev`, `doctor.manualSecrets`) and `automation: false`. Account: org.ts.
-		monitoring: [
-			"checkly",
-			{
-				checks: [
-					{
-						name: "Docs",
-						url: `https://docs.${domain}/holocron/`,
-						locations: ["us-east-1"],
-						tags: ["docs"],
-						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
-					},
-				],
-				// One per scheduled workflow whose silence matters (#2359): the workflow's last step pings the URL held in
-				// `HOLOCRON_HEARTBEAT_<NAME>` (`repo.secrets.sync`, names only) on success, so a run that stops or goes red is
-				// noticed. GitHub delays or drops scheduled runs under load, so a daily job gets a 6 hour grace and an hourly
-				// one 2 hours, which one late run does not trip. Not a status page component: tagged `scheduled`, which no
-				// dashboard or component lists.
-				heartbeats: [
-					{
-						name: "check-tokens",
-						period: 1,
-						periodUnit: "days",
-						grace: 6,
-						graceUnit: "hours",
-						tags: ["scheduled"],
-					},
-					{
-						name: "doctor-tokens",
-						period: 1,
-						periodUnit: "days",
-						grace: 6,
-						graceUnit: "hours",
-						tags: ["scheduled"],
-					},
-					{
-						name: "sync-specs",
-						period: 1,
-						periodUnit: "hours",
-						grace: 2,
-						graceUnit: "hours",
-						tags: ["scheduled"],
-					},
-					{
-						name: "reconcile-projects",
-						period: 1,
-						periodUnit: "hours",
-						grace: 2,
-						graceUnit: "hours",
-						tags: ["scheduled"],
-					},
-				],
-				dashboards: [
-					{
-						name: "The Holocron",
-						description,
-						tags: ["sentinel", "comlink", "docs"],
-						private: false,
-						domain: `status.${domain}`,
-					},
-				],
-				statusPages: [
-					{
-						name: "The Holocron",
-						slug: "theholocron",
-						description,
-						footer: "The Holocron: the status of Sentinel, Comlink and the docs site.",
-						privacyUrl: `https://docs.${domain}/holocron/legal/privacy/`,
-						termsUrl: `https://docs.${domain}/holocron/legal/terms/`,
-						supportUrl: `https://docs.${domain}/holocron/`,
-						automation: false,
-						components: [
-							{ name: "Sentinel", tags: ["sentinel"] },
-							{ name: "Comlink", tags: ["comlink"] },
-							{ name: "Docs", tags: ["docs"] },
-						],
-					},
-				],
-			},
-		],
+		// Monitoring: Checkly (#2302), declared in .holocron/monitoring.ts.
+		monitoring: ["checkly", monitoring(description)],
 		cache: "turbo",
 		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",
