@@ -1,3 +1,9 @@
+## [5.0.0-alpha.480](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.479...v5.0.0-alpha.480) (2026-11-18)
+
+### Features
+
+* **monitoring:** ✨ declare a logo, a favicon and a link on a dashboard and a status page ([#2374](https://github.com/theholocron/holocron/issues/2374)) ([7170ddf](https://github.com/theholocron/holocron/commit/7170ddf798d9667306d243e512975e8ede5d0ed8)), closes [#2355](https://github.com/theholocron/holocron/issues/2355)
+
 ## [5.0.0-alpha.479](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.478...v5.0.0-alpha.479) (2026-11-18)
 
 ### Features
