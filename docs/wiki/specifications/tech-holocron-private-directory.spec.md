@@ -1,6 +1,6 @@
 ---
 id: SPEC-0079
-status: draft
+status: accepted
 issue: theholocron/holocron#2078
 blocked-by: []
 related:
@@ -24,9 +24,12 @@ discussion:
 - **Where the constant lives.** In the CLI (`cli/cli/src/private-dir/`), not `@theholocron/kyber/secrets`: kyber is meant for any CLI and carries no Holocron names, and `.holocron` is one. The kyber helpers (`writeCredentialsFile`, `finishCredentialsFile`) still take a path. The 1Password export probe (#2076) will call the same helper once this lands.
 - **This repo.** The `.gitkeep` and block were produced by running `holocron repo sync private`; the old root `.credentials*` entry stays.
 
-## Open questions
+## Decisions
 
-1. The directory is made on first use of the default path, even if the ignore check then refuses, so a repo that never ran `repo sync` gets an empty untracked directory. Acceptable?
-2. `--force` replaces through a temporary `.credentials.<random>.tmp` beside the file; it is now inside the private directory, so the `.credentials*` root rule is no longer what covers it.
-3. Existing `.credentials` files at the repo root are not moved or read; a person who has one deletes it.
-4. The `.gitkeep` goes through the provider's `writeRepoFile` in `repo setup` with empty content; confirm the GitHub contents API accepts an empty file there.
+1. **The directory is made on first use of the default path, even if the ignore check then refuses.** Accepted: it is made owner-only (0700) and git does not track an empty directory, so a repo that never ran `holocron sync` gets nothing it can commit by mistake.
+2. **`--force` replaces through a temporary `.credentials.<random>.tmp` beside the file.** It sits inside the private directory, where the `.holocron/.private/*` rule ignores it, so the old root `.credentials*` rule is not needed for it.
+3. **Existing `.credentials` files at the repo root are not moved or read.** Decided: a person who has one deletes it.
+
+## Unverified
+
+- The `.gitkeep` goes through the provider's `writeRepoFile` in `setup` with empty content. Whether the GitHub contents API accepts an empty file there has not been checked against the live API. A refusal would show as a failed `setup` step, not a silent one.
