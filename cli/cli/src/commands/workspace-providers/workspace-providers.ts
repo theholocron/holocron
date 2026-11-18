@@ -1,13 +1,6 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-
-import { readWorkspacePackages } from "@theholocron/astromech";
-
-import { loadConfig, type ResolvedHolocronConfig, type ResolvedTuple } from "../../config/index.js";
+import { type ResolvedHolocronConfig, type ResolvedTuple } from "../../config/index.js";
 import { providerTuples } from "../provider-tuples/index.js";
-
-/** The extensions a `holocron.config` can have. */
-const CONFIG_EXTENSIONS = ["ts", "js", "mjs", "cjs", "json"];
+import { readWorkspaceConfigs } from "../workspace-configs/index.js";
 
 /**
  * The providers the configs of the workspace's packages name (`apps/sentinel` names `vercel` for its `deployment`) that
@@ -19,23 +12,12 @@ const CONFIG_EXTENSIONS = ["ts", "js", "mjs", "cjs", "json"];
 export async function workspaceProviders(repoRoot: string, config: ResolvedHolocronConfig): Promise<ResolvedTuple[]> {
 	const known = new Set(providerTuples(config.providers).map((t) => t.provider));
 	const found: ResolvedTuple[] = [];
-	let packages: ReturnType<typeof readWorkspacePackages>;
-	try {
-		packages = readWorkspacePackages(repoRoot);
-	} catch {
-		return found;
-	}
-	for (const pkg of packages) {
-		const dir = join(repoRoot, pkg.path ?? `${pkg.dir}/${pkg.slug}`);
-		if (!CONFIG_EXTENSIONS.some((ext) => existsSync(join(dir, `holocron.config.${ext}`)))) continue;
-		try {
-			for (const tuple of providerTuples((await loadConfig(dir)).resolved.providers)) {
-				if (known.has(tuple.provider)) continue;
-				known.add(tuple.provider);
-				found.push(tuple);
-			}
-		} catch {
-			continue;
+	for (const pkg of await readWorkspaceConfigs(repoRoot)) {
+		if ("error" in pkg) continue;
+		for (const tuple of providerTuples(pkg.resolved.providers)) {
+			if (known.has(tuple.provider)) continue;
+			known.add(tuple.provider);
+			found.push(tuple);
 		}
 	}
 	return found;

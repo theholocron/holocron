@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { MissingTokenError, type MonitoringCheckInput, type PluginImporter, PluginLoader } from "../../plugin/index.js";
+import type { WorkspaceMonitoring } from "../workspace-monitoring/index.js";
 import { runDoctorMonitoring } from "./doctor-monitoring.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
@@ -263,5 +264,67 @@ describe("doctor monitoring — defaults", () => {
 		expect(report.status).toBe("ok");
 		expect(log).toHaveBeenCalled();
 		log.mockRestore();
+	});
+});
+
+describe("doctor monitoring — checks no config declares", () => {
+	const dashboard = { name: "The Holocron", tags: ["docs", "sentinel"] };
+	const workspace = (over: Partial<WorkspaceMonitoring> = {}): WorkspaceMonitoring => ({
+		checks: [],
+		dashboards: [],
+		statusPages: [],
+		unreadable: [],
+		...over,
+	});
+	async function runUndeclared(provider: Record<string, unknown>, ws: WorkspaceMonitoring) {
+		const lines: string[] = [];
+		const report = await runDoctorMonitoring({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: loaderWith(provider, loaded),
+			workspaceMonitoring: ws,
+			print: (l) => lines.push(stripVTControlCharacters(l)),
+			logger: fakeLogger(),
+		});
+		return { report, lines };
+	}
+	const docs = declared({ name: "docs", tags: ["docs"] });
+	const sentinel = declared({ name: "sentinel", tags: ["sentinel"] });
+	const dashboards = { dashboards: [dashboard] };
+
+	it("is ok when a check a declared dashboard picks up is declared in a workspace package", async () => {
+		const { report } = await runUndeclared(
+			{ ...provider([docs], [docs, sentinel]), ...dashboards },
+			workspace({ checks: [sentinel] })
+		);
+		expect(report.rows.find((r) => r.id === "monitoring-undeclared")).toMatchObject({
+			status: "ok",
+			detail: "2 compared, all declared",
+		});
+	});
+
+	it("names an undeclared check as an info row and does not fail the run", async () => {
+		const stray = declared({ name: "Docs staging", tags: ["docs"] });
+		const { report, lines } = await runUndeclared(
+			{ ...provider([docs], [docs, stray]), ...dashboards },
+			workspace()
+		);
+		expect(report.status).toBe("ok");
+		expect(report.rows.find((r) => r.id === "monitoring-undeclared")?.status).toBe("skip");
+		expect(lines.join("\n")).toContain("declared nowhere: Docs staging (docs)");
+	});
+
+	it("reads the account's checks once", async () => {
+		const listChecks = vi.fn(async () => [docs]);
+		await runUndeclared({ checks: [docs], listChecks, ...dashboards }, workspace());
+		expect(listChecks).toHaveBeenCalledTimes(1);
+	});
+
+	it("makes no row when the checks could not be listed", async () => {
+		const { report } = await runUndeclared(
+			{ ...provider([docs], async () => Promise.reject(new Error("boom"))), ...dashboards },
+			workspace()
+		);
+		expect(report.rows.map((r) => r.id)).not.toContain("monitoring-undeclared");
 	});
 });

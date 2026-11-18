@@ -8,6 +8,10 @@
  * lacks fails, an extra tag on it does not. A provider that cannot list its checks, a missing
  * provider that failed to load, or a missing token is a skip with the reason, not a failure.
  *
+ * One more `info` row, `monitoring-undeclared` (`undeclared-check-rows/`), names the account's checks that a declared
+ * dashboard or status page component picks up by tag and that no config declares, the root's or a workspace package's
+ * (`readWorkspaceMonitoring()`). It reuses the checks row's one read of the account and is never a failure.
+ *
  * Heartbeats are one more row (`heartbeat-rows/`): each declared one must exist with the declared period and grace, and
  * the account's others are an `info` row. Names only.
  *
@@ -32,10 +36,12 @@ import {
 } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
+import { readWorkspaceMonitoring } from "../workspace-monitoring/index.js";
 import { dashboardRows } from "./dashboard-rows/index.js";
 import type { DoctorMonitoringReport, RunDoctorMonitoringInput } from "./doctor-monitoring.type.js";
 import { heartbeatRows } from "./heartbeat-rows/index.js";
 import { statusPageRows } from "./status-page-rows/index.js";
+import { undeclaredCheckRows } from "./undeclared-check-rows/index.js";
 
 const ID = "monitoring-checks";
 const TITLE = "monitoring checks match";
@@ -47,7 +53,13 @@ export async function runDoctorMonitoring(input: RunDoctorMonitoringInput): Prom
 	await loader.load();
 	assertPluginsResolvable(loader, "doctor monitoring");
 
-	const rows: CheckRow[] = [await checkRow(loader)];
+	const checks = await checkRow(loader);
+	const rows: CheckRow[] = [checks.row];
+	if (loader.has("monitoring")) {
+		const monitoring = loader.get("monitoring");
+		const workspace = input.workspaceMonitoring ?? (await readWorkspaceMonitoring(input.context));
+		rows.push(...undeclaredCheckRows({ monitoring, workspace, have: checks.have }));
+	}
 	if (loader.has("monitoring")) rows.push(...(await dashboardRows(loader.get("monitoring"))));
 	if (loader.has("monitoring")) rows.push(...(await statusPageRows(loader.get("monitoring"))));
 	rows.push(...(await heartbeatRowsOf(loader)));
@@ -66,31 +78,39 @@ export async function runDoctorMonitoring(input: RunDoctorMonitoringInput): Prom
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function checkRow(loader: PluginLoader): Promise<CheckRow> {
-	const skip = (detail: string): CheckRow => ({ id: ID, title: TITLE, status: "skip", detail, problems: [] });
+/** The checks row and, when it read them, the checks the account holds (the one read `monitoring-undeclared` reuses). */
+async function checkRow(loader: PluginLoader): Promise<{ row: CheckRow; have?: MonitoringCheckInput[] }> {
+	const skip = (detail: string): { row: CheckRow } => ({
+		row: { id: ID, title: TITLE, status: "skip", detail, problems: [] },
+	});
+	const none = (): { row: CheckRow } => ({
+		row: { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] },
+	});
 	if (!loader.has("monitoring")) {
 		// A provider that is configured but failed to load is worth saying; none configured means nothing is declared.
 		if (loader.loadFailures().some((f) => f.key === "monitoring")) {
 			return skip(whyMissing(loader, "monitoring", "no `monitoring` provider is available"));
 		}
-		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
+		return none();
 	}
 	const monitoring = loader.get("monitoring");
-	if (monitoring.checks.length === 0) {
-		return { id: ID, title: TITLE, status: "ok", detail: "none declared", problems: [] };
-	}
+	if (monitoring.checks.length === 0) return none();
 	if (!monitoring.listChecks) return skip("provider does not implement listChecks");
 	try {
-		const problems = compareChecks(monitoring.checks, await monitoring.listChecks());
+		const have = await monitoring.listChecks();
+		const problems = compareChecks(monitoring.checks, have);
 		if (problems.length > 0) {
-			return { id: ID, title: TITLE, status: "fail", detail: `${problems.length} problem(s)`, problems };
+			return {
+				row: { id: ID, title: TITLE, status: "fail", detail: `${problems.length} problem(s)`, problems },
+				have,
+			};
 		}
 		const n = monitoring.checks.length;
-		return { id: ID, title: TITLE, status: "ok", detail: `${n} of ${n} match`, problems: [] };
+		return { row: { id: ID, title: TITLE, status: "ok", detail: `${n} of ${n} match`, problems: [] }, have };
 	} catch (err) {
 		const noToken = missingTokenReason(err);
 		if (noToken !== undefined) return skip(noToken);
-		return { id: ID, title: TITLE, status: "fail", detail: errorMessage(err), problems: [] };
+		return { row: { id: ID, title: TITLE, status: "fail", detail: errorMessage(err), problems: [] } };
 	}
 }
 

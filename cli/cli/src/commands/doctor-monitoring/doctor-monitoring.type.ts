@@ -3,11 +3,14 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
+import type { WorkspaceMonitoring } from "../workspace-monitoring/index.js";
 
 export interface RunDoctorMonitoringInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
 	loader?: PluginLoader;
+	/** What the workspace packages' configs declare. Defaults to `readWorkspaceMonitoring()` over `context`. */
+	workspaceMonitoring?: WorkspaceMonitoring;
 	print?: (line: string) => void;
 	logger?: Logger;
 }
