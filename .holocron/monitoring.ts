@@ -9,6 +9,12 @@ import orgArea from "./org.js";
 
 const { domain } = orgArea;
 
+// The docs site serves the logo and the icon from its `public/` folder (`docs/public/`), so they answer once the docs
+// are deployed from `main`; until then Checkly shows a broken image, which is expected (#2355).
+const docsSite = `https://docs.${domain}/holocron`;
+const logo = `${docsSite}/logos/profile.v2.webp`;
+const favicon = `${docsSite}/favicon.svg`;
+
 // The `monitoring` provider's options for this repo (Checkly, #2302), imported by `holocron.config.ts`. Checks sit
 // next to the service they watch (apps/sentinel, apps/comlink); the docs site's is here, with the heartbeats, the
 // dashboard and the status page, which pick checks by tag (with `automation` on, a failing check also opens an incident
@@ -75,6 +81,9 @@ export default function monitoring(description: string) {
 				tags: ["sentinel", "comlink", "docs"],
 				private: false,
 				domain: `status.${domain}`,
+				logo,
+				favicon,
+				link: `${docsSite}/`,
 			},
 		],
 		statusPages: [
@@ -86,6 +95,9 @@ export default function monitoring(description: string) {
 				privacyUrl: `https://docs.${domain}/holocron/legal/privacy/`,
 				termsUrl: `https://docs.${domain}/holocron/legal/terms/`,
 				supportUrl: `https://docs.${domain}/holocron/`,
+				logo,
+				favicon,
+				link: `${docsSite}/`,
 				automation: false,
 				components: [
 					{ name: "Sentinel", tags: ["sentinel"] },
