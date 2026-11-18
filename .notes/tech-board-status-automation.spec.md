@@ -68,7 +68,7 @@ applying it twice changes nothing. Blocked still wins, because `planReconcile()`
 
 `holocron project status <issue> <status>` sets one item's status through `Projects.setStatus`, by the issue key, so an
 agent never needs a project item id. It takes a status name of the board's template; `--dry-run` prints the change;
-it asks nothing (a status is easy to set back). It is for the start of work, the only event the rules cannot see.
+it asks nothing (a status can be reverted). It is for the start of work, the only event the rules cannot see.
 
 ### Agent rules
 
