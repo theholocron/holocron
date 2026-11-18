@@ -53,6 +53,7 @@ import { projectCloseEntry } from "../../commands/project/project-close/project-
 import { projectCreateEntry } from "../../commands/project/project-create/project-create.entry.js";
 import { projectListEntry } from "../../commands/project/project-list/project-list.entry.js";
 import { projectSetupEntry } from "../../commands/project/project-setup/project-setup.entry.js";
+import { projectStatusEntry } from "../../commands/project/project-status/project-status.entry.js";
 import { projectReconcileEntry } from "../../commands/project/reconcile/reconcile.entry.js";
 import { providerEntry } from "../../commands/provider/provider.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
@@ -171,6 +172,7 @@ const registry = createCommandRegistry(
 		projectCreateEntry,
 		projectCloseEntry,
 		projectSetupEntry,
+		projectStatusEntry,
 		// project (SPEC-0020)
 		projectReconcileEntry,
 	],

@@ -69,6 +69,8 @@ export const COMMAND_CONTEXTS = {
 	"new project": "workspace",
 	"close project": "workspace",
 	"setup project": "workspace",
+	// Reads a board's items and sets one status through the `projects` provider.
+	"project status": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
 	// Loads the config and the handler it names; calls no provider (the vault's variables arrive in the environment).
