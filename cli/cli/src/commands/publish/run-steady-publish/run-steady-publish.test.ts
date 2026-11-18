@@ -1,7 +1,8 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
@@ -273,58 +274,68 @@ describe("runSteadyPublish", () => {
 			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(2);
 		});
 
-		it("falls back to the publish call's stdout when a genuine (non-race) per-package failure has empty stderr (patch coverage)", async () => {
-			const exec = async (cmd: string): Promise<PublishExecResult> => {
-				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" }; // never published, not a race
-				return { exitCode: 1, stdout: "publish blew up on stdout", stderr: "" };
-			};
-			const report = await runSteadyPublish({
-				cwd: "/tmp/test",
-				env: baseEnv,
-				packages: STEADY_ENTRIES,
-				skipAlreadyPublished: true,
-				print: () => {},
-				exec,
-			});
-			expect(report.status).toBe("fail");
-			expect(report.message).toContain("publish blew up on stdout");
-		});
-
-		it("falls back to 'no output' when a genuine (non-race) per-package failure has empty stderr and stdout (patch coverage)", async () => {
-			const exec = async (cmd: string): Promise<PublishExecResult> => {
-				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" }; // never published, not a race
-				return { exitCode: 1, stdout: "", stderr: "" };
-			};
-			const report = await runSteadyPublish({
-				cwd: "/tmp/test",
-				env: baseEnv,
-				packages: STEADY_ENTRIES,
-				skipAlreadyPublished: true,
-				print: () => {},
-				exec,
-			});
-			expect(report.status).toBe("fail");
-			expect(report.message).toContain("no output");
-		});
-
-		it("fails on the first per-package publish failure, without attempting the rest", async () => {
+		it("keeps going after a failure, tries every package and reports the failures together (#1387)", async () => {
 			const calls: Array<{ cmd: string; args: string[] }> = [];
+			const lines: string[] = [];
 			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
 				calls.push({ cmd, args: [...args] });
 				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" };
-				return { exitCode: 1, stdout: "", stderr: "publish blew up" };
+				return args.includes("./packages/foo")
+					? { exitCode: 1, stdout: "", stderr: "publish blew up" }
+					: { exitCode: 0, stdout: "", stderr: "" };
 			};
 			const report = await runSteadyPublish({
 				cwd: "/tmp/test",
 				env: baseEnv,
+				envLookup: createEnvLookup({}),
 				packages: STEADY_ENTRIES,
 				skipAlreadyPublished: true,
-				print: () => {},
+				print: (l) => lines.push(l),
 				exec,
 			});
 			expect(report.status).toBe("fail");
 			expect(report.message).toContain("@theholocron/foo@1.0.0");
-			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(1); // stopped after the first failure
+			expect(report.message).toContain("1 of 2");
+			expect(calls.filter((c) => c.cmd === "pnpm")).toHaveLength(2); // bar was still attempted
+			const text = lines.join("\n");
+			expect(text).toContain("1 package(s) not published");
+			expect(text).toContain("holocron publish package --skip-already-published");
+		});
+
+		it("retries a sigstore 409, then names an identical tarball and writes the job summary", async () => {
+			const dir = mkdtempSync(join(tmpdir(), "steady-summary-"));
+			const summary = join(dir, "summary.md");
+			const lines: string[] = [];
+			const sleeps: number[] = [];
+			let fooPublishes = 0;
+			const exec = async (cmd: string, args: string[]): Promise<PublishExecResult> => {
+				if (cmd === "npm") return { exitCode: 1, stdout: "", stderr: "404" };
+				if (args.includes("./packages/foo")) {
+					fooPublishes += 1;
+					return { exitCode: 1, stdout: "", stderr: "npm error code TLOG_CREATE_ENTRY_ERROR" };
+				}
+				return { exitCode: 0, stdout: "", stderr: "" };
+			};
+			const report = await runSteadyPublish({
+				cwd: "/tmp/test",
+				env: baseEnv,
+				envLookup: createEnvLookup({ GITHUB_STEP_SUMMARY: summary }),
+				packages: STEADY_ENTRIES,
+				skipAlreadyPublished: true,
+				print: (l) => lines.push(l),
+				exec,
+				sleep: async (ms) => {
+					sleeps.push(ms);
+				},
+				backoffMs: [1, 2],
+			});
+			expect(report.status).toBe("fail");
+			expect(fooPublishes).toBe(3);
+			expect(sleeps).toEqual([1, 2]);
+			expect(lines.join("\n")).toContain("identical to one already in the transparency log");
+			const md = readFileSync(summary, "utf8");
+			expect(md).toContain("## Packages not published");
+			expect(md).toContain("`@theholocron/foo@1.0.0`");
 		});
 
 		it("dry-run lists each would-check package without calling exec", async () => {

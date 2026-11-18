@@ -21,6 +21,25 @@ Three modes:
 
 `--package <name or folder>` (repeatable) narrows `--initial` and `--sync-trust` to the packages named, so one new package can be bootstrapped or registered without touching the rest: `holocron publish package --sync-trust ci.release.yml ci.release.yml --package @theholocron/holocron-plugin-bruno`. A name (`@theholocron/holocron-plugin-bruno`) or a folder (`plugins/holocron-plugin-bruno`) both work, and it combines with `--group`. A name that matches nothing leaves nothing to do ("nothing to publish"). A steady-state publish refuses it, because that run releases the whole scope.
 
+## A failed package does not stop the rest (`--skip-already-published`)
+
+With `--skip-already-published` the command publishes one package at a time ([#1387](https://github.com/theholocron/holocron/issues/1387)), and one package's failure costs that package, not the rest of the list:
+
+- After any failed publish it asks the registry (`npm view <name>@<version>`). A version that is there counts as published (another run made it).
+- Only npm's sigstore step answering `409` (`TLOG_CREATE_ENTRY_ERROR`) is tried again, twice, after 5 s and 15 s, and the registry is checked between tries. Every other failure ends that package at once.
+- Every remaining package is still attempted. The failures are printed together at the end, written to the job summary (`GITHUB_STEP_SUMMARY`, a table of the packages not published) and the command exits non-zero.
+
+A `409` that survives the retries is not a flake. It means the tarball is byte for byte identical to one already in the transparency log (an earlier publish of the same bytes), so a retry cannot succeed. The report names the package and says so: the fix is a change in the package's contents and a new release. [`holocron doctor releases`](/commands/doctor-releases/) names the tag npm never received for this and the other known cause.
+
+To publish what npm lacks for a version that is already tagged (a failure that is not the identical-tarball case), check out the tag, build, and run the same command; it skips what is on the registry:
+
+```bash
+git checkout configs-v8.9.0-alpha.3 && pnpm install --frozen-lockfile && pnpm build
+pnpm exec holocron publish package --group configs --skip-already-published --tag alpha
+```
+
+It needs a publisher npm trusts: run it in CI from the release caller workflow (`ci.release.yml`), whose filename the Trusted Publisher entries name, or locally with `--otp`. There is no `workflow_dispatch` input for this yet: the release workflow runs semantic-release, which finds nothing new at an existing tag, so a publish-only path would need its own job (checkout at the tag, build, this command) in the reusable `release.yml` and a new input on the generated caller.
+
 ## Migrating Trusted Publisher config (`--sync-trust`)
 
 npm's Trusted Publisher config is tied to a specific workflow **filename** per package, and npm checks the **calling** workflow's filename. When a workflow calls a reusable one (`workflow_call`), register the caller, not the reusable: in this repo that is `ci.release.yml`, which calls the reusable `release.yml`. Registering the reusable's name makes the publish fail with `ENEEDAUTH`. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.

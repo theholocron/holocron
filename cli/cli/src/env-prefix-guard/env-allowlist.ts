@@ -17,6 +17,8 @@ export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	// The file GitHub Actions names for a step's outputs; `upload coverage` appends `uploaded=<n>` to it.
 	"GITHUB_OUTPUT",
 	"GITHUB_REF_NAME",
+	// The file GitHub Actions names for a job's Markdown summary; `publish package` appends the packages that did not publish.
+	"GITHUB_STEP_SUMMARY",
 	"GITHUB_TOKEN",
 	"NO_UPDATE_NOTIFIER",
 	"NODE_ENV",
