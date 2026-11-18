@@ -1,3 +1,9 @@
+## [1.58.0-alpha.44](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.43...clients-v1.58.0-alpha.44) (2026-11-18)
+
+### Bug Fixes
+
+* **github:** 🐛 read board items' pull requests in a second step, and say each GraphQL error once ([#2416](https://github.com/theholocron/holocron/issues/2416)) ([2d9031a](https://github.com/theholocron/holocron/commit/2d9031aadf3acad50816e1e981fbc9153d2c5e3c)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
 ## [1.58.0-alpha.43](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.42...clients-v1.58.0-alpha.43) (2026-11-18)
 
 ### Features
