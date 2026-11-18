@@ -1,3 +1,21 @@
+## [5.0.0-alpha.470](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.469...v5.0.0-alpha.470) (2026-11-18)
+
+### Features
+
+* **monitoring:** ✨ add an automation option to a status page, for plans without it ([#2325](https://github.com/theholocron/holocron/issues/2325)) ([d0e2f07](https://github.com/theholocron/holocron/commit/d0e2f07f720edd1a7697302db8232876cc25815c)), closes [#2324](https://github.com/theholocron/holocron/issues/2324) [#2324](https://github.com/theholocron/holocron/issues/2324)
+
+### Bug Fixes
+
+* **bruno:** 🐛 sign the request body Bruno sends, not an empty .raw ([#2327](https://github.com/theholocron/holocron/issues/2327)) ([e213163](https://github.com/theholocron/holocron/commit/e213163f1341859dcce89a1d012aa4466fd95a60))
+
+### Documentation
+
+* **bruno:** 📝 spec for filling a collection's secrets from 1Password ([#2323](https://github.com/theholocron/holocron/issues/2323)) ([ab86f72](https://github.com/theholocron/holocron/commit/ab86f72579169086f5579b468575dc7a2725bb83)), closes [#2322](https://github.com/theholocron/holocron/issues/2322)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2326](https://github.com/theholocron/holocron/issues/2326)) ([cbe9b0d](https://github.com/theholocron/holocron/commit/cbe9b0d24177b10ee09c41d2f1d9053094389428))
+
 ## [5.0.0-alpha.469](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.468...v5.0.0-alpha.469) (2026-11-17)
 
 ### Bug Fixes
