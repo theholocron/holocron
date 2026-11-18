@@ -166,14 +166,12 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: "sentry",
-		// Monitoring: Checkly (#2302). The uptime channel's feed below is the alert channel. Checks are declared next to the
-		// service they watch (apps/sentinel, apps/comlink); the docs site's is here, with the dashboard and the status
-		// page, which pick checks by tag (the dashboard shows them; with `automation` on, a failing check also opens an
-		// incident on the components with its tag). Checkly's free plan refuses a private dashboard (400), a custom domain
-		// (402) and automated incidents (403), so the dashboard is public, the page has no domain and `automation: false`
-		// leaves incidents to hand. On a paid plan drop `private: false` (the view key then goes to `dev` by hand,
-		// `doctor.manualSecrets`) and `automation: false`, and add `domain: \`status.${domain}\``, which `holocron setup`
-		// serves through a CNAME. Account id: .holocron/org.ts.
+		// Monitoring: Checkly (#2302). Checks sit next to the service they watch (apps/sentinel, apps/comlink); the docs
+		// site's is here, with the dashboard and status page, which pick checks by tag (with `automation` on, a failing
+		// check also opens an incident on its component). The free plan refuses a private dashboard (400), a status page
+		// domain (402) and automated incidents (403), so the dashboard is public and served on `status.${domain}` (its
+		// CNAME and TXT records are made by hand), the page has none and `automation: false`. On a paid plan drop
+		// `private: false` (the view key goes to `dev`, `doctor.manualSecrets`) and `automation: false`. Account: org.ts.
 		monitoring: [
 			"checkly",
 			{
@@ -186,7 +184,15 @@ export default defineConfig({
 						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 					},
 				],
-				dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"], private: false }],
+				dashboards: [
+					{
+						name: "The Holocron",
+						description: "Holocron CLI status",
+						tags: ["sentinel", "comlink", "docs"],
+						private: false,
+						domain: `status.${domain}`,
+					},
+				],
 				statusPages: [
 					{
 						name: "The Holocron",
