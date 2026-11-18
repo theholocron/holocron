@@ -196,7 +196,15 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   package's `holocron.config` is a release-time deploy (#930): the shared
   `release` workflow's separate `deploy` job runs `holocron
 deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
-  and it generates no workflow of its own.
+  and it generates no workflow of its own. Each package diffs from the commit it
+  was last deployed at, recorded as a `deployed/<package>` tag the deploy moves
+  and pushes on success (#2330), so a deploy a release missed (Sentinel's wait for
+  npm timing out) is made up by the next release even when that one does not touch
+  the app; a package with no tag yet, or one that is not an ancestor of the release,
+  falls back to the previous release's range, and a tag that cannot be pushed is a
+  warning. The job has `contents: write` for it. The marker is a git tag, not read
+  from the provider: `DeploymentRecord` carries no commit, and Sentinel deploys by
+  file upload (`deployFunction`), so a provider cannot be asked what is live.
   The workflows read a few organization Actions variables (`vars.HOLOCRON_TURBO_TEAM`, `vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, …; each is read as `vars.HOLOCRON_X || vars.X` and mapped onto the bare name a tool such as turbo or wrangler reads, #1864). They
   are declared under `repo.variables` and written by `holocron setup`, or, for this repo, filled from the `ci` layer's 1Password Environment by `holocron sync secrets --env ci` (`repo.variables.sync`), never set by hand. A
   missing one fails quietly, so the templates warn and say where it is declared: the shared `setup` composite action

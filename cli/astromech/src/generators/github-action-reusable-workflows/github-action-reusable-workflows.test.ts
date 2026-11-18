@@ -414,6 +414,9 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// It deploys the release commit, from the release job's outputs.
 		expect(deployJob).toContain("ref: ${{ needs.release.outputs.commit }}");
 		expect(deployJob).toContain("command: deploy on-release");
+		// It records each deploy as a tag (holocron#2330), so it can push one.
+		expect(deployJob).toContain("contents: write");
+		expect(deployJob).toContain("persist-credentials: true");
 		for (const output of ["channel", "previous", "commit"]) {
 			expect(deployJob).toContain(`needs.release.outputs.${output}`);
 			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);

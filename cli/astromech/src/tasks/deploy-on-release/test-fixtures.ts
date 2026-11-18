@@ -14,8 +14,21 @@ export function fakeRun({
 	diffStatus = 0,
 	deployStatus = 0,
 	served = true,
+	marker = undefined as string | undefined,
+	markerAncestor = true,
+	pushStatus = 0,
 } = {}) {
 	return vi.fn<Run>((command, args) => {
+		if (command === "git" && args[0] === "rev-parse") {
+			return marker ? { status: 0, stdout: marker + "\n", stderr: "" } : { status: 1, stdout: "", stderr: "" };
+		}
+		if (command === "git" && args[0] === "merge-base") {
+			return { status: markerAncestor ? 0 : 1, stdout: "", stderr: "" };
+		}
+		if (command === "git" && args[0] === "tag") return { status: 0, stdout: "", stderr: "" };
+		if (command === "git" && args[0] === "push") {
+			return { status: pushStatus, stdout: "", stderr: pushStatus ? "denied" : "" };
+		}
 		if (command === "git") {
 			return {
 				status: diffStatus,
