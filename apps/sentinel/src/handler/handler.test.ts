@@ -302,6 +302,18 @@ describe("handler — unhandled and installation events", () => {
 		expect(createInstallationClient).not.toHaveBeenCalled();
 	});
 
+	it("acknowledges GitHub's ping as handled without resolving a client", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: false,
+			reason: '"ping" is not a v1 event category',
+			githubEvent: "ping",
+		});
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ handled: true, type: "ping" });
+		expect(createInstallationClient).not.toHaveBeenCalled();
+	});
+
 	it("acknowledges installation.created without resolving a client", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({
 			handled: true,
