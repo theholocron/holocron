@@ -36,7 +36,7 @@ directory"); the architecture note is in `AGENTS.md`.
 Discord server. About a sixth of the notifications block (37 of 227 lines) was comments that explain why a choice was
 made, so whatever form the layout took had to keep comments; that is why `.ts` is the format here (question 5).
 
-SPEC-0020 (`.notes/command-project.spec.md`, "Template system") had already put project-board templates in files, one
+SPEC-0020 (`docs/wiki/specifications/command-project.spec.md`, "Template system") had already put project-board templates in files, one
 `<name>.json` per template, in `.holocron/projects`. That is built: `DEFAULT_TEMPLATES_DIR = ".holocron/projects"` in
 `cli/cli/src/commands/project/project-options/project-options.ts`, read by `createFsTemplatesIo()`. This spec made the
 directory the general rule for the big declarations.

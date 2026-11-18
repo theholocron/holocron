@@ -44,7 +44,7 @@ It is off until three settings exist in Sentinel's environment:
 | `HOLOCRON_DISCORD_BOT_TOKEN` | The Holonet bot token                                                                                   |
 | `HOLOCRON_USER_SYNC_TOKEN`   | The `github.user-sync` token that reads the links file in the org's private config repo                 |
 
-The GitHub App also needs the organization permission Members: read and the `membership` and `organization` events. A sync that fails or only partly works answers HTTP 500 and logs an error, so the delivery shows as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent). Design: `.notes/tech-sentinel-role-sync.spec.md`.
+The GitHub App also needs the organization permission Members: read and the `membership` and `organization` events. A sync that fails or only partly works answers HTTP 500 and logs an error, so the delivery shows as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent). Design: `docs/wiki/specifications/tech-sentinel-role-sync.spec.md`.
 
 ## Key points
 

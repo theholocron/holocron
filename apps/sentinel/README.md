@@ -549,7 +549,7 @@ checks' verdicts are unchanged) and is left for its author to fix. A file GitHub
 
 ### Role sync settings (optional)
 
-Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron sync secrets --env Sentinel`.
+Role sync keeps Discord roles equal to GitHub teams (`docs/wiki/specifications/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron sync secrets --env Sentinel`.
 
 ### `#prs` forum feed settings (optional)
 
