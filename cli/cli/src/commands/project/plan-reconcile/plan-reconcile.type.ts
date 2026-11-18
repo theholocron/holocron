@@ -1,7 +1,8 @@
 import type { BoardItem, BoardStatusCategory } from "../../../plugin/index.js";
+import type { PullRequestStatusReason } from "../plan-pull-request-status/index.js";
 
 /** Why an item's status is changed. */
-export type ReconcileReason = "blocked" | "unblocked" | "closed";
+export type ReconcileReason = "blocked" | "unblocked" | "closed" | PullRequestStatusReason;
 
 /** One status change `reconcile` makes. */
 export interface ReconcileChange {
@@ -14,7 +15,7 @@ export interface ReconcileChange {
 	/** The template's status it is set to. */
 	to: string;
 	/** The category of `to`. */
-	category: Extract<BoardStatusCategory, "blocked" | "planned" | "done">;
+	category: Extract<BoardStatusCategory, "blocked" | "planned" | "done" | "active" | "review">;
 	/** Which rule applies. */
 	reason: ReconcileReason;
 }

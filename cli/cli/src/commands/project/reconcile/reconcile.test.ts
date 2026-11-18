@@ -367,4 +367,77 @@ describe("runProjectReconcile", () => {
 		expect(report.status).toBe("fail");
 		expect(lines.join("\n")).toContain("refused: still Todo (workflow forbids it)");
 	});
+
+	describe("pull-request rules", () => {
+		const open = (checks: "success" | "failure" | "pending" | "none") => [
+			{ key: "#100", state: "open" as const, draft: false, checks },
+		];
+		const withPrs = (items: BoardItem[], over: Partial<Projects> = {}) =>
+			fakeProjects({ items: vi.fn(async () => items), ...over });
+
+		it("moves an item with an open pull request to In Progress and a green one to In Review", async () => {
+			const projects = withPrs([
+				item({ key: "#1", status: "Todo", pullRequests: open("none") }),
+				item({ key: "#2", status: "In Progress", pullRequests: open("success") }),
+				item({ key: "#3", status: "In Review", pullRequests: open("failure") }),
+				item({ key: "#4", status: "In Review", pullRequests: open("pending") }),
+			]);
+			const { run, lines } = setup(projects);
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(projects.setStatus).toHaveBeenCalledTimes(3);
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#1", "In Progress");
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#2", "In Review");
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#3", "In Progress");
+			const text = lines.join("\n");
+			expect(text).toContain("#1 Todo → In Progress (a pull request is open)");
+			expect(text).toContain("#2 In Progress → In Review (its pull request is green)");
+			expect(text).toContain("#3 In Review → In Progress (its pull request failed its checks)");
+			expect(report.boards[0]!.applied).toEqual(["#1", "#2", "#3"]);
+		});
+
+		it("prints the plan and sets nothing on --dry-run", async () => {
+			const projects = withPrs([item({ key: "#1", status: "Todo", pullRequests: open("success") })]);
+			const { run, lines } = setup(projects, { dryRun: true });
+			const report = await run();
+			expect(report.status).toBe("dry-run");
+			expect(projects.setStatus).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain("would set #1 Todo → In Review (its pull request is green)");
+		});
+
+		it("leaves blocked, closed, status-less and already-right items to their own rules", async () => {
+			const projects = withPrs([
+				item({ key: "#1", status: "Todo", blockedBy: ["#9"], pullRequests: open("success") }),
+				item({ key: "#2", status: "Todo", open: false, pullRequests: open("success") }),
+				item({ key: "#3", pullRequests: open("success") }),
+				item({ key: "#4", status: "In Review", pullRequests: open("success") }),
+				item({ key: "#5", status: "Todo" }),
+			]);
+			const { run } = setup(projects);
+			const report = await run();
+			expect(projects.setStatus).toHaveBeenCalledTimes(2);
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#1", "Blocked");
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#2", "Done");
+			expect(report.boards[0]!.unset).toEqual(["#3"]);
+		});
+
+		it("reports a pull-request rule whose category the template lacks, and sets nothing", async () => {
+			const template = JSON.stringify({
+				statuses: [
+					{ name: "Todo", category: "planned" },
+					{ name: "Done", category: "done" },
+				],
+				fields: [],
+				views: [{ name: "All", layout: "table" }],
+			});
+			const projects = withPrs([item({ key: "#1", status: "Todo", pullRequests: open("none") })]);
+			const { run, lines } = setup(projects, {
+				options: { boards: [{ template: "mine", name: "v5" }] },
+				files: { "mine.json": template },
+			});
+			await run();
+			expect(projects.setStatus).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain("#1 a pull request is open but the template has no active status");
+		});
+	});
 });

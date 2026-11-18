@@ -1,7 +1,9 @@
 /**
  * `holocron reconcile project [board]` — set the status of board items where a rule says so (spec `command-project`,
  * "Keeping a board true"): an open item with an open blocker goes to the `blocked` status, an open blocked one with no
- * blocker returns to `planned`, a closed or merged one goes to `done`. Status only, never priority or any other field.
+ * blocker returns to `planned`, a closed or merged one goes to `done`; then `planPullRequestStatus()` puts an open item with
+ * an open linked pull request in `active` and one whose aggregate check is green in `review` (#2388). Status only, never
+ * priority or any other field.
  *
  * The rules are `planReconcile()`, pure; this reads the items through the `projects` capability, applies each change
  * through `setStatus` and prints one line per item. A refusal is a reported failure and the run continues; the exit is
@@ -18,6 +20,7 @@ import { getLogger } from "../../../observability/logger/index.js";
 import { assertPluginsResolvable, type BoardSummary, PluginLoader } from "../../../plugin/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
+import { planPullRequestStatus } from "../plan-pull-request-status/index.js";
 import { planReconcile, type ReconcileChange } from "../plan-reconcile/index.js";
 import { resolveProjectOptions } from "../project-options/index.js";
 import type { BoardReconcileOutcome, ProjectReconcileReport, RunProjectReconcileInput } from "./reconcile.type.js";
@@ -27,6 +30,9 @@ const WHY: Record<ReconcileChange["reason"], string> = {
 	blocked: "has an open blocker",
 	unblocked: "no open blocker left",
 	closed: "closed",
+	"pull-request-open": "a pull request is open",
+	"checks-green": "its pull request is green",
+	"checks-failed": "its pull request failed its checks",
 };
 
 const line = (c: ReconcileChange) => `${c.key} ${c.from ?? "no status"} → ${c.to} (${WHY[c.reason]})`;
@@ -107,7 +113,16 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 				failStep(declared.name, "the board does not exist or is closed; run `holocron setup project`");
 				continue;
 			}
-			plan = planReconcile(await projects.items(owner, board, template), template);
+			const items = await projects.items(owner, board, template);
+			plan = planReconcile(items, template);
+			// The pull-request rules run after, on items that rule left alone; a changed item settles on the next run.
+			const settled = new Set([...plan.changes.map((c) => c.key), ...plan.unset.map((i) => i.key)]);
+			for (const item of items) {
+				if (settled.has(item.key)) continue;
+				const byPullRequest = planPullRequestStatus(item, template);
+				if (byPullRequest?.kind === "change") plan.changes.push(byPullRequest.change);
+				else if (byPullRequest) plan.unresolved.push(byPullRequest.unresolved);
+			}
 		} catch (err) {
 			failStep(declared.name, describeError(err));
 			logger.warn({ board: declared.name, reason: logReason(err) }, "reconcile project");
