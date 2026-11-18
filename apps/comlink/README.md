@@ -43,9 +43,10 @@ in `src/worker.ts`. Nothing else changes.
 Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
 `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (a secret-type variable the file leaves empty) and
 `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as sent
-(`Sentry-Hook-Signature`). To send one from Bruno, run `pnpm exec holocron open requests` (quit Bruno first): it reads
-`COMLINK_SENTRY_SECRET` from the layer's 1Password Environment (`--environment`, default `dev`) into a private file that
-lasts until Bruno quits, so `sentrySecret` is never pasted or stored in Bruno.
+(`Sentry-Hook-Signature`). To send one from Bruno, run `pnpm exec holocron open requests --environment prod` (quit Bruno first): Comlink has one
+environment and is prod only for now, so `COMLINK_SENTRY_SECRET` is read from the `prod` layer's 1Password Environment
+only when you name `prod` (the default is `dev`, which loads no Comlink secret and leaves `process.env.PROD_COMLINK_SENTRY_SECRET`
+unresolved). It goes into a private file that lasts until Bruno quits, so `sentrySecret` is never pasted or stored in Bruno.
 
 - **Rejected** is a GET, an unknown source and a POST with no or a wrong signature: 405, 404, 401, 401, and nothing is
   posted.

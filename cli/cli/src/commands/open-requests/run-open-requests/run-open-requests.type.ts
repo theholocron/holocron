@@ -45,8 +45,8 @@ export interface RunOpenRequestsInput {
 	loaded: LoadedConfig;
 	/** The runtime context; `dryRun` lists the names and starts nothing. */
 	context: RuntimeContext;
-	/** The layer (`local`, `dev`, `ci`, `prod`) or a named Environment to read; default `dev`. */
-	environment?: string;
+	/** The `--environment` values: layer words (`local`, `dev`, `prod`), repeated or comma-separated; default `dev` alone. */
+	environments?: string[];
 	/** Open only for this tooling provider. */
 	to?: string;
 	/** Go ahead without asking (required without a terminal). */

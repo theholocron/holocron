@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MACOS_APP, openPlan } from "./open-plan.js";
+import type { SecretWiring } from "./secret-references.js";
 
 let root: string;
 const put = (path: string, text: string) => {
@@ -22,7 +23,7 @@ const baseline = (folders: string[]) =>
 			workspaceHash: "b",
 		})),
 	});
-const environment = (...variables: string[]) => `name: Env\nvariables:\n${variables.join("\n")}\n`;
+const environment = (name: string, ...variables: string[]) => `name: ${name}\nvariables:\n${variables.join("\n")}\n`;
 const plain = (name: string, value: string) => `  - name: ${name}\n    value: ${JSON.stringify(value)}`;
 const secret = (name: string) => `  - secret: true\n    name: ${name}`;
 const input = (...names: string[]) => ({
@@ -34,27 +35,58 @@ const input = (...names: string[]) => ({
 beforeEach(() => void (root = mkdtempSync(join(tmpdir(), "bruno-open-"))));
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
+const WIRING: SecretWiring = {
+	refs: { signing: "A_SIGNING", n: "B_N" },
+	layers: { Dev: "dev", Prod: "prod", Local: "local" },
+};
+
 describe("openPlan", () => {
-	it("maps each reference to its entry, per collection, once, and names the secrets nothing fills", async () => {
+	it("maps each reference to its layer and entry, per collection, once, and names what nothing fills", async () => {
 		put(".bruno/.sync.json", baseline(["a", "b"]));
 		put(
 			".bruno/collections/a/environments/Dev.yml",
-			environment(plain("baseUrl", "http://x"), plain("signing", "{{process.env.A_SIGNING}}"), secret("loose"))
+			environment(
+				"Dev",
+				plain("baseUrl", "http://x"),
+				plain("signing", "{{process.env.DEV_A_SIGNING}}"),
+				secret("loose")
+			)
 		);
 		put(
 			".bruno/collections/a/environments/Prod.yml",
-			environment(plain("signing", "{{process.env.A_SIGNING}}"), secret("loose"))
+			environment("Prod", plain("signing", "{{process.env.PROD_A_SIGNING}}"), secret("loose"))
+		);
+		put(
+			".bruno/collections/a/environments/Prod2.yml",
+			environment("Prod", plain("signing", "{{process.env.PROD_A_SIGNING}}"))
 		);
 		put(
 			".bruno/collections/b/environments/Dev.yml",
-			environment(secret("signing"), plain("n", "{{ process.env.B_N }}"))
+			environment("Dev", secret("signing"), plain("n", "{{ process.env.DEV_B_N }}"))
 		);
-		const plan = await openPlan(input("a", "b"), { platform: "darwin" });
+		const plan = await openPlan(input("a", "b"), { platform: "darwin", wiring: WIRING });
 		expect(plan.wants).toEqual([
-			{ collection: "collections/a", variable: "signing", entry: "A_SIGNING" },
-			{ collection: "collections/b", variable: "n", entry: "B_N" },
+			{
+				collection: "collections/a",
+				variable: "signing",
+				layer: "dev",
+				entry: "A_SIGNING",
+				name: "DEV_A_SIGNING",
+			},
+			{
+				collection: "collections/a",
+				variable: "signing",
+				layer: "prod",
+				entry: "A_SIGNING",
+				name: "PROD_A_SIGNING",
+			},
+			{ collection: "collections/b", variable: "n", layer: "dev", entry: "B_N", name: "DEV_B_N" },
 		]);
-		expect(plan.unfilled).toEqual(["collections/a: loose", "collections/b: signing"]);
+		expect(plan.unfilled).toEqual([
+			"collections/a (Dev): loose",
+			"collections/a (Prod): loose",
+			"collections/b (Dev): signing",
+		]);
 		expect(plan.targets).toEqual([
 			join(root, ".bruno/collections/a/.env"),
 			join(root, ".bruno/collections/b/.env"),
@@ -64,18 +96,40 @@ describe("openPlan", () => {
 		expect(plan.running).toBe(MACOS_APP);
 	});
 
-	it("does not call a secret unfilled when another environment of the collection refers to it", async () => {
+	it("reports a reference the options do not account for, instead of skipping it", async () => {
 		put(".bruno/.sync.json", baseline(["a"]));
-		put(".bruno/collections/a/environments/A.yml", environment(secret("signing")));
-		put(".bruno/collections/a/environments/B.yml", environment(plain("signing", "{{process.env.A_SIGNING}}")));
+		put(
+			".bruno/collections/a/environments/Dev.yml",
+			environment("Dev", plain("signing", "{{process.env.A_SIGNING}}"), plain("n", "{{process.env.DEV_B_N}}"))
+		);
+		put(
+			".bruno/collections/a/environments/Other.yml",
+			environment("Other", plain("signing", "{{process.env.DEV_A_SIGNING}}"))
+		);
+		const plan = await openPlan(input("a"), { platform: "darwin", wiring: WIRING });
+		expect(plan.wants).toEqual([
+			{ collection: "collections/a", variable: "n", layer: "dev", entry: "B_N", name: "DEV_B_N" },
+		]);
+		expect(plan.unfilled).toEqual([
+			"collections/a (Dev): signing refers to A_SIGNING, which no secretRefs and environmentLayers give",
+			"collections/a (Other): signing refers to DEV_A_SIGNING, which no secretRefs and environmentLayers give",
+		]);
+	});
+
+	it("fills nothing without wiring: every reference is unaccounted for", async () => {
+		put(".bruno/.sync.json", baseline(["a"]));
+		put(
+			".bruno/collections/a/environments/Dev.yml",
+			environment("Dev", plain("signing", "{{process.env.DEV_A_SIGNING}}"))
+		);
 		const plan = await openPlan(input("a"), { platform: "darwin" });
-		expect(plan.unfilled).toEqual([]);
-		expect(plan.wants).toHaveLength(1);
+		expect(plan.wants).toEqual([]);
+		expect(plan.unfilled).toHaveLength(1);
 	});
 
 	it("reads only the collections the request files name, and none from a folder with no environments", async () => {
 		put(".bruno/.sync.json", baseline(["a", "b"]));
-		put(".bruno/collections/b/environments/Dev.yml", environment(plain("n", "{{process.env.B_N}}")));
+		put(".bruno/collections/b/environments/Dev.yml", environment("Dev", plain("n", "{{process.env.DEV_B_N}}")));
 		const plan = await openPlan(input("a"), { platform: "darwin" });
 		expect(plan.wants).toEqual([]);
 		expect(plan.targets).toEqual([join(root, ".bruno/collections/a/.env")]);

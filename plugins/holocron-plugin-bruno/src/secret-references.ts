@@ -18,6 +18,22 @@ export function referencedName(value: string | undefined): string | undefined {
 	return value === undefined ? undefined : REFERENCE.exec(value.trim())?.[1];
 }
 
+/** Where each secret variable's value comes from, and which layer each Bruno environment is. */
+export interface SecretWiring {
+	/** Secret variable name to the vault entry that holds its value, e.g. `webhookSecret` to `SENTINEL_WEBHOOK_SECRET`. */
+	refs: Record<string, string>;
+	/** Bruno environment name to the vault layer its secrets come from, e.g. `Sentinel (prod)` to `prod`. */
+	layers: Record<string, string>;
+}
+
+/**
+ * The name a layer's copy of an entry has in the `.env` file: the layer word in capitals, then the entry
+ * (`dev` and `SENTINEL_WEBHOOK_SECRET` give `DEV_SENTINEL_WEBHOOK_SECRET`). The one place the scheme lives: the
+ * workspace's references and the values `open requests` writes both come from it, so each Bruno environment reads its
+ * own layer's value and a layer that was not loaded leaves its variable unresolved.
+ */
+export const layeredName = (layer: string, entry: string): string => `${layer.toUpperCase()}_${entry}`;
+
 /** The part of a Bruno environment variable this reads and writes. */
 interface EnvironmentVariable {
 	name: string;
@@ -25,37 +41,59 @@ interface EnvironmentVariable {
 	secret?: boolean | undefined;
 }
 
+/** What {@link withSecretReferences} reads of an environment. */
+interface WiredEnvironment {
+	name?: string | undefined;
+	variables?: unknown[] | undefined;
+}
+
+/** The reference a variable of `environment` should hold, or `undefined` when the wiring does not cover it. */
+function wantedReference(
+	environmentName: string | undefined,
+	variableName: string,
+	wiring: SecretWiring
+): string | undefined {
+	const layer = environmentName === undefined ? undefined : wiring.layers[environmentName];
+	const entry = wiring.refs[variableName];
+	return layer === undefined || entry === undefined ? undefined : referenceTo(layeredName(layer, entry));
+}
+
 /**
- * The environment with each secret variable named in `refs` (variable name to entry name) made a plain variable whose
- * value is the reference to its entry. Everything else is left as it was.
+ * The environment with each variable the wiring covers made a plain variable whose value is the reference to its
+ * layer's copy of the entry: a secret variable named in `refs`, in an environment named in `layers`, and a variable that
+ * already holds a different reference. Everything else is left as it was, so a secret of an environment with no layer
+ * stays blank.
  */
-export function withSecretReferences<T extends { variables?: unknown[] | undefined }>(
-	environment: T,
-	refs: Record<string, string> | undefined
-): T {
-	if (!refs || !environment.variables) return environment;
+export function withSecretReferences<T extends WiredEnvironment>(environment: T, wiring: SecretWiring | undefined): T {
+	if (!wiring || !environment.variables) return environment;
 	return {
 		...environment,
 		variables: (environment.variables as EnvironmentVariable[]).map((variable) => {
-			const entry = variable.secret ? refs[variable.name] : undefined;
-			return entry === undefined ? variable : { ...variable, secret: false, value: referenceTo(entry) };
+			const reference = wantedReference(environment.name, variable.name, wiring);
+			const refers = variable.secret || referencedName(variable.value) !== undefined;
+			return reference === undefined || !refers ? variable : { ...variable, secret: false, value: reference };
 		}),
 	};
 }
 
 /**
- * The text of a workspace environment file with each secret variable named in `refs` made a reference, as
- * {@link withSecretReferences} does for a generated one: for a file that is already written, whose secrets
- * `sync requests` would otherwise find in step and leave blank. A file with nothing to change comes back as it is,
- * byte for byte, so Bruno's own layout is never rewritten for nothing.
+ * The text of a workspace environment file with its variables wired as {@link withSecretReferences} does for a generated
+ * one: for a file that is already written, whose secrets `sync requests` would otherwise find in step and leave blank,
+ * or whose reference names another layer's copy. A file with nothing to change comes back as it is, byte for byte, so
+ * Bruno's own layout is never rewritten for nothing.
  */
-export function healReferences(text: string, refs: Record<string, string> | undefined): string {
-	if (!refs) return text;
+export function healReferences(text: string, wiring: SecretWiring | undefined): string {
+	if (!wiring) return text;
 	const environment = parseEnvironment(text, { format: "yml" });
 	// Bruno's reader always gives a list, empty for a file with none.
-	const wanted = (environment.variables as NonNullable<typeof environment.variables>).some(
-		(variable) => variable.secret && refs[variable.name] !== undefined
-	);
+	const wanted = (environment.variables as NonNullable<typeof environment.variables>).some((variable) => {
+		const reference = wantedReference(environment.name, variable.name, wiring);
+		return (
+			reference !== undefined &&
+			(variable.secret || referencedName(variable.value) !== undefined) &&
+			variable.value !== reference
+		);
+	});
 	if (!wanted) return text;
-	return stringifyEnvironment(withSecretReferences(environment, refs), { format: "yml" });
+	return stringifyEnvironment(withSecretReferences(environment, wiring), { format: "yml" });
 }

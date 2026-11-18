@@ -30,6 +30,7 @@ import type { ResolvedTuple } from "../../../config/index.js";
 import { assertPluginsResolvable, PluginLoader, type Tooling, type ToolingOpenPlan } from "../../../plugin/index.js";
 import { ignoreAdvice, PRIVATE_DIR } from "../../../private-dir/index.js";
 import { ownerEnvironments } from "../../owner-environments/index.js";
+import { OPEN_LAYERS, type OpenLayer, parseOpenLayers } from "../parse-open-layers/index.js";
 import { readEntryValues } from "../read-entry-values/index.js";
 import { defaultDeps } from "./default-deps/index.js";
 import type { OpenRequestsDeps, OpenRequestsReport, RunOpenRequestsInput } from "./run-open-requests.type.js";
@@ -61,7 +62,7 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 	const print = input.print ?? ((line: string) => console.log(line));
 	const deps: OpenRequestsDeps = { ...defaultDeps(), ...input.deps };
 	const dryRun = Boolean(input.context.dryRun);
-	const environment = input.environment ?? "dev";
+	const layers = parseOpenLayers(input.environments);
 	const { repoRoot } = input.context;
 	const rows: CheckRow[] = [];
 	const say = (next: CheckRow) => {
@@ -130,7 +131,10 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 		say(row(tool.providerName, "fail", describeError(err)));
 		return finish();
 	}
-	const names = [...new Set(plan.wants.map((w) => w.entry))].sort();
+	// Only the layers asked for are filled; a want of another layer is named, never read.
+	const loaded = plan.wants.filter((want) => layers.includes(want.layer as OpenLayer));
+	const notLoaded = plan.wants.filter((want) => !layers.includes(want.layer as OpenLayer));
+	const names = [...new Set(loaded.map((want) => want.name))].sort();
 	if (plan.unfilled.length > 0) {
 		say(
 			row(
@@ -142,13 +146,25 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 		);
 	}
 
+	say(
+		row(
+			"layers",
+			notLoaded.length > 0 ? "skip" : "ok",
+			`loaded: ${layers.join(", ")}; not loaded: ${OPEN_LAYERS.filter((layer) => !layers.includes(layer)).join(", ") || "none"}`,
+			notLoaded.map(
+				(want) =>
+					`${want.collection}: ${want.variable} is a ${want.layer} secret (${want.name}); start with --environment ${want.layer} to load it`
+			)
+		)
+	);
+
 	if (dryRun) {
-		for (const want of plan.wants) {
+		for (const want of loaded) {
 			say(
 				row(
 					want.variable,
 					"ok",
-					`would fill ${want.collection}'s ${want.variable} from ${want.entry} of ${environment}`
+					`would fill ${want.collection}'s ${want.variable} from ${want.entry} of ${want.layer} as ${want.name}`
 				)
 			);
 		}
@@ -204,7 +220,7 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
 			names.length === 0
 				? `Start ${plan.app} (nothing to fill)?`
-				: `Read ${names.length} value(s) from ${environment} and start ${plan.app} with them?`
+				: `Read ${names.length} value(s) from ${layers.join(", ")} and start ${plan.app} with them?`
 		);
 		if (!proceed) {
 			print(`  ${style.skip("cancelled; nothing was read or written")}`);
@@ -212,7 +228,7 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 		}
 	}
 
-	let values = new Map<string, string>();
+	const values = new Map<string, string>();
 	if (names.length > 0) {
 		const vault = loader.has("vault") ? loader.get("vault") : undefined;
 		if (!vault?.readEnvironmentEntries) {
@@ -227,23 +243,40 @@ export async function runOpenRequests(input: RunOpenRequestsInput): Promise<Open
 			);
 			return finish();
 		}
-		let read;
-		try {
-			read = await readEntryValues({
-				vault: vault,
-				environment,
-				configured: ownerEnvironments(input.loaded.resolved).names,
-				repoRoot,
-				names,
-			});
-		} catch (err) {
-			say(row(`vault ${environment}`, "fail", describeError(err)));
-			return finish();
+		// Fail closed: a half-loaded set would sign with nothing, so any layer that cannot give every entry stops the run.
+		let failed = false;
+		for (const layer of layers) {
+			const wanted = loaded.filter((want) => want.layer === layer);
+			if (wanted.length === 0) continue;
+			let read;
+			try {
+				read = await readEntryValues({
+					vault: vault,
+					environment: layer,
+					configured: ownerEnvironments(input.loaded.resolved).names,
+					repoRoot,
+					names: [...new Set(wanted.map((want) => want.entry))].sort(),
+				});
+			} catch (err) {
+				say(row(`vault ${layer}`, "fail", describeError(err)));
+				failed = true;
+				continue;
+			}
+			for (const entry of read.missing) {
+				say(row(`${layer} ${entry}`, "fail", `${read.environmentId} holds no value for ${entry}`));
+				failed = true;
+			}
+			if (read.missing.length > 0) continue;
+			for (const want of wanted) values.set(want.name, read.values.get(want.entry) as string);
+			say(
+				row(
+					`vault ${read.environmentId}`,
+					"ok",
+					`${wanted.length} value(s) read: ${[...new Set(wanted.map((want) => want.name))].join(", ")}`
+				)
+			);
 		}
-		for (const name of read.missing) say(row(name, "fail", `${read.environmentId} holds no value for ${name}`));
-		if (read.missing.length > 0) return finish();
-		values = read.values;
-		say(row(`vault ${read.environmentId}`, "ok", `${names.length} value(s) read: ${names.join(", ")}`));
+		if (failed) return finish();
 	}
 
 	const secrets = resolve(repoRoot, SECRETS_FILE);

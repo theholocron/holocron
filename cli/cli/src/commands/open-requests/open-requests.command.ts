@@ -7,7 +7,7 @@ import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runOpenRequests } from "./run-open-requests/index.js";
 
-type Args = GlobalArgs & { environment?: string; to?: string; yes?: boolean };
+type Args = GlobalArgs & { environment?: string[]; to?: string; yes?: boolean };
 
 export const openRequestsCommand: CommandModule<GlobalArgs, Args> = {
 	command: "requests",
@@ -16,8 +16,9 @@ export const openRequestsCommand: CommandModule<GlobalArgs, Args> = {
 		y
 			.option("environment", {
 				type: "string",
+				array: true,
 				describe:
-					"The layer (`local`, `dev`, `ci`, `prod`) or Environment to read the secrets from (default: `dev`)",
+					"The layers to read the secrets from: `local`, `dev` or `prod`, repeated or comma-separated (default: `dev` alone; `prod` only when named)",
 			})
 			.option("to", {
 				type: "string",
@@ -35,7 +36,7 @@ export const openRequestsCommand: CommandModule<GlobalArgs, Args> = {
 		const report = await runOpenRequests({
 			loaded,
 			context: { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org: resolveOrg(argv, loaded.resolved) },
-			...(argv.environment ? { environment: argv.environment } : {}),
+			...(argv.environment ? { environments: argv.environment } : {}),
 			...(argv.to ? { to: argv.to } : {}),
 			...(argv.yes ? { yes: true } : {}),
 		});

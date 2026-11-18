@@ -3,7 +3,7 @@ import { stringifyCollection, stringifyEnvironment, stringifyFolder, stringifyRe
 
 import { describeIssue } from "./describe-issue.js";
 import { repairSigningBody } from "./repair-signing-body.js";
-import { withSecretReferences } from "./secret-references.js";
+import { type SecretWiring, withSecretReferences } from "./secret-references.js";
 
 /** What {@link collectionFiles} made of one collection. */
 export interface CollectionFiles {
@@ -70,7 +70,7 @@ function writeItems(items: BrunoItem[], dir: string, files: Map<string, string>)
 export async function collectionFiles(
 	collection: unknown,
 	environments: unknown[],
-	secretRefs?: Record<string, string>
+	secretRefs?: SecretWiring
 ): Promise<CollectionFiles> {
 	const read = await postmanToBruno(collection, { preserveScripts: false });
 	const bruno = read.collection;

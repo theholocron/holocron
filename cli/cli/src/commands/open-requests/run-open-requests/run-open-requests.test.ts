@@ -25,8 +25,27 @@ const VALUE = "super-secret-value-123";
 const PLAN: ToolingOpenPlan = {
 	app: "Bruno",
 	wants: [
-		{ collection: "collections/sentinel", variable: "webhookSecret", entry: "SENTINEL_WEBHOOK_SECRET" },
-		{ collection: "collections/comlink", variable: "sentrySecret", entry: "COMLINK_SENTRY_SECRET" },
+		{
+			collection: "collections/sentinel",
+			variable: "webhookSecret",
+			layer: "dev",
+			entry: "SENTINEL_WEBHOOK_SECRET",
+			name: "DEV_SENTINEL_WEBHOOK_SECRET",
+		},
+		{
+			collection: "collections/sentinel",
+			variable: "webhookSecret",
+			layer: "prod",
+			entry: "SENTINEL_WEBHOOK_SECRET",
+			name: "PROD_SENTINEL_WEBHOOK_SECRET",
+		},
+		{
+			collection: "collections/comlink",
+			variable: "sentrySecret",
+			layer: "dev",
+			entry: "COMLINK_SENTRY_SECRET",
+			name: "DEV_COMLINK_SENTRY_SECRET",
+		},
 	],
 	unfilled: [],
 	targets: [SENTINEL, COMLINK],
@@ -186,7 +205,7 @@ describe("runOpenRequests", () => {
 			expect(report.status).toBe("ok");
 			expect(text).toContain("(dry-run)");
 			expect(text).toContain(
-				"would fill collections/sentinel's webhookSecret from SENTINEL_WEBHOOK_SECRET of dev"
+				"would fill collections/sentinel's webhookSecret from SENTINEL_WEBHOOK_SECRET of dev as DEV_SENTINEL_WEBHOOK_SECRET"
 			);
 			expect(text).toContain(
 				"would write 2 value(s) to .holocron/.private/requests.env and link it from 2 collection(s)"
@@ -328,16 +347,109 @@ describe("runOpenRequests", () => {
 			expect(missing.files.deps.createPrivateFile).not.toHaveBeenCalled();
 		});
 
-		it("passes only the names the collection refers to, and the --environment asked for", async () => {
+		it("passes only the names the collection refers to, for the layer asked for", async () => {
 			readsValues();
-			await run({ environment: "prod" });
+			await run();
+			expect(readEntryValues).toHaveBeenCalledTimes(1);
 			expect(readEntryValues).toHaveBeenCalledWith(
 				expect.objectContaining({
-					environment: "prod",
+					environment: "dev",
 					repoRoot: ROOT,
 					names: ["COMLINK_SENTRY_SECRET", "SENTINEL_WEBHOOK_SECRET"],
 				})
 			);
+		});
+	});
+
+	describe("layers", () => {
+		const both = () =>
+			readEntryValues.mockImplementation(async ({ environment }: { environment: string }) => ({
+				environmentId: `acme/demo - ${environment}`,
+				values: new Map([
+					["SENTINEL_WEBHOOK_SECRET", `${environment}-sentinel`],
+					["COMLINK_SENTRY_SECRET", `${environment}-comlink`],
+				]),
+				missing: [],
+			}));
+
+		it("loads dev alone by default and says which layers are not loaded, naming the variable and the flag", async () => {
+			readsValues();
+			const { text } = await run();
+			expect(text).toContain("loaded: dev; not loaded: local, prod");
+			expect(text).toContain(
+				"collections/sentinel: webhookSecret is a prod secret (PROD_SENTINEL_WEBHOOK_SECRET); start with --environment prod to load it"
+			);
+			expect(readEntryValues).toHaveBeenCalledTimes(1);
+		});
+
+		it("reads each named layer from its own Environment and writes each under its own prefixed name", async () => {
+			both();
+			const { report, text, files } = await run({ environments: ["prod,dev"] });
+			expect(report.status).toBe("ok");
+			expect(readEntryValues.mock.calls.map(([call]) => call.environment)).toEqual(["dev", "prod"]);
+			expect(files.during.text).toBe(
+				`${MARKER}\nDEV_SENTINEL_WEBHOOK_SECRET=dev-sentinel\nDEV_COMLINK_SENTRY_SECRET=dev-comlink\nPROD_SENTINEL_WEBHOOK_SECRET=prod-sentinel\n`
+			);
+			expect(text).toContain("loaded: dev, prod; not loaded: local");
+			expect(text).not.toContain("prod-sentinel");
+		});
+
+		it("lists nothing as not loaded when every layer with a secret is named", async () => {
+			both();
+			const { text } = await run({ environments: ["local", "dev", "prod"] });
+			expect(text).toContain("loaded: local, dev, prod; not loaded: none");
+			expect(text).not.toContain("start with --environment");
+		});
+
+		it("does not read a layer that has nothing to fill", async () => {
+			both();
+			await run({ environments: ["local", "dev"] });
+			expect(readEntryValues.mock.calls.map(([call]) => call.environment)).toEqual(["dev"]);
+		});
+
+		it("fails closed when any named layer cannot give an entry, reading the others and starting nothing", async () => {
+			readEntryValues.mockImplementation(async ({ environment }: { environment: string }) =>
+				environment === "prod"
+					? { environmentId: "acme/demo - prod", values: new Map(), missing: ["SENTINEL_WEBHOOK_SECRET"] }
+					: {
+							environmentId: "acme/demo - dev",
+							values: new Map([
+								["SENTINEL_WEBHOOK_SECRET", "a"],
+								["COMLINK_SENTRY_SECRET", "b"],
+							]),
+							missing: [],
+						}
+			);
+			const { report, text, files } = await run({ environments: ["dev", "prod"] });
+			expect(report.status).toBe("fail");
+			expect(text).toContain("prod SENTINEL_WEBHOOK_SECRET");
+			expect(text).toContain("acme/demo - prod holds no value for SENTINEL_WEBHOOK_SECRET");
+			expect(files.deps.createPrivateFile).not.toHaveBeenCalled();
+			expect(files.deps.run).not.toHaveBeenCalled();
+		});
+
+		it("fails closed when a layer's Environment cannot be read at all, naming the layer", async () => {
+			readEntryValues.mockRejectedValue(new Error("no access"));
+			const { report, text, files } = await run({ environments: ["dev", "prod"] });
+			expect(report.status).toBe("fail");
+			expect(text).toContain("vault dev");
+			expect(text).toContain("vault prod");
+			expect(files.deps.run).not.toHaveBeenCalled();
+		});
+
+		it("refuses a layer that is not local, dev or prod, before anything is read", async () => {
+			await expect(run({ environments: ["ci"] })).rejects.toThrow(/does not know "ci": use local, dev, prod/);
+			expect(readEntryValues).not.toHaveBeenCalled();
+		});
+
+		it("lists the names per layer on a dry run, for the layers named only", async () => {
+			const { text } = await run({ context: { repoRoot: ROOT, dryRun: true }, environments: ["prod"] });
+			expect(text).toContain(
+				"would fill collections/sentinel's webhookSecret from SENTINEL_WEBHOOK_SECRET of prod as PROD_SENTINEL_WEBHOOK_SECRET"
+			);
+			expect(text).not.toContain("of dev as");
+			expect(text).toContain("loaded: prod; not loaded: local, dev");
+			expect(readEntryValues).not.toHaveBeenCalled();
 		});
 	});
 
@@ -347,7 +459,7 @@ describe("runOpenRequests", () => {
 			const { report, text, files } = await run();
 			expect(report.status).toBe("ok");
 			expect(files.during.text).toBe(
-				`${MARKER}\nSENTINEL_WEBHOOK_SECRET=${VALUE}\nCOMLINK_SENTRY_SECRET=other-secret\n`
+				`${MARKER}\nDEV_SENTINEL_WEBHOOK_SECRET=${VALUE}\nDEV_COMLINK_SENTRY_SECRET=other-secret\n`
 			);
 			expect(files.during.links).toEqual([SENTINEL, COMLINK]);
 			expect(files.deps.symlink).toHaveBeenCalledWith("../../../.holocron/.private/requests.env", SENTINEL);
@@ -363,7 +475,7 @@ describe("runOpenRequests", () => {
 			const { text } = await run();
 			expect(text).not.toContain(VALUE);
 			expect(text).not.toContain("other-secret");
-			expect(text).toContain("2 value(s) read: COMLINK_SENTRY_SECRET, SENTINEL_WEBHOOK_SECRET");
+			expect(text).toContain("2 value(s) read: DEV_SENTINEL_WEBHOOK_SECRET, DEV_COMLINK_SENTRY_SECRET");
 		});
 
 		it("fails the run when the tool ends with an error, and still cleans up", async () => {
@@ -494,7 +606,7 @@ describe("runOpenRequests", () => {
 			});
 			const { report, text, files } = await run();
 			expect(report.status).toBe("fail");
-			expect(text).toContain("the value of COMLINK_SENTRY_SECRET cannot be written to a .env file as it is");
+			expect(text).toContain("the value of DEV_COMLINK_SENTRY_SECRET cannot be written to a .env file as it is");
 			expect(text).not.toContain("kinds");
 			expect(files.deps.createPrivateFile).not.toHaveBeenCalled();
 		});

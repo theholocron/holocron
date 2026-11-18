@@ -3,7 +3,7 @@ variables:
   - name: baseUrl
     value: https://sentinel-dev.theholocron.dev
   - name: webhookSecret
-    value: "{{process.env.SENTINEL_WEBHOOK_SECRET}}"
+    value: "{{process.env.DEV_SENTINEL_WEBHOOK_SECRET}}"
   - name: repo
     value: theholocron/sandbox
   - name: pullNumber

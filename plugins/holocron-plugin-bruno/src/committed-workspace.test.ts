@@ -13,17 +13,24 @@ const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 /** The `secretRefs` of the root `holocron.config.ts`. */
 const SECRET_REFS = { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" };
+/** The `environmentLayers` of the root `holocron.config.ts`: Comlink has one environment and is prod only. */
+const ENVIRONMENT_LAYERS = {
+	"Sentinel (local)": "local",
+	"Sentinel (dev)": "dev",
+	"Sentinel (prod)": "prod",
+	"Comlink (local)": "prod",
+};
 
 describe("the committed .bruno/ workspace", () => {
-	it("refers each signing secret to its 1Password entry, and the request files keep it blank", () => {
+	it("refers each signing secret to its own layer's copy of the entry, and the request files keep it blank", () => {
 		const read = (path: string) => readFileSync(join(REPO_ROOT, path), "utf8");
 		for (const env of ["local", "dev", "prod"]) {
 			expect(read(`.bruno/collections/sentinel-webhook/environments/Sentinel (${env}).yml`)).toContain(
-				'name: webhookSecret\n    value: "{{process.env.SENTINEL_WEBHOOK_SECRET}}"'
+				`name: webhookSecret\n    value: "{{process.env.${env.toUpperCase()}_SENTINEL_WEBHOOK_SECRET}}"`
 			);
 		}
 		expect(read(".bruno/collections/comlink-relay/environments/Comlink (local).yml")).toContain(
-			'name: sentrySecret\n    value: "{{process.env.COMLINK_SENTRY_SECRET}}"'
+			'name: sentrySecret\n    value: "{{process.env.PROD_COMLINK_SENTRY_SECRET}}"'
 		);
 		for (const file of [
 			"apps/sentinel/api/webhook.environment.json",
@@ -40,6 +47,7 @@ describe("the committed .bruno/ workspace", () => {
 			repoRoot: REPO_ROOT,
 			workspaceName: "The Holocron",
 			secretRefs: SECRET_REFS,
+			environmentLayers: ENVIRONMENT_LAYERS,
 		}).workspace({
 			collectionFiles: ["apps/sentinel/api/webhook.collection.json", "apps/comlink/src/worker.collection.json"],
 			envFiles: [

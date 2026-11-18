@@ -9,7 +9,7 @@ import { type Baseline, BASELINE_FILE, type BaselinePair, readBaseline, serializ
 import { collectionFiles } from "./collection-files.js";
 import { stripVersion, withVersion } from "./collection-version.js";
 import { formatJson } from "./format-json.js";
-import { healReferences, withSecretReferences } from "./secret-references.js";
+import { healReferences, type SecretWiring, withSecretReferences } from "./secret-references.js";
 import { comparableDocs, DOCS_FILE, normalizeDocs, readDocs, withDocs } from "./workspace-docs.js";
 import { canonicalJson, environmentToSource, hashOf, keepOriginal, workspaceToSource } from "./workspace-to-source.js";
 
@@ -51,10 +51,11 @@ export interface SyncWorkspaceInput {
 	 */
 	version?: string;
 	/**
-	 * Secret variable name to the `.env` entry it is read from. A named secret is written as a plain variable whose
-	 * value refers to the entry (`secret-references.ts`); the request file keeps it blank.
+	 * Which secret variables are filled from outside and which layer each Bruno environment is. A covered secret is
+	 * written as a plain variable whose value refers to its layer's copy of the entry (`secret-references.ts`); the
+	 * request file keeps it blank.
 	 */
-	secretRefs?: Record<string, string>;
+	secretRefs?: SecretWiring;
 }
 
 /** What {@link syncWorkspace} found. */
@@ -232,10 +233,7 @@ function requestFiles(files: Map<string, string>): Map<string, string> {
 }
 
 /** An environment's file text and the `{ name, values }` it carries, from the request file's side. */
-async function carriedEnvironment(
-	json: unknown,
-	secretRefs?: Record<string, string>
-): Promise<{ text: string; canon: string }> {
+async function carriedEnvironment(json: unknown, secretRefs?: SecretWiring): Promise<{ text: string; canon: string }> {
 	const text = stringifyEnvironment(withSecretReferences(await postmanToBrunoEnvironment(json), secretRefs), {
 		format: "yml",
 	});

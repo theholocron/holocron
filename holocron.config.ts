@@ -190,8 +190,15 @@ export default defineConfig({
 			"bruno",
 			{
 				workspaceName: "The Holocron",
-				// Each secret variable and the 1Password entry `holocron open requests` fills it from.
+				// Each secret variable and the 1Password entry `holocron open requests` fills it from, and the layer of
+				// each Bruno environment whose Environment holds it (Comlink has one environment and is prod only).
 				secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" },
+				environmentLayers: {
+					"Sentinel (local)": "local",
+					"Sentinel (dev)": "dev",
+					"Sentinel (prod)": "prod",
+					"Comlink (local)": "prod",
+				},
 				collectionFiles: [
 					"apps/sentinel/api/webhook.collection.json",
 					"apps/comlink/src/worker.collection.json",

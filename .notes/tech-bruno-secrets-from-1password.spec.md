@@ -67,7 +67,7 @@ collection with `{{process.env.PROBE}}` answered the questions the design hung o
 
 ## Decision
 
-**A `.env` file, symlinked** (the spike's Route B, the only one left). `holocron open requests [--environment <layer>]`
+**A `.env` file, symlinked** (the spike's Route B, the only one left). `holocron open requests [--environment <layer>...]`
 (a `workspace` command; `COMMAND_CONTEXTS`, `COMMAND_REGISTRY` and the menu decision in the same change) reads the
 values, writes them to a private file in `.holocron/.private/`, links `<collection>/.env` to it, starts Bruno in the
 foreground and removes the file and the links when Bruno ends.
@@ -118,6 +118,37 @@ paths only, no value) and takes exactly those entry names from the layer's Envir
 Environment lacks, or holds blank, is a failing row naming it, so a request never goes out unsigned without the person
 being told. A secret variable with no reference is reported by name and filled by nobody.
 
+### Layers (#2377)
+
+The first version filled one layer per launch, and every Bruno environment referred to the same `{{process.env.ENTRY}}`,
+which defeated Bruno's environment switcher: with `dev` loaded, picking `Sentinel (prod)` signed with the dev secret.
+
+- **Naming scheme.** `layeredName(layer, entry)` (`secret-references.ts`, the one place) is the layer word in capitals, an
+  underscore and the entry: `DEV_SENTINEL_WEBHOOK_SECRET`, `PROD_SENTINEL_WEBHOOK_SECRET`. The private `requests.env` holds
+  each loaded layer's entries under these names, and each Bruno environment's secret variable refers to its own layer's
+  name, so the environment switcher picks the secret with the environment.
+- **Wiring.** `secretRefs` (variable to entry, unchanged) and a new `environmentLayers` option (Bruno environment name to
+  layer) on the `bruno` provider. `sync requests` writes the reference for a secret of an environment that has a layer,
+  moves a reference that names another layer's copy (`healReferences()`), and reads any reference back as the blank secret,
+  so the request files stay blank. An environment with no layer keeps blank secrets, and the command lists them as unfilled.
+  Sentinel's `Sentinel (local)`, `Sentinel (dev)` and `Sentinel (prod)` map to `local`, `dev` and `prod`. **Comlink has one
+  environment and is prod only for now:** `Comlink (local)` maps to `prod`, so its secret loads only with
+  `--environment prod`.
+- **Flag.** `--environment` is repeatable and comma-separated (`--environment dev --environment local`,
+  `--environment dev,local`), layer words `local`, `dev` and `prod` only; `ci`, `test` and anything else is a `ConfigError`
+  naming the allowed words. **The default is `dev` alone, and `prod` is never loaded unless named.** Only the named layers
+  are read from 1Password, and only the entries the workspace refers to for that layer.
+- **Fail closed.** If any named layer cannot give a declared entry (missing, blank, or the Environment cannot be read), the
+  run stops with a failing row naming the layer and the entry, and nothing starts: a half-loaded set would sign with nothing.
+  Every named layer is still read first, so one run lists every problem.
+- **The signal for a layer that was not loaded.** It has no entry in the file, so Bruno refuses a request of that
+  environment with "variables that could not be resolved", naming `process.env.PROD_SENTINEL_WEBHOOK_SECRET`: loud, safe and
+  self-describing because the layer is in the name. Nothing is written as a placeholder, since a fake secret would sign a
+  request with a bogus value. The command adds a `layers` row, `loaded: dev; not loaded: local, prod`, with a line for each
+  variable behind a layer that was left out and the flag that loads it, and the docs and READMEs explain the error. A
+  per-environment colour or a variable note in the generated files was considered and left out: the colour is a Bruno-side
+  setting the sync does not carry, and a note would live in files the request files cannot round-trip.
+
 ### Starting Bruno
 
 Bruno keeps one running instance, and a second launch attaches to it without the new values, so a launch while it is
@@ -152,9 +183,10 @@ The secrets are concealed entries in the Environment. The rule in `AGENTS.md` fo
 value is never handed over, and `environmentTokens()` returns only the visible ones as `plain`. This command cannot work
 under that rule, so it is a deliberate, narrower exception, **approved by the maintainer** and recorded in `AGENTS.md`
 beside the rule in the same change: the command reads the declared entries through `readEnvironmentEntries` (which carries
-`concealed`), takes only the names the workspace's references list (every other entry is dropped before the function
-returns), does so only for a process the person starts on their own machine, and never hands a value to a plugin, a log or
-a row. `readEntryValues()` is the one place the exception lives.
+`concealed`), for each layer the person names with `--environment` and no other (widened from one layer in #2377, still
+narrower than all layers), takes only the names the workspace's references list for that layer (every other entry is
+dropped before the function returns), does so only for a process the person starts on their own machine, and never hands a
+value to a plugin, a log or a row. `readEntryValues()` is the one place the exception lives.
 
 ## Security
 
