@@ -64,6 +64,10 @@ function declaredFields(input: MonitoringStatusPageInput): Partial<StatusPageInp
 		...(input.domain !== undefined ? { customDomain: input.domain.toLowerCase() } : {}),
 		...(input.description !== undefined ? { description: input.description } : {}),
 		...(input.logo !== undefined ? { logo: input.logo } : {}),
+		...(input.footer !== undefined ? { footerText: input.footer } : {}),
+		...(input.privacyUrl !== undefined ? { privacyPolicyLink: input.privacyUrl } : {}),
+		...(input.termsUrl !== undefined ? { termsOfServiceLink: input.termsUrl } : {}),
+		...(input.supportUrl !== undefined ? { supportLink: input.supportUrl } : {}),
 		...(input.private !== undefined ? { isPrivate: input.private } : {}),
 	};
 }
