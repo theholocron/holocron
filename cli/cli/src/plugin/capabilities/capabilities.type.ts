@@ -1472,6 +1472,36 @@ export interface Errors extends ProviderIdentity {
 	 * Optional — a provider with no relay omits it.
 	 */
 	inspectRelay?(input: InspectRelayInput): Promise<RelayState>;
+	/**
+	 * Read the tracker's organization and the named projects without changing anything: whether each exists, whether it
+	 * has a client key (a DSN to give an SDK) and how many enabled alert rules watch it. Never returns a DSN or a key.
+	 * `holocron doctor errors` uses it. Optional — a provider with no management API omits it.
+	 */
+	inspect?(input: InspectErrorsInput): Promise<ErrorsInspection>;
+}
+
+/** What {@link Errors.inspect} reads. */
+export interface InspectErrorsInput {
+	/** The project slugs to look for. */
+	projects: string[];
+}
+
+/** The tracker as the provider holds it. Carries counts and booleans only: no DSN, key or token. */
+export interface ErrorsInspection {
+	/** The organization asked for: its slug, and whether the provider has it (with its display name when it does). */
+	org: { slug: string; exists: boolean; name?: string };
+	/** One entry per requested project, in the order asked. */
+	projects: Array<{
+		slug: string;
+		/** Whether the project exists in the organization. */
+		exists: boolean;
+		/** Whether it has at least one client key (a DSN). Undefined when the project is missing. */
+		hasDsn?: boolean;
+		/** How many enabled alert rules watch its issues. Undefined when the project is missing or the rules could not be read. */
+		alertRules?: number;
+	}>;
+	/** Why the alert rules could not be read (a token without the scope), when that is so. */
+	alertsUnreadable?: string;
 }
 
 /** What {@link Errors.ensureRelay} sets up at the error tracker. */

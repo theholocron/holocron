@@ -1,0 +1,27 @@
+---
+title: "doctor errors"
+description: Check the error tracker's organization, declared projects, client keys and alert rules. Read-only.
+---
+
+```bash
+holocron doctor errors
+```
+
+An error tracker fails quietly: a project that was never made, one with no client key, or one no alert rule watches still lets the app run, and nobody hears about its errors. This check asks the `errors` provider (Sentry) about the organization and each project the config declares. It changes nothing, creates no project or rule, prints names and counts only (never a DSN, a key or a token), and exits non-zero only while a row fails.
+
+The declared projects are the ones a notifications layout lists under `relay.errors.projects`. The Comlink relay's own integration and alert rule are checked by [`doctor notifications`](/holocron/commands/doctor-notifications/) and are not repeated here.
+
+## The rows
+
+| Row                                | Passes when                                                                                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `organization exists`              | the provider has the organization named by the `errors` provider's `org` option. A 404 fails            |
+| `project <slug> exists`            | the project is in the organization. A missing one fails and names the organization                      |
+| `project <slug> has a key`         | the project has at least one client key (the DSN an SDK sends to). None fails                           |
+| `project <slug> has an alert rule` | at least one enabled alert rule watches the project's issues. None fails: its errors would reach no one |
+
+## What is skipped, and what fails
+
+Only what the provider proves wrong fails. A missing or refused token, an unset `org`, a provider that cannot inspect, or alert rules the token has no scope to read (the rules are read with the Comlink token) are skips with the reason. With no `errors` provider the whole run is a skip, and with no declared project only the organization is checked.
+
+`holocron doctor --all` runs it with the other deep checks.

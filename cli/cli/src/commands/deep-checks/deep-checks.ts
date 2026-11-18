@@ -1,6 +1,7 @@
 import { doctorCiCommand, runDoctorCi } from "../doctor-ci/index.js";
 import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
+import { doctorErrorsCommand, runDoctorErrors } from "../doctor-errors/index.js";
 import { doctorGitHubAppCommand, runDoctorGitHubApp } from "../doctor-github-app/index.js";
 import { doctorLogsCommand, runDoctorLogs } from "../doctor-logs/index.js";
 import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
@@ -185,6 +186,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorWikiCommand as never,
 		async run(input) {
 			const report = await runDoctorWiki(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "errors",
+		capability: "errors",
+		command: doctorErrorsCommand as never,
+		async run(input) {
+			const report = await runDoctorErrors(input);
 			return {
 				status: report.status,
 				summary: report.summary,
