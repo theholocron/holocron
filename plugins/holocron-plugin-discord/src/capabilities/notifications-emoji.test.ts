@@ -237,7 +237,12 @@ describe("DiscordNotifications starter reactions with server emoji", () => {
 			],
 			{
 				guildId: GUILD,
-				layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas", starterReactions: reactions }] }] },
+				layout: {
+					categories: [
+						{ name: "EMPTY" },
+						{ name: "BUILD", channels: [{ name: "ideas", starterReactions: reactions }] },
+					],
+				},
 			}
 		);
 

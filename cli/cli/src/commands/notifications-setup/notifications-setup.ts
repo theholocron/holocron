@@ -518,10 +518,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (serverProblem) return refuse(serverProblem);
 	// The pictures server emoji are made from, read once the layout is judged: one that cannot be used stops the run before any write.
 	const emojiImages = new Map<string, string>();
-	const readEmoji =
-		input.loadEmojiImage ??
-		/* v8 ignore next -- tests inject; the real read has its own test */
-		((source: string) => loadEmojiImage(source, input.context.repoRoot));
+	const readEmoji = input.loadEmojiImage ?? ((source: string) => loadEmojiImage(source, input.context.repoRoot));
 	for (const emoji of layoutEmojis(layout)) {
 		if (!emoji.image) continue;
 		try {

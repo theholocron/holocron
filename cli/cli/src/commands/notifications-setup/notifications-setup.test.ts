@@ -2713,6 +2713,24 @@ describe("forum channels", () => {
 			expect(lines.join("\n")).toContain("created emoji :git_merge: (id 900)");
 		});
 
+		it("reads the image from the repository root when no reader is given", async () => {
+			const root = await mkdtemp(join(tmpdir(), "emoji-setup-"));
+			await mkdir(join(root, ".holocron/media/emoji"), { recursive: true });
+			const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+			await writeFile(join(root, IMAGE), png);
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => ({
+				id: "900",
+				created: true,
+			}));
+			const layout = forumLayout({ defaultReaction: withImage });
+			const report = await setup(fakeNotifications({ layout, ensureEmoji }), { repoRoot: root }).run();
+			expect(report.status).toBe("ok");
+			expect(ensureEmoji).toHaveBeenCalledWith({
+				name: "git_merge",
+				image: `data:image/png;base64,${Buffer.from(png).toString("base64")}`,
+			});
+		});
+
 		it("is a no-op when the emoji exists", async () => {
 			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => ({
 				id: "900",
