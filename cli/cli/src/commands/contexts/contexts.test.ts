@@ -21,6 +21,7 @@ const EVERY_COMMAND = [
 	"upload coverage",
 	"new github-app",
 	"new tunnel",
+	"new domain",
 	"list projects",
 	"new project",
 	"close project",

@@ -51,6 +51,7 @@ import {
 	readWorkspacePackageJsons,
 } from "./derived-properties/index.js";
 import { describeProviderError } from "./describe-provider-error/index.js";
+import { dnsRecordsStep } from "./dns-records-step/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { errorsEnvKeys } from "./errors-env-keys/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
@@ -722,6 +723,16 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				});
 			}
 			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── dns: the records `holocron new domain` keeps in .holocron/dns-records.json ──
+	const dnsSteps = await dnsRecordsStep(loader, input.context.repoRoot, dryRun);
+	if (dnsSteps.length > 0) {
+		print(style.step("dns"));
+		for (const step of dnsSteps) {
+			steps.push(step);
+			print(formatStep(step));
 		}
 	}
 

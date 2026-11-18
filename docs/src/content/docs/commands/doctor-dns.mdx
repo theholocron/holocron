@@ -31,6 +31,8 @@ Only records that can be worked out from the config alone, without asking a prov
 | `CNAME <docs.domain>` to `<org>.github.io`, DNS-only (GitHub Pages)                    | `docs.domain` is set                                                                                   |
 | `MX <domain>` to `mx01.mail.icloud.com` and `mx02.mail.icloud.com`, and the SPF `TXT`  | `doctor: { mail: "icloud" }` is set; the zone is `domain`                                              |
 
+The records [`new domain`](/holocron/commands/new-domain/) keeps in `.holocron/dns-records.json` are expected too, each with its value. A list that cannot be read is a failing row of its own.
+
 A record is found by its type and name (case and a final dot do not matter). The target must match; where the record must be proxied, it must be. A record in the zone that is not expected is never a problem.
 
 A name can hold several `MX` or `TXT` records, so for those two types the value is part of what identifies a record; a `TXT` value is compared without its quotes.

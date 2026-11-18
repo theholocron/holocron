@@ -60,6 +60,8 @@ export const COMMAND_CONTEXTS = {
 	"sync secrets": "workspace",
 	// `new tunnel` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
 	"new tunnel": "workspace",
+	// `new domain` calls the `dns` provider, so its package must be resolvable.
+	"new domain": "workspace",
 	// `project` subcommands call the `projects` provider, so its package must be resolvable.
 	"list projects": "workspace",
 	"new project": "workspace",
