@@ -2,10 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { inspectWiki } from "./inspect-wiki.js";
-import { FernWiki } from "./wiki.js";
+import { expectedInstance, FernWiki } from "./wiki.js";
 
 let root: string;
 
@@ -130,6 +130,14 @@ describe("inspectWiki", () => {
 	});
 });
 
+describe("inspectWiki without sources", () => {
+	it("lists no unlisted pages when docs/wiki does not exist", async () => {
+		await rm(join(root, "docs"), { recursive: true });
+		const found = await inspectWiki({ ...input, repoRoot: root, fetch: answering() });
+		expect(found.navigation).toMatchObject({ unlisted: [] });
+	});
+});
+
 describe("FernWiki.inspect", () => {
 	it("expects the instance and domain provision() writes", async () => {
 		const wiki = new FernWiki(
@@ -147,5 +155,78 @@ describe("FernWiki.inspect", () => {
 		const found = await new FernWiki({ repoRoot: root, org: "acme" }, { fetch: answering() }).inspect();
 		expect(found.organization.declared).toBe("acme");
 		expect(found.site).toHaveLength(1);
+	});
+});
+
+describe("inspectWiki edge cases", () => {
+	it("reads an instances block with no url, and an unquoted or quoted value", async () => {
+		await writeFile(join(root, "fern", "docs.yml"), "instances:\n  - custom-domain: '\"x.dev/a\"'\n");
+		const found = await inspectWiki({ ...input, repoRoot: root, fetch: answering() });
+		expect(found.instance?.foundUrl).toBeNull();
+	});
+
+	it("counts only Markdown files as sources", async () => {
+		await writeFile(join(root, "docs", "wiki", "decisions", "logo.png"), "x");
+		await writeFile(join(root, "docs", "wiki", "decisions", "page.mdx"), "# mdx\n");
+		const found = await inspectWiki({ ...input, repoRoot: root, fetch: answering() });
+		expect(found.navigation?.unlisted).toEqual(["docs/wiki/decisions/0001-new.md", "docs/wiki/decisions/page.mdx"]);
+	});
+
+	it("counts zero pages in a sitemap with no entries", async () => {
+		const found = await inspectWiki({ ...input, repoRoot: root, fetch: answering("<urlset/>") });
+		expect(found.published?.pages).toBe(0);
+	});
+
+	it("uses the global fetch when none is given", async () => {
+		const spy = vi.fn(async () => new Response("", { status: 200 }));
+		vi.stubGlobal("fetch", spy);
+		try {
+			const found = await inspectWiki({ ...input, repoRoot: root });
+			expect(found.site[0]).toEqual({ url: input.expectedUrl, status: 200 });
+			expect(spy).toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});
+
+describe("expectedInstance", () => {
+	it("uses a domain's own basepath as it is", () => {
+		expect(expectedInstance({ fernOrg: "o", domain: "wiki.dev/base", repoName: "r" })).toEqual({
+			instanceUrl: "o.docs.buildwithfern.com/base",
+			customDomain: "wiki.dev/base",
+			multiSource: true,
+		});
+	});
+
+	it("uses a bare domain as it is when there is no repo to name a basepath", () => {
+		expect(expectedInstance({ fernOrg: "o", domain: "wiki.dev" })).toEqual({
+			instanceUrl: "o.docs.buildwithfern.com",
+			customDomain: "wiki.dev",
+			multiSource: false,
+		});
+	});
+
+	it("has no custom domain when none is declared", () => {
+		expect(expectedInstance({ fernOrg: "o" })).toEqual({
+			instanceUrl: "o.docs.buildwithfern.com",
+			customDomain: undefined,
+			multiSource: false,
+		});
+	});
+});
+
+describe("FernWiki.inspect defaults", () => {
+	it("reads from the working directory and the global fetch when the loader gave neither", async () => {
+		const cwd = vi.spyOn(process, "cwd").mockReturnValue(root);
+		const spy = vi.fn(async () => new Response("", { status: 200 }));
+		vi.stubGlobal("fetch", spy);
+		try {
+			const found = await new FernWiki({}).inspect();
+			expect(found.organization).toEqual({ declared: "holocron", found: "holocron" });
+		} finally {
+			cwd.mockRestore();
+			vi.unstubAllGlobals();
+		}
 	});
 });

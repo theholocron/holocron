@@ -3055,30 +3055,57 @@ export interface WikiProbe {
 	error?: string;
 }
 
+/** The wiki provider's organization, as declared and as its own config file has it. */
+export interface WikiOrganizationState {
+	/** The organization the config declares. */
+	declared: string;
+	/** The one in the provider's own config file, or null when none is readable. */
+	found: string | null;
+}
+
+/** The docs instance, as the config implies it and as the provider's docs file has it. */
+export interface WikiInstanceState {
+	/** The instance address the config implies. */
+	expectedUrl: string;
+	/** The one in the docs file, or null when it names none. */
+	foundUrl: string | null;
+	/** The custom domain the config implies, when it declares one. */
+	expectedDomain?: string;
+	/** The one in the docs file, or null when it names none; present only with `expectedDomain`. */
+	foundDomain?: string | null;
+}
+
+/** The navigation's pages against the source files. */
+export interface WikiNavigationState {
+	/** How many distinct pages the navigation lists. */
+	listed: number;
+	/** Listed pages that are not on disk (the publish would fail). */
+	missing: string[];
+	/** Source pages on disk that the navigation does not list (never published). */
+	unlisted: string[];
+}
+
+/** The published site's page index. */
+export interface WikiPublishedState extends WikiProbe {
+	/** How many pages the index lists, when it was served. */
+	pages?: number;
+}
+
 /**
  * The wiki as it stands, read without changing anything: the local config the provider publishes from, the sources
  * it lists, and the live site. `holocron doctor wiki` turns it into rows.
  */
 export interface WikiInspection {
-	/** The provider's organization: the one the config declares and the one in the provider's own config file (null when none is readable). */
-	organization: { declared: string; found: string | null };
-	/** The docs instance the config declares and the one written in the provider's docs file (null when there is no file). */
-	instance: {
-		expectedUrl: string;
-		foundUrl: string | null;
-		expectedDomain?: string;
-		foundDomain?: string | null;
-	} | null;
+	/** The provider's organization: declared against the one in its own config file. */
+	organization: WikiOrganizationState;
+	/** The docs instance the config declares against the one in the provider's docs file (null when there is no file). */
+	instance: WikiInstanceState | null;
 	/** The site's own address and, when a custom domain is declared, the domain: each is asked once. */
 	site: WikiProbe[];
-	/**
-	 * The pages the navigation lists against the source files under `docs/wiki`: `missing` are listed but not on disk
-	 * (the publish would fail), `unlisted` are on disk but not listed (never published). Null when there is no
-	 * navigation to read.
-	 */
-	navigation: { listed: number; missing: string[]; unlisted: string[] } | null;
+	/** The pages the navigation lists against the source files under `docs/wiki`. Null when there is no navigation to read. */
+	navigation: WikiNavigationState | null;
 	/** The published site's page index (its sitemap), compared with `navigation.listed`. Null when none could be asked. */
-	published: (WikiProbe & { pages?: number }) | null;
+	published: WikiPublishedState | null;
 }
 
 /**

@@ -137,4 +137,19 @@ describe("wikiRows", () => {
 		f.navigation = null;
 		expect(byId(f)["wiki:published"]).toMatchObject({ status: "ok" });
 	});
+
+	it("says no answer when a probe has neither a status nor a reason", () => {
+		const f = healthy();
+		f.site = [{ url: URL }];
+		expect(byId(f)["wiki:site"]).toMatchObject({ status: "skip", detail: `${URL}: no answer` });
+	});
+
+	it("names an instance url that is not set, and prints no site row when none was asked", () => {
+		const f = healthy();
+		f.instance = { expectedUrl: URL, foundUrl: null };
+		f.site = [];
+		const rows = byId(f);
+		expect(rows["wiki:instance"]!.problems[0]).toMatch(/instance url is not set/);
+		expect(rows["wiki:site"]).toBeUndefined();
+	});
 });
