@@ -46,15 +46,22 @@ describe("repairSigningBody", () => {
 		expect(() => repairSigningBody("text")).not.toThrow();
 	});
 
-	it("signs the text Bruno sends: the parsed object stringified, or the text it could not parse", () => {
+	it("signs the text Bruno sends: the parsed object stringified, or the text it could not parse, with its variables filled in", () => {
+		const VARIABLES: Record<string, string> = { pullNumber: "7", repo: "acme/demo" };
+		// Bruno fills variables in after the script reads the body, so the script has to do the same before it signs.
+		const interpolate = (text: string) =>
+			text.replace(/\{\{(\w+)\}\}/g, (_, name: string) => VARIABLES[name] ?? "");
 		const script = (getBody: () => unknown) => {
-			const expression = (JSON.parse(JSON.stringify({ s: BROKEN })) as { s: string }).s;
-			const holder = { script: expression };
+			const holder = { script: BROKEN };
 			repairSigningBody(holder);
 			const code = holder.script.replace("const body = ", "return ").replace(/;$/, "");
-			return new Function("bru", "req", code)({ interpolate: (text: string) => text }, { getBody });
+			return new Function("bru", "req", code)({ interpolate }, { getBody });
 		};
+		// A body with nothing to fill in is the parsed object, stringified.
 		expect(script(() => ({ zen: "x", hook_id: 1 }))).toBe('{"zen":"x","hook_id":1}');
-		expect(script(() => '{"n":{{pullNumber}}}')).toBe('{"n":{{pullNumber}}}');
+		// A placeholder inside a string value is filled in: dropping the `bru.interpolate()` call would leave `{{repo}}`.
+		expect(script(() => ({ repository: "{{repo}}" }))).toBe('{"repository":"acme/demo"}');
+		// An unquoted placeholder cannot be parsed before it is filled in, so Bruno hands over the text.
+		expect(script(() => '{"n":{{pullNumber}}}')).toBe('{"n":7}');
 	});
 });

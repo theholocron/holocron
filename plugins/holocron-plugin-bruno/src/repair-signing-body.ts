@@ -5,6 +5,9 @@ const BROKEN_BODY = "bru.interpolate(req.getBody().raw)";
  * The body text a signing script has to sign. `req.getBody()` is the parsed object for a JSON body and has no `.raw`,
  * so the converter's line signs nothing; a body Bruno cannot parse before its variables are filled in (an unquoted
  * `{{number}}`) comes back as text. Both reach `bru.interpolate()` as the one string Bruno itself fills in and sends.
+ *
+ * Limit: a body that is itself a JSON string (`"hello"`) also comes back as a string, so it is signed without its
+ * quotes. A webhook payload is always an object, and every signed body in the request files is one, so it is not handled.
  */
 const BODY_TEXT = 'bru.interpolate(typeof req.getBody() === "string" ? req.getBody() : JSON.stringify(req.getBody()))';
 
