@@ -1,3 +1,18 @@
+## [5.0.0-alpha.484](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.483...v5.0.0-alpha.484) (2026-11-18)
+
+### Features
+
+* **bruno:** 🧭 open requests loads each layer you name, so each environment uses its own secret ([#2378](https://github.com/theholocron/holocron/issues/2378)) ([3bd3f19](https://github.com/theholocron/holocron/commit/3bd3f199f9dab80fd9a93f0eab5d02f6f17b4cc4)), closes [#2322](https://github.com/theholocron/holocron/issues/2322) [#2377](https://github.com/theholocron/holocron/issues/2377) [#2377](https://github.com/theholocron/holocron/issues/2377)
+* **cli:** 🩺 doctor workers, check the declared Workers and deployment projects ([#2370](https://github.com/theholocron/holocron/issues/2370)) ([ba80c34](https://github.com/theholocron/holocron/commit/ba80c3411c6fb9a2990a7de2acf9239ec2a260ad)), closes [#1563](https://github.com/theholocron/holocron/issues/1563) [#1563](https://github.com/theholocron/holocron/issues/1563)
+
+### Documentation
+
+* **specs:** 📚️ 📝 doctor monitoring names a check that no config declares ([#2376](https://github.com/theholocron/holocron/issues/2376)) ([fe1fb19](https://github.com/theholocron/holocron/commit/fe1fb19ffee3ac59d21ee5b12251b406df6437bc)), closes [#2365](https://github.com/theholocron/holocron/issues/2365)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2379](https://github.com/theholocron/holocron/issues/2379)) ([7551e26](https://github.com/theholocron/holocron/commit/7551e265fb0908b2578c60f750d53e85ae89bed3))
+
 ## [5.0.0-alpha.483](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.482...v5.0.0-alpha.483) (2026-11-18)
 
 ### Features
