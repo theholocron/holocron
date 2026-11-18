@@ -209,6 +209,25 @@ describe("doctor logs", () => {
 		expect(row(report, "logs:dataset:sentinel").detail).toBe("no token");
 	});
 
+	it("probes the token with the CLI's own dataset", async () => {
+		const checkToken = vi.fn(async () => ({ ok: true }));
+		await run({ logs: { checkToken } });
+		expect(checkToken).toHaveBeenCalledWith("holocron");
+	});
+
+	it("reports a forbidden dataset as not visible to the token, a skip with the reason", async () => {
+		const { report, text } = await run({
+			datasets: {
+				holocron: { exists: true, retentionDays: 90 },
+				"holocron-sentinel": { exists: false, forbidden: true },
+			},
+		});
+		expect(report.status).toBe("ok");
+		expect(row(report, "logs:dataset:sentinel")).toMatchObject({ status: "skip" });
+		expect(row(report, "logs:dataset:sentinel").detail).toContain("not visible to this token");
+		expect(text).not.toContain("could not read");
+	});
+
 	it("skips what the provider cannot do", async () => {
 		const { report } = await run({ logs: { checkToken: undefined, readDataset: undefined } });
 		expect(row(report, "logs:token")).toMatchObject({ status: "skip", detail: "axiom cannot check a token" });

@@ -1551,20 +1551,27 @@ export interface Logs extends ProviderIdentity {
 	ensureDataset?(name: string): Promise<{ alreadyExists: boolean }>;
 	/**
 	 * Read a dataset without changing anything (`holocron doctor logs`). A dataset that is not there is `exists: false`,
-	 * not an error; any other failure throws.
+	 * not an error, and one the token may not see is `forbidden: true`; any other failure throws.
 	 */
 	readDataset?(name: string): Promise<LogsDataset>;
 	/**
-	 * Ask the provider whether it accepts the token, without needing any particular dataset. `ok: false` only when the
-	 * provider refused it; an error that says nothing about the token (a network failure, a missing token) throws.
+	 * Ask the provider whether it accepts the token. `dataset` names one the token is expected to hold (the caller's
+	 * own), which a provider may probe in place of a name it makes up: a token that cannot see a dataset that does not
+	 * exist may still reach its own. `ok: false` only when the provider refused it; an error that says nothing about the
+	 * token (a network failure, a missing token, an answer that could mean either) throws.
 	 */
-	checkToken?(): Promise<{ ok: boolean; reason?: string }>;
+	checkToken?(dataset?: string): Promise<{ ok: boolean; reason?: string }>;
 }
 
 /** What {@link Logs.readDataset} found. */
 export interface LogsDataset {
 	/** Whether the dataset exists. */
 	exists: boolean;
+	/**
+	 * `true` when the provider refused the read (403) for this token: the dataset is not visible to it, and the provider
+	 * may answer the same for one that does not exist, so `exists` is `false` but says nothing.
+	 */
+	forbidden?: boolean;
 	/** Days the provider keeps data in the dataset, when it reports one. One setting for the whole dataset. */
 	retentionDays?: number;
 }

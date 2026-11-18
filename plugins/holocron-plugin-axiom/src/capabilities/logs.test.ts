@@ -101,8 +101,13 @@ describe("AxiomLogs.readDataset", () => {
 		expect(calls.map((c) => c.method)).toEqual(["GET"]);
 	});
 
-	it("rethrows any other failure", async () => {
+	it("reports a 403 as a dataset the token cannot see", async () => {
 		const { logs } = makeLogs([{ status: 403, body: { message: "forbidden" } }]);
+		expect(await logs.readDataset("d")).toEqual({ exists: false, forbidden: true });
+	});
+
+	it("rethrows any other failure", async () => {
+		const { logs } = makeLogs([{ status: 500, body: { message: "boom" } }]);
 		await expect(logs.readDataset("d")).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });
@@ -112,6 +117,17 @@ describe("AxiomLogs.checkToken", () => {
 		const { logs, calls } = makeLogs([{ status: 404, body: { message: "not found" } }]);
 		expect(await logs.checkToken()).toEqual({ ok: true });
 		expect(calls[0]?.url).toBe(`${BASE}/v2/datasets/holocron-token-check`);
+	});
+
+	it("probes the dataset it is given: found is accepted, 401 refused, 403 says nothing", async () => {
+		const ok = makeLogs([{ body: dataset }]);
+		expect(await ok.logs.checkToken("holocron")).toEqual({ ok: true });
+		expect(ok.calls[0]?.url).toBe(`${BASE}/v2/datasets/holocron`);
+		const refused = makeLogs([{ status: 401, body: { message: "unauthorized" } }]);
+		expect(await refused.logs.checkToken("holocron")).toMatchObject({ ok: false });
+		await expect(
+			makeLogs([{ status: 403, body: { message: "forbidden" } }]).logs.checkToken("holocron")
+		).rejects.toBeInstanceOf(ProviderApiError);
 	});
 
 	it("accepts the token when the dataset is found", async () => {

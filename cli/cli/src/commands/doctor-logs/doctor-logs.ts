@@ -5,7 +5,7 @@
  * the token (accepted by the provider), one per dataset (the CLI's, Sentinel's and any other `dev.serve.logging` names),
  * one for the organization, and an `info` row per existing dataset with its retention (ADR-0019: one setting for the whole
  * dataset, shared by every environment in it). Only a dataset the provider says is missing, or a token it refuses, fails;
- * a name, a token or a response that cannot be read is a skip with the reason.
+ * a dataset the token may not see (403), a name, a token or a response that cannot be read is a skip with the reason.
  */
 
 import { PREFIX } from "@theholocron/env-utils/lookup";
@@ -66,7 +66,7 @@ export async function runDoctorLogs(input: RunDoctorLogsInput): Promise<DoctorLo
 
 async function checkLogs(logs: Logs, targets: LogsDatasetTarget[]): Promise<CheckRow[]> {
 	const rows: CheckRow[] = [];
-	const token = await checkToken(logs);
+	const token = await checkToken(logs, targets.find((t) => t.id === "cli")?.name);
 	rows.push(token.row);
 
 	for (const target of targets) {
@@ -100,13 +100,13 @@ async function checkLogs(logs: Logs, targets: LogsDatasetTarget[]): Promise<Chec
 }
 
 /** Whether the provider accepts the token. `usable` is false when it was refused or could not be tried. */
-async function checkToken(logs: Logs): Promise<{ row: CheckRow; usable: boolean }> {
+async function checkToken(logs: Logs, dataset?: string): Promise<{ row: CheckRow; usable: boolean }> {
 	const title = "token is accepted";
 	if (!logs.checkToken) {
 		return { row: row("logs:token", title, "skip", `${logs.providerName} cannot check a token`), usable: true };
 	}
 	try {
-		const result = await logs.checkToken();
+		const result = await logs.checkToken(dataset);
 		if (result.ok)
 			return { row: row("logs:token", title, "ok", `${logs.providerName} accepts the token`), usable: true };
 		const reason = result.reason ?? `${logs.providerName} refused the token`;
@@ -128,6 +128,11 @@ async function checkDataset(
 ): Promise<CheckRow[]> {
 	try {
 		const found = await logs.readDataset!(name);
+		if (found.forbidden) {
+			// Not a failure: the provider may answer the same for a dataset that is not there, so it cannot say which.
+			const why = `${name}: not visible to this token (${logs.providerName} refused the read; it may also not exist)`;
+			return [row(id, title, "skip", why)];
+		}
 		if (!found.exists) {
 			const problem = `dataset ${name} does not exist (${target.variable}); ${target.fix}`;
 			return [row(id, title, "fail", `${name} does not exist`, [problem])];

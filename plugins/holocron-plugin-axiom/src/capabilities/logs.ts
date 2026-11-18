@@ -17,7 +17,7 @@ import { ProviderApiError } from "@theholocron/cli";
 
 import type { AxiomClient } from "../rest.js";
 
-/** A dataset that does not exist: asking for it tells a token Axiom accepts (404) from one it refuses (401). */
+/** The dataset asked for when the caller names none. It does not exist: asking for it tells a token Axiom accepts (404) from one it refuses (401). */
 const PROBE_DATASET = "holocron-token-check";
 
 /** Options for the Axiom `logs` capability. */
@@ -72,14 +72,20 @@ export class AxiomLogs implements Logs {
 			const days = found.useRetentionPeriod === false ? undefined : found.retentionDays;
 			return { exists: true, ...(days === undefined ? {} : { retentionDays: days }) };
 		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 404) return { exists: false };
+			if (err instanceof ProviderApiError) {
+				if (err.status === 404) return { exists: false };
+				// Axiom answers 403 for a dataset the token may not see (and, it seems, for one that does not exist).
+				if (err.status === 403) return { exists: false, forbidden: true };
+			}
 			throw err;
 		}
 	}
 
-	async checkToken(): Promise<{ ok: boolean; reason?: string }> {
+	async checkToken(dataset?: string): Promise<{ ok: boolean; reason?: string }> {
 		try {
-			await this.client().datasets.get(PROBE_DATASET);
+			// A dataset the token is expected to hold proves it (200) or refuses it (401); a name that cannot exist gets
+			// a 403, not a 404, from a token that may only read its own datasets.
+			await this.client().datasets.get(dataset ?? PROBE_DATASET);
 			return { ok: true };
 		} catch (err) {
 			if (err instanceof ProviderApiError) {
