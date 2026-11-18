@@ -1,3 +1,13 @@
+## [5.0.0-alpha.471](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.470...v5.0.0-alpha.471) (2026-11-18)
+
+### Bug Fixes
+
+* **setup:** 🐛 call the DSN push 'set secret', not 'new secret' ([#2336](https://github.com/theholocron/holocron/issues/2336)) ([9a50d6e](https://github.com/theholocron/holocron/commit/9a50d6e422d887a6a73cfbf49afe2cafef51c968))
+
+### Documentation
+
+* **monitoring:** 📚️ 📝 a status page is served at <slug>.checkly-status-page.com ([#2337](https://github.com/theholocron/holocron/issues/2337)) ([1ce4b11](https://github.com/theholocron/holocron/commit/1ce4b11d683a0bf729271e44e74ce559724375f5))
+
 ## [5.0.0-alpha.470](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.469...v5.0.0-alpha.470) (2026-11-18)
 
 ### Features
