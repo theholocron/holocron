@@ -4,7 +4,7 @@ description: File an issue in the repo's tracker from the command line.
 ---
 
 ```bash
-holocron new issue <title> [--body <text>] [--label <name>]... [--milestone <number|title>] [--dry-run] [--yes]
+holocron new issue <title> [--body <text> | --body-file <path|->] [--label <name>]... [--assignee <login>]... [--milestone <number|title>] [--dry-run] [--yes]
 ```
 
 Files an issue through the repo's `issues` provider (`Issues.create`), so it lands in GitHub or Linear, whichever the config names, and the command knows nothing about a tracker. It prints the new issue's key in that tracker's syntax (`#2134`, `RANDO-7`).
@@ -16,20 +16,26 @@ holocron new issue "Fix the retry in codecov-upload" --label bug --body "It give
 ## Behavior
 
 - **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
-- **`--dry-run`** prints the title, the first lines of the text and the labels and milestone, and files nothing.
+- **`--dry-run`** prints the title, the first lines of the text and the labels, assignee and milestone, and files nothing.
 - **No duplicate check.** Filing the same title twice makes two issues.
 - **A failure is a row.** If the provider is missing, is not available or refuses the request, the row says why and the exit code is 1.
 - Rows print like every [`doctor <capability>`](/holocron/commands/doctor/), then `N ok, N fail, N skipped`.
 
+## What a tracker cannot hold
+
+A tracker that cannot hold something the call asked for files the issue anyway and lists it under `not carried across`, as [`migrate`](/holocron/commands/migrate/) does. On GitHub an assignee is a login and the milestone is found by its title. On Linear an assignee is matched by email, name or id (only one, extra names are listed), and the milestone names a project. `--project` and `--status` (placing the issue on a board) are not part of this command yet.
+
 ## Options
 
-| Option                | Default | Description                                                |
-| --------------------- | ------- | ---------------------------------------------------------- |
-| `--body <text>`       | none    | The issue's text                                           |
-| `--label <name>`      | none    | A label to put on it; repeat the option for more           |
-| `--milestone <value>` | none    | The milestone, by number or exact title (case-insensitive) |
-| `--dry-run`           | `false` | Show what would be filed, without filing it                |
-| `--yes`               | `false` | File without asking (required without a terminal)          |
+| Option                | Default | Description                                                                          |
+| --------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `--body <text>`       | none    | The issue's text                                                                     |
+| `--body-file <path>`  | none    | Read the text from a file, or from standard input with `-`; not with `--body`        |
+| `--label <name>`      | none    | A label to put on it; repeat the option for more                                     |
+| `--assignee <login>`  | none    | A person to assign, by login (`me` is you); repeat for more where the tracker allows |
+| `--milestone <value>` | none    | The milestone, by number or exact title (case-insensitive)                           |
+| `--dry-run`           | `false` | Show what would be filed, without filing it                                          |
+| `--yes`               | `false` | File without asking (required without a terminal)                                    |
 
 Run without a title and the [interactive menu](/holocron/cli/) asks for the title and the text.
 

@@ -87,8 +87,24 @@ export class LinearIssues implements Issues {
 		body?: string;
 		labels?: string[];
 		milestone?: string;
-	}): Promise<{ key: string }> {
+		assignees?: string[];
+	}): Promise<{ key: string; dropped?: string[] }> {
 		const { client } = this.scope;
+		const dropped: string[] = [];
+		let assigneeId: string | undefined;
+		const [wanted, ...extra] = input.assignees ?? [];
+		if (wanted) {
+			if (/^@?me$/i.test(wanted)) assigneeId = (await client.teams.viewer()).user.id;
+			else {
+				const w = wanted.replace(/^@/, "").toLowerCase();
+				const match = (await client.teams.users()).find((u) =>
+					[u.id, u.email, u.displayName, u.name].some((v) => v?.toLowerCase() === w)
+				);
+				assigneeId = match?.id;
+				if (!match) dropped.push(`assignee (no Linear user matches): ${wanted}`);
+			}
+			if (extra.length > 0) dropped.push(`assignee (Linear holds one): ${extra.join(", ")}`);
+		}
 		const team = await this.scope.team();
 		const labelIds = input.labels?.length ? await this.labelIds(team.id, input.labels) : [];
 		let projectId: string | undefined;
@@ -107,8 +123,9 @@ export class LinearIssues implements Issues {
 			...(input.body ? { description: input.body } : {}),
 			...(labelIds.length > 0 ? { labelIds } : {}),
 			...(projectId ? { projectId } : {}),
+			...(assigneeId ? { assigneeId } : {}),
 		});
-		return { key: issue.identifier };
+		return { key: issue.identifier, ...(dropped.length > 0 ? { dropped } : {}) };
 	}
 
 	/** Moves the issue to the state its slot names. Idempotent. */

@@ -158,8 +158,14 @@ export class GitHubIssues implements Issues {
 		body?: string;
 		labels?: string[];
 		milestone?: string;
-	}): Promise<{ key: string }> {
+		assignees?: string[];
+	}): Promise<{ key: string; dropped?: string[] }> {
 		const body: Record<string, unknown> = { title: input.summary };
+		if (input.assignees?.length) {
+			const isMe = (a: string) => /^@?me$/i.test(a);
+			const me = input.assignees.some(isMe) ? (await this.getMyself()).id : undefined;
+			body.assignees = [...new Set(input.assignees.map((a) => (isMe(a) && me ? me : a.replace(/^@/, ""))))];
+		}
 		if (input.body) body.body = input.body;
 		if (input.labels?.length) body.labels = input.labels;
 		if (input.milestone) body.milestone = await this.resolveMilestone(input.milestone);

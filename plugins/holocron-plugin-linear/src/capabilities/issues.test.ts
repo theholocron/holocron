@@ -97,6 +97,29 @@ describe("LinearIssues", () => {
 		await expect(issues.create({ summary: "t", milestone: "nope" })).rejects.toThrow(/Project "nope" not found/);
 	});
 
+	it("create assigns by email, name or `me`, and drops what Linear cannot hold", async () => {
+		const { issues, called } = make([
+			[/viewer/, VIEWER],
+			[/users\(first/, { users: nodes([USER]) }],
+			[/issueCreate/, { issueCreate: { issue: issue({ identifier: "ENG-3" }) } }],
+		]);
+		const byEmail = await issues.create({ summary: "t", assignees: ["Luke@x.io", "han", "leia"] });
+		expect(byEmail).toEqual({ key: "ENG-3", dropped: ["assignee (Linear holds one): han, leia"] });
+		expect((called(/issueCreate/)[0]!.variables.input as Record<string, unknown>).assigneeId).toBe("u1");
+		await issues.create({ summary: "t", assignees: ["@me"] });
+		expect((called(/issueCreate/)[1]!.variables.input as Record<string, unknown>).assigneeId).toBe("u1");
+	});
+
+	it("create reports an unknown assignee as dropped and still files", async () => {
+		const { issues, called } = make([
+			[/users\(first/, { users: nodes([USER]) }],
+			[/issueCreate/, { issueCreate: { issue: issue({ identifier: "ENG-4" }) } }],
+		]);
+		const out = await issues.create({ summary: "t", assignees: ["nobody"] });
+		expect(out.dropped).toEqual(["assignee (no Linear user matches): nobody"]);
+		expect(called(/issueCreate/)[0]!.variables.input).not.toHaveProperty("assigneeId");
+	});
+
 	it("create with only a title sends no optional fields", async () => {
 		const { issues, called } = make([[/issueCreate/, { issueCreate: { issue: issue() } }]]);
 		await issues.create({ summary: "t" });

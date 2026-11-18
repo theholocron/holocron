@@ -1,3 +1,7 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.hoisted(() => vi.fn());
@@ -43,8 +47,28 @@ describe("new issue", () => {
 	it("leaves out what was not given, and passes dry-run", async () => {
 		await go("Fix it", "--dry-run");
 		const input = runIssueCreate.mock.calls[0]![0];
-		for (const key of ["body", "labels", "milestone", "yes"]) expect(input).not.toHaveProperty(key);
+		for (const key of ["body", "assignees", "labels", "milestone", "yes"]) expect(input).not.toHaveProperty(key);
 		expect(input.context.dryRun).toBe(true);
+	});
+
+	it("passes repeated assignees and reads --body-file", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "issue-"));
+		writeFileSync(join(dir, "b.md"), "from file");
+		await go("Fix it", "--body-file", join(dir, "b.md"), "--assignee", "me", "--assignee", "octo");
+		expect(runIssueCreate).toHaveBeenCalledWith(
+			expect.objectContaining({ body: "from file", assignees: ["me", "octo"] })
+		);
+	});
+
+	it("refuses --body with --body-file, and reports an unreadable file", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await go("Fix it", "--body", "a", "--body-file", "b.md").catch(() => undefined);
+		expect(runIssueCreate).not.toHaveBeenCalled();
+		process.exitCode = undefined;
+		await go("Fix it", "--body-file", "/nonexistent/none.md");
+		expect(runIssueCreate).not.toHaveBeenCalled();
+		expect(process.exitCode).toBe(1);
+		err.mockRestore();
 	});
 
 	it("keeps a numeric-looking title as text", async () => {

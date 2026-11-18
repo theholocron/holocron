@@ -11,7 +11,9 @@ import { fakeLoader, loadedWith } from "../../migrate/migrate.testing.js";
 import { runIssueCreate } from "./run-issue-create.js";
 import type { RunIssueCreateInput } from "./run-issue-create.type.js";
 
-const issuesFake = (create: (input: unknown) => Promise<{ key: string }> = async () => ({ key: "#9" })) => ({
+const issuesFake = (
+	create: (input: unknown) => Promise<{ key: string; dropped?: string[] }> = async () => ({ key: "#9" })
+) => ({
 	create: vi.fn(create),
 });
 
@@ -60,6 +62,22 @@ describe("runIssueCreate", () => {
 	it("leaves out a body, labels and milestone that were not given", async () => {
 		const { issues } = await run({ body: "  ", labels: [], milestone: " " });
 		expect(issues!.create).toHaveBeenCalledWith({ summary: "Fix the thing" });
+	});
+
+	it("passes assignees (trimmed, de-duplicated) and prints what the tracker dropped", async () => {
+		const { report, text, issues } = await run({
+			assignees: [" me ", "me", ""],
+			issues: issuesFake(async () => ({ key: "ENG-1", dropped: ["milestone (Linear has none)"] })),
+		});
+		expect(issues!.create).toHaveBeenCalledWith({ summary: "Fix the thing", assignees: ["me"] });
+		expect(report).toMatchObject({ status: "ok", key: "ENG-1" });
+		expect(text).toContain("not carried across");
+		expect(text).toContain("milestone (Linear has none)");
+	});
+
+	it("shows the assignee in a dry run", async () => {
+		const { text } = await run({ context: { repoRoot: "/r", dryRun: true }, assignees: ["octo"] });
+		expect(text).toContain("would file the issue (assignee: octo)");
 	});
 
 	it("previews on --dry-run and files nothing", async () => {

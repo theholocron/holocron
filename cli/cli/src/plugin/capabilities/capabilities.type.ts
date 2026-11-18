@@ -886,7 +886,13 @@ export interface Issues extends ProviderIdentity {
 		labels?: string[];
 		/** Numeric id or exact title (case-insensitive). */
 		milestone?: string;
-	}): Promise<{ key: string }>;
+		/** People to assign, by login (or email or name on a tracker that has no logins); `me` is the token's user. */
+		assignees?: string[];
+	}): Promise<{
+		key: string;
+		/** What the tracker cannot hold of the input and so left out, e.g. `assignee (no matching user): bob`. */
+		dropped?: string[];
+	}>;
 
 	/** Idempotent — `transitioned: false` if the issue is already at the target. */
 	transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult>;
