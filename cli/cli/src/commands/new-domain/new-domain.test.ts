@@ -114,6 +114,13 @@ describe("runNewDomain", () => {
 		expect(writes).toEqual([]);
 	});
 
+	it("names a proxied record in the question, and keeps no note when none is given", async () => {
+		const confirm = vi.fn(async () => true);
+		const { writes } = await run({ yes: false, confirm, proxied: true, note: undefined });
+		expect(confirm).toHaveBeenCalledWith("Make CNAME status.example.dev (DNS proxied)?");
+		expect(JSON.parse(writes[0]![1])[0]).not.toHaveProperty("note");
+	});
+
 	it("goes on when the answer is yes", async () => {
 		const { report } = await run({ yes: false, confirm: async () => true });
 		expect(report.status).toBe("ok");
