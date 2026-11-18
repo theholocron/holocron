@@ -198,12 +198,22 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `release` workflow's separate `deploy` job runs `holocron
 deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   and it generates no workflow of its own. Each package diffs from the commit it
-  was last deployed at, recorded as a `deployed/<package>` tag the deploy moves
-  and pushes on success (#2330), so a deploy a release missed (Sentinel's wait for
-  npm timing out) is made up by the next release even when that one does not touch
-  the app; a package with no tag yet, or one that is not an ancestor of the release,
-  falls back to the previous release's range, and a tag that cannot be pushed is a
-  warning. The job has `contents: write` for it. The marker is a git tag, not read
+  was last deployed at, recorded as a `deployed/<package>` tag (#2330), so a
+  deploy a release missed (Sentinel's wait for npm timing out) is made up by the
+  next release even when that one does not touch the app; a package with no tag
+  yet, or one that is not an ancestor of the release, falls back to the previous
+  release's range. Writing the tag is its own step: the deploy step
+  (`deploy on-release --record-file <f>`) writes no tag and lists the packages
+  whose deploy succeeded in `<f>`, and the next step (`deploy on-release --record
+--record-file <f>`, `recordDeploys()` in astromech, `if: !cancelled()`) tags and
+  pushes them. Only that step gets `GITHUB_TOKEN` (`github.token`), in its own
+  environment, passed to `git push` as an `Authorization` header through
+  `GIT_CONFIG_*` (never argv, never `.git/config`, scrubbed from messages), so the
+  checkout keeps `persist-credentials: false` and the app's deploy script, which
+  holds `VERCEL_TOKEN`, never sees a write credential. A failed deploy is not
+  listed, so it writes no tag; a tag that cannot be pushed fails the record step,
+  naming the package; `--dry-run` writes nothing. The job's `contents: write` is
+  what lets that token push. The marker is a git tag, not read
   from the provider: `DeploymentRecord` carries no commit, and Sentinel deploys by
   file upload (`deployFunction`), so a provider cannot be asked what is live.
   The workflows read a few organization Actions variables (`vars.HOLOCRON_TURBO_TEAM`, `vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, …; each is read as `vars.HOLOCRON_X || vars.X` and mapped onto the bare name a tool such as turbo or wrangler reads, #1864). They

@@ -18,6 +18,17 @@ export const deployOnReleaseArgs = (y: Argv<DeployArgs>) =>
 		.option("to", {
 			type: "string",
 			describe: "The release commit. Default HEAD.",
+		})
+		.option("record-file", {
+			type: "string",
+			describe:
+				"A file the deploy lists the packages it deployed in (and `--record` reads), so a later step tags them.",
+		})
+		.option("record", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Tag and push the `deployed/<package>` marker of each package in --record-file, using GITHUB_TOKEN. Deploys nothing.",
 		});
 
 export type DeployOnReleaseArgs = InferArgs<typeof deployOnReleaseArgs>;

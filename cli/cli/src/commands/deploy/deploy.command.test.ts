@@ -7,10 +7,11 @@ const runDeploy = vi.hoisted(() => vi.fn());
 const runDeployFromFiles = vi.hoisted(() => vi.fn());
 const runCleanupPreview = vi.hoisted(() => vi.fn());
 const deployOnRelease = vi.hoisted(() => vi.fn());
+const recordDeploys = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./index.js", () => ({ runDeploy, runDeployFromFiles }));
 vi.mock("../cleanup-preview/index.js", () => ({ runCleanupPreview }));
-vi.mock("@theholocron/astromech", () => ({ deployOnRelease }));
+vi.mock("@theholocron/astromech", () => ({ deployOnRelease, recordDeploys }));
 vi.mock("../../observability/logger/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../observability/logger/index.js")>()),
 	reportError,
@@ -42,6 +43,7 @@ beforeEach(() => {
 	runDeployFromFiles.mockResolvedValue({ status: "ok" });
 	runCleanupPreview.mockResolvedValue({ status: "ok" });
 	deployOnRelease.mockResolvedValue({ status: "ok" });
+	recordDeploys.mockReturnValue({ status: "ok" });
 });
 afterEach(() => void (process.exitCode = undefined));
 
@@ -154,5 +156,29 @@ describe("deploy on-release", () => {
 		const options = deployOnRelease.mock.calls[0]![0];
 		expect("from" in options || "to" in options).toBe(false);
 		expect(process.exitCode).toBe(1);
+	});
+
+	it("passes --record-file to the deploy, which writes no tag itself", async () => {
+		await go(["deploy", "on-release", "--channel", "alpha", "--record-file", "/tmp/d.json"]);
+		expect(deployOnRelease).toHaveBeenCalledWith(expect.objectContaining({ recordFile: "/tmp/d.json" }));
+		expect(recordDeploys).not.toHaveBeenCalled();
+	});
+
+	it("--record runs only the record phase, with GITHUB_TOKEN, and exits 1 when a tag failed", async () => {
+		vi.stubEnv("GITHUB_TOKEN", "tok");
+		recordDeploys.mockReturnValue({ status: "fail" });
+		await go(["deploy", "on-release", "--record", "--record-file", "/tmp/d.json"]);
+		expect(deployOnRelease).not.toHaveBeenCalled();
+		expect(recordDeploys).toHaveBeenCalledWith(
+			expect.objectContaining({ cwd: "/repo", file: "/tmp/d.json", token: "tok", dryRun: false })
+		);
+		expect(process.exitCode).toBe(1);
+		vi.unstubAllEnvs();
+	});
+
+	it("--record without --record-file passes an empty file name, which records nothing", async () => {
+		await go(["deploy", "on-release", "--record", "--dry-run"]);
+		expect(recordDeploys).toHaveBeenCalledWith(expect.objectContaining({ file: "", dryRun: true }));
+		expect(process.exitCode).toBeUndefined();
 	});
 });

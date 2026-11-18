@@ -34,30 +34,49 @@ describe("readMarker", () => {
 });
 
 describe("writeMarker", () => {
-	it("tags the release commit and pushes the tag", () => {
+	const TOKEN = "s3cret-token";
+	const HEADER = `basic ${Buffer.from(`x-access-token:${TOKEN}`).toString("base64")}`;
+
+	it("tags the release commit and pushes the tag, handing the token to the push in its environment only", () => {
 		const run = vi.fn<Run>(() => result(0));
-		expect(writeMarker(run, "/repo", "deployed/x", "new")).toBeUndefined();
+		expect(writeMarker(run, "/repo", "deployed/x", "new", TOKEN)).toBeUndefined();
 		expect(run).toHaveBeenNthCalledWith(1, "git", ["tag", "--force", "deployed/x", "new"], { cwd: "/repo" });
-		expect(run).toHaveBeenNthCalledWith(2, "git", ["push", "--force", "origin", "refs/tags/deployed/x"], {
+		const [, args, options] = run.mock.calls[1]!;
+		expect(args).toEqual(["push", "--force", "origin", "refs/tags/deployed/x"]);
+		expect(options).toMatchObject({
 			cwd: "/repo",
+			env: {
+				GIT_CONFIG_COUNT: "1",
+				GIT_CONFIG_KEY_0: "http.extraheader",
+				GIT_CONFIG_VALUE_0: `AUTHORIZATION: ${HEADER}`,
+			},
 		});
+		// Never in argv.
+		expect(JSON.stringify(run.mock.calls.map(([, a]) => a))).not.toContain(TOKEN);
 	});
 
 	it("reports a tag that cannot be made, without pushing", () => {
 		const run = vi.fn<Run>(() => result(128, "", "bad object"));
-		expect(writeMarker(run, "/repo", "deployed/x", "new")).toBe("couldn't tag deployed/x: bad object");
+		expect(writeMarker(run, "/repo", "deployed/x", "new", TOKEN)).toBe("couldn't tag deployed/x: bad object");
 		expect(run).toHaveBeenCalledOnce();
 	});
 
 	it("falls back to the exit status when a failed tag or push printed nothing", () => {
 		const tagFails = vi.fn<Run>(() => result(128));
-		expect(writeMarker(tagFails, "/repo", "deployed/x", "new")).toBe("couldn't tag deployed/x: 128");
+		expect(writeMarker(tagFails, "/repo", "deployed/x", "new", TOKEN)).toBe("couldn't tag deployed/x: 128");
 		const pushFails = vi.fn<Run>((_c, args) => (args[0] === "tag" ? result(0) : result(2)));
-		expect(writeMarker(pushFails, "/repo", "deployed/x", "new")).toBe("couldn't push deployed/x: 2");
+		expect(writeMarker(pushFails, "/repo", "deployed/x", "new", TOKEN)).toBe("couldn't push deployed/x: 2");
 	});
 
-	it("reports a push that fails", () => {
-		const run = vi.fn<Run>((_c, args) => (args[0] === "tag" ? result(0) : result(1, "", "denied")));
-		expect(writeMarker(run, "/repo", "deployed/x", "new")).toBe("couldn't push deployed/x: denied");
+	it("scrubs the token and its header from git's message when the push fails", () => {
+		const run = vi.fn<Run>((_c, args) =>
+			args[0] === "tag" ? result(0) : result(1, "", `denied ${TOKEN} ${HEADER}`)
+		);
+		expect(writeMarker(run, "/repo", "deployed/x", "new", TOKEN)).toBe("couldn't push deployed/x: denied *** ***");
+	});
+
+	it("scrubs the token from a failed tag's message too", () => {
+		const run = vi.fn<Run>(() => result(1, "", `oops ${TOKEN}`));
+		expect(writeMarker(run, "/repo", "deployed/x", "new", TOKEN)).toBe("couldn't tag deployed/x: oops ***");
 	});
 });

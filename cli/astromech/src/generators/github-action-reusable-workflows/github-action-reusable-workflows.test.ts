@@ -414,9 +414,16 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// It deploys the release commit, from the release job's outputs.
 		expect(deployJob).toContain("ref: ${{ needs.release.outputs.commit }}");
 		expect(deployJob).toContain("command: deploy on-release");
-		// It records each deploy as a tag (holocron#2330), so it can push one.
-		expect(deployJob).toContain("contents: write");
-		expect(deployJob).toContain("persist-credentials: true");
+		// It records each deploy as a tag (holocron#2330) in a separate step: the write token is in that step's
+		// environment only, and the checkout (the deploy script's) keeps no credential.
+		expect(deployJob).toContain("persist-credentials: false");
+		expect(deployJob).not.toContain("persist-credentials: true");
+		const [deployStep, recordStep] = deployJob.split("name: Record the deploys") as [string, string];
+		expect(deployStep).toContain("--record-file=");
+		expect(deployStep).not.toContain("GITHUB_TOKEN");
+		expect(recordStep).toContain("GITHUB_TOKEN: ${{ github.token }}");
+		expect(recordStep).toContain("--record");
+		expect(recordStep).toContain("if: ${{ !cancelled() }}");
 		for (const output of ["channel", "previous", "commit"]) {
 			expect(deployJob).toContain(`needs.release.outputs.${output}`);
 			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);

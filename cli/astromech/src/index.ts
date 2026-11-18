@@ -105,7 +105,7 @@ export type {
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
 } from "./tasks/deploy-on-release/index.js";
-export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
+export { deployOnRelease, recordDeploys } from "./tasks/deploy-on-release/index.js";
 export type { LegacyTarget } from "./vocabulary/index.js";
 export { legacyFile } from "./vocabulary/index.js";
 export {
