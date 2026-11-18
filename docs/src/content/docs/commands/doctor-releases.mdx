@@ -34,7 +34,7 @@ Delete both the tag and the note: with the note left behind, semantic-release st
 
 ## The two known causes
 
-- **A sigstore 409.** The tarball is identical to one already published, so npm refuses the provenance. The next release needs a change in the package's contents.
+- **A sigstore 409.** The tarball is identical to one already published, so npm refuses the provenance. The next release needs a change in the package's contents. `publish package --skip-already-published` retries a 409 twice, publishes the rest of the group anyway and names the identical tarball in its report and job summary, so this check is mostly what finds a package that stayed behind (see [a failed package does not stop the rest](/commands/publish-package/#a-failed-package-does-not-stop-the-rest---skip-already-published)).
 - **`ENEEDAUTH`.** The Trusted Publisher entries on npmjs.com expired or no longer match the calling workflow. `holocron publish package --sync-trust` registers them again.
 
 ## What is skipped

@@ -2,9 +2,12 @@ import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import type { PublishReport } from "../publish.type.js";
+import { formatPublishFailures, type PublishFailure, publishFailuresMarkdown } from "../publish-failures/index.js";
+import { publishOnePackage } from "../publish-one-package/index.js";
 import { redactOtp } from "../redact-otp.js";
 import { scopeOf } from "../scope-of.js";
 import { workspaceFilterArgs } from "../workspace-filter-args.js";
+import { writeJobSummary } from "../write-job-summary/index.js";
 import type { RunSteadyPublishInput } from "./run-steady-publish.type.js";
 
 /**
@@ -73,31 +76,46 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 
 	if (skipAlreadyPublished) {
 		print("  → publishing packages not already on npm…");
+		// One package's failure costs that package, not the rest of the list (#1387): every entry is tried, the
+		// failures are collected and reported together at the end.
+		const failures: PublishFailure[] = [];
 		for (const entry of entries) {
 			const view = await exec("npm", ["view", `${entry.name}@${entry.version}`, "version"], { cwd });
 			if (view.exitCode === 0 && view.stdout.trim()) {
 				print(`    skip ${entry.name}@${entry.version} (already published)`);
 				continue;
 			}
-			const publish = await exec("pnpm", ["--filter", entry.dir, "publish", ...baseFlags, ...otpFlags], { cwd });
-			if (publish.exitCode !== 0) {
-				// Lost a race with another concurrent publish of this exact
-				// version (two CI jobs, a person + CI, etc.) between the npm
-				// view above and this call -- re-check instead of assuming
-				// failure: if it's actually published now, the end state is
-				// exactly what skipAlreadyPublished wanted, just reached by a
-				// different runner.
-				const recheck = await exec("npm", ["view", `${entry.name}@${entry.version}`, "version"], { cwd });
-				if (recheck.exitCode === 0 && recheck.stdout.trim()) {
-					print(`    skip ${entry.name}@${entry.version} (published concurrently by another run)`);
-					continue;
-				}
-				const message = `publish failed for ${entry.name}@${entry.version} (exit ${publish.exitCode}): ${publish.stderr.trim() || publish.stdout.trim() || "no output"}`;
-				print(`  ✗ ${message}`);
-				logger.warn({ tag, package: entry.name, reason: message }, "publish: done");
-				return { status: "fail", message, packageNames };
+			// A failed call is followed by a registry check: a version that is there now was published by another
+			// run (two CI jobs, a person and CI) between the view above and the call, which is the end state wanted.
+			const result = await publishOnePackage({
+				entry,
+				publishArgs: ["--filter", entry.dir, "publish", ...baseFlags, ...otpFlags],
+				cwd,
+				exec,
+				print,
+				...(input.sleep ? { sleep: input.sleep } : {}),
+				...(input.backoffMs ? { backoffMs: input.backoffMs } : {}),
+			});
+			if ("message" in result) {
+				print(`    ✗ ${result.message}`);
+				failures.push({
+					name: entry.name,
+					version: entry.version,
+					kind: result.outcome,
+					message: result.message,
+				});
+			} else if (result.outcome === "concurrent") {
+				print(`    skip ${entry.name}@${entry.version} (published concurrently by another run)`);
+			} else {
+				print(`    ✓ ${entry.name}@${entry.version}`);
 			}
-			print(`    ✓ ${entry.name}@${entry.version}`);
+		}
+		if (failures.length > 0) {
+			for (const line of formatPublishFailures(failures)) print(line);
+			writeJobSummary(publishFailuresMarkdown(failures), input.envLookup);
+			const message = `${failures.length} of ${entries.length} package(s) not published: ${failures.map((f) => `${f.name}@${f.version}`).join(", ")}`;
+			logger.warn({ tag, failed: failures.map((f) => f.name), reason: message }, "publish: done");
+			return { status: "fail", message, packageNames };
 		}
 		logger.info({ tag, status: "ok", packages: entries.length }, "publish: done");
 		return { status: "ok", packageNames };
