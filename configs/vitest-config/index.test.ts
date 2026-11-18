@@ -86,6 +86,12 @@ describe("vitest-config — bundles", () => {
 		expect(config.test?.coverage?.thresholds?.statements).toBe(80);
 	});
 
+	it("library() leaves the re-export barrel and the shared test helpers out of coverage", () => {
+		const exclude = library().test?.coverage?.exclude;
+		expect(exclude).toContain("src/index.ts");
+		expect(exclude).toContain("src/testing.ts");
+	});
+
 	it("library() accepts per-file threshold overrides", () => {
 		const config = library({
 			thresholds: {

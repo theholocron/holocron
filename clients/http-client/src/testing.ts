@@ -1,6 +1,3 @@
-/* v8 ignore file -- exercised by other packages' test suites, not this package's own; a source-level
- * directive survives regardless of which vitest config resolves (local vs. shared), unlike a
- * config-file `coverage.exclude` entry. */
 import { vi } from "vitest";
 
 /** One request a stubbed `fetch` received. */
