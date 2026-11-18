@@ -1,3 +1,9 @@
+## [5.0.0-alpha.476](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.475...v5.0.0-alpha.476) (2026-11-18)
+
+### Bug Fixes
+
+* **deploy:** 🐛 🔒️ tag a deploy in its own step, so the deploy script holds no write token ([#2353](https://github.com/theholocron/holocron/issues/2353)) ([a8e5445](https://github.com/theholocron/holocron/commit/a8e5445181882bad2f030ea6a31a7cdd8435c407)), closes [#2330](https://github.com/theholocron/holocron/issues/2330)
+
 ## [5.0.0-alpha.475](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.474...v5.0.0-alpha.475) (2026-11-18)
 
 ### Bug Fixes
