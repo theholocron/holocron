@@ -499,7 +499,7 @@ job execute the same thing — at a turbo root both are
 ### `holocron deploy on-release`
 
 ```bash
-holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
+holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--record-file <file>] [--record] [--dry-run]
 ```
 
 Deploys every workspace package whose own `holocron.config` declares
@@ -514,14 +514,19 @@ doesn't succeed exits non-zero. The shared `release` workflow runs it as its own
 `deploy` job after the release job (opt in with `deploy-on-release: true`).
 
 Each package is compared from the commit it was last deployed at, not only from
-`--from`: a successful deploy moves a `deployed/<package>` tag
-(`@theholocron/sentinel` is `deployed/theholocron-sentinel`) to the release
-commit and pushes it, so a release whose deploy job failed is made up by the next
-release, even one that touches nothing in the app. A package with no tag yet (or
-one whose tag is not an ancestor of `--to`) falls back to `--from`, and the skip
-line then says `No deploy is recorded for it yet.` A tag that cannot be pushed is
-a warning, not a failed deploy. `--dry-run` writes no tag; the deploy job needs
-`contents: write`.
+`--from`: a successful deploy is recorded as a `deployed/<package>` tag
+(`@theholocron/sentinel` is `deployed/theholocron-sentinel`) at the release
+commit, so a release whose deploy job failed is made up by the next release,
+even one that touches nothing in the app. A package with no tag yet (or one
+whose tag is not an ancestor of `--to`) falls back to `--from`, and the skip line
+then says `No deploy is recorded for it yet.`
+
+The tag is written by a second step, so the deploy script never holds a write
+token. `--record-file <file>` makes the deploy list the packages that deployed
+(failed ones are left out) and write no tag; `--record --record-file <file>` then
+tags and pushes them, reading the token from `GITHUB_TOKEN` and handing it to
+`git push` in that command's environment only. A tag that cannot be pushed fails
+that step, naming the package. `--dry-run` writes nothing.
 
 ### `holocron run ci`
 

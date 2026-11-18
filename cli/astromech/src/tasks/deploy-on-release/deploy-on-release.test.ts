@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TasksConfig } from "../../config/schema/index.js";
 import { deployOnRelease } from "./deploy-on-release.js";
@@ -26,12 +26,13 @@ function deploy(
 	run: ReturnType<typeof fakeRun>,
 	options: Partial<DeployOnReleaseOptions> = {},
 	manifests: Record<string, TasksConfig> = { "/repo/packages/app": APP_DEPLOY },
-	clock = fakeClock()
+	clock = fakeClock(),
+	writeFile: (path: string, text: string) => void = vi.fn()
 ) {
 	const lines: string[] = [];
 	const report = deployOnRelease(
 		{ ...OPTIONS, print: (line) => lines.push(line), ...options },
-		{ run, ...TREE, ...clock, loadTasks: (dir) => Promise.resolve(manifests[dir] ?? {}) }
+		{ run, ...TREE, ...clock, writeFile, loadTasks: (dir) => Promise.resolve(manifests[dir] ?? {}) }
 	);
 	return report.then((r) => ({ report: r, lines }));
 }
@@ -46,12 +47,10 @@ describe("deployOnRelease", () => {
 			status: "ok",
 			results: [{ pkg: "@theholocron/app", status: "ok", message: "deployed." }],
 		});
-		expect(gitCalls(run)).toEqual(["rev-parse", "diff", "tag", "push"]);
-		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "git", "npm", "npm", "pnpm", "git", "git"]);
+		// The deploy phase only reads git: it writes no tag, so it needs no write credential.
+		expect(gitCalls(run)).toEqual(["rev-parse", "diff"]);
+		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "git", "npm", "npm", "pnpm"]);
 		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
-		expect(run).toHaveBeenCalledWith("git", ["tag", "--force", "deployed/theholocron-app", "new"], {
-			cwd: "/repo",
-		});
 		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "run", "deploy"], {
 			cwd: "/repo",
 			env: process.env,
@@ -381,10 +380,9 @@ describe("deployOnRelease", () => {
 		expect(report.results[0]?.message).toContain("since its last deploy (deadbee)");
 		expect(report.results[0]?.message).not.toContain("No deploy is recorded");
 		expect(run).not.toHaveBeenCalledWith("pnpm", expect.anything(), expect.anything());
-		expect(gitCalls(run)).not.toContain("tag");
 	});
 
-	it("falls back to the previous release for an app with no recorded deploy, saying so, and records one once it deploys", async () => {
+	it("falls back to the previous release for an app with no recorded deploy, saying so", async () => {
 		const skipped = await deploy(fakeRun({ changed: ["docs/x.md"] }));
 		expect(skipped.report.results[0]?.message).toContain("No deploy is recorded for it yet.");
 
@@ -392,9 +390,6 @@ describe("deployOnRelease", () => {
 		const { report } = await deploy(run);
 		expect(report.status).toBe("ok");
 		expect(run).toHaveBeenCalledWith("git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
-		expect(run).toHaveBeenCalledWith("git", ["push", "--force", "origin", "refs/tags/deployed/theholocron-app"], {
-			cwd: "/repo",
-		});
 	});
 
 	it("ignores a marker that is not an ancestor of the release and uses the previous release", async () => {
@@ -407,26 +402,64 @@ describe("deployOnRelease", () => {
 		expect(lines.join("\n")).toContain("is not an ancestor of new; ignoring it");
 	});
 
-	it("records no deploy when the deploy fails, so the next release tries again", async () => {
-		const run = fakeRun({ deployStatus: 1 });
-
-		await deploy(run);
-
+	it("never writes a tag itself", async () => {
+		const run = fakeRun();
+		await deploy(run, { recordFile: "/tmp/deployed.json" }, undefined, undefined, vi.fn());
 		expect(gitCalls(run)).not.toContain("tag");
 		expect(gitCalls(run)).not.toContain("push");
 	});
 
-	it("warns, without failing the deploy, when the marker cannot be pushed", async () => {
-		const { report } = await deploy(fakeRun({ pushStatus: 1 }));
+	it("lists the packages whose deploy succeeded in the record file, for the record phase", async () => {
+		const writeFile = vi.fn();
+		await deploy(fakeRun(), { recordFile: "/tmp/deployed.json" }, undefined, undefined, writeFile);
 
-		expect(report.status).toBe("ok");
-		expect(report.results[0]?.message).toContain("deployed, but couldn't push deployed/theholocron-app: denied");
+		expect(writeFile).toHaveBeenCalledOnce();
+		const [path, text] = writeFile.mock.calls[0] as [string, string];
+		expect(path).toBe("/tmp/deployed.json");
+		expect(JSON.parse(text)).toEqual({
+			to: "new",
+			deployed: [{ pkg: "@theholocron/app", tag: "deployed/theholocron-app" }],
+		});
 	});
 
-	it("writes no marker on a dry run", async () => {
-		const run = fakeRun();
-		await deploy(run, { dryRun: true });
-		expect(gitCalls(run)).not.toContain("tag");
+	it("leaves a package whose deploy failed out of the record file, so no tag is written for it", async () => {
+		const writeFile = vi.fn();
+		await deploy(
+			fakeRun({ deployStatus: 1 }),
+			{ recordFile: "/tmp/deployed.json" },
+			undefined,
+			undefined,
+			writeFile
+		);
+
+		expect(JSON.parse((writeFile.mock.calls[0] as [string, string])[1]).deployed).toEqual([]);
+	});
+
+	it("writes no record file on a dry run, or when none is asked for", async () => {
+		const writeFile = vi.fn();
+		await deploy(fakeRun(), { recordFile: "/tmp/deployed.json", dryRun: true }, undefined, undefined, writeFile);
+		await deploy(fakeRun(), {}, undefined, undefined, writeFile);
+		expect(writeFile).not.toHaveBeenCalled();
+	});
+
+	it("writes the record file to disk by default", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "deploy-record-"));
+		try {
+			const file = join(dir, "deployed.json");
+			const report = await deployOnRelease(
+				{ ...OPTIONS, recordFile: file, print: () => {} },
+				{
+					run: fakeRun(),
+					...TREE,
+					...fakeClock(),
+					loadTasks: (d) => Promise.resolve(d.endsWith("app") ? APP_DEPLOY : {}),
+				}
+			);
+			expect(report.status).toBe("ok");
+			expect(JSON.parse(readFileSync(file, "utf8")).deployed).toHaveLength(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("keeps going, saying so, when one package's manifest won't load", async () => {

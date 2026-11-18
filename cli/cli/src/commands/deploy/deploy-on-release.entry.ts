@@ -4,6 +4,6 @@ export const deployOnReleaseEntry: MenuEntry = {
 	name: "deploy on-release",
 	description: "Deploy every workspace package whose delivery.deploy task is `on: release`",
 	positionals: [],
-	skipOptions: ["project-id", "target", "files", "channel", "from", "to"],
+	skipOptions: ["project-id", "target", "files", "channel", "from", "to", "record-file", "record"],
 	supportsDryRun: true,
 };

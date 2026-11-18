@@ -299,8 +299,9 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.commit }}
           fetch-depth: 0
-          # The deploy records each success as a `deployed/<package>` tag (holocron#2330), which needs the job's token.
-          persist-credentials: true
+          # No credential is left in .git/config: the deploy script below runs with VERCEL_TOKEN and must not find a
+          # write token. Only the record step at the end is given one (holocron#2330).
+          persist-credentials: false
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
@@ -315,6 +316,21 @@ jobs:
             --channel=${{ needs.release.outputs.channel }}
             --from=${{ needs.release.outputs.previous }}
             --to=${{ needs.release.outputs.commit }}
+            --record-file=${{ runner.temp }}/deployed.json
+
+      # Records each package that deployed as a `deployed/<package>` tag, so a later release can make up a deploy this
+      # one missed (holocron#2330). It runs even after a failed deploy (for the packages that did deploy), deploys
+      # nothing, and is the only step that gets the job's token, in its own environment and never in .git/config.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Record the deploys
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          command: deploy on-release
+          args: >-
+            --record
+            --record-file=${{ runner.temp }}/deployed.json
 
   sync-readme:
     name: Post-release readme sync

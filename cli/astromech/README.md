@@ -254,13 +254,19 @@ is its own re-runnable check. A `deploy` task with `on: "release"`
 generates no workflow.
 
 Each package is compared from the commit it was last deployed at, not only from
-`from`: a successful deploy moves a `deployed/<package>` tag
-(`@theholocron/sentinel` is `deployed/theholocron-sentinel`) to the release
-commit and pushes it, so a release whose deploy job failed is made up by the next
-release, even one that touches nothing in the app. A package with no tag yet (or
-one whose tag is not an ancestor of `to`) falls back to `from`, and its skip line
-says `No deploy is recorded for it yet.` A tag that cannot be pushed is a warning,
-not a failed deploy. A dry run writes no tag.
+`from`: a successful deploy is recorded as a `deployed/<package>` tag
+(`@theholocron/sentinel` is `deployed/theholocron-sentinel`) at the release
+commit, so a release whose deploy job failed is made up by the next release, even
+one that touches nothing in the app. A package with no tag yet (or one whose tag
+is not an ancestor of `to`) falls back to `from`, and its skip line says
+`No deploy is recorded for it yet.`
+
+`deployOnRelease()` itself writes no tag: with `recordFile` it lists the packages
+that deployed, and `recordDeploys({ cwd, file, token, print })` (a later step,
+the only one given a write token) tags and pushes them, handing the token to
+`git push` through `GIT_CONFIG_*` so it is never in argv or `.git/config`. A tag
+that cannot be pushed fails that step, naming the package. A dry run writes
+nothing.
 
 ## Development
 

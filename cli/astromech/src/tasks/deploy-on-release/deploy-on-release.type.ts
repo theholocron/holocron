@@ -16,6 +16,11 @@ export interface DeployOnReleaseOptions {
 	print: (line: string) => void;
 	/** Print what would deploy without running it. */
 	dryRun?: boolean;
+	/**
+	 * A file to list the packages whose deploy succeeded in, for `recordDeploys` to tag in a later step. The deploy
+	 * phase itself never writes a tag, so it needs no write credential. Not written on a dry run.
+	 */
+	recordFile?: string;
 }
 
 export interface DeployOnReleaseDeps extends Partial<Tree> {
@@ -24,6 +29,8 @@ export interface DeployOnReleaseDeps extends Partial<Tree> {
 	now?: () => number;
 	/** Reads a package folder's task manifest; `loadTasksConfig` by default. */
 	loadTasks?: (dir: string) => Promise<TasksConfig>;
+	/** Writes the record file's text. */
+	writeFile?: (path: string, text: string) => void;
 }
 
 /** The outcome of deploying one workspace package. */

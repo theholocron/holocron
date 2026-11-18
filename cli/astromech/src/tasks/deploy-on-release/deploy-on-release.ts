@@ -23,9 +23,10 @@
  * `pnpm --filter <package> run deploy` (its old `delivery.deploy` script when that is the one it has).
  *
  * Each package diffs from the commit it was last deployed at, not from the previous release: a successful deploy
- * moves a `deployed/<package>` tag to the release commit ({@link markerTag}), so a release whose deploy job failed
- * is made up by the next release even if that one touches nothing in the app. A package with no tag yet falls back
- * to the previous release.
+ * is recorded as a `deployed/<package>` tag at the release commit ({@link markerTag}), so a release whose deploy job
+ * failed is made up by the next release even if that one touches nothing in the app. A package with no tag yet falls
+ * back to the previous release. This function writes no tag: with `recordFile` it lists the successes, and
+ * `recordDeploys` (a later step, which alone holds a write token) tags them.
  *
  * The release is already published by then, so a failed deploy can't undo it;
  * it fails this job instead, loudly and re-runnable on its own. A task is
@@ -34,12 +35,14 @@
  * A `delivery.deploy` task with `on: "release"` generates no CI workflow.
  */
 
+import { writeFileSync } from "node:fs";
+
 import { loadTasksConfig } from "../../config/load/index.js";
 import type { TasksConfig } from "../../config/schema/index.js";
 import { defaultListDirs, defaultReadJson, defaultRun, defaultSleep } from "../../utils/index.js";
 import { MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
 import { defaultPaths } from "./default-paths/index.js";
-import { markerTag, readMarker, writeMarker } from "./deploy-marker/index.js";
+import { markerTag, readMarker } from "./deploy-marker/index.js";
 import type {
 	DeployOnReleaseDeps,
 	DeployOnReleaseOptions,
@@ -48,6 +51,7 @@ import type {
 } from "./deploy-on-release.type.js";
 import { deployScript } from "./deploy-script/index.js";
 import { deployTargets } from "./deploy-targets/index.js";
+import type { DeployRecordFile } from "./record-deploys/index.js";
 import { shouldDeploy } from "./should-deploy/index.js";
 import { waitForPublished } from "./wait-for-published/index.js";
 import { workspaceDependencies } from "./workspace-dependencies/index.js";
@@ -67,6 +71,7 @@ export async function deployOnRelease(
 		sleep = defaultSleep,
 		now = Date.now,
 		loadTasks = loadTasksConfig,
+		writeFile = (path, text) => writeFileSync(path, text),
 	}: DeployOnReleaseDeps = {}
 ): Promise<DeployOnReleaseReport> {
 	const { cwd, from, print } = options;
@@ -104,6 +109,7 @@ export async function deployOnRelease(
 	};
 
 	const results: DeployOnReleaseResult[] = [];
+	const deployed: DeployRecordFile["deployed"] = [];
 	const record = (pkg: string, status: DeployOnReleaseResult["status"], message: string) => {
 		results.push({ pkg, status, message });
 		print(`${status === "fail" ? "✗ " : ""}${pkg}: ${message}`);
@@ -164,13 +170,15 @@ export async function deployOnRelease(
 			stdio: "inherit",
 		});
 		if (result.status === 0) {
-			const problem = writeMarker(run, cwd, tag, to);
-			record(
-				name,
-				"ok",
-				problem ? `deployed, but ${problem}; the next release may deploy it again.` : "deployed."
-			);
+			deployed.push({ pkg: name, tag });
+			record(name, "ok", "deployed.");
 		} else record(name, "fail", `the deploy failed (exit ${result.status}).`);
+	}
+
+	// Left for the record phase (`recordDeploys`), which holds the token to push the tags; only successes are listed.
+	if (options.recordFile && !options.dryRun) {
+		const file: DeployRecordFile = { to, deployed };
+		writeFile(options.recordFile, `${JSON.stringify(file, null, 2)}\n`);
 	}
 
 	const status = results.some((r) => r.status === "fail")
