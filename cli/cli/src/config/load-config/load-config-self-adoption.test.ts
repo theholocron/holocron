@@ -282,6 +282,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				tags: ["sentinel", "comlink", "docs"],
 				private: false,
 				domain: "status.theholocron.dev",
+				logo: "https://docs.theholocron.dev/holocron/logos/profile.v2.webp",
+				favicon: "https://docs.theholocron.dev/holocron/favicon.svg",
+				link: "https://docs.theholocron.dev/holocron/",
 			},
 		];
 		monitoring.tuple.options.statusPages = [
@@ -293,6 +296,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				privacyUrl: "https://docs.theholocron.dev/holocron/legal/privacy/",
 				termsUrl: "https://docs.theholocron.dev/holocron/legal/terms/",
 				supportUrl: "https://docs.theholocron.dev/holocron/",
+				logo: "https://docs.theholocron.dev/holocron/logos/profile.v2.webp",
+				favicon: "https://docs.theholocron.dev/holocron/favicon.svg",
+				link: "https://docs.theholocron.dev/holocron/",
 				automation: false,
 				components: [
 					{ name: "Sentinel", tags: ["sentinel"] },
