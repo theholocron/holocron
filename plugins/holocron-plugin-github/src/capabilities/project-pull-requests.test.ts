@@ -51,6 +51,20 @@ describe("aggregateChecks", () => {
 			[run({ databaseId: 9, startedAt: null, conclusion: "FAILURE" }), run({ databaseId: 1 })],
 			"success",
 		],
+		[
+			"a run with no start time loses whichever side it is listed on",
+			[run({ databaseId: 1 }), run({ databaseId: 9, startedAt: null, conclusion: "FAILURE" })],
+			"success",
+		],
+		[
+			"two runs with no start time fall back to the id",
+			[
+				run({ databaseId: 1, startedAt: null }),
+				run({ databaseId: 2, startedAt: null, conclusion: "FAILURE" }),
+				run({ databaseId: 3, startedAt: null }),
+			],
+			"success",
+		],
 	];
 	it.each(rows)("%s", (_name, runs, expected) => {
 		expect(aggregateChecks(runs)).toBe(expected);
