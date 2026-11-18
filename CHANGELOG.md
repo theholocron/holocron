@@ -1,3 +1,9 @@
+## [5.0.0-alpha.486](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.485...v5.0.0-alpha.486) (2026-11-18)
+
+### Features
+
+* **cli:** ✨ 🩺 doctor monitoring names a check that no config declares ([#2380](https://github.com/theholocron/holocron/issues/2380)) ([a2bcb22](https://github.com/theholocron/holocron/commit/a2bcb2264322fae9493e61573361353dd0b87861)), closes [#2365](https://github.com/theholocron/holocron/issues/2365)
+
 ## [5.0.0-alpha.485](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.484...v5.0.0-alpha.485) (2026-11-18)
 
 ### Bug Fixes
