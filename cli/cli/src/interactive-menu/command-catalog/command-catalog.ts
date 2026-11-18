@@ -20,6 +20,7 @@ import { doctorLogsEntry } from "../../commands/doctor-logs/doctor-logs.entry.js
 import { doctorMonitoringEntry } from "../../commands/doctor-monitoring/doctor-monitoring.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
 import { doctorProjectEntry } from "../../commands/doctor-project/doctor-project.entry.js";
+import { doctorReleasesEntry } from "../../commands/doctor-releases/doctor-releases.entry.js";
 import { doctorRepoEntry } from "../../commands/doctor-repo/doctor-repo.entry.js";
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
@@ -112,6 +113,7 @@ const registry = createCommandRegistry(
 		doctorSecretsEntry,
 		doctorTokensEntry,
 		doctorCiEntry,
+		doctorReleasesEntry,
 		notificationsSetupEntry,
 		notificationsCreateServerEntry,
 		notificationsLinkEntry,

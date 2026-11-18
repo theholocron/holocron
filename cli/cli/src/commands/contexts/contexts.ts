@@ -105,6 +105,8 @@ export const COMMAND_CONTEXTS = {
 	// Reads each layer's Environment through the `vault` provider, in memory.
 	// Reads `./holocron.config` and `.github/workflows`, no plugins.
 	"doctor ci": "repo-aware",
+	// Reads git tags and npm's public registry, no plugins.
+	"doctor releases": "repo-aware",
 	// Loads the configured plugins and runs the probes they offer.
 	probe: "workspace",
 	// Loads the configured plugins and runs the `setup` or `doctor` a provider offers.

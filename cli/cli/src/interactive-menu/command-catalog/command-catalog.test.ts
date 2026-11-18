@@ -101,6 +101,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"secrets",
 			"tokens",
 			"ci",
+			"releases",
 		]);
 		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");
 	});

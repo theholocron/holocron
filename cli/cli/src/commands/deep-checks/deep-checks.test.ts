@@ -46,6 +46,12 @@ vi.mock("../doctor-ci/index.js", async (importActual) => ({
 	runDoctorCi,
 }));
 
+const runDoctorReleases = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-releases/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-releases/index.js")>()),
+	runDoctorReleases,
+}));
+
 describe("the project entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const project = DEEP_CHECKS.find((c) => c.name === "project")!;
@@ -176,6 +182,30 @@ describe("the ci entry", () => {
 	it("reports a failure", async () => {
 		runDoctorCi.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 2, fail: 1, skip: 1 } });
 		expect(await ci.run(input)).toEqual({ status: "fail", summary: { ok: 2, fail: 1, skip: 1 } });
+	});
+});
+
+describe("the releases entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const releases = DEEP_CHECKS.find((c) => c.name === "releases")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorReleases.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 1, fail: 1, skip: 0 } });
+		expect(await releases.run(input)).toEqual({ status: "fail", summary: { ok: 1, fail: 1, skip: 0 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorReleases.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no release tags to check",
+		});
+		expect(await releases.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no release tags to check",
+		});
 	});
 });
 
