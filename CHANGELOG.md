@@ -1,3 +1,22 @@
+## [5.0.0-alpha.487](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.486...v5.0.0-alpha.487) (2026-11-18)
+
+### Bug Fixes
+
+* **cli:** 🐛 🚀 publish package keeps going after a failure and retries a sigstore 409 ([#2386](https://github.com/theholocron/holocron/issues/2386)) ([17d514a](https://github.com/theholocron/holocron/commit/17d514aea271704e9f211ae97ab6b13ce6b25812)), closes [#1387](https://github.com/theholocron/holocron/issues/1387)
+
+### Documentation
+
+* **specs:** 📚️ 📝 settle the observability adapters spec, waiting on its first consumer ([#2390](https://github.com/theholocron/holocron/issues/2390)) ([1450bde](https://github.com/theholocron/holocron/commit/1450bde75220d21181c3a7b307a051f81d0bff33)), closes [#637](https://github.com/theholocron/holocron/issues/637)
+* **specs:** 📚️ 📝 settle the private directory spec, three questions answered ([#2387](https://github.com/theholocron/holocron/issues/2387)) ([715b6ef](https://github.com/theholocron/holocron/commit/715b6efcd8f9d3611502eadcc01f153b3212222d)), closes [#2078](https://github.com/theholocron/holocron/issues/2078)
+* **specs:** 📚️ 📝 settle the specs whose work shipped and whose questions are answered ([#2385](https://github.com/theholocron/holocron/issues/2385)) ([e39d38e](https://github.com/theholocron/holocron/commit/e39d38e7e0ef831e947673a00fe8abe9e7fb4e09)), closes [#1110](https://github.com/theholocron/holocron/issues/1110) [#1458](https://github.com/theholocron/holocron/issues/1458) [#1599](https://github.com/theholocron/holocron/issues/1599) [#1533](https://github.com/theholocron/holocron/issues/1533) [#2149](https://github.com/theholocron/holocron/issues/2149) [#1595](https://github.com/theholocron/holocron/issues/1595) [#2352](https://github.com/theholocron/holocron/issues/2352) [#2365](https://github.com/theholocron/holocron/issues/2365) [#2322](https://github.com/theholocron/holocron/issues/2322) [#493](https://github.com/theholocron/holocron/issues/493) [#2189](https://github.com/theholocron/holocron/issues/2189)
+* **specs:** 📦 archive the kyber spec, its rollout shipped ([#2384](https://github.com/theholocron/holocron/issues/2384)) ([401beee](https://github.com/theholocron/holocron/commit/401beee5addc6935b5a2605824313bfab27380ef)), closes [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+### Chores
+
+* **deps:** bump editorconfig from 3.0.2 to 4.0.1 ([#2394](https://github.com/theholocron/holocron/issues/2394)) ([21bb799](https://github.com/theholocron/holocron/commit/21bb799d321d3db0aca47d6e41230229647e6700))
+* **deps:** bump googleapis from 188.0.0 to 190.0.0 ([#2392](https://github.com/theholocron/holocron/issues/2392)) ([a22665c](https://github.com/theholocron/holocron/commit/a22665c24bed590fa5d12c1bf5b7999aacbeb9f4))
+* **deps:** bump the all-dependencies group with 7 updates ([#2391](https://github.com/theholocron/holocron/issues/2391)) ([b43a921](https://github.com/theholocron/holocron/commit/b43a921aa8241448d0280d82746e36b8a7c5dcaf))
+
 ## [5.0.0-alpha.486](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.485...v5.0.0-alpha.486) (2026-11-18)
 
 ### Features
