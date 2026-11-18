@@ -1,3 +1,20 @@
+## [5.0.0-alpha.488](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.487...v5.0.0-alpha.488) (2026-11-18)
+
+### Features
+
+* **cli:** ✨ 📋️ holocron project status sets an issue's board status by its key ([#2402](https://github.com/theholocron/holocron/issues/2402)) ([77c4753](https://github.com/theholocron/holocron/commit/77c47535f7e04a5d584d9d758728fb17ad852fc7)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+* **cli:** ✨ add the review status category and planPullRequestStatus ([#2400](https://github.com/theholocron/holocron/issues/2400)) ([9bba57a](https://github.com/theholocron/holocron/commit/9bba57afa05b26cc922cab4b4079404e46c9093d)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
+### Documentation
+
+* **specs:** 📝 decide three open questions of the ideas vault spec ([#2389](https://github.com/theholocron/holocron/issues/2389)) ([3f005f9](https://github.com/theholocron/holocron/commit/3f005f972d569c2c73c96484af2288728d5b8821)), closes [#1994](https://github.com/theholocron/holocron/issues/1994)
+* **specs:** 📝 spec an In Review status and board statuses that follow the pull request ([#2396](https://github.com/theholocron/holocron/issues/2396)) ([aca1308](https://github.com/theholocron/holocron/commit/aca130855623bd858c475c25e77ff912d7db10b8)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
+### Chores
+
+* **deps:** bump the all-actions group across 3 directories with 3 updates ([#2399](https://github.com/theholocron/holocron/issues/2399)) ([4f73202](https://github.com/theholocron/holocron/commit/4f73202ba3490549a38049def21f7a6b2979df28))
+* **specs:** 🔧 🔄 sync spec discussions ([#2401](https://github.com/theholocron/holocron/issues/2401)) ([957f2a7](https://github.com/theholocron/holocron/commit/957f2a76fd78281eff436e9c4bd96971e77c94f7))
+
 ## [5.0.0-alpha.487](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.486...v5.0.0-alpha.487) (2026-11-18)
 
 ### Bug Fixes
