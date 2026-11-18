@@ -260,3 +260,64 @@ describe("CloudflareWorkers.deployScript", () => {
 		expect(calls).toHaveLength(1);
 	});
 });
+
+describe("CloudflareWorkers.latestDeployment", () => {
+	const deployment = (
+		id: string,
+		created_on: string,
+		versions: Array<{ version_id: string; percentage: number }>
+	) => ({
+		id,
+		created_on,
+		source: "api",
+		versions,
+	});
+
+	it("reports the newest deployment and that it serves all traffic", async () => {
+		const { workers, calls } = makeWorkers([
+			cfOk({
+				deployments: [
+					deployment("old", "2026-01-01T00:00:00Z", [{ version_id: "v1", percentage: 100 }]),
+					deployment("new", "2026-02-01T00:00:00Z", [{ version_id: "v2", percentage: 100 }]),
+				],
+			}),
+		]);
+		expect(await workers.latestDeployment("comlink")).toEqual({
+			id: "new",
+			createdAt: "2026-02-01T00:00:00Z",
+			active: true,
+		});
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/workers/scripts/comlink/deployments`);
+	});
+
+	it("is not active while a rollout splits traffic between versions", async () => {
+		const { workers } = makeWorkers([
+			cfOk({
+				deployments: [
+					deployment("d", "2026-02-01T00:00:00Z", [
+						{ version_id: "v1", percentage: 60 },
+						{ version_id: "v2", percentage: 40 },
+					]),
+				],
+			}),
+		]);
+		expect(await workers.latestDeployment("comlink")).toMatchObject({ active: false });
+	});
+
+	it("is not active with no versions, and is null with no deployments", async () => {
+		const empty = makeWorkers([cfOk({ deployments: [deployment("d", "2026-02-01T00:00:00Z", [])] })]);
+		expect(await empty.workers.latestDeployment("comlink")).toMatchObject({ active: false });
+		const none = makeWorkers([cfOk({ deployments: [] })]);
+		expect(await none.workers.latestDeployment("comlink")).toBeNull();
+		const bare = makeWorkers([cfOk({})]);
+		expect(await bare.workers.latestDeployment("comlink")).toBeNull();
+	});
+});
+
+describe("CloudflareWorkers.proxyScriptName", () => {
+	it("is the name upsertProxy deploys under", () => {
+		const { workers } = makeWorkers([]);
+		expect(workers.proxyScriptName(HOSTNAME)).toBe(SCRIPT_NAME);
+	});
+});

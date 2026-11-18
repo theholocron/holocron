@@ -98,6 +98,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"logs",
 			"wiki",
 			"errors",
+			"workers",
 			"dns",
 			"repo",
 			"secrets",

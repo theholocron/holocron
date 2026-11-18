@@ -207,6 +207,37 @@ describe("the errors entry", () => {
 	});
 });
 
+const runDoctorWorkers = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-workers/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-workers/index.js")>()),
+	runDoctorWorkers,
+}));
+
+describe("the workers entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const workers = DEEP_CHECKS.find((c) => c.name === "workers")!;
+
+	it("compares the workers capability and reports the run's status and counts", async () => {
+		expect(workers.capability).toBe("workers");
+		runDoctorWorkers.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 3, fail: 1, skip: 1 } });
+		expect(await workers.run(input)).toEqual({ status: "fail", summary: { ok: 3, fail: 1, skip: 1 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorWorkers.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `deployment` provider is configured",
+		});
+		expect(await workers.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `deployment` provider is configured",
+		});
+	});
+});
+
 describe("the logs entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const logs = DEEP_CHECKS.find((c) => c.name === "logs")!;

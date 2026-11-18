@@ -201,3 +201,20 @@ describe("workers.putScript error body", () => {
 		expect((err as ProviderApiError).details).toBe("");
 	});
 });
+
+describe("workers.listDeployments", () => {
+	it("GETs the script's deployments and returns the list", async () => {
+		const deployments = [
+			{ id: "d1", created_on: "2026-01-01T00:00:00Z", versions: [{ version_id: "v", percentage: 100 }] },
+		];
+		const { workers, calls } = client([cfOk({ deployments })]);
+		expect(await workers.listDeployments(ACCOUNT, "my worker")).toEqual(deployments);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts/my%20worker/deployments`);
+	});
+
+	it("is an empty list when the answer has none", async () => {
+		const { workers } = client([cfOk({})]);
+		expect(await workers.listDeployments(ACCOUNT, "w")).toEqual([]);
+	});
+});

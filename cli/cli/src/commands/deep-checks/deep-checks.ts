@@ -12,6 +12,7 @@ import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
 import { doctorWikiCommand, runDoctorWiki } from "../doctor-wiki/index.js";
+import { doctorWorkersCommand, runDoctorWorkers } from "../doctor-workers/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -199,6 +200,20 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorErrorsCommand as never,
 		async run(input) {
 			const report = await runDoctorErrors(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "workers",
+		// The declared Workers; the deployment projects are read through the `deployment` provider in the same run.
+		capability: "workers",
+		command: doctorWorkersCommand as never,
+		async run(input) {
+			const report = await runDoctorWorkers(input);
 			return {
 				status: report.status,
 				summary: report.summary,

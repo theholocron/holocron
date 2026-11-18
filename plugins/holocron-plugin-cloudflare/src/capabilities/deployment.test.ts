@@ -225,3 +225,44 @@ describe("CloudflareDeployment — status mapping", () => {
 		});
 	}
 });
+
+describe("CloudflareDeployment.listDomains and latestDeployment", () => {
+	it("lists the hostnames attached to the project", async () => {
+		const { dep, calls } = makeDeployment([
+			cfOk([
+				{ id: "1", name: "docs.example.dev", status: "active" },
+				{ id: "2", name: "www.example.dev", status: "pending" },
+			]),
+		]);
+		expect(await dep.listDomains(PROJECT_NAME)).toEqual(["docs.example.dev", "www.example.dev"]);
+		expect(calls[0]?.method).toBe("GET");
+	});
+
+	it("returns the newest production deployment, with its time, and ignores previews", async () => {
+		const prod = (id: string, created_on: string, status: "success" | "failure") => ({
+			...rawDeployment,
+			id,
+			environment: "production" as const,
+			created_on,
+			latest_stage: { name: "deploy", status },
+		});
+		const { dep } = makeDeployment([
+			cfOk([
+				{ ...rawDeployment, id: "preview", created_on: "2026-09-01T00:00:00Z" },
+				prod("old", "2026-01-01T00:00:00Z", "success"),
+				prod("new", "2026-02-01T00:00:00Z", "failure"),
+			]),
+		]);
+		expect(await dep.latestDeployment(PROJECT_NAME)).toMatchObject({
+			id: `${PROJECT_NAME}:new`,
+			status: "error",
+			target: "production",
+			createdAt: "2026-02-01T00:00:00Z",
+		});
+	});
+
+	it("is null when the project has no production deployment", async () => {
+		const { dep } = makeDeployment([cfOk([rawDeployment])]);
+		expect(await dep.latestDeployment(PROJECT_NAME)).toBeNull();
+	});
+});

@@ -20,7 +20,7 @@ export type {
 export type { CfTokenVerification } from "./tokens/tokens.js";
 export type { CfIngressRule, CfTunnel, CfTunnelConfig } from "./tunnels/tunnels.js";
 export type { CfEnvelope, CloudflareClientOptions } from "./utils.js";
-export type { CfWorkerRoute, CfWorkerScript, CfWorkerSecret } from "./workers/workers.js";
+export type { CfWorkerDeployment, CfWorkerRoute, CfWorkerScript, CfWorkerSecret } from "./workers/workers.js";
 export type { CfZone } from "./zones/zones.js";
 
 /** Creates a Cloudflare API client with `dns`, `pages`, `zones`, `tunnels`, `tokens` and `workers` groups. */

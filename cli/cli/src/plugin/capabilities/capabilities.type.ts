@@ -1093,6 +1093,17 @@ export interface Deployment extends ProviderIdentity {
 	 * when the provider has no record to recommend. Optional: a provider that cannot be asked omits it.
 	 */
 	expectedDomainRecord?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
+	/**
+	 * The hostnames attached to the project as custom domains, read without changing anything. `holocron doctor
+	 * workers` compares them with the domain the config declares. Optional: a provider that cannot be asked omits it.
+	 */
+	listDomains?(projectId: string): Promise<string[]>;
+	/**
+	 * The newest production deployment of the project, or null when it has none. Read-only; `holocron doctor workers`
+	 * uses its `status` to say whether the latest deploy is healthy. Optional: a provider that cannot list its
+	 * deployments omits it.
+	 */
+	latestDeployment?(projectId: string): Promise<DeploymentRecord | null>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -3287,6 +3298,16 @@ export interface WorkerScriptState {
 	bindingNames: string[];
 }
 
+/** The newest deployment of a Worker script, for `doctor workers`. */
+export interface WorkerDeploymentState {
+	/** The provider's id for the deployment. */
+	id: string;
+	/** When it was made, as an ISO timestamp, when the provider says. */
+	createdAt?: string;
+	/** Whether it serves all of the script's traffic (a gradual rollout split between versions is not). */
+	active: boolean;
+}
+
 /** What {@link Workers.deployScript} made. */
 export interface DeployScriptResult {
 	/** The deployed script's name at the provider. */
@@ -3326,6 +3347,16 @@ export interface Workers extends ProviderIdentity {
 	 * Optional — a provider that cannot read its scripts omits it.
 	 */
 	inspectScript?(name: string, host: string): Promise<WorkerScriptState>;
+	/**
+	 * The newest deployment of a deployed script, or null when it has none. Read-only. Optional — a provider that cannot
+	 * list a script's deployments omits it.
+	 */
+	latestDeployment?(script: string): Promise<WorkerDeploymentState | null>;
+	/**
+	 * The name `upsertProxy` gives the reverse-proxy Worker it deploys for `hostname`, so a check can find it without
+	 * knowing how the provider names it. Optional — a provider that deploys no proxy omits it.
+	 */
+	proxyScriptName?(hostname: string): string;
 	/**
 	 * A `holocron doctor` smoke check — every other method either mutates or
 	 * needs a specific script/zone doctor has no way to supply up front.

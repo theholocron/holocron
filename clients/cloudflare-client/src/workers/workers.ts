@@ -30,6 +30,18 @@ export interface CfWorkerScript {
 	modified_on?: string;
 }
 
+/** One deployment of a Worker script: the versions it serves and what share of traffic each gets. */
+export interface CfWorkerDeployment {
+	/** The deployment's identifier. */
+	id: string;
+	/** When the deployment was made, as an ISO 8601 string. */
+	created_on: string;
+	/** What made it (`api`, `wrangler`, ...). */
+	source?: string;
+	/** The versions it serves; the percentages add up to 100. */
+	versions: Array<{ version_id: string; percentage: number }>;
+}
+
 export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 	const baseUrl = opts.baseUrl ?? "https://api.cloudflare.com/client/v4";
 	const fetchImpl = opts.fetch ?? globalThis.fetch;
@@ -38,6 +50,16 @@ export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 		// Script management — account-scoped, requires multipart/form-data.
 		listScripts: (accountId: string): Promise<CfWorkerScript[]> =>
 			cfRequest<CfWorkerScript[]>(rest, "GET", `/accounts/${accountId}/workers/scripts`),
+
+		/** A script's deployments, as Cloudflare lists them. */
+		listDeployments: async (accountId: string, scriptName: string): Promise<CfWorkerDeployment[]> => {
+			const result = await cfRequest<{ deployments?: CfWorkerDeployment[] } | undefined>(
+				rest,
+				"GET",
+				`/accounts/${accountId}/workers/scripts/${encodeURIComponent(scriptName)}/deployments`
+			);
+			return result?.deployments ?? [];
+		},
 
 		/**
 		 * Upload a script. Its secrets are kept by default, so a redeploy does not drop what was set earlier;
