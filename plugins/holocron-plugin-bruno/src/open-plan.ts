@@ -5,7 +5,7 @@ import type { ToolingOpenInput, ToolingOpenPlan, ToolingOpenWant } from "@thehol
 import { parseEnvironment } from "@usebruno/filestore";
 
 import { readBaseline } from "./baseline.js";
-import { referencedName } from "./secret-references.js";
+import { layeredName, referencedName, type SecretWiring } from "./secret-references.js";
 
 /** The folder at the repo root that holds the workspace Bruno opens. */
 const WORKSPACE = ".bruno";
@@ -19,6 +19,8 @@ export interface OpenPlanOptions {
 	app?: string | undefined;
 	/** The platform, `process.platform` unless a test says otherwise. */
 	platform?: NodeJS.Platform | undefined;
+	/** Which secret variables are filled from outside and which layer each Bruno environment is. */
+	wiring?: SecretWiring | undefined;
 }
 
 /** The `.yml` files of a folder, sorted; none when the folder is not there. */
@@ -34,7 +36,8 @@ async function environmentFiles(dir: string): Promise<string[]> {
 /**
  * What it takes to open the committed `.bruno/` workspace with its secrets filled in: for each collection the baseline
  * lists, the secret variables its environments hold. A variable that is a reference to an entry (`{{process.env.NAME}}`,
- * written by `sync requests` for each name in the `secretRefs` option) is a value to fill; a secret variable with no
+ * written by `sync requests` from the `secretRefs` and `environmentLayers` options, as that layer's copy of the entry) is a value
+ * to fill, for its layer; a secret variable with no
  * reference is reported as unfilled. Reads files only and returns names and paths, never a value.
  *
  * @throws {Error} When there is no workspace to open, or the platform has no known program for Bruno and `app` is not set.
@@ -64,25 +67,30 @@ export async function openPlan(input: ToolingOpenInput, options: OpenPlanOptions
 		for (const file of await environmentFiles(dir)) {
 			const environment = parseEnvironment(await readFile(join(dir, file), "utf8"), { format: "yml" });
 			// Bruno's reader always gives a list, empty for a file with none.
+			const layer = environment.name === undefined ? undefined : options.wiring?.layers[environment.name];
 			for (const variable of environment.variables as NonNullable<typeof environment.variables>) {
-				const entry = referencedName(variable.value);
-				if (entry !== undefined) {
-					const seen = wants.some((w) => w.collection === folder && w.variable === variable.name);
-					if (!seen) wants.push({ collection: folder, variable: variable.name, entry });
-				} else if (variable.secret) {
-					unfilled.add(`${folder}: ${variable.name}`);
+				const name = referencedName(variable.value);
+				const entry = options.wiring?.refs[variable.name];
+				if (name === undefined) {
+					if (variable.secret) unfilled.add(`${folder} (${environment.name}): ${variable.name}`);
+				} else if (layer !== undefined && entry !== undefined && name === layeredName(layer, entry)) {
+					const seen = wants.some(
+						(w) => w.collection === folder && w.variable === variable.name && w.layer === layer
+					);
+					if (!seen) wants.push({ collection: folder, variable: variable.name, layer, entry, name });
+				} else {
+					// A reference the config does not account for would never be filled: say so rather than skip it.
+					unfilled.add(
+						`${folder} (${environment.name}): ${variable.name} refers to ${name}, which no secretRefs and environmentLayers give`
+					);
 				}
 			}
 		}
 	}
-	// A variable that is a reference in one environment and a blank secret in another is still filled where it refers.
-	const stillUnfilled = [...unfilled].filter(
-		(label) => !wants.some((w) => `${w.collection}: ${w.variable}` === label)
-	);
 	return {
 		app: "Bruno",
 		wants,
-		unfilled: stillUnfilled,
+		unfilled: [...unfilled],
 		targets: folders.map((folder) => join(repoRoot, WORKSPACE, folder, ".env")),
 		launch: { command, args: [join(repoRoot, WORKSPACE)] },
 		running: command,

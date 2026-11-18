@@ -2131,8 +2131,12 @@ export interface ToolingOpenWant {
 	collection: string;
 	/** The variable the requests use, e.g. `webhookSecret`. */
 	variable: string;
-	/** The name of the entry that holds its value, e.g. `SENTINEL_WEBHOOK_SECRET`. */
+	/** The vault layer (`local`, `dev` or `prod`) whose Environment holds the value. */
+	layer: string;
+	/** The name of the entry that holds its value in that Environment, e.g. `SENTINEL_WEBHOOK_SECRET`. */
 	entry: string;
+	/** The name the value is given in the file the tool reads, e.g. `DEV_SENTINEL_WEBHOOK_SECRET`: what the workspace refers to. */
+	name: string;
 }
 
 /** The program {@link Tooling.open} starts. */

@@ -705,9 +705,11 @@ App only on the repositories you test with.
 ### Sending a delivery by hand
 
 `api/webhook.collection.json` and the `api/webhook.environment*.json` files, beside `api/webhook.mjs` and kept out of the deploy by `.vercelignore`, are a collection of requests and its environments.
-The way to send one is `pnpm exec holocron open requests` (`--environment prod` for the prod layer; quit Bruno first):
-it reads `SENTINEL_WEBHOOK_SECRET` from the layer's 1Password Environment into a private file that lasts until Bruno
-quits, so nothing is pasted. `webhookSecret` is a secret-type variable the request files leave empty (they are shared
+The way to send one is `pnpm exec holocron open requests` (quit Bruno first): it reads `SENTINEL_WEBHOOK_SECRET` from the
+1Password Environment of each layer you name into a private file that lasts until Bruno quits, so nothing is pasted.
+The default is `dev` alone (`--environment dev,local` adds local; `prod` only when you write `--environment prod`), and
+each Bruno environment (`Sentinel (local)`, `(dev)`, `(prod)`) uses its own layer's secret. Picking a layer you did not
+load fails with `variables could not be resolved: process.env.PROD_SENTINEL_WEBHOOK_SECRET`: start again with that layer. `webhookSecret` is a secret-type variable the request files leave empty (they are shared
 with Postman); the committed `.bruno/` workspace refers it to that entry (`secretRefs` in `holocron.config.ts`). In
 another API client, pick an environment and put that instance's webhook secret in `webhookSecret` by hand. A
 pre-request script signs each body as sent (`X-Hub-Signature-256`). There are three environments, one file each:

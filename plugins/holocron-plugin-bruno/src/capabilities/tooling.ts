@@ -33,6 +33,7 @@ import { rootVersion } from "../collection-version.js";
 import { convertCollection } from "../convert-collection.js";
 import { openPlan } from "../open-plan.js";
 import { outputNames } from "../output-names.js";
+import type { SecretWiring } from "../secret-references.js";
 import { type CollectionInput, syncWorkspace } from "../sync-workspace.js";
 
 /** Options for the Bruno `tooling` provider: the same two file lists the other tooling providers take. */
@@ -47,11 +48,17 @@ export interface BrunoToolingOptions {
 	version?: string;
 	/**
 	 * Secret variable name to the name of the entry that holds its value, e.g. `{ webhookSecret: "SENTINEL_WEBHOOK_SECRET" }`.
-	 * `workspace()` writes each such secret into the `.bruno/` environments as a plain variable that refers to the entry
-	 * (`{{process.env.SENTINEL_WEBHOOK_SECRET}}`), which `holocron open requests` fills from the layer's vault
-	 * Environment. The request files keep the secret blank.
+	 * With `environmentLayers`, `workspace()` writes each such secret into the `.bruno/` environments as a plain variable
+	 * that refers to its own layer's copy of the entry (`{{process.env.DEV_SENTINEL_WEBHOOK_SECRET}}` in a `dev`
+	 * environment), which `holocron open requests` fills from that layer's vault Environment. The request files keep the
+	 * secret blank.
 	 */
 	secretRefs?: Record<string, string>;
+	/**
+	 * Bruno environment name to the vault layer (`local`, `dev` or `prod`) whose Environment holds its secrets, e.g.
+	 * `{ "Sentinel (prod)": "prod" }`. An environment with no layer keeps its secrets blank.
+	 */
+	environmentLayers?: Record<string, string>;
 	/** The program that starts Bruno for `open()`. Defaults to the macOS app's; set it on any other platform. */
 	app?: string;
 	/** Working repo root. Defaults to `process.cwd()`. */
@@ -136,8 +143,14 @@ export class BrunoTooling implements Tooling {
 		return { files, issues };
 	}
 
+	/** The secret wiring the options give, or `undefined` without `secretRefs`. */
+	private wiring(): SecretWiring | undefined {
+		const { secretRefs, environmentLayers } = this.options;
+		return secretRefs ? { refs: secretRefs, layers: environmentLayers ?? {} } : undefined;
+	}
+
 	open(input: ToolingOpenInput): Promise<ToolingOpenPlan> {
-		return openPlan(input, { app: this.options.app });
+		return openPlan(input, { app: this.options.app, wiring: this.wiring() });
 	}
 
 	async workspace(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult> {
@@ -163,7 +176,7 @@ export class BrunoTooling implements Tooling {
 			collections,
 			repoRoot,
 			...(version === undefined ? {} : { version }),
-			...(this.options.secretRefs ? { secretRefs: this.options.secretRefs } : {}),
+			...(this.wiring() ? { secretRefs: this.wiring() } : {}),
 			...(input.dryRun ? { dryRun: true } : {}),
 			...(input.prefer ? { prefer: input.prefer } : {}),
 		});

@@ -842,7 +842,7 @@ holocron export tokens --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboa
 holocron export requests --dry-run   # convert the repo's request collections for each tooling provider that can export, writing nothing
 holocron export requests --to bruno --yes  # write api/.export/bruno/ (ignored by version control; never inside the source folder)
 holocron open requests --dry-run   # which secrets the request workspace reads, from which vault entries; reads and starts nothing
-holocron open requests --environment dev   # start Bruno with its signing secrets read from the layer's 1Password Environment (a private file until Bruno quits)
+holocron open requests --environment dev,local   # start Bruno with each named layer's signing secrets (default: dev only; prod only when named), a private file until Bruno quits
 holocron upload coverage --uploads '[{"flag":"utils","files":"utils/*/coverage/lcov.info"}]' --allow-empty  # upload the coverage reports, one flag per group, through the coverage provider (Codecov: the job's OIDC token, no stored token)
 holocron export tokens --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron new github-app --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials

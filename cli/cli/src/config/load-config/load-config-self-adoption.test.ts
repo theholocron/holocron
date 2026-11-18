@@ -336,6 +336,12 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 						workspaceName: "The Holocron",
 						// And (#2322): the secret variables and the 1Password entries `holocron open requests` fills them from.
 						secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" },
+						environmentLayers: {
+							"Sentinel (local)": "local",
+							"Sentinel (dev)": "dev",
+							"Sentinel (prod)": "prod",
+							"Comlink (local)": "prod",
+						},
 						collectionFiles: [
 							"apps/sentinel/api/webhook.collection.json",
 							"apps/comlink/src/worker.collection.json",

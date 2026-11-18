@@ -27,10 +27,10 @@ afterEach(() => void (process.exitCode = undefined));
 
 describe("open requests", () => {
 	it("passes the config, the context, --environment, --to and --yes", async () => {
-		await go("--environment", "prod", "--to", "bruno", "--yes");
+		await go("--environment", "prod", "--environment", "dev", "--to", "bruno", "--yes");
 		expect(runOpenRequests).toHaveBeenCalledWith(
 			expect.objectContaining({
-				environment: "prod",
+				environments: ["prod", "dev"],
 				to: "bruno",
 				yes: true,
 				context: expect.objectContaining({ repoRoot: "/repo", cliToken: "t", org: "acme" }),
@@ -41,7 +41,7 @@ describe("open requests", () => {
 	it("leaves the optional inputs out and passes dry-run when asked", async () => {
 		await go("--dry-run");
 		const input = runOpenRequests.mock.calls[0]![0];
-		expect(input).not.toHaveProperty("environment");
+		expect(input).not.toHaveProperty("environments");
 		expect(input).not.toHaveProperty("to");
 		expect(input).not.toHaveProperty("yes");
 		expect(input.context.dryRun).toBe(true);

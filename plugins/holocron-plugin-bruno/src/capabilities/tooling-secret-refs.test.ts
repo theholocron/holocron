@@ -8,6 +8,7 @@ import { BrunoTooling } from "./tooling.js";
 
 const SCHEMA = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
 const REFS = { secret: "A_SECRET" };
+const LAYERS = { "A (local)": "dev" };
 const ENV_FILE = ".bruno/collections/app-a/environments/A (local).yml";
 
 let root: string;
@@ -40,13 +41,13 @@ const input = () => ({
 	repoRoot: root,
 });
 const tool = (secretRefs: Record<string, string> | null = REFS) =>
-	new BrunoTooling({ repoRoot: root, ...(secretRefs ? { secretRefs } : {}) });
+	new BrunoTooling({ repoRoot: root, ...(secretRefs ? { secretRefs, environmentLayers: LAYERS } : {}) });
 
 describe("BrunoTooling.workspace with secretRefs", () => {
 	it("writes a named secret as a plain variable that refers to its entry, and leaves other secrets blank", async () => {
 		await tool().workspace(input());
 		const text = read(ENV_FILE);
-		expect(text).toContain('value: "{{process.env.A_SECRET}}"');
+		expect(text).toContain('value: "{{process.env.DEV_A_SECRET}}"');
 		expect(text).not.toMatch(/secret: true\n\s+name: secret\b/);
 		expect(text).toMatch(/secret: true\n\s+name: other/);
 	});
@@ -71,7 +72,7 @@ describe("BrunoTooling.workspace with secretRefs", () => {
 		expect(result.files.find((f) => f.path === ENV_FILE)?.state).toBe("changed");
 		const text = read(ENV_FILE);
 		expect(text).toContain("http://changed");
-		expect(text).toContain("{{process.env.A_SECRET}}");
+		expect(text).toContain("{{process.env.DEV_A_SECRET}}");
 	});
 
 	it("does not copy a reference back into the request file when the workspace's environment is edited", async () => {
@@ -94,7 +95,7 @@ describe("BrunoTooling.workspace with secretRefs", () => {
 		expect(dry.files.find((f) => f.path === ENV_FILE)?.state).toBe("changed");
 		expect(read(ENV_FILE)).toBe(before);
 		await tool().workspace(input());
-		expect(read(ENV_FILE)).toContain("{{process.env.A_SECRET}}");
+		expect(read(ENV_FILE)).toContain("{{process.env.DEV_A_SECRET}}");
 		expect(read(ENV_FILE)).toContain("http://x");
 		const again = await tool().workspace(input());
 		expect(new Set(again.files.map((f) => f.state))).toEqual(new Set(["unchanged"]));
@@ -111,15 +112,33 @@ describe("BrunoTooling.open", () => {
 	it("lists what the written workspace refers to", async () => {
 		await tool().workspace(input());
 		// `app` is set so the plan does not depend on the platform: only macOS has a default program.
-		const plan = await new BrunoTooling({ repoRoot: root, app: "/opt/bruno" }).open(input());
-		expect(plan.wants).toEqual([{ collection: "collections/app-a", variable: "secret", entry: "A_SECRET" }]);
-		expect(plan.unfilled).toEqual(["collections/app-a: other"]);
+		const plan = await new BrunoTooling({
+			repoRoot: root,
+			app: "/opt/bruno",
+			secretRefs: REFS,
+			environmentLayers: LAYERS,
+		}).open(input());
+		expect(plan.wants).toEqual([
+			{
+				collection: "collections/app-a",
+				variable: "secret",
+				layer: "dev",
+				entry: "A_SECRET",
+				name: "DEV_A_SECRET",
+			},
+		]);
+		expect(plan.unfilled).toEqual(["collections/app-a (A (local)): other"]);
 		expect(plan.targets).toEqual([join(root, ".bruno/collections/app-a/.env")]);
 	});
 
 	it("takes the program from the app option", async () => {
 		await tool().workspace(input());
-		const plan = await new BrunoTooling({ repoRoot: root, app: "/opt/bruno" }).open(input());
+		const plan = await new BrunoTooling({
+			repoRoot: root,
+			app: "/opt/bruno",
+			secretRefs: REFS,
+			environmentLayers: LAYERS,
+		}).open(input());
 		expect(plan.launch).toEqual({ command: "/opt/bruno", args: [join(root, ".bruno")] });
 		expect(plan.running).toBe("/opt/bruno");
 	});
