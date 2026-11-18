@@ -40,7 +40,7 @@ describe("withNode() capability", () => {
 			expect(names).toContain(expected);
 		}
 		expect(names).not.toContain("typecheck");
-		// `annotate` is opt-in (#2331): the gate annotates findings itself, so the preset no longer adds a ReviewDog run.
+		// `annotate` is opt-in (#2331): the preset no longer adds a ReviewDog run; repos list it themselves or provide matchers.
 		expect(names).not.toContain("annotate");
 	});
 
