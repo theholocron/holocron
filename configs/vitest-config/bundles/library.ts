@@ -39,6 +39,7 @@ export function library({
 					"src/**/__tests__/**",
 					"src/**/*.{test,spec}.ts",
 					"src/index.ts",
+					"src/testing.ts",
 					"**/node_modules/**",
 					"**/dist/**",
 				],
