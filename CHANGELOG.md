@@ -1,3 +1,14 @@
+## [5.0.0-alpha.490](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.489...v5.0.0-alpha.490) (2026-11-18)
+
+### Features
+
+* **cli:** ✨ reconcile project sets In Progress and In Review from the pull request ([#2404](https://github.com/theholocron/holocron/issues/2404)) ([cfc46d6](https://github.com/theholocron/holocron/commit/cfc46d68169cf1314fb38234f5f8fb1b41e11c4f)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+* **sentinel:** ✨ board status follows the pull request ([#2405](https://github.com/theholocron/holocron/issues/2405)) ([72a7cd7](https://github.com/theholocron/holocron/commit/72a7cd7f6dd6745aeb6eaabdee4b2ee0cf420ca5)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
+### Documentation
+
+* **specs:** 📝 decide eight open questions of the affected-ci spec ([#2408](https://github.com/theholocron/holocron/issues/2408)) ([2fad79c](https://github.com/theholocron/holocron/commit/2fad79c68cb8c8a2c0d66139489641960830c7fd)), closes [#1202](https://github.com/theholocron/holocron/issues/1202) [#2407](https://github.com/theholocron/holocron/issues/2407)
+
 ## [5.0.0-alpha.489](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.488...v5.0.0-alpha.489) (2026-11-18)
 
 ### Features
