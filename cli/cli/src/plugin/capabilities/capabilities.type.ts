@@ -1793,6 +1793,12 @@ export interface MonitoringDashboardInput {
 	private?: boolean;
 	/** A hostname on the org's zone, if wanted. */
 	domain?: string;
+	/** A picture shown at the top (http or https URL). */
+	logo?: string;
+	/** The picture used as the page's icon (http or https URL). */
+	favicon?: string;
+	/** Where a click on the logo goes (http or https URL). */
+	link?: string;
 }
 
 /**
@@ -1836,6 +1842,12 @@ export interface MonitoringStatusPageInput {
 	description?: string;
 	/** A picture (http or https URL). */
 	logo?: string;
+	/** The picture shown instead of `logo` in the dark theme (http or https URL). */
+	logoDark?: string;
+	/** The picture used as the page's icon (http or https URL). */
+	favicon?: string;
+	/** Where a click on the logo goes (http or https URL). */
+	link?: string;
 	/** Text in the page's footer. */
 	footer?: string;
 	/** A link to the privacy policy, in the footer (http or https URL). */

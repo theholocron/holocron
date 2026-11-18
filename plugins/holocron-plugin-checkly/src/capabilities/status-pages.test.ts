@@ -149,6 +149,30 @@ describe("ensureStatusPage", () => {
 		expect(stub.calls.every((c) => c.method === "GET")).toBe(true);
 	});
 
+	it("writes the logos, the favicon and the logo's link in Checkly's names", async () => {
+		const { monitoring, stub } = capability([
+			list(page()),
+			{ status: 200, body: page() }, // PUT
+			goodComponents(),
+			goodRules(),
+			active,
+		]);
+		const result = await monitoring.ensureStatusPage({
+			...INPUT,
+			logo: "https://example.com/l.webp",
+			logoDark: "https://example.com/d.webp",
+			favicon: "https://example.com/f.svg",
+			link: "https://example.com/",
+		});
+		expect(result.updated).toEqual(["logo", "logoDark", "favicon", "redirectTo"]);
+		expect(stub.calls.find((c) => c.method === "PUT")?.body).toMatchObject({
+			logo: "https://example.com/l.webp",
+			logoDark: "https://example.com/d.webp",
+			favicon: "https://example.com/f.svg",
+			redirectTo: "https://example.com/",
+		});
+	});
+
 	it("writes the footer, the policy links and the support link in Checkly's names", async () => {
 		const { monitoring, stub } = capability([
 			list(page({ footerText: "old" })),
