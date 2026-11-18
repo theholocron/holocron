@@ -67,7 +67,7 @@ catalogs:
   apps:
     "@theholocron/holocron-config": ^8.8.2
     alex: ^11.0.1
-    editorconfig: ^3.0.2
+    editorconfig: ^4.0.1
     markdownlint: ^0.42.1
     obsidian: ^1.14.4
 
