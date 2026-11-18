@@ -1,3 +1,10 @@
+## [5.0.0-alpha.483](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.482...v5.0.0-alpha.483) (2026-11-18)
+
+### Features
+
+* **cli:** 🩺 doctor errors, check the Sentry org, projects and alert rules ([#2369](https://github.com/theholocron/holocron/issues/2369)) ([beb7c4b](https://github.com/theholocron/holocron/commit/beb7c4b517071b1a0907d0b014d2ce0ccf17e51e))
+* **monitoring:** ✨ declare the logo, favicon and link of the dashboard and status page ([#2375](https://github.com/theholocron/holocron/issues/2375)) ([2546fe7](https://github.com/theholocron/holocron/commit/2546fe707c3fc14956580c86481e23ba7fca7b2e))
+
 ## [5.0.0-alpha.482](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.481...v5.0.0-alpha.482) (2026-11-18)
 
 ### Features
