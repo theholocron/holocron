@@ -147,17 +147,26 @@ Measured baseline, 29 runner-minutes and about 5.5 minutes wall per PR (the unit
 - One-leaf-package PR: tests drop from 145 tasks to roughly 5; unit job roughly 130-160 s.
 - PR touching a closure-76 package: no saving until Phase 5.
 
-## Open questions for the maintainer
+## Decisions
 
-1. **Dependent closure.** 36 packages devDepend on `@theholocron/cli`, which makes 48 of 76 packages dirty the whole repo. Drop the dependency from leaf packages (Phase 5; the root keeps it, a spike must show `holocron` still resolves from package scripts), or accept it and reword the #1202 acceptance? Recommend: drop it. Without it, "affected" is mostly nominal.
-2. **Remote cache.** Vercel returns 402 for the personal `iamnewton` scope. Pay or move to a team scope, run an alternative (self-hosted, `actions/cache` only), or drop `TURBO_TOKEN`? Recommend: rely on `actions/cache` now (Phase 0) and treat the remote cache as optional until someone owns a working account; the warning in `setup.yml` should say "off or rejected". The `.turbo` key names the workflow and job (`turbo-<os>-<workflow>-<job>-<sha>`): `actions/cache` never overwrites an existing key, so with one key per commit only the first job to finish saved its entries and a re-run of the type check or the unit tests missed (found when checking that a second run of the same commit is a full cache hit).
-3. **Base for `push` workflows.** Merge-base with the default branch (recommended) versus switching `Build` to also trigger on `pull_request` (it would then use `base.sha`). Recommend merge-base; do not change the trigger.
-4. **Workflow files in `globalDependencies`?** The issue says yes; I recommend no, because it forces a full run for every CI tweak and the workflows are linted separately. If yes, expect most CI PRs to be full.
-5. **`empty-upload` for the aggregate Codecov checks.** Needed so `codecov/patch` and `codecov/project` post on a README PR. Needs a real-PR spike with OIDC. Alternative: keep a tiny always-run upload job. Recommend `empty-upload`.
-6. **Bundle size on cache hits.** The Codecov bundle uploader runs inside the build, so a replayed build uploads nothing. Accept (unchanged bundles are not re-reported) or move the upload to its own task that always runs? Recommend accept, after checking one PR.
-7. **Codecov upload shape.** Composite action looping the CLI (recommended, needs the OIDC spike) versus static guarded steps in the reusable (fallback).
-8. **Non-turbo checks.** Leave formatting, yamllint, gitleaks, commitlint, knip and repo validation whole (recommended for now, about 11 runner-minutes) or scope them in Phase 6.
-9. **`cache-mode` (#1242).** Land it first, as it edits the same generator and the new `with: affected` line. Should the reusables also declare the limit? Recommend yes, default `read`, for low-trust triggers only.
+Settled on 2026-11-18, mostly by what shipped.
+
+2. **Remote cache.** Works now (the maintainer confirmed it). The 402 for the personal scope no longer applies. The `.turbo` key note stands: `actions/cache` never overwrites an existing key.
+3. **Base for `push` workflows.** Neither option as written: `resolveAffected()` drops `--affected` on a push to a release branch and when the base is missing, so those runs build everything. The trigger is unchanged.
+4. **Workflow files in `globalDependencies`?** No. The list is `pnpm-workspace.yaml`, `tsconfig.json`, `holocron.config.*`, `astromech.config.*` and `.holocron/**`.
+5. **`empty-upload`.** Yes: `ci/workflows/test/unit.yml` runs it when nothing was affected.
+6. **Bundle size on cache hits.** Accepted. `measure:bundle` still uploads from inside `holocron run build`, so a replayed build uploads nothing for a bundle that did not change. The maintainer has seen nothing wrong in Codecov; no PR was checked on purpose (see "Not verified").
+7. **Codecov upload shape.** Neither option: `holocron upload coverage` and the plugin's `upload()` replaced the action loop (spec `tech-codecov-in-the-plugin`).
+8. **Non-turbo checks.** Left whole. Several of them (commits, markdown, specs) have since moved to Sentinel, so the cost is likely below the 11 runner-minutes measured here; not re-measured.
+9. **`cache-mode` (#1242).** Done: the thin-caller generator adds `cache-mode: read` to the reusable-workflow jobs.
+
+## Still open
+
+1. **Dependent closure** (#2407). 26 manifests still name `@theholocron/cli` (36 when this was measured): the root, the CLI itself, two apps and 22 plugins. The plugins hold it as a peer and a dev dependency for its types and test harness, so "drop it from leaf packages" may not apply to them. #2407 measures what a CLI-only change selects and which entries are left over.
+
+## Not verified
+
+- Whether Codecov shows an unchanged bundle as unchanged or as missing when its upload is skipped on a cache hit. If it shows missing, move the upload into its own task that always runs.
 
 ## Evidence
 
