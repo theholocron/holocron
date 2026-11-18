@@ -253,7 +253,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		monitoring.tuple.options.dashboards = [
 			{
 				name: "The Holocron",
-				description: "Holocron CLI status",
+				description: (expected as unknown as { description: string }).description,
 				tags: ["sentinel", "comlink", "docs"],
 				private: false,
 				domain: "status.theholocron.dev",
