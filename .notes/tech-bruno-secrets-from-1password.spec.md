@@ -62,7 +62,7 @@ collection with `{{process.env.PROBE}}` answered the questions the design hung o
 5. **Not answered**, and not needed now: which of a process variable and a `.env` wins when both exist (the process route
    is dead), how `bru run` behaves, a workspace-level `.env`, and whether Bruno persists a value that only a script reads.
 6. **Considered and rejected:** mounting the Environment through 1Password's "Local .env file" destination (a named pipe;
-   beta, Mac and Linux only, one Environment per path, set up by hand in the app so easy to forget, and unknown how Bruno
+   beta, Mac and Linux only, one Environment per path, set up by hand in the app so could be forgotten, and unknown how Bruno
    reads a pipe). The command could use it later as a source of the file; it is not the design.
 
 ## Decision
