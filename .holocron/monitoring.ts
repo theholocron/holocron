@@ -12,7 +12,8 @@ const { domain } = orgArea;
 // The docs site serves the logo and the icon from its `public/` folder (`docs/public/`), so they answer once the docs
 // are deployed from `main`; until then Checkly shows a broken image, which is expected (#2355).
 const docsSite = `https://docs.${domain}/holocron`;
-const logo = `${docsSite}/logos/profile.v2.webp`;
+// Checkly does not take WebP as an image, so the logo is a JPEG.
+const logo = `${docsSite}/logos/profile.v2.jpeg`;
 const favicon = `${docsSite}/favicon.svg`;
 
 // The `monitoring` provider's options for this repo (Checkly, #2302), imported by `holocron.config.ts`. Checks sit
