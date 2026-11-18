@@ -2,7 +2,7 @@
 id: SPEC-0064
 status: draft
 issue: theholocron/holocron#1262
-blocked-by: []
+blocked-by: [theholocron/holocron#1478]
 related:
   - theholocron/holocron#675
   - theholocron/holocron#1101
@@ -1074,33 +1074,22 @@ Resolved and folded into the decisions: the colon spelling, `format` as a verb, 
 mechanism (a polling job, with Sentinel posting it as a documented later option), `DCO` separate and `codecov/*` inside
 `ci`, hyphen compounds as colon scripts only, no `--coverage` flag, and turbo-direct scripts in turbo repos.
 
-1. **Where prettier's CI check lives.** `format` has no workflow of its own; this spec places the existing check and the
-   opt-in auto-commit-fix in an action called by `lint:code`. Confirm that, and confirm (see "not confirmed" above) that
-   no repo enables the auto-fix and whether the linters ever write in CI.
-2. **`preview.yml`.** One reusable for `deploy-docs`, `deploy-components` and the workflow-only `preview`. Keep it as the
-   one shared exception to "one file per leaf", or give each its own file?
-3. **Sentinel's checks** (`Compliance / ...`, five lint-split checks) are named by the app. Settled by
-   `ci-sentinel-check-names` (#2036): two tiers, `Group / Action`, not the task ids (the `ci` aggregate would take a
-   Sentinel check named `<id> / ...` as gating). When Sentinel is healthy, should it post `ci` itself?
-4. **Where coverage lives.** The spec puts `--coverage` in each package's `test:unit` script (73 packages are edited for
-   the rename anyway). The alternative is `coverage.enabled` in the shared `@theholocron/vitest-config`, one place, but
-   it ships with the configs group's next natural release. Which?
-5. **No suite alias inside a package.** In a turbo repo a package cannot carry `test` or `lint` (turbo would run it too,
-   and it would loop), so `pnpm test` inside a package fails and the contributor types `pnpm test:unit`. Acceptable?
-6. **Reading prettier without writing.** The root `format` script writes. Spell the read-only form `holocron run format
---check` only, or add a root `format:check` script (`prettier --check .`)? Also untried: whether `--check` appended to
-   a `--write` script works.
-7. **Things tried only in part.** The suite aggregator was tried with colon names, a leaf missing from a package, a
-   `//#` root task and `--filter`; `--affected` with a suite and the cache behavior of `//#` tasks were not. The
-   `workflow_run.workflows` filter with a colon-bearing name was not either, and whether `codecov/patch/documentation`
-   posts on every PR decides if it can be in `ci`'s `statuses` everywhere.
-8. **The Storybook, interaction and user-flow jobs** inside `test:unit` are gated by `run-*` inputs behind a `Conclusion`
-   job, which is the shape decision 3 rules out. Split them into `test:storybook`, `test:a11y` and `test:flow` leaves in a
-   later phase, or accept them as jobs?
-9. **The `[job]` argument.** `holocron run test unit storybook` needs the longest-match rule; confirm no existing
-   `holocron run <task> <job>` call has a job named like a qualifier (only `adrs` and `docsPresence` are used today, and
-   both go away with the `validate` split).
-10. **The `notify` workflow filter.** Replace the `workflows:` list with the ids, or generate it from the registry so it
-    cannot drift?
-11. **Does the repoint PR need a ruleset bypass role** on every one of the 8 repos? The one-time swap in each needs the
-    maintainer to be able to merge a PR that posts `ci` and not the old contexts.
+### Decided (2026-11-18, mostly by what shipped)
+
+1. **Where prettier's CI check lives.** In `ci/actions/format`, called by `lint:code`; `holocron run ci` runs `format` read-only. Not checked: whether any repo enables the auto-commit fix.
+2. **`preview.yml`.** Dropped as a question: `deploy-preview.yml`, `check-preview.yml` and `preview.yml` all exist under `ci/workflows/`.
+3. **Sentinel's checks.** Named by the app, two tiers (`ci-sentinel-check-names`, #2036). Sentinel is healthy, and the maintainer wants it to post `ci` itself. That is a decision of direction, not built: it needs its own spec and issue. Its liveness is already watched by the two Checkly checks on the webhook (a GET answers 405, an unsigned POST 401, `apps/sentinel/holocron.config.ts`) and the Bruno requests; there is no health endpoint, and one would only add whether Sentinel can reach the GitHub API.
+4. **Where coverage lives.** In each package's `test:unit` script (`vitest run --coverage`).
+5. **No suite alias inside a package.** Accepted; `probe generated check` enforces it.
+6. **Reading prettier without writing.** `holocron run format --check` only; there is no `format:check` script.
+8. **Storybook, interaction and user-flow jobs.** Left as `run-*` jobs inside `test:unit` (`ci/workflows/test/unit.yml`). Split them into `test:storybook`, `test:a11y` and `test:flow` only if they cause trouble.
+9. **The `[job]` argument.** Resolved: the `validate` split removed `adrs` and `docsPresence`, and the longest-match rule is in the runner.
+10. **The `notify` workflow filter.** A hand-kept list of task ids in `platform.notifications.yml`, checked by `doctor notifications`.
+
+### Still open
+
+11. **Does the repoint PR need a ruleset bypass role** on every one of the 8 repos? Waits for phase K (#1478), which is why this spec is blocked by it.
+
+### Not verified
+
+7. `--affected` with a suite, and the cache behavior of `//#` tasks. A colon-bearing name in `workflow_run.workflows` is in use in `platform.notifications.yml`.
