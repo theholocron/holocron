@@ -122,8 +122,8 @@ catalogs:
       specifier: ^11.0.1
       version: 11.0.1
     '@tsconfig/node-lts':
-      specifier: ^24.0.1
-      version: 24.0.1
+      specifier: ^26.0.1
+      version: 26.0.1
     '@types/node':
       specifier: ^26
       version: 26.4.1
@@ -670,7 +670,7 @@ importers:
         version: link:../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4137,7 +4137,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4182,7 +4182,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4224,7 +4224,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4266,7 +4266,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4311,7 +4311,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4353,7 +4353,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4395,7 +4395,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4437,7 +4437,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4482,7 +4482,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4524,7 +4524,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4566,7 +4566,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4608,7 +4608,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4660,7 +4660,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -4702,7 +4702,7 @@ importers:
         version: link:../../configs/vitest-config
       '@tsconfig/node-lts':
         specifier: 'catalog:'
-        version: 24.0.1
+        version: 26.0.1
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
@@ -8485,8 +8485,8 @@ packages:
     engines: {node: '>=22.0.0'}
     deprecated: 'Retired: the package list is derived from the workspace in theholocron/holocron.'
 
-  '@tsconfig/node-lts@24.0.1':
-    resolution: {integrity: sha512-xo+1KtV5zVb90fyyeglG1n5cqg3cQXLlCkEpLptYlZUNk28xmwhuD5GmxoXwmrVtUTvaMyclun9kAd0TK7H+Pg==}
+  '@tsconfig/node-lts@26.0.1':
+    resolution: {integrity: sha512-Z8DWX8MgVR006YMHZYf7d2lzWMBfYAhW4lMyhdeMG9+KGAgbJuGYuoWOAlYipfggCkiHCAZVm/Wiw6IuG5lcnw==}
 
   '@turbo/darwin-64@2.11.11':
     resolution: {integrity: sha512-HMMeUIEAsmyIbSYn1ySvF/4gGMa0joiTMq4dQDuloIAnOpbtFT3JEiVsYnASdTWDXvplbRbZlqjU1EBeSR9G1A==}
@@ -19424,7 +19424,7 @@ snapshots:
 
   '@theholocron/registry-doc@1.17.0': {}
 
-  '@tsconfig/node-lts@24.0.1': {}
+  '@tsconfig/node-lts@26.0.1': {}
 
   '@turbo/darwin-64@2.11.11':
     optional: true
