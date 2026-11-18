@@ -21,6 +21,9 @@ on: # yamllint disable-line rule:truthy
       HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN:
         description: A 1Password service account with read access to the `ci` layer Environment.
         required: false
+      HOLOCRON_HEARTBEAT_DOCTOR_TOKENS:
+        description: The ping URL of the `doctor-tokens` heartbeat. Without it the run sends none.
+        required: false
 
 jobs:
   doctor-tokens:
@@ -51,3 +54,17 @@ jobs:
         name: Run holocron doctor tokens
         with:
           task: doctor-tokens
+
+      # Tells Checkly this run finished (#2359, the `doctor-tokens` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job.
+      - name: Ping the heartbeat
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_DOCTOR_TOKENS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_DOCTOR_TOKENS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

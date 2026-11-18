@@ -189,6 +189,8 @@ describe("the org area in this repo (#1820)", () => {
 					dashboards: expect.any(Array),
 					// And (#2302): the status page, which spans the apps, is the root config's own.
 					statusPages: expect.any(Array),
+					// And (#2359): the heartbeats of the scheduled workflows.
+					heartbeats: expect.any(Array),
 				},
 			},
 		});

@@ -186,6 +186,45 @@ export default defineConfig({
 						assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
 					},
 				],
+				// One per scheduled workflow whose silence matters (#2359): the workflow's last step pings the URL held in
+				// `HOLOCRON_HEARTBEAT_<NAME>` (`repo.secrets.sync`, names only) on success, so a run that stops or goes red is
+				// noticed. GitHub delays or drops scheduled runs under load, so a daily job gets a 6 hour grace and an hourly
+				// one 2 hours, which one late run does not trip. Not a status page component: tagged `scheduled`, which no
+				// dashboard or component lists.
+				heartbeats: [
+					{
+						name: "check-tokens",
+						period: 1,
+						periodUnit: "days",
+						grace: 6,
+						graceUnit: "hours",
+						tags: ["scheduled"],
+					},
+					{
+						name: "doctor-tokens",
+						period: 1,
+						periodUnit: "days",
+						grace: 6,
+						graceUnit: "hours",
+						tags: ["scheduled"],
+					},
+					{
+						name: "sync-specs",
+						period: 1,
+						periodUnit: "hours",
+						grace: 2,
+						graceUnit: "hours",
+						tags: ["scheduled"],
+					},
+					{
+						name: "reconcile-projects",
+						period: 1,
+						periodUnit: "hours",
+						grace: 2,
+						graceUnit: "hours",
+						tags: ["scheduled"],
+					},
+				],
 				dashboards: [
 					{
 						name: "The Holocron",

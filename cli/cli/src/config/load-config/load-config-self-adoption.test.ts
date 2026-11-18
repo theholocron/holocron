@@ -200,6 +200,17 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// syncs it too; before, the job got an empty value and never checked it.
 		const repoEntry = secretEntries.find((entry) => (entry as { scope?: string }).scope === undefined)!;
 		repoEntry.keys = [...repoEntry.keys, "HOLOCRON_USER_SYNC_TOKEN"].sort();
+		// And (#2359): the heartbeats' ping URLs, one repository secret each, in an entry before the unscoped one.
+		secretEntries.splice(secretEntries.indexOf(repoEntry), 0, {
+			environment: `${SLUG} - ci`,
+			scope: "repo",
+			keys: [
+				"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
+				"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
+				"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
+				"HOLOCRON_HEARTBEAT_SYNC_SPECS",
+			],
+		} as (typeof secretEntries)[number]);
 		// And (#2062): the organization entry is two, each with its readers. The first is read by `holocron` and the
 		// frozen reusables in `.github`; the second only by holocron's own workflows.
 		const onlyHolocron = [
@@ -248,6 +259,20 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				locations: ["us-east-1"],
 				tags: ["docs"],
 				assertions: [{ source: "status_code", comparison: "equals", target: "200" }],
+			},
+		];
+		// And (#2359): a heartbeat for each scheduled workflow that pings one.
+		monitoring.tuple.options.heartbeats = [
+			{ name: "check-tokens", period: 1, periodUnit: "days", grace: 6, graceUnit: "hours", tags: ["scheduled"] },
+			{ name: "doctor-tokens", period: 1, periodUnit: "days", grace: 6, graceUnit: "hours", tags: ["scheduled"] },
+			{ name: "sync-specs", period: 1, periodUnit: "hours", grace: 2, graceUnit: "hours", tags: ["scheduled"] },
+			{
+				name: "reconcile-projects",
+				period: 1,
+				periodUnit: "hours",
+				grace: 2,
+				graceUnit: "hours",
+				tags: ["scheduled"],
 			},
 		];
 		monitoring.tuple.options.dashboards = [
