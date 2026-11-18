@@ -154,14 +154,14 @@ monitoring: ["checkly", {
 }],
 ```
 
-| Field                     | Description                                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                    | The dashboard's title (its header), and what it is found by                                                                                 |
-| `tags`                    | Checks carrying any of these tags are shown                                                                                                 |
-| `description`             | Text under the title. Left out, an existing dashboard keeps its own                                                                         |
-| `private`                 | Default `true`: a dashboard shows check URLs and timings, so it needs a key. Set `false` to make it public                                  |
-| `domain`                  | A hostname on your zone (`status.example.com`). Left out, an existing dashboard keeps its own. Checkly verifies it by a DNS record          |
-| `logo`, `favicon`, `link` | An image URL shown at the top, an image URL for the icon, and where a click on the logo goes. Left out, an existing dashboard keeps its own |
+| Field                     | Description                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                    | The dashboard's title (its header), and what it is found by                                                                                                                     |
+| `tags`                    | Checks carrying any of these tags are shown                                                                                                                                     |
+| `description`             | Text under the title. Left out, an existing dashboard keeps its own                                                                                                             |
+| `private`                 | Default `true`: a dashboard shows check URLs and timings, so it needs a key. Set `false` to make it public                                                                      |
+| `domain`                  | A hostname on your zone (`status.example.com`). Left out, an existing dashboard keeps its own. Checkly verifies it by a DNS record                                              |
+| `logo`, `favicon`, `link` | An image URL shown at the top (PNG or JPEG: Checkly refuses WebP), an image URL for the icon, and where a click on the logo goes. Left out, an existing dashboard keeps its own |
 
 `setup` creates a missing dashboard, and brings an existing one in line for the fields the config states (tags, description, domain) and for privacy, which always has a value (private unless declared otherwise). It never deletes, and a field left out is left alone. `--dry-run` makes no call.
 
@@ -201,7 +201,7 @@ monitoring: [
         domain: `status.${domain}`, // optional custom domain
         description: "Text under the title", // optional
         footer: "Text in the footer", // optional
-        logo: `https://docs.${domain}/logo.webp`, // optional; `logoDark` shows in the dark theme
+        logo: `https://docs.${domain}/logo.jpeg`, // optional, not WebP (Checkly refuses it); `logoDark` shows in the dark theme
         favicon: `https://docs.${domain}/favicon.svg`, // optional
         link: `https://docs.${domain}/`, // optional: where a click on the logo goes
         privacyUrl: `https://docs.${domain}/privacy/`, // optional links, shown in the footer
