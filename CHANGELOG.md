@@ -1,3 +1,13 @@
+## [5.0.0-alpha.489](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.488...v5.0.0-alpha.489) (2026-11-18)
+
+### Features
+
+* **ci:** ✨ 🚀 republish what npm lacks for an existing tag from a manual release run ([#2398](https://github.com/theholocron/holocron/issues/2398)) ([1702225](https://github.com/theholocron/holocron/commit/170222571dccf17f1abeb356d0b9cee6e17554ee)), closes [#1387](https://github.com/theholocron/holocron/issues/1387)
+
+### Documentation
+
+* **agents:** 📚️ 📋️ add the board status rules to the org agent contract ([#2403](https://github.com/theholocron/holocron/issues/2403)) ([6532119](https://github.com/theholocron/holocron/commit/6532119fa95c0497a2d725235230dd05ff22d07f)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
 ## [5.0.0-alpha.488](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.487...v5.0.0-alpha.488) (2026-11-18)
 
 ### Features
