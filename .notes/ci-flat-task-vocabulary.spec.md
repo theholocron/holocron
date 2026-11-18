@@ -1082,9 +1082,9 @@ mechanism (a polling job, with Sentinel posting it as a documented later option)
 4. **Where coverage lives.** In each package's `test:unit` script (`vitest run --coverage`).
 5. **No suite alias inside a package.** Accepted; `probe generated check` enforces it.
 6. **Reading prettier without writing.** `holocron run format --check` only; there is no `format:check` script.
-8. **Storybook, interaction and user-flow jobs.** Left as `run-*` jobs inside `test:unit` (`ci/workflows/test/unit.yml`). Split them into `test:storybook`, `test:a11y` and `test:flow` only if they cause trouble.
-9. **The `[job]` argument.** Resolved: the `validate` split removed `adrs` and `docsPresence`, and the longest-match rule is in the runner.
-10. **The `notify` workflow filter.** A hand-kept list of task ids in `platform.notifications.yml`, checked by `doctor notifications`.
+7. **Storybook, interaction and user-flow jobs.** Left as `run-*` jobs inside `test:unit` (`ci/workflows/test/unit.yml`). Split them into `test:storybook`, `test:a11y` and `test:flow` only if they cause trouble.
+8. **The `[job]` argument.** Resolved: the `validate` split removed `adrs` and `docsPresence`, and the longest-match rule is in the runner.
+9. **The `notify` workflow filter.** A hand-kept list of task ids in `platform.notifications.yml`, checked by `doctor notifications`.
 
 ### Still open
 
