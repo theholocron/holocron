@@ -1,3 +1,9 @@
+## [5.0.0-alpha.477](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.476...v5.0.0-alpha.477) (2026-11-18)
+
+### Features
+
+* **dns:** ✨ holocron new domain: take a DNS record, make it, keep it in .holocron ([#2347](https://github.com/theholocron/holocron/issues/2347)) ([16e42a5](https://github.com/theholocron/holocron/commit/16e42a59e225fb6bf440daef334d811da4c72eca)), closes [#2352](https://github.com/theholocron/holocron/issues/2352)
+
 ## [5.0.0-alpha.476](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.475...v5.0.0-alpha.476) (2026-11-18)
 
 ### Bug Fixes

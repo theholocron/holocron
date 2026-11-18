@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-bruno",
-  "version": "5.0.0-alpha.476",
+  "version": "5.0.0-alpha.477",
   "description": "Holocron plugin for Bruno. Implements the tooling capability over files: it exports the repo's request collections as Bruno JSON files.",
   "keywords": [
     "bruno",
