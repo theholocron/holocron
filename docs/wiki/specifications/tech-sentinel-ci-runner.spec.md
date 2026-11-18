@@ -37,7 +37,7 @@ amendment called out below (D6-amended).
   Shipped. Nothing here changes that mechanism — Sentinel still validates
   `holocron.config.ts` the same way; this spec is about what Sentinel does
   _in addition_.
-- **`.notes/tech-sentinel-enforcement.spec.md`** (issue #769) — the pivot
+- **`docs/wiki/specifications/tech-sentinel-enforcement.spec.md`** (issue #769) — the pivot
   from "Sentinel reports" to "Sentinel enforces," commit-standards as the
   first real check, D1–D6 there (own numbering, not the epic's). Shipped
   and live (#769/#771/#776–#789). This spec is the _next_ enforcement

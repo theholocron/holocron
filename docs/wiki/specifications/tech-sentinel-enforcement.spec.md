@@ -1,6 +1,6 @@
 ---
 id: SPEC-0033
-status: draft
+status: archived
 issue: theholocron/holocron#769
 blocked-by: []
 related:
@@ -19,6 +19,8 @@ own name>`), are the ones this spec designed (`Sentinel / Platform / ...`), kept
 > now `Group / Action`, without the `Sentinel /` and category tiers: see `ci-sentinel-check-names` (#2036).
 
 # Sentinel as central enforcer — commit-message linting first
+
+> **Archived (2026-11-18).** The epic (#769) and its sub-issues (#771, #772, #789) are closed. Sentinel posts `lint:commits` and it is one of the checks the `ci` aggregate waits for; the duplicate `footer-max-line-length` rule is no longer in the root `commitlint.config.ts`. The PR-stack checkboxes below were not ticked as the work landed. Which checks Sentinel keeps is now decided by `process-sentinel-and-actions-roles` (#2263). This spec had no open questions. Not verified: the CI wall-clock delta its success criteria asked to record.
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672).
 Sentinel (#679) today only _reports_: it reads `holocron.config.ts` from a

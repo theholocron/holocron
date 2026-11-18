@@ -3,7 +3,7 @@
  * rules, centrally — the org-wide replacement for every repo's own
  * `platform.commitStandards.yml` CI job + local `.husky/commit-msg` hook
  * enforcement, run once here instead of N times (holocron#769/#771,
- * `.notes/tech-sentinel-enforcement.spec.md`).
+ * `docs/wiki/specifications/tech-sentinel-enforcement.spec.md`).
  *
  * D1: real `@commitlint/lint` + `@commitlint/load` — the exact
  * programmatic API `@commitlint/cli`'s own CLI wires together internally.
