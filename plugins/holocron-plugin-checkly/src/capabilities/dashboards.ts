@@ -47,6 +47,9 @@ export async function ensureDashboard(
 			isPrivate: wantPrivate,
 			...(input.description !== undefined ? { description: input.description } : {}),
 			...(input.domain !== undefined ? { customDomain: input.domain } : {}),
+			...(input.logo !== undefined ? { logo: input.logo } : {}),
+			...(input.favicon !== undefined ? { favicon: input.favicon } : {}),
+			...(input.link !== undefined ? { link: input.link } : {}),
 		};
 		const created = await client.dashboards.create(body);
 		const id = created.dashboardId;
@@ -74,6 +77,13 @@ export async function ensureDashboard(
 	if (input.domain !== undefined && existing.customDomain !== input.domain) {
 		changes.customDomain = input.domain;
 		updated.push("domain");
+	}
+	for (const field of ["logo", "favicon", "link"] as const) {
+		const want = input[field];
+		if (want !== undefined && (existing[field] ?? "") !== want) {
+			changes[field] = want;
+			updated.push(field);
+		}
 	}
 	if (updated.length === 0) return { id: existing.dashboardId, created: false };
 

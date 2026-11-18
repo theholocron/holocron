@@ -129,6 +129,40 @@ describe("ChecklyMonitoring dashboards", () => {
 			expect(stub.calls[1]?.body).toEqual({ description: "new", customDomain: "status.example.com" });
 		});
 
+		it("sends the logo, the favicon and the link on a new dashboard", async () => {
+			const { capability, stub } = makeCapability([
+				{ body: [] },
+				{ status: 201, body: dash({ isPrivate: false }) },
+			]);
+			await capability.ensureDashboard({
+				...input,
+				private: false,
+				logo: "https://example.com/l.webp",
+				favicon: "https://example.com/f.svg",
+				link: "https://example.com/",
+			});
+			expect(stub.calls[1]?.body).toMatchObject({
+				logo: "https://example.com/l.webp",
+				favicon: "https://example.com/f.svg",
+				link: "https://example.com/",
+			});
+		});
+
+		it("updates a logo, a favicon or a link that differs, counting an unset one as empty, and no other", async () => {
+			const { capability, stub } = makeCapability([
+				{ body: [dash({ logo: "https://example.com/l.webp", link: "" })] },
+				{ body: dash() },
+			]);
+			const result = await capability.ensureDashboard({
+				...input,
+				logo: "https://example.com/l.webp",
+				favicon: "https://example.com/f.svg",
+				link: "https://example.com/",
+			});
+			expect(result.updated).toEqual(["favicon", "link"]);
+			expect(stub.calls[1]?.body).toEqual({ favicon: "https://example.com/f.svg", link: "https://example.com/" });
+		});
+
 		it("never deletes", async () => {
 			const { capability, stub } = makeCapability([{ body: [dash({ tags: [] })] }, { body: dash() }]);
 			await capability.ensureDashboard(input);
