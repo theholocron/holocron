@@ -27,7 +27,7 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * `getFileInfo()`) works directly on fetched file content — no checkout.
  *
  * Named `format / Run prettier` (`sentinelCheckName()`,
- * `.notes/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
+ * `docs/wiki/specifications/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
  * editorconfig check.
  */
 export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("format", "Run prettier");

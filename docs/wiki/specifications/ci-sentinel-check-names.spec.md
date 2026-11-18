@@ -1,6 +1,6 @@
 ---
 id: SPEC-0076
-status: proposed
+status: accepted
 issue: theholocron/holocron#2036
 blocked-by: []
 related:
@@ -11,6 +11,8 @@ discussion:
 ---
 
 # Sentinel check names: `sentinel:<task id> / <Action>`
+
+> **Update (2026-11-18).** The temporary `sentinel:` prefix is gone: `SENTINEL_CHECK_PREFIX` was removed with #2263, and `sentinelCheckName()` returns `<task id> / <Action>`. The names table and the "Removing the prefix" steps below describe the plan as written and are kept as history. Not verified: the private repos' rulesets (`.github-private` and the group repos return 403), where a required old Sentinel name would stay pending.
 
 Supersedes `ci-check-taxonomy-rename` (SPEC-0041, #989). Sentinel's check runs move from three tiers, `Category / Group /
 Action`, to two, `<task id> / <Action>`, with a temporary `sentinel:` in front of the task id. The shape is enforced by a
