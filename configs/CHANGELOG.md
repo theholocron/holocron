@@ -1,3 +1,9 @@
+## [8.9.0-alpha.21](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.20...configs-v8.9.0-alpha.21) (2026-11-18)
+
+### Bug Fixes
+
+* **vitest-config:** 🐛 leave src/testing.ts out of the library bundle's coverage ([#2371](https://github.com/theholocron/holocron/issues/2371)) ([5cd42f7](https://github.com/theholocron/holocron/commit/5cd42f74f46b6bbd026b9c34d69d962fc44271f0)), closes [#1347](https://github.com/theholocron/holocron/issues/1347)
+
 ## [8.9.0-alpha.20](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.19...configs-v8.9.0-alpha.20) (2026-11-17)
 
 ### Bug Fixes
