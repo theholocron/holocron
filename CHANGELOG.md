@@ -1,3 +1,9 @@
+## [5.0.0-alpha.482](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.481...v5.0.0-alpha.482) (2026-11-18)
+
+### Features
+
+* **bruno:** ✨ fill a request collection's secrets from the layer's 1Password Environment ([#2351](https://github.com/theholocron/holocron/issues/2351)) ([3cb3eee](https://github.com/theholocron/holocron/commit/3cb3eeeebcb788c92768baf76075c299a1f92767)), closes [#2322](https://github.com/theholocron/holocron/issues/2322) [#2322](https://github.com/theholocron/holocron/issues/2322)
+
 ## [5.0.0-alpha.481](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.480...v5.0.0-alpha.481) (2026-11-18)
 
 ### Features
