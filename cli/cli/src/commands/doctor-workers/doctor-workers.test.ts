@@ -179,4 +179,22 @@ describe("doctor workers", () => {
 		const none = await run({ deployment: null });
 		expect(none.report.rows.find((r) => r.id === "deployment")!.detail).toMatch(/no `deployment` provider/);
 	});
+
+	it("is a skip, with every distinct reason, when every row is a skip", async () => {
+		const { report } = await run({ deployment: null, layouts: [relayLayout()] });
+		expect(report.status).toBe("skip");
+		expect(report.reason).toMatch(/no `workers` provider.*no `deployment` provider/);
+	});
+});
+
+describe("declaredProjects without a preview domain", () => {
+	it("has no hostname for a preview that names none", () => {
+		const config = resolveConfig({
+			name: "demo",
+			org: "acme",
+			providers: {},
+			tasks: [{ name: "deploy", with: { preview: { project: "demo-pages" } } }],
+		} as never);
+		expect(declaredProjects(config, {})).toEqual([{ project: "demo-pages" }]);
+	});
 });
