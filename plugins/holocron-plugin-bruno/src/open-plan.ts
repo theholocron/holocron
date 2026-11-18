@@ -67,7 +67,7 @@ export async function openPlan(input: ToolingOpenInput, options: OpenPlanOptions
 		for (const file of await environmentFiles(dir)) {
 			const environment = parseEnvironment(await readFile(join(dir, file), "utf8"), { format: "yml" });
 			// Bruno's reader always gives a list, empty for a file with none.
-			const layer = environment.name === undefined ? undefined : options.wiring?.layers[environment.name];
+			const layer = options.wiring?.layers[environment.name];
 			for (const variable of environment.variables as NonNullable<typeof environment.variables>) {
 				const name = referencedName(variable.value);
 				const entry = options.wiring?.refs[variable.name];

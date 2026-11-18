@@ -102,6 +102,14 @@ describe("BrunoTooling.workspace with secretRefs", () => {
 		expect(read("apps/a/api/webhook.environment.json")).not.toContain("process.env");
 	});
 
+	it("keeps every secret blank when secretRefs is set but no environment has a layer", async () => {
+		await new BrunoTooling({ repoRoot: root, secretRefs: REFS }).workspace(input());
+		expect(read(ENV_FILE)).not.toContain("process.env");
+		const plan = await new BrunoTooling({ repoRoot: root, app: "/opt/bruno", secretRefs: REFS }).open(input());
+		expect(plan.wants).toEqual([]);
+		expect(plan.unfilled).toHaveLength(2);
+	});
+
 	it("writes nothing but blank secrets without the option", async () => {
 		await tool(null).workspace(input());
 		expect(read(ENV_FILE)).not.toContain("process.env");
