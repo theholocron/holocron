@@ -44,6 +44,12 @@ import {
 	provisionChannel,
 	whyMissing,
 } from "../notifications-channel-add/index.js";
+import {
+	emojiConflictProblem,
+	layoutEmojis,
+	loadEmojiImage,
+	reactionProblem,
+} from "../notifications-reaction/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
@@ -183,11 +189,14 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
 			return `${where}: a forum takes no \`webhook\` or the \`monitoring\` and \`errors\` feeds; its conversations are posts`;
 		}
-		if (channel.defaultReaction !== undefined && channel.defaultReaction.trim() === "") {
-			return `${where}: \`defaultReaction\` is empty`;
+		if (channel.defaultReaction !== undefined) {
+			const problem = reactionProblem("`defaultReaction`", channel.defaultReaction);
+			if (problem) return `${where}: ${problem}`;
 		}
-		if ((channel.starterReactions ?? []).some((r) => r.trim() === ""))
-			return `${where}: a starter reaction is empty`;
+		for (const reaction of channel.starterReactions ?? []) {
+			const problem = reactionProblem("a starter reaction", reaction);
+			if (problem) return `${where}: ${problem}`;
+		}
 		const seen = new Set<string>();
 		for (const tag of channel.tags ?? []) {
 			const name = tag.name.trim().toLowerCase();
@@ -202,6 +211,8 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			}
 		}
 	}
+	const emojiProblem = emojiConflictProblem(layout);
+	if (emojiProblem) return emojiProblem;
 	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));
 	for (const pin of layout.pinned ?? []) {
 		if (forums.has(pin.channel.toLowerCase())) {
@@ -505,6 +516,17 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (forumProblem) return refuse(forumProblem);
 	const serverProblem = serverLayoutProblem(layout);
 	if (serverProblem) return refuse(serverProblem);
+	// The pictures server emoji are made from, read once the layout is judged: one that cannot be used stops the run before any write.
+	const emojiImages = new Map<string, string>();
+	const readEmoji = input.loadEmojiImage ?? ((source: string) => loadEmojiImage(source, input.context.repoRoot));
+	for (const emoji of layoutEmojis(layout)) {
+		if (!emoji.image) continue;
+		try {
+			emojiImages.set(emoji.name, await readEmoji(emoji.image));
+		} catch (err) {
+			return refuse(`emoji \`:${emoji.name}:\` image \`${emoji.image}\`: ${errorMessage(err)}`);
+		}
+	}
 	if (layout.server && !notifications.ensureServer) {
 		return refuse(
 			`the layout declares \`server\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
@@ -540,6 +562,11 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (needsCategories && !notifications.ensureCategory) {
 		return refuse(
 			`category \`${needsCategories.name}\` declares \`access\`, but the \`${notifications.providerName}\` provider cannot manage categories`
+		);
+	}
+	if (emojiImages.size > 0 && !notifications.ensureEmoji) {
+		return refuse(
+			`the layout gives a server emoji an \`image\`, but the \`${notifications.providerName}\` provider cannot create emoji`
 		);
 	}
 	const providerProblem = notifications.validateLayout?.(layout);
@@ -614,6 +641,26 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				print(`  ${style.success(`stored the id of ${role.name} in ${role.secret}`)}`);
 				tally.ok++;
 			}
+		});
+	}
+
+	// Server emoji next, made only where the server lacks one: a channel's reactions name them.
+	if (emojiImages.size > 0) print(`\n${style.header("Emoji")}`);
+	for (const [name, image] of emojiImages) {
+		await attempt(`emoji :${name}:`, async () => {
+			if (dryRun) {
+				print(
+					`  ${style.skip(`would ensure emoji :${name}: (made from its image only when the server has none)`)}`
+				);
+				tally.skip++;
+				return;
+			}
+			const result = await notifications.ensureEmoji!({ name, image }); // checked above, before anything was written
+			report.emojis = [...(report.emojis ?? []), { name, created: result.created }];
+			print(
+				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} emoji :${name}: (id ${result.id})`)}`
+			);
+			made(result.created);
 		});
 	}
 

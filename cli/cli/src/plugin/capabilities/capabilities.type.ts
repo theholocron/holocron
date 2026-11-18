@@ -2450,6 +2450,15 @@ export interface NotificationsForumTag {
  */
 export type NotificationsPicture = string | { url?: string; image?: string };
 
+/**
+ * A forum reaction as a layout writes it: a Unicode emoji (`"✅"`, used as it stands), or one of the server's own emoji
+ * with its name between colons (`":git_merge:"`, the name Discord shows; 2 to 32 letters, digits and underscores).
+ * The object form, `{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }`, also says where `setup`
+ * finds a picture to make the emoji from when the server has none (a file under `.holocron/media/`: PNG, JPEG, GIF,
+ * WebP or AVIF, at most 256 KiB). `setup` never changes or deletes an emoji the server already has.
+ */
+export type NotificationsReaction = string | { emoji: string; image?: string };
+
 /** The object form of a channel's `feeds.monitoring`: the names, picture and alert settings of its monitoring feed. */
 export interface NotificationsMonitoringFeed {
 	/** The alert channel's name; default `Message to #<channel>`. */
@@ -2483,15 +2492,17 @@ export interface NotificationsChannelLayout {
 	/**
 	 * The emoji Discord offers as the first reaction on every post of a forum (Get Started: "Set a default reaction
 	 * for posts"). Only for `kind: "forum"`. Discord allows exactly one per forum, so the rest of a set go in
-	 * {@link NotificationsChannelLayout.starterReactions}. A Unicode emoji (`"👍"`); custom emoji are not supported.
+	 * {@link NotificationsChannelLayout.starterReactions}. A Unicode emoji (`"👍"`) or one of the server's own, named
+	 * between colons (`":git_merge:"`; see {@link NotificationsReaction}).
 	 */
-	defaultReaction?: string;
+	defaultReaction?: NotificationsReaction;
 	/**
 	 * Reactions the bot adds to the first message of each post it makes, so a conversation starts with the ways to
 	 * answer already there (`["✅", "❌", "❓"]` for approve, disapprove, question). Only for `kind: "forum"`. Posts that
-	 * exist are left alone. Reacting needs the Add Reactions permission.
+	 * exist are left alone. Reacting needs the Add Reactions permission. Each is a Unicode emoji or a server emoji
+	 * (see {@link NotificationsReaction}).
 	 */
-	starterReactions?: string[];
+	starterReactions?: NotificationsReaction[];
 	/** Who may see and post. Overrides the category's, field by field. */
 	access?: NotificationsAccess;
 	/**
@@ -2842,6 +2853,10 @@ export interface ServerInspection {
 	};
 	/** Set when reading the bot's roles failed; `botPermissions` is then absent and means nothing. */
 	botPermissionsError?: string;
+	/** The names (without colons) of the server's emoji, read only when the layout names a server emoji. */
+	emojis?: string[];
+	/** Set when reading the server's emoji failed; `emojis` is then absent and means nothing. */
+	emojisError?: string;
 	/** Names of the categories on the server. */
 	categories: string[];
 	/**
@@ -2859,7 +2874,10 @@ export interface ServerInspection {
 		kind?: "text" | "forum";
 		/** The tags of a forum, in the layout's terms. Absent for a text channel. */
 		tags?: NotificationsForumTag[];
-		/** The default reaction of a forum, as the layout would spell it. Absent when none is set or for a text channel. */
+		/**
+		 * The default reaction of a forum, as the layout would spell it (`":name:"` for a server emoji, the character for
+		 * a Unicode one). Absent when none is set or for a text channel.
+		 */
 		defaultReaction?: string;
 		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook or a feed. */
 		webhooks: string[];
@@ -2971,9 +2989,17 @@ export interface Notifications extends ProviderIdentity {
 		kind?: "text" | "forum";
 		/** The tags of a forum; see {@link NotificationsChannelLayout.tags}. */
 		tags?: NotificationsForumTag[];
-		/** The default reaction of a forum; see {@link NotificationsChannelLayout.defaultReaction}. */
-		defaultReaction?: string;
+		/**
+		 * The default reaction of a forum; see {@link NotificationsChannelLayout.defaultReaction}. A server emoji that
+		 * the server does not have is an error naming it.
+		 */
+		defaultReaction?: NotificationsReaction;
 	}): Promise<EnsuredResource>;
+	/**
+	 * Find the server emoji named `name` (without colons) or make it from `image`, a `data:` URI. An emoji that
+	 * exists is left exactly as it is: never replaced, renamed or deleted, and `image` is not compared with it.
+	 */
+	ensureEmoji?(input: { name: string; image: string }): Promise<EnsuredResource>;
 	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {
 		channel: string;

@@ -7,6 +7,7 @@ import type {
 	Notifications,
 	NotificationsAccess,
 	NotificationsForumTag,
+	NotificationsReaction,
 	PluginLoader,
 	RuntimeContext,
 	Secrets,
@@ -103,7 +104,7 @@ export interface ChannelSpec {
 	/** The tags of a forum. */
 	tags?: NotificationsForumTag[];
 	/** The default reaction of a forum. */
-	defaultReaction?: string;
+	defaultReaction?: NotificationsReaction;
 	/** `avatar` is the image itself, as a `data:` URI. */
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
 	/** The monitoring provider's alerts, already resolved to the names to use. */

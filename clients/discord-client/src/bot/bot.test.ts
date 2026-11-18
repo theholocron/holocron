@@ -473,6 +473,24 @@ describe("server settings", () => {
 		expect(calls[4]?.url).toBe(`${BASE}/guilds/777/emojis`);
 	});
 
+	it("guilds.createEmoji posts the name and image, and checks role ids", async () => {
+		const { client, calls } = makeClient([{ body: { id: "9", name: "git_merge" } }]);
+		const made = await client.guilds.createEmoji("777", {
+			name: "git_merge",
+			image: "data:image/png;base64,AAAA",
+			roles: ["5"],
+		});
+		expect(made.id).toBe("9");
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/guilds/777/emojis`,
+			method: "POST",
+			body: { name: "git_merge", image: "data:image/png;base64,AAAA", roles: ["5"] },
+		});
+		expect(() => client.guilds.createEmoji("777", { name: "ab", image: "x", roles: ["no"] })).toThrow(
+			/invalid Discord id/
+		);
+	});
+
 	it("guilds.delete: another failure comes through", async () => {
 		const { client } = makeClient([{ status: 403, body: {} }]);
 		await expect(client.guilds.delete("777")).rejects.toMatchObject({ status: 403 });

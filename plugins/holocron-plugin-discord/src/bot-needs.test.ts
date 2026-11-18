@@ -25,4 +25,14 @@ describe("botNeeds", () => {
 		expect(botNeeds(forum)).toEqual([...BOT_NEEDS, "ManageThreads"]);
 		expect(botNeeds(layoutOf({ pinned: [] }))).toEqual(BOT_NEEDS);
 	});
+
+	it("asks for Create Guild Expressions only when the layout gives a server emoji an image", () => {
+		const layout = (defaultReaction: unknown) =>
+			layoutOf({ categories: [{ name: "A", channels: [{ name: "f", kind: "forum", defaultReaction }] }] });
+		const withImage = { emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" };
+		expect(botNeeds(layout(withImage))).toEqual([...BOT_NEEDS, "ManageThreads", "CreateGuildExpressions"]);
+		for (const reaction of [":git_merge:", { emoji: ":git_merge:" }, "🔀"]) {
+			expect(botNeeds(layout(reaction))).toEqual([...BOT_NEEDS, "ManageThreads"]);
+		}
+	});
 });

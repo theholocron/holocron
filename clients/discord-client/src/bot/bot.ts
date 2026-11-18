@@ -3,6 +3,7 @@ import { createRestClient, ProviderApiError, type RestClient } from "@theholocro
 import { DEFAULT_BASE_URL } from "../utils.js";
 import type {
 	CreateChannelInput,
+	CreateEmojiInput,
 	CreateForumPostInput,
 	CreateGuildInput,
 	CreateInviteInput,
@@ -255,6 +256,14 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 			},
 			/** `GET /guilds/:id/emojis` — custom emoji, for welcome screen and onboarding ids. */
 			emojis: (guildId: string) => rest.request<DiscordEmoji[]>(`/guilds/${id(guildId)}/emojis`),
+			/**
+			 * `POST /guilds/:id/emojis` — makes a custom emoji from `image`, a `data:` URI (at most 256 KiB: JPEG, PNG, GIF,
+			 * WebP or AVIF). Needs Create Guild Expressions. Discord does not apply the usual rate limit headers to it.
+			 */
+			createEmoji: (guildId: string, body: CreateEmojiInput) => {
+				bodyIds(body.roles);
+				return rest.request<DiscordEmoji>(`/guilds/${id(guildId)}/emojis`, { method: "POST", body });
+			},
 			/** `PUT /guilds/:id/members/:id/roles/:id` — gives the member the role; giving one they have is a no-op. */
 			addMemberRole: (guildId: string, userId: string, roleId: string): Promise<void> =>
 				rest.request<void>(`/guilds/${id(guildId)}/members/${id(userId)}/roles/${id(roleId)}`, {

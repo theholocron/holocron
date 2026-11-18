@@ -80,6 +80,7 @@ function setup(
 		};
 		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
+		loadEmojiImage?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
 	} = {}
 ) {
@@ -153,6 +154,7 @@ function setup(
 				},
 				loader,
 				...(opts.loadAvatar ? { loadAvatar: opts.loadAvatar } : {}),
+				...(opts.loadEmojiImage ? { loadEmojiImage: opts.loadEmojiImage } : {}),
 				...(opts.relay?.readCode ? { readRelayCode: opts.relay.readCode } : {}),
 				...(opts.pause ? { pause: opts.pause } : {}),
 				print: (l) => lines.push(l),
@@ -2670,6 +2672,137 @@ describe("forum channels", () => {
 		expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "ideas", defaultReaction: "👍" }));
 	});
 
+	describe("server emoji", () => {
+		const IMAGE = ".holocron/media/emoji/git_merge.png";
+		const withImage = { emoji: ":git_merge:", image: IMAGE };
+		const readImage = vi.fn(
+			async (source: string) => `data:image/png;base64,${Buffer.from(source).toString("base64")}`
+		);
+
+		it("passes a server emoji default reaction to the provider as the layout wrote it", async () => {
+			const ensureChannel = vi.fn(async (_input: { name: string }) => ({ id: "1", created: true }));
+			const layout = forumLayout({ defaultReaction: ":git_merge:", starterReactions: [":git_merge:", "👍"] });
+			const report = await setup(fakeNotifications({ layout, ensureChannel })).run();
+			expect(report.status).toBe("ok");
+			expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ defaultReaction: ":git_merge:" }));
+		});
+
+		it("makes an emoji from its image before the channels, once however many reactions name it", async () => {
+			const order: string[] = [];
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => {
+				order.push("emoji");
+				return { id: "900", created: true };
+			});
+			const ensureChannel = vi.fn(async () => {
+				order.push("channel");
+				return { id: "1", created: true };
+			});
+			const layout = forumLayout({ defaultReaction: withImage, starterReactions: [withImage, ":git_merge:"] });
+			const { run, lines } = setup(fakeNotifications({ layout, ensureChannel, ensureEmoji }), {
+				loadEmojiImage: readImage,
+			});
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(report.emojis).toEqual([{ name: "git_merge", created: true }]);
+			expect(ensureEmoji).toHaveBeenCalledTimes(1);
+			expect(ensureEmoji).toHaveBeenCalledWith({
+				name: "git_merge",
+				image: `data:image/png;base64,${Buffer.from(IMAGE).toString("base64")}`,
+			});
+			expect(order).toEqual(["emoji", "channel"]);
+			expect(lines.join("\n")).toContain("created emoji :git_merge: (id 900)");
+		});
+
+		it("reads the image from the repository root when no reader is given", async () => {
+			const root = await mkdtemp(join(tmpdir(), "emoji-setup-"));
+			await mkdir(join(root, ".holocron/media/emoji"), { recursive: true });
+			const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+			await writeFile(join(root, IMAGE), png);
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => ({
+				id: "900",
+				created: true,
+			}));
+			const layout = forumLayout({ defaultReaction: withImage });
+			const report = await setup(fakeNotifications({ layout, ensureEmoji }), { repoRoot: root }).run();
+			expect(report.status).toBe("ok");
+			expect(ensureEmoji).toHaveBeenCalledWith({
+				name: "git_merge",
+				image: `data:image/png;base64,${Buffer.from(png).toString("base64")}`,
+			});
+		});
+
+		it("is a no-op when the emoji exists", async () => {
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => ({
+				id: "900",
+				created: false,
+			}));
+			const layout = forumLayout({ defaultReaction: withImage });
+			const { run, lines } = setup(fakeNotifications({ layout, ensureEmoji }), { loadEmojiImage: readImage });
+			const report = await run();
+			expect(report.emojis).toEqual([{ name: "git_merge", created: false }]);
+			expect(lines.join("\n")).toContain("exists  emoji :git_merge: (id 900)");
+		});
+
+		it("only previews on --dry-run", async () => {
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => ({
+				id: "900",
+				created: true,
+			}));
+			const layout = forumLayout({ defaultReaction: withImage });
+			const { run, lines } = setup(fakeNotifications({ layout, ensureEmoji }), {
+				dryRun: true,
+				loadEmojiImage: readImage,
+			});
+			const report = await run();
+			expect(report.status).toBe("dry-run");
+			expect(ensureEmoji).not.toHaveBeenCalled();
+			expect(report.emojis).toBeUndefined();
+			expect(lines.join("\n")).toContain("would ensure emoji :git_merge:");
+		});
+
+		it("reports an emoji that could not be made and goes on", async () => {
+			const ensureEmoji = vi.fn(async (_input: { name: string; image: string }) => {
+				throw new Error("Discord refused");
+			});
+			const layout = forumLayout({ defaultReaction: withImage });
+			const report = await setup(fakeNotifications({ layout, ensureEmoji }), { loadEmojiImage: readImage }).run();
+			expect(report.status).toBe("fail");
+			expect(report.failures).toEqual([{ step: "emoji :git_merge:", message: "Discord refused" }]);
+			expect(report.channels).toHaveLength(1);
+		});
+
+		it("refuses, before anything is written, an image that cannot be used", async () => {
+			const n = fakeNotifications({ layout: forumLayout({ defaultReaction: withImage }), ensureEmoji: vi.fn() });
+			const report = await setup(n, {
+				loadEmojiImage: async () => {
+					throw new Error("it is 300 KiB");
+				},
+			}).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(
+				/emoji `:git_merge:` image `.holocron\/media\/emoji\/git_merge.png`: it is 300 KiB/
+			);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses an image when the provider cannot create emoji", async () => {
+			const n = fakeNotifications({ layout: forumLayout({ defaultReaction: withImage }) });
+			const report = await setup(n, { loadEmojiImage: readImage }).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/cannot create emoji/);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses a layout that gives one emoji two pictures", async () => {
+			const layout = forumLayout({
+				defaultReaction: withImage,
+				starterReactions: [{ emoji: ":git_merge:", image: ".holocron/media/emoji/other.png" }],
+			});
+			const report = await setup(fakeNotifications({ layout, ensureEmoji: vi.fn() })).run();
+			expect(report.message).toMatch(/given two different images/);
+		});
+	});
+
 	it("refuses an inconsistent forum before anything is created", async () => {
 		const n = fakeNotifications({ layout: forumLayout({ webhook: true }) });
 
@@ -2702,6 +2835,27 @@ describe("forum channels", () => {
 			expect(
 				forumLayoutProblem(forumLayout({ defaultReaction: "👍", starterReactions: ["👍", "👎"] }))
 			).toBeUndefined();
+		});
+
+		it("judges server emoji and their images", () => {
+			const reaction = (value: unknown) => forumLayout({ defaultReaction: value });
+			expect(forumLayoutProblem(reaction(":git_merge:"))).toBeUndefined();
+			expect(forumLayoutProblem(reaction({ emoji: ":git_merge:" }))).toBeUndefined();
+			expect(
+				forumLayoutProblem(reaction({ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }))
+			).toBeUndefined();
+			expect(forumLayoutProblem(forumLayout({ starterReactions: [":git_merge:", "✅"] }))).toBeUndefined();
+			expect(forumLayoutProblem(reaction("git_merge"))).toMatch(/`defaultReaction`: `git_merge` is not an emoji/);
+			expect(forumLayoutProblem(reaction(":a:"))).toMatch(/is not an emoji/);
+			expect(forumLayoutProblem(reaction({ emoji: "git_merge" }))).toMatch(/`emoji` must be a server emoji/);
+			expect(forumLayoutProblem(forumLayout({ starterReactions: [":x y:"] }))).toMatch(/a starter reaction/);
+			expect(forumLayoutProblem(reaction({ emoji: ":git_merge:", image: "../x.png" }))).toMatch(
+				/`image` must be a file under `.holocron\/media\/`/
+			);
+			expect(forumLayoutProblem(reaction({ emoji: ":git_merge:", image: "https://x/y.png" }))).toMatch(
+				/not a URL/
+			);
+			expect(forumLayoutProblem(reaction({ emoji: ":git_merge:", image: "" }))).toMatch(/`image` is empty/);
 		});
 
 		it("refuses tags on a text channel, whether it says so or not", () => {

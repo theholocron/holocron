@@ -2161,6 +2161,54 @@ describe("runDoctorNotifications — the pull request feed", () => {
 	});
 });
 
+describe("runDoctorNotifications — server emoji reactions", () => {
+	const layout = (defaultReaction: unknown): NotificationsLayout =>
+		({
+			categories: [{ name: "BUILD", channels: [{ name: "prs", kind: "forum", defaultReaction }] }],
+		}) as NotificationsLayout;
+	const run = (defaultReaction: unknown, found: object, channel: object = {}) =>
+		setup(
+			fakeNotifications({
+				layout: layout(defaultReaction),
+				found: {
+					categories: ["BUILD"],
+					channels: [{ name: "prs", category: "BUILD", kind: "forum", webhooks: [], ...channel }],
+					roles: [],
+					...found,
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+
+	it("passes when the emoji is on the server and is the default reaction", async () => {
+		const report = await run(":git_merge:", { emojis: ["git_merge"] }, { defaultReaction: ":git_merge:" });
+		expect(byId(report, "emoji")).toMatchObject({ status: "pass" });
+		expect(byId(report, "channels")?.status).toBe("pass");
+	});
+
+	it("fails the emoji row by name when the server has none, and names a changed default reaction", async () => {
+		const report = await run(":git_merge:", { emojis: [] }, { defaultReaction: "🔀" });
+		expect(byId(report, "emoji")?.status).toBe("fail");
+		expect(byId(report, "emoji")?.problems[0]).toMatch(/^:git_merge: is not on the server/);
+		expect(byId(report, "channels")?.problems).toEqual([
+			'#prs: default reaction is "🔀" but the layout says ":git_merge:"',
+		]);
+		expect(report.status).toBe("fail");
+	});
+
+	it("says a server emoji default reaction is not set when the forum has none", async () => {
+		const report = await run({ emoji: ":git_merge:" }, { emojis: ["git_merge"] });
+		expect(byId(report, "channels")?.problems).toEqual([
+			'#prs: default reaction is not set but the layout says ":git_merge:"',
+		]);
+	});
+
+	it("adds no emoji row for a Unicode default reaction", async () => {
+		const report = await run("🔀", {}, { defaultReaction: "🔀" });
+		expect(byId(report, "emoji")).toBeUndefined();
+	});
+});
+
 describe("runDoctorNotifications — the monitoring feed", () => {
 	const FEED_LAYOUT: NotificationsLayout = {
 		categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
