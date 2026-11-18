@@ -1825,6 +1825,12 @@ export interface MonitoringStatusPageInput {
 	logo?: string;
 	/** Default false: the point of the page is that people can read it. */
 	private?: boolean;
+	/**
+	 * Default true: each component gets an automation rule that opens an incident on it when a check carrying its tags
+	 * fails. Set false on a plan without automated incidents: no rule is read or made, the doctor does not compare them
+	 * and says so, and incidents are opened by hand.
+	 */
+	automation?: boolean;
 	/** In the order they are shown. */
 	components: MonitoringStatusComponentInput[];
 }

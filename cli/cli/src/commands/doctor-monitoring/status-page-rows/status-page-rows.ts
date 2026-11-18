@@ -29,71 +29,89 @@ function problemsOf(input: MonitoringStatusPageInput, state: MonitoringStatusPag
 	return problems;
 }
 
-/**
- * One row per declared status page: it exists, its privacy is what is declared, its components and rules are as
- * declared and its custom domain is verified. What the page holds beyond the config is a skipped `info` row.
- * Read-only. A provider with no `inspectStatusPage`, or no token, is a skip with the reason.
- */
-export async function statusPageRows(monitoring: Monitoring): Promise<CheckRow[]> {
-	const rows: CheckRow[] = [];
-	for (const page of monitoring.statusPages ?? []) {
-		const id = `monitoring-status-page:${page.name}`;
-		if (!monitoring.inspectStatusPage) {
-			rows.push({
+/** The rows of one page: its own row, then what it holds beyond the config. Read-only. */
+async function rowsFor(monitoring: Monitoring, page: MonitoringStatusPageInput): Promise<CheckRow[]> {
+	const id = `monitoring-status-page:${page.name}`;
+	if (!monitoring.inspectStatusPage) {
+		return [
+			{
 				id,
 				title: title(page.name),
 				status: "skip",
 				detail: "provider does not implement inspectStatusPage",
 				problems: [],
-			});
-			continue;
-		}
-		try {
-			const state = await monitoring.inspectStatusPage(page);
-			if (!state.exists) {
-				rows.push({
+			},
+		];
+	}
+	try {
+		const state = await monitoring.inspectStatusPage(page);
+		if (!state.exists) {
+			return [
+				{
 					id,
 					title: title(page.name),
 					status: "fail",
 					detail: "does not exist; run `holocron setup`",
 					problems: [],
-				});
-				continue;
-			}
-			const problems = problemsOf(page, state);
-			rows.push(
-				problems.length > 0
-					? { id, title: title(page.name), status: "fail", detail: `${problems.length} problem(s)`, problems }
-					: {
-							id,
-							title: title(page.name),
-							status: "ok",
-							detail: `${state.public ? "public" : "private"}, ${page.components.length} component(s)${
-								state.domainVerified ? ", domain verified" : ""
-							}`,
-							problems: [],
-						}
-			);
-			const extras = [
-				...state.extraComponents.map((n) => `component ${n}`),
-				...state.extraRules.map((n) => `rule ${n}`),
+				},
 			];
-			if (extras.length > 0) {
-				rows.push({
-					id: `${id}:extra`,
-					title: `status page ${page.name} has more than the config`,
-					status: "skip",
-					detail: extras.join(", "),
-					problems: [],
-				});
-			}
-		} catch (err) {
-			const noToken = missingTokenReason(err);
-			rows.push(
-				noToken !== undefined
-					? { id, title: title(page.name), status: "skip", detail: noToken, problems: [] }
-					: { id, title: title(page.name), status: "fail", detail: errorMessage(err), problems: [] }
-			);
+		}
+		const problems = problemsOf(page, state);
+		const rows: CheckRow[] = [
+			problems.length > 0
+				? { id, title: title(page.name), status: "fail", detail: `${problems.length} problem(s)`, problems }
+				: {
+						id,
+						title: title(page.name),
+						status: "ok",
+						detail: `${state.public ? "public" : "private"}, ${page.components.length} component(s)${
+							state.domainVerified ? ", domain verified" : ""
+						}`,
+						problems: [],
+					},
+		];
+		const extras = [
+			...state.extraComponents.map((n) => `component ${n}`),
+			...state.extraRules.map((n) => `rule ${n}`),
+		];
+		if (extras.length > 0) {
+			rows.push({
+				id: `${id}:extra`,
+				title: `status page ${page.name} has more than the config`,
+				status: "skip",
+				detail: extras.join(", "),
+				problems: [],
+			});
+		}
+		return rows;
+	} catch (err) {
+		const noToken = missingTokenReason(err);
+		return [
+			noToken !== undefined
+				? { id, title: title(page.name), status: "skip", detail: noToken, problems: [] }
+				: { id, title: title(page.name), status: "fail", detail: errorMessage(err), problems: [] },
+		];
+	}
+}
+
+/**
+ * One row per declared status page: it exists, its privacy is what is declared, its components and rules are as
+ * declared and its custom domain is verified. What the page holds beyond the config is a skipped `info` row, and a page
+ * declared with `automation: false` gets a skipped row saying its rules are not managed, whatever else the inspection
+ * found. Read-only. A provider with no `inspectStatusPage`, or no token, is a skip with the reason.
+ */
+export async function statusPageRows(monitoring: Monitoring): Promise<CheckRow[]> {
+	const rows: CheckRow[] = [];
+	for (const page of monitoring.statusPages ?? []) {
+		rows.push(...(await rowsFor(monitoring, page)));
+		if (page.automation === false) {
+			rows.push({
+				id: `monitoring-status-page:${page.name}:automation`,
+				title: `status page ${page.name} automation`,
+				status: "skip",
+				detail: "off: rules are neither read nor made, so a failing check does not move a component and incidents are opened by hand (a rule that already exists is left as it is)",
+				problems: [],
+			});
 		}
 	}
 	return rows;

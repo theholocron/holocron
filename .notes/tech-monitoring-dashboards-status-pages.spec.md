@@ -290,7 +290,9 @@ config no longer lists (it stays active until removed by hand), or another dashb
 - **Checkly's plan.** The free plan refuses a private dashboard (`400`) and a custom domain on a status page (`402`),
   found when `holocron setup` first ran. This repo declares the dashboard public (`private: false`) and the page with no
   `domain`, so it is served at `<slug>.checkly-dashboards.com`; the code's defaults (private, a custom domain) are
-  unchanged, and a paid plan drops the two overrides.
+  unchanged, and a paid plan drops the two overrides. The free plan also refuses the automation rules (`403`), so a page
+  can declare `automation: false` (default `true`): no rule is read or made, the doctor does not compare them and says
+  incidents are opened by hand (#2324).
 - **Rule impact.** Each rule impacts its component as a major outage when a check fails; a partial or degraded impact for a
   slow check is a later setting.
 - **Heartbeat period units.** Declared as the provider takes them (`seconds`, `minutes`, `hours`, `days`).

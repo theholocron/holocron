@@ -95,6 +95,29 @@ describe("statusPageRows", () => {
 		expect(rows[1]?.detail).toBe("component Old, rule Old rule");
 	});
 
+	it("says in a skipped row that incidents are by hand when automation is off", async () => {
+		const rows = await statusPageRows(provider({}, { ...PAGE, automation: false }));
+		expect(rows.map((r) => [r.id, r.status])).toEqual([
+			["monitoring-status-page:The Holocron", "ok"],
+			["monitoring-status-page:The Holocron:automation", "skip"],
+		]);
+		expect(rows[1]?.detail).toMatch(/incidents are opened by hand/);
+		// And whatever the inspection found: a missing page, an error, or a provider that cannot inspect.
+		const off = { ...PAGE, automation: false };
+		const missing = await statusPageRows(provider({ exists: false }, off));
+		expect(missing.map((r) => [r.status, r.id.endsWith(":automation")])).toEqual([
+			["fail", false],
+			["skip", true],
+		]);
+		const broken = await statusPageRows(provider(new Error("boom"), off));
+		expect(broken.map((r) => r.status)).toEqual(["fail", "skip"]);
+		const blind = await statusPageRows({ statusPages: [off] } as unknown as Monitoring);
+		expect(blind.map((r) => r.status)).toEqual(["skip", "skip"]);
+		expect((await statusPageRows(provider({}, { ...PAGE, automation: true }))).map((r) => r.status)).toEqual([
+			"ok",
+		]);
+	});
+
 	it("skips a provider without inspectStatusPage and fails a thrown error", async () => {
 		expect((await statusPageRows({ statusPages: [PAGE] } as unknown as Monitoring))[0]?.status).toBe("skip");
 		expect((await statusPageRows(provider(new Error("boom"))))[0]).toMatchObject({

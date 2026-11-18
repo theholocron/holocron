@@ -257,6 +257,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			{
 				name: "The Holocron",
 				slug: "theholocron",
+				automation: false,
 				components: [
 					{ name: "Sentinel", tags: ["sentinel"] },
 					{ name: "Comlink", tags: ["comlink"] },
