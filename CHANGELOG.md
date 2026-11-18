@@ -1,3 +1,9 @@
+## [5.0.0-alpha.474](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.473...v5.0.0-alpha.474) (2026-11-18)
+
+### Features
+
+* **cli:** ✨ add doctor releases to find a release tag npm never received ([#2333](https://github.com/theholocron/holocron/issues/2333)) ([58af070](https://github.com/theholocron/holocron/commit/58af070514a1bb3d0f9690c29e054da092787337)), closes [#2329](https://github.com/theholocron/holocron/issues/2329) [#2329](https://github.com/theholocron/holocron/issues/2329)
+
 ## [5.0.0-alpha.473](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.472...v5.0.0-alpha.473) (2026-11-18)
 
 ### Features
