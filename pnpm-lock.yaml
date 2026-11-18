@@ -48,8 +48,8 @@ catalogs:
       specifier: ^11.3.4
       version: 11.3.4
     googleapis:
-      specifier: ^188.0.0
-      version: 188.0.0
+      specifier: ^190.0.0
+      version: 190.0.0
     open:
       specifier: ^11.0.0
       version: 11.0.4
@@ -1536,7 +1536,7 @@ importers:
         version: 11.3.4
       googleapis:
         specifier: catalog:clients
-        version: 188.0.0
+        version: 190.0.0
       open:
         specifier: catalog:clients
         version: 11.0.4
@@ -10952,8 +10952,8 @@ packages:
     resolution: {integrity: sha512-wtv/e7JYgmtpIPcSez2EFD/Wx49DPsRX2rj15D7hTwc7tDsP82dcwoX/I4+zE38mu6S9PcghizzzADLf+ZMunA==}
     engines: {node: '>=22'}
 
-  googleapis@188.0.0:
-    resolution: {integrity: sha512-dLGvMAlYOiemwYnhFoy1bDd+dnB6o8mGxnXhLCirAjAww8F/Qs59XY3EHm7p7RGENtDRTqyM7oV7DQ22V4BaOA==}
+  googleapis@190.0.0:
+    resolution: {integrity: sha512-/1dTKpv9epj6RPMsrlKdyNtby1flh+d39rCWYCU+6bY4RHgZUPYB+B9cRKYsBqqTWyfBkHum0NCthIWJROcUjw==}
     engines: {node: '>=22.0.0'}
 
   gopd@1.2.0:
@@ -22444,7 +22444,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  googleapis@188.0.0:
+  googleapis@190.0.0:
     dependencies:
       google-auth-library: 11.3.4
       googleapis-common: 9.3.1
