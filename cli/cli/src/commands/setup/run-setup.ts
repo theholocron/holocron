@@ -688,7 +688,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				}
 				for (const key of keys) {
 					steps.push(
-						await runStep("errors", `new secret ${key}`, dryRun, async () => {
+						await runStep("errors", `set secret ${key}`, dryRun, async () => {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);
 						})
 					);

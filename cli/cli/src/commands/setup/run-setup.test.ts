@@ -352,7 +352,7 @@ describe("runSetup", () => {
 
 		it("pushes only SENTRY_DSN when the repo has no package.json", async () => {
 			const { rows, setSecrets } = await pushedKeys(SENTRY, "/tmp/test");
-			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app", "new secret SENTRY_DSN"]);
+			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app", "set secret SENTRY_DSN"]);
 			expect(rows.every((r) => r.status === "ok")).toBe(true);
 			expect(setSecrets).toEqual([["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"]]);
 		});
@@ -368,8 +368,8 @@ describe("runSetup", () => {
 			const { rows, setSecrets } = await pushedKeys(SENTRY);
 			expect(rows.map((r) => r.step)).toEqual([
 				"ensureProject my-app",
-				"new secret SENTRY_DSN",
-				"new secret NEXT_PUBLIC_SENTRY_DSN",
+				"set secret SENTRY_DSN",
+				"set secret NEXT_PUBLIC_SENTRY_DSN",
 			]);
 			expect(setSecrets).toEqual([
 				["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
