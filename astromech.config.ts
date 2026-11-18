@@ -61,6 +61,8 @@ export default defineConfig({
 				// Everything in no group is released together, as before. The Sentry release and the
 				// post-release deploy belong to it alone, not to every group.
 				ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },
+				// A manual run can republish what npm lacks for an existing tag, without a release (#1387).
+				republish: true,
 			},
 		},
 		// Sync: keep generated files (workflows, labels, …) current on push to main.

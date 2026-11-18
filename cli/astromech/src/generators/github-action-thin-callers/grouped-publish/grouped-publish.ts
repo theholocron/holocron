@@ -85,6 +85,9 @@ function parseGroups(groups: unknown): Entry[] {
  *   that is not on npm. It takes the same per-release inputs as a group (`true` for none).
  *   A repo with groups and packages in no group needs it, or those packages would stop
  *   releasing.
+ * - With `republish`, a manual run can also give `republish_tag` (and the group of that tag): the reusable then
+ *   skips semantic-release and publishes what npm lacks for the tag. `all` is refused in `plan`, because one tag
+ *   belongs to one release; the ungrouped release is told the groups it leaves out (`exclude-groups`).
  * - `shared` entries (and the template's own `dry-run`) go to every release; the
  *   per-group inputs come from the matrix entry.
  */
@@ -92,7 +95,9 @@ export function groupedPublishCaller(
 	base: string,
 	groups: unknown,
 	shared: Record<string, unknown>,
-	ungrouped: unknown = false
+	ungrouped: unknown = false,
+	/** Add the manual republish path (`republish_tag`): needs the reusable that has the `republish-tag` input. */
+	republish = false
 ): string {
 	const entries = parseGroups(groups);
 	const ungroupedInputs =
@@ -123,6 +128,19 @@ export function groupedPublishCaller(
 		"          - all",
 		...(ungroupedInputs ? ["          - ungrouped"] : []),
 		...entries.map((entry) => `          - ${entry.group}`),
+		...(republish
+			? [
+					"      republish_tag:",
+					"        description: >",
+					"          Publish what npm lacks for an existing release instead of releasing (holocron#1387):",
+					"          the tag, `<group>-v<version>` or `v<version>`, with `group` set to its group (or",
+					"          `ungrouped` for `v<version>`). The tag must be on main or alpha. No tag, release or",
+					"          commit is made. Leave empty for a normal release; `dry_run` previews it.",
+					"        required: false",
+					'        default: ""',
+					"        type: string",
+				]
+			: []),
 		"",
 	].join("\n");
 
@@ -138,8 +156,14 @@ export function groupedPublishCaller(
 		.filter(Boolean);
 	const sharedWith = Object.entries(shared).map(([key, value]) => `      ${key}: ${yamlScalar(value)}`);
 
+	// Only a manual run can republish: on a push `inputs` is empty and the tag stays blank.
+	const republishWith = republish
+		? ["      republish-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.republish_tag || '' }}"]
+		: [];
+
 	const matrixWith = [
 		...templateWith,
+		...republishWith,
 		"      group: ${{ matrix.group }}",
 		...sharedWith,
 		...perGroup.map((key) => {
@@ -172,6 +196,8 @@ export function groupedPublishCaller(
 				uses,
 				"    with:",
 				...templateWith,
+				...republishWith,
+				...(republish ? [`      exclude-groups: ${entries.map((entry) => entry.group).join(" ")}`] : []),
 				"      from-branch-tip: true",
 				...sharedWith,
 				...Object.entries(ungroupedInputs).map(([key, value]) => `      ${key}: ${yamlScalar(value)}`),
@@ -192,8 +218,16 @@ export function groupedPublishCaller(
 		"        name: Choose the groups to release",
 		"        env:",
 		"          GROUP: ${{ inputs.group }}",
+		...(republish ? ["          REPUBLISH_TAG: ${{ inputs.republish_tag }}"] : []),
 		`          ALL_GROUPS: '${matrixJson}'`,
 		"        run: |",
+		...(republish
+			? [
+					'          if [ -n "$REPUBLISH_TAG" ] && { [ -z "$GROUP" ] || [ "$GROUP" = "all" ]; }; then',
+					'            echo "::error::republish_tag needs one group (or ungrouped), not all"; exit 1',
+					"          fi",
+				]
+			: []),
 		'          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then',
 		`            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")`,
 		"          else",

@@ -146,8 +146,8 @@ export function generateThinCallerContent(
 
 	// A repo that releases several version groups gets a matrix caller (see groupedPublishCaller).
 	if (name === "release" && withOverrides && "groups" in withOverrides) {
-		const { groups, ungrouped, ...shared } = withOverrides;
-		return groupedPublishCaller(base, groups, shared, ungrouped);
+		const { groups, ungrouped, republish, ...shared } = withOverrides;
+		return groupedPublishCaller(base, groups, shared, ungrouped, republish === true);
 	}
 
 	const fmt = (k: string, v: unknown) => {
