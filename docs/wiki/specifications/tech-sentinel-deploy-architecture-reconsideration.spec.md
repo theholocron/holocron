@@ -1,6 +1,6 @@
 ---
 id: SPEC-0038
-status: draft
+status: archived
 issue: theholocron/holocron#945
 blocked-by: []
 related:
@@ -12,6 +12,8 @@ discussion:
 <!-- alex disable conservative fire fires pros -->
 
 # Sentinel's deploy architecture: is a redeploy-on-every-release serverless Function still the right shape?
+
+> **Archived (2026-11-18).** #945 was closed as not planned on 2026-11-17 and #940 is closed. No candidate below was chosen: the question was dropped, not answered. `process-sentinel-and-actions-roles` (#2263) says Sentinel's hosting cost is acceptable, and it moves the checks that need a toolchain to Actions. Revisit only if Vercel's cost becomes a problem again; a new ADR would then supersede or extend ADR-0011. The Netlify migration stays parked as described below. Not verified: whether recording a deploy as a `deployed/<package>` tag (#2330) fully fixes the redeploy over-triggering of candidate C. #2203 (the dev instance's deploy from `alpha`) is about cadence and stays open.
 
 ## Context
 
@@ -51,6 +53,8 @@ Sentinel's current shape, independent of which vendor it runs on:
   given request consumes within a flat capacity.
 
 ## Open question
+
+_Dropped, not answered (2026-11-18): revisit only if Vercel's cost becomes a problem again._
 
 Is "serverless Function on a provider with a generous free tier" even
 the right shape for Sentinel, or should the fix be architectural: an
