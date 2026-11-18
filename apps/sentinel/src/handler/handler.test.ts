@@ -84,6 +84,7 @@ vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presenc
 	validateDocsPresence: vi.fn(),
 }));
 vi.mock("../actions/pr-feed/run-pr-feed/run-pr-feed.js", () => ({ runPrFeed: vi.fn() }));
+vi.mock("../actions/board-status/run-board-status/run-board-status.js", () => ({ runBoardStatus: vi.fn() }));
 vi.mock("../actions/role-sync/run-role-sync/run-role-sync.js", () => ({ runRoleSync: vi.fn() }));
 vi.mock("../utils/validate-config/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("../utils/webhook/webhook.js", async (importOriginal) => {
@@ -115,6 +116,7 @@ import {
 	postFormattingCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
+	runBoardStatus,
 	runPrFeed,
 	runRoleSync,
 	syncPropertiesFromConfig,
@@ -143,6 +145,8 @@ function req(body = "{}", method = "POST"): Request {
 	});
 }
 
+const SKIPPED_BOARD = { status: "skipped" as const, reason: "not set up" };
+
 beforeEach(() => {
 	vi.mocked(parseWebhookEvent).mockReset();
 	vi.mocked(createInstallationClient).mockReset();
@@ -170,6 +174,8 @@ beforeEach(() => {
 	vi.mocked(commitMarkdownLintFix).mockReset();
 	vi.mocked(runRoleSync).mockReset();
 	vi.mocked(runPrFeed).mockReset();
+	vi.mocked(runBoardStatus).mockReset();
+	vi.mocked(runBoardStatus).mockResolvedValue(SKIPPED_BOARD);
 	vi.mocked(findAutoFixLoop).mockReset();
 	vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: [] });
 	vi.mocked(postAutoFixLoopComment).mockReset();
@@ -1889,7 +1895,12 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 			vi.mocked(lintCommits).mockClear();
 			const res = await handleWebhookRequest(req(), ENV);
 			expect(res.status).toBe(200);
-			expect(await res.json()).toEqual({ handled: true, type, prFeed: OK });
+			expect(await res.json()).toEqual({
+				handled: true,
+				type,
+				prFeed: OK,
+				...(type === "pull_request_review" ? {} : { boardStatus: SKIPPED_BOARD }),
+			});
 			expect(runPrFeed).toHaveBeenLastCalledWith({ client: FAKE_CLIENT, env: ENV, repo: "acme/demo", trigger });
 			expect(createInstallationClient).toHaveBeenLastCalledWith(
 				{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
@@ -1919,6 +1930,7 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 			handled: true,
 			type: "check_run.completed",
 			prFeed: { status: "fail", reason: "Missing Access" },
+			boardStatus: SKIPPED_BOARD,
 		});
 	});
 
@@ -1932,6 +1944,86 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 		vi.mocked(createInstallationClient).mockRejectedValue("nope");
 		expect(await (await handleWebhookRequest(req(), ENV)).json()).toMatchObject({
 			prFeed: { status: "fail", reason: "nope" },
+		});
+	});
+
+	describe("the board status handler", () => {
+		const BOARD = { status: "ok" as const, applied: [{ board: "v5", key: "#5", to: "In Review" }], failed: [] };
+
+		it("runs for a pull request action the rules read, beside the feed, and adds its result", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request.feed"));
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(runBoardStatus).mockResolvedValue(BOARD);
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({
+				handled: true,
+				type: "pull_request.feed",
+				prFeed: OK,
+				boardStatus: BOARD,
+			});
+			expect(runBoardStatus).toHaveBeenCalledWith({
+				client: FAKE_CLIENT,
+				env: ENV,
+				repo: "acme/demo",
+				trigger: { kind: "pull_request", action: "closed", numbers: [12] },
+			});
+		});
+
+		it("does not run for a review, which the rules do not read", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request_review"));
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			await handleWebhookRequest(req(), ENV);
+			expect(runBoardStatus).not.toHaveBeenCalled();
+		});
+
+		it("adds its result to the checks' response for an opened pull request", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({
+				handled: true,
+				event: {
+					...feedEvent("pull_request.feed").event,
+					type: "pull_request.opened",
+					action: "opened",
+					raw: {},
+				},
+			});
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(runBoardStatus).mockResolvedValue({ status: "skipped", reason: "off" });
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(await res.json()).toMatchObject({ boardStatus: { status: "skipped", reason: "off" } });
+		});
+
+		it("never changes the status: a failed item or a failed run is logged and the delivery stays 200", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request.feed"));
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(runBoardStatus).mockResolvedValue({
+				status: "ok",
+				applied: [],
+				failed: [{ board: "v5", key: "#5", message: "no access" }],
+			});
+			expect((await handleWebhookRequest(req(), ENV)).status).toBe(200);
+			vi.mocked(runBoardStatus).mockResolvedValue({ status: "fail", reason: "boom" });
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toMatchObject({ boardStatus: { status: "fail", reason: "boom" } });
+		});
+
+		it("is a fail result, not a throw, when the installation token cannot be had", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request.feed"));
+			vi.mocked(createInstallationClient).mockRejectedValueOnce(new Error("feed"));
+			vi.mocked(createInstallationClient).mockRejectedValueOnce(new Error("bad credentials"));
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(await res.json()).toMatchObject({ boardStatus: { status: "fail", reason: "bad credentials" } });
+			expect(runBoardStatus).not.toHaveBeenCalled();
+			vi.mocked(createInstallationClient).mockRejectedValueOnce(new Error("feed"));
+			vi.mocked(createInstallationClient).mockRejectedValueOnce("nope");
+			expect(await (await handleWebhookRequest(req(), ENV)).json()).toMatchObject({
+				boardStatus: { status: "fail", reason: "nope" },
+			});
 		});
 	});
 
@@ -1997,6 +2089,7 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 				handled: false,
 				reason: expect.stringContaining("payload missing"),
 				prFeed: { status: "skipped", reason: "off" },
+				boardStatus: SKIPPED_BOARD,
 			});
 		});
 

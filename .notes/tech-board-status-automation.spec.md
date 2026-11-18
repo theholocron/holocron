@@ -91,7 +91,7 @@ A short section in `.holocron/org.md`, which `holocron sync` writes into every r
 2. `BoardItem.pullRequests`, read by the GitHub provider, and the rules in `reconcile project`.
 3. `holocron project status`.
 4. The agent rules in `.holocron/org.md`.
-5. Sentinel's handler.
+5. Sentinel's handler (`apps/sentinel/src/actions/board-status/`; it changes a status only once part 2's provider fill has merged, since it reads `BoardItem.pullRequests` from `Projects.items`).
 
 ## Open questions
 
