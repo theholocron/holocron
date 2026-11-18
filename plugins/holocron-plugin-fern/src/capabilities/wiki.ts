@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { DnsRecordRequest, Wiki, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
+import type { DnsRecordRequest, Wiki, WikiInspection, WikiProvisionOpts, WikiProxyConfig } from "@theholocron/cli";
 import { stringifyJson } from "@theholocron/json-utils";
 
 import { AuthError, resolveToken, type ResolveTokenInput } from "../auth.js";
+import { inspectWiki } from "./inspect-wiki.js";
 
 /** The Fern CLI version written into `fern/fern.config.json`. */
 export const FERN_VERSION = "5.114.1";
@@ -62,7 +63,31 @@ export class FernWiki implements Wiki {
 	/** Provider name; always `"fern"`. */
 	readonly providerName = "fern";
 
-	constructor(private readonly opts: FernWikiOptions) {}
+	constructor(
+		private readonly opts: FernWikiOptions,
+		private readonly deps: { fetch?: typeof fetch } = {}
+	) {}
+
+	/**
+	 * Reads `fern/` and `docs/wiki` and asks the public site, sending no token (see `inspectWiki`). The instance and
+	 * domain it expects are the ones `provision()` writes.
+	 */
+	async inspect(): Promise<WikiInspection> {
+		const { org, repo, domain, fernOrg } = this.opts;
+		const resolvedFernOrg = fernOrg ?? org ?? "holocron";
+		const { instanceUrl, customDomain } = expectedInstance({
+			fernOrg: resolvedFernOrg,
+			repoName: repo?.split("/").pop(),
+			domain,
+		});
+		return inspectWiki({
+			repoRoot: this.opts.repoRoot ?? process.cwd(),
+			fernOrg: resolvedFernOrg,
+			expectedUrl: instanceUrl,
+			...(customDomain ? { expectedDomain: customDomain } : {}),
+			...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
+		});
+	}
 
 	async provision(callOpts?: WikiProvisionOpts): Promise<string> {
 		const repoRoot = this.opts.repoRoot ?? process.cwd();
@@ -165,31 +190,7 @@ async function writeFernDocsYml({
 	//
 	// Fern requires the Fern instance URL to share the same basepath as the
 	// custom-domain when multi-source: true (verified via NVIDIA examples).
-	let instanceUrl: string;
-	let customDomain: string | undefined;
-	let multiSource = false;
-
-	if (domain) {
-		const slashIdx = domain.indexOf("/");
-		if (slashIdx !== -1) {
-			// Domain already contains a basepath — use as-is.
-			const basepath = domain.slice(slashIdx + 1);
-			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com/${basepath}`;
-			customDomain = domain;
-			multiSource = true;
-		} else if (repoName) {
-			// Base domain only — append repo name as basepath.
-			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com/${repoName}`;
-			customDomain = `${domain}/${repoName}`;
-			multiSource = true;
-		} else {
-			// Domain provided but no repo to derive basepath — use domain directly.
-			instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
-			customDomain = domain;
-		}
-	} else {
-		instanceUrl = `${resolvedFernOrg}.docs.buildwithfern.com`;
-	}
+	const { instanceUrl, customDomain, multiSource } = expectedInstance({ fernOrg: resolvedFernOrg, repoName, domain });
 
 	const repoOwner = repo?.split("/")[0];
 
@@ -276,6 +277,44 @@ async function writeFernDocsYml({
 
 	const domainSummary = customDomain ? `, domain=${customDomain}${multiSource ? " (multi-source)" : ""}` : "";
 	return `docs.yml: url=${instanceUrl}${domainSummary}`;
+}
+
+/**
+ * The Fern instance URL and custom domain a docs site is declared with, and whether it is multi-source. A domain with
+ * no path gets the repo name as its basepath so every repo in the org shares one domain; Fern needs the instance URL
+ * to carry the same basepath when `multi-source` is on.
+ */
+export function expectedInstance({
+	fernOrg,
+	repoName,
+	domain,
+}: {
+	fernOrg: string;
+	repoName?: string;
+	domain?: string;
+}): { instanceUrl: string; customDomain: string | undefined; multiSource: boolean } {
+	if (!domain)
+		return { instanceUrl: `${fernOrg}.docs.buildwithfern.com`, customDomain: undefined, multiSource: false };
+	const slashIdx = domain.indexOf("/");
+	if (slashIdx !== -1) {
+		// Domain already contains a basepath — use as-is.
+		const basepath = domain.slice(slashIdx + 1);
+		return {
+			instanceUrl: `${fernOrg}.docs.buildwithfern.com/${basepath}`,
+			customDomain: domain,
+			multiSource: true,
+		};
+	}
+	if (repoName) {
+		// Base domain only — append repo name as basepath.
+		return {
+			instanceUrl: `${fernOrg}.docs.buildwithfern.com/${repoName}`,
+			customDomain: `${domain}/${repoName}`,
+			multiSource: true,
+		};
+	}
+	// Domain provided but no repo to derive basepath — use domain directly.
+	return { instanceUrl: `${fernOrg}.docs.buildwithfern.com`, customDomain: domain, multiSource: false };
 }
 
 /**

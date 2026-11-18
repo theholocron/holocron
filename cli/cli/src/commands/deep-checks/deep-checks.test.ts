@@ -145,6 +145,37 @@ describe("the tokens entry", () => {
 	});
 });
 
+const runDoctorWiki = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-wiki/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-wiki/index.js")>()),
+	runDoctorWiki,
+}));
+
+describe("the wiki entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const wiki = DEEP_CHECKS.find((c) => c.name === "wiki")!;
+
+	it("compares the wiki capability and reports the run's status and counts", async () => {
+		expect(wiki.capability).toBe("wiki");
+		runDoctorWiki.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 3, fail: 1, skip: 1 } });
+		expect(await wiki.run(input)).toEqual({ status: "fail", summary: { ok: 3, fail: 1, skip: 1 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorWiki.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `wiki` provider is configured",
+		});
+		expect(await wiki.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `wiki` provider is configured",
+		});
+	});
+});
+
 describe("the logs entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const logs = DEEP_CHECKS.find((c) => c.name === "logs")!;
