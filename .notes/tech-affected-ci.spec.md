@@ -162,7 +162,7 @@ Settled on 2026-11-18, mostly by what shipped.
 
 ## Still open
 
-1. **Dependent closure** (#2407). 26 manifests still name `@theholocron/cli` (36 when this was measured): the root, the CLI itself, two apps and 22 plugins. The plugins hold it as a peer and a dev dependency for its types and test harness, so "drop it from leaf packages" may not apply to them. #2407 measures what a CLI-only change selects and which entries are left over.
+1. **Dependent closure** (#2407). 26 manifests still name `@theholocron/cli` (36 when this was measured): the root, the CLI itself, two apps and 22 plugins. The plugins hold it as a peer and a dev dependency for its types and test harness, so "drop it from leaf packages" may not apply to them. #2407 measured it: the cause is the root package's 34 workspace dependencies, not these manifests, and `tech-affected-root-dependencies` takes it from there.
 
 ## Not verified
 
