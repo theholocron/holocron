@@ -243,6 +243,20 @@ describe("runOpenRequests", () => {
 			expect(err).toBeInstanceOf(NonInteractiveError);
 		});
 
+		it("fails when the config names no tooling provider at all", async () => {
+			const lines: string[] = [];
+			const report = await runOpenRequests({
+				loaded: loadedWith({ issues: "github" }),
+				context: { repoRoot: ROOT },
+				yes: true,
+				loader: fakeLoader({}),
+				print: (l) => lines.push(l),
+				deps: fakeDeps().deps,
+			});
+			expect(report.status).toBe("fail");
+			expect(lines.join("\n")).toContain("the config has no `tooling` provider to open");
+		});
+
 		it("fails when no tooling plugin could be loaded", async () => {
 			const lines: string[] = [];
 			const report = await runOpenRequests({

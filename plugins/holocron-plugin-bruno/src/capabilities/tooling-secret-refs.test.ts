@@ -110,7 +110,8 @@ describe("BrunoTooling.workspace with secretRefs", () => {
 describe("BrunoTooling.open", () => {
 	it("lists what the written workspace refers to", async () => {
 		await tool().workspace(input());
-		const plan = await tool().open(input());
+		// `app` is set so the plan does not depend on the platform: only macOS has a default program.
+		const plan = await new BrunoTooling({ repoRoot: root, app: "/opt/bruno" }).open(input());
 		expect(plan.wants).toEqual([{ collection: "collections/app-a", variable: "secret", entry: "A_SECRET" }]);
 		expect(plan.unfilled).toEqual(["collections/app-a: other"]);
 		expect(plan.targets).toEqual([join(root, ".bruno/collections/app-a/.env")]);

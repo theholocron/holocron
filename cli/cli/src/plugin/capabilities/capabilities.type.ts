@@ -2135,6 +2135,14 @@ export interface ToolingOpenWant {
 	entry: string;
 }
 
+/** The program {@link Tooling.open} starts. */
+export interface ToolingOpenLaunch {
+	/** The executable to run. */
+	command: string;
+	/** Its arguments. */
+	args: string[];
+}
+
 /** What {@link Tooling.open} found. Names and paths only; never a value. */
 export interface ToolingOpenPlan {
 	/** The tool's name, for the report (`Bruno`). */
@@ -2146,7 +2154,7 @@ export interface ToolingOpenPlan {
 	/** The absolute paths where the tool looks for the file that holds the values (one per collection). */
 	targets: string[];
 	/** The program to start, with its arguments; started in the foreground so the values live as long as it does. */
-	launch: { command: string; args: string[] };
+	launch: ToolingOpenLaunch;
 	/** A text that appears in the command line of a running instance of the tool, to refuse a second start. */
 	running: string;
 }

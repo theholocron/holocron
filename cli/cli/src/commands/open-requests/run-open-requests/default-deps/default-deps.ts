@@ -29,7 +29,7 @@ function inspect(path: string): PathState {
 	}
 	if (stat.isSymbolicLink()) return { kind: "symlink", to: readlinkSync(path) };
 	if (!stat.isFile()) return { kind: "other" };
-	return { kind: "file", firstLine: readFileSync(path, "utf8").split("\n")[0] ?? "" };
+	return { kind: "file", firstLine: readFileSync(path, "utf8").split("\n")[0] };
 }
 
 /** Whether a process with this id is running. */
