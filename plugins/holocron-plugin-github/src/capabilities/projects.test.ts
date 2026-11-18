@@ -547,6 +547,80 @@ describe("GitHubProjects items and setStatus", () => {
 		]);
 	});
 
+	it("items carries the closing pull requests with the aggregate check of each open one's head commit", async () => {
+		const closing = (number: number, state: string, conclusion: string | null, repo = REPO) => ({
+			number,
+			state,
+			isDraft: number === 11,
+			repository: { nameWithOwner: repo },
+			commits: {
+				nodes: [
+					{
+						commit: {
+							checkSuites: {
+								nodes: [
+									{
+										checkRuns: {
+											nodes: conclusion
+												? [
+														{
+															databaseId: number,
+															status: "COMPLETED",
+															conclusion,
+															startedAt: "2026-11-18T10:00:00Z",
+														},
+													]
+												: [],
+										},
+									},
+								],
+							},
+						},
+					},
+				],
+			},
+		});
+		const { projects, calls } = endpoint([
+			[
+				"closedByPullRequestsReferences",
+				() =>
+					page([
+						item(
+							"A",
+							1,
+							"OPEN",
+							{ Status: "In Progress" },
+							{
+								closedByPullRequestsReferences: {
+									nodes: [closing(10, "OPEN", "SUCCESS"), closing(11, "OPEN", null)],
+								},
+							}
+						),
+						item(
+							"B",
+							2,
+							"OPEN",
+							{ Status: "Todo" },
+							{ closedByPullRequestsReferences: { nodes: [closing(12, "MERGED", "SUCCESS", "o/r")] } }
+						),
+						item("C", 3, "OPEN", { Status: "Todo" }, { closedByPullRequestsReferences: { nodes: [] } }),
+						item("D", 4, "OPEN", { Status: "Todo" }),
+					]),
+			],
+		]);
+		const items = await projects.items("org", BOARD, TEMPLATE);
+		expect(calls[0]!.query).toContain('checkName: "ci / Required checks"');
+		expect(items.map((i) => i.pullRequests)).toEqual([
+			[
+				{ key: "#10", state: "open", draft: false, checks: "success" },
+				{ key: "#11", state: "open", draft: true, checks: "none" },
+			],
+			[{ key: "o/r#12", state: "merged", draft: false, checks: "none" }],
+			[],
+			undefined,
+		]);
+	});
+
 	it("items carries the priority of a P-level or a named option, and none for anything else", async () => {
 		const { projects } = endpoint([
 			[

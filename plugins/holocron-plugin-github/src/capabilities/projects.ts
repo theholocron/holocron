@@ -31,6 +31,8 @@ import type {
 } from "@theholocron/cli";
 import type { GraphQLClient } from "@theholocron/github-client";
 
+import { CLOSING_PULL_REQUESTS, type RawClosingPullRequest, toBoardPullRequests } from "./project-pull-requests.js";
+
 /** Options of the GitHub `projects` capability. */
 export interface ProjectsOptions {
 	/** The repository the provider is configured for, as `owner/name`; its items get the short key `#N`. */
@@ -89,6 +91,8 @@ interface RawItem {
 	open: boolean;
 	values: Record<string, string>;
 	blockers: Array<{ repo: string; number: number }>;
+	/** The pull requests that close the issue; absent for a pull request item or an answer that has none. */
+	closing?: RawClosingPullRequest[];
 }
 
 interface ProjectNode {
@@ -119,7 +123,7 @@ const ITEMS_QUERY = `query($id: ID!, $after: String) { node(id: $id) { ... on Pr
 			fieldValues(first: 30) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
 			content {
 				__typename
-				... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } }
+				... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } ${CLOSING_PULL_REQUESTS} }
 				... on PullRequest { id number title state repository { nameWithOwner } }
 			}
 		}
@@ -457,7 +461,10 @@ export class GitHubProjects implements Projects {
 
 	// ── items ────────────────────────────────────────────────────────────
 
-	/** The board's issues and pull requests with their status, whether they are open and their open blockers. */
+	/**
+	 * The board's issues and pull requests with their status, whether they are open and their open blockers; an issue also
+	 * carries the pull requests that close it, each with the aggregate `ci / Required checks` state of its head commit.
+	 */
 	async items(_owner: string, board: BoardSummary, template: BoardTemplate): Promise<BoardItem[]> {
 		const categories = new Map<string, BoardStatusCategory>(template.statuses.map((s) => [s.name, s.category]));
 		return (await this.fetchItems(board.id)).map((i) => {
@@ -472,6 +479,7 @@ export class GitHubProjects implements Projects {
 				...(category ? { category } : {}),
 				blockedBy: i.blockers.map((b) => this.keyOf(b.repo, b.number)),
 				...(priority ? { priority } : {}),
+				...(i.closing ? { pullRequests: toBoardPullRequests(i.closing, (r, n) => this.keyOf(r, n)) } : {}),
 			};
 		});
 	}
@@ -707,6 +715,7 @@ export class GitHubProjects implements Projects {
 					blockers: (c.blockedBy?.nodes ?? [])
 						.filter((b) => b.state === "OPEN")
 						.map((b) => ({ repo: b.repository.nameWithOwner, number: b.number })),
+					...(c.closedByPullRequestsReferences ? { closing: c.closedByPullRequestsReferences.nodes } : {}),
 				});
 			}
 			if (!page.pageInfo.hasNextPage) return items;
@@ -758,6 +767,7 @@ interface ItemsPage {
 			state: string;
 			repository: { nameWithOwner: string };
 			blockedBy?: { nodes: Array<{ number: number; state: string; repository: { nameWithOwner: string } }> };
+			closedByPullRequestsReferences?: { nodes: RawClosingPullRequest[] };
 		} | null;
 	}>;
 }

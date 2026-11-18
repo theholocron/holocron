@@ -1,6 +1,6 @@
 ---
 title: "reconcile project"
-description: Set the status of board items where a rule says so (blocked, unblocked, closed), and the hourly task that runs it.
+description: Set the status of board items where a rule says so (blocked, unblocked, closed, pull request open, pull request green), and the hourly task that runs it.
 ---
 
 ```bash
@@ -15,6 +15,11 @@ Reads every item of each board that `providers.projects` declares, and sets the 
 | open, in `blocked`, with no open blocker     | set to `planned` (`Todo`); the status it held before is unknown |
 | closed or merged, not in `done`              | set to the template's `done` status                             |
 | open, with no status                         | reported, not set: it needs a decision, not a rule              |
+| open, with an open linked pull request       | set to the template's `active` status (`In Progress`)           |
+| open, its pull request has a green aggregate | set to the template's `review` status (`In Review`)             |
+| in `review`, the aggregate failed            | set back to `active`                                            |
+
+The pull-request rules (spec `tech-board-status-automation`) read the pull requests that close the item (`BoardItem.pullRequests`; GitHub's `closedByPullRequestsReferences`, so a pull request in another repository counts as far as GitHub reports it) and the aggregate check run named `ci / Required checks` on each open one's head commit: `success` is green, `failure` is a failure, queued, in progress or cancelled is `pending`, and no run posted is `none`. A draft pull request is a pull request: it moves the item to `active`, and the draft state never holds back `review`. A `pending` aggregate leaves the status alone, so a push and re-run does not flicker the board; with no linked pull request nothing changes and the status a person set stays. With several open pull requests the item is `review` when any one is green, else `active`. The rules run after the first four and only on items those left alone, so a blocker always wins, a closed item goes to `done`, and an item whose status those just changed settles on the next run. They never change a status that is `done` or `blocked`.
 
 A rule names a status **category**, not a spelling: where a template has several statuses of one category the first in the template's order is used, and where it has none the item is reported and left alone. A closed item is set to `done` whatever its blockers say, and an open item with no status is reported even when it has a blocker.
 
@@ -23,14 +28,16 @@ v5 (roadmap)
   ✓ set #1782 Todo → Blocked (has an open blocker)
   ✓ set #1790 Blocked → Todo (no open blocker left)
   ✓ set #1701 In Progress → Done (closed)
+  ✓ set #1802 Todo → In Progress (a pull request is open)
+  ✓ set #1803 In Progress → In Review (its pull request is green)
   ⚠ #1795 has no status: needs a decision, left as it is
 
-3 ok, 0 fail, 0 skipped
+5 ok, 0 fail, 0 skipped
 ```
 
 `[board]` limits the run to one declared board, by name. `--dry-run` prints the plan with `would set` and calls no mutator. A refusal from the provider (a Jira workflow can refuse a transition) is a reported failure and the run goes on with the next item; the exit code is non-zero if any status could not be set. A provider without `items` or `setStatus` is skipped cleanly.
 
-The rules are one pure function, `planReconcile()`, so Sentinel can supply the same rules later; the command only reads, plans and applies.
+The rules are two pure functions, `planReconcile()` and `planPullRequestStatus()`, so Sentinel can supply the same rules later; the command only reads, plans and applies.
 
 ## Run on a schedule
 
