@@ -1,10 +1,13 @@
 ---
+id: SPEC-0095
 status: draft
 issue: theholocron/holocron#2352
 blocked-by: []
 related:
   - theholocron/holocron#2346
   - theholocron/holocron#2302
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572487596875980930
 ---
 
 # `holocron new domain`: take a DNS record, make it, keep it
