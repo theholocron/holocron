@@ -26,9 +26,11 @@ const codecovUploads = generateCodecovUploads(readWorkspacePackages(fileURLToPat
 	skills: "skills/lcov.info",
 });
 
+const description =
+	"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.";
+
 export default defineConfig({
-	description:
-		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
+	description,
 	homepage: `https://docs.${domain}/holocron/`,
 	org,
 	docs,
@@ -197,6 +199,11 @@ export default defineConfig({
 					{
 						name: "The Holocron",
 						slug: "theholocron",
+						description,
+						footer: "The Holocron: the status of Sentinel, Comlink and the docs site.",
+						privacyUrl: `https://docs.${domain}/holocron/legal/privacy/`,
+						termsUrl: `https://docs.${domain}/holocron/legal/terms/`,
+						supportUrl: `https://docs.${domain}/holocron/`,
 						automation: false,
 						components: [
 							{ name: "Sentinel", tags: ["sentinel"] },

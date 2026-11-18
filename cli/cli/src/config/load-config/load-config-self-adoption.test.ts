@@ -263,6 +263,11 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			{
 				name: "The Holocron",
 				slug: "theholocron",
+				description: (expected as unknown as { description: string }).description,
+				footer: "The Holocron: the status of Sentinel, Comlink and the docs site.",
+				privacyUrl: "https://docs.theholocron.dev/holocron/legal/privacy/",
+				termsUrl: "https://docs.theholocron.dev/holocron/legal/terms/",
+				supportUrl: "https://docs.theholocron.dev/holocron/",
 				automation: false,
 				components: [
 					{ name: "Sentinel", tags: ["sentinel"] },

@@ -149,6 +149,30 @@ describe("ensureStatusPage", () => {
 		expect(stub.calls.every((c) => c.method === "GET")).toBe(true);
 	});
 
+	it("writes the footer, the policy links and the support link in Checkly's names", async () => {
+		const { monitoring, stub } = capability([
+			list(page({ footerText: "old" })),
+			{ status: 200, body: page() }, // PUT
+			goodComponents(),
+			goodRules(),
+			active,
+		]);
+		const result = await monitoring.ensureStatusPage({
+			...INPUT,
+			footer: "The Holocron",
+			privacyUrl: "https://example.com/privacy/",
+			termsUrl: "https://example.com/terms/",
+			supportUrl: "https://example.com/",
+		});
+		expect(result.updated).toEqual(["footerText", "privacyPolicyLink", "termsOfServiceLink", "supportLink"]);
+		expect(stub.calls.find((c) => c.method === "PUT")?.body).toMatchObject({
+			footerText: "The Holocron",
+			privacyPolicyLink: "https://example.com/privacy/",
+			termsOfServiceLink: "https://example.com/terms/",
+			supportLink: "https://example.com/",
+		});
+	});
+
 	it("brings a page, a component's place and a rule in line without dropping what they hold", async () => {
 		const { monitoring, stub } = capability([
 			list(page({ isPrivate: true, logo: "https://example.com/l.png", url: "old" })),

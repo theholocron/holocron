@@ -1823,6 +1823,14 @@ export interface MonitoringStatusPageInput {
 	description?: string;
 	/** A picture (http or https URL). */
 	logo?: string;
+	/** Text in the page's footer. */
+	footer?: string;
+	/** A link to the privacy policy, in the footer (http or https URL). */
+	privacyUrl?: string;
+	/** A link to the terms of service, in the footer (http or https URL). */
+	termsUrl?: string;
+	/** A link to where people get help (http or https URL). */
+	supportUrl?: string;
 	/** Default false: the point of the page is that people can read it. */
 	private?: boolean;
 	/**
