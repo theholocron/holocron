@@ -10,6 +10,7 @@ import { doctorReleasesCommand, runDoctorReleases } from "../doctor-releases/ind
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
+import { doctorWikiCommand, runDoctorWiki } from "../doctor-wiki/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -171,6 +172,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorProjectCommand as never,
 		async run(input) {
 			const report = await runDoctorProject(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "wiki",
+		capability: "wiki",
+		command: doctorWikiCommand as never,
+		async run(input) {
+			const report = await runDoctorWiki(input);
 			return {
 				status: report.status,
 				summary: report.summary,

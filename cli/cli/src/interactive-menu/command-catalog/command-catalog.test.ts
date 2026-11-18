@@ -96,6 +96,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"project",
 			"github-app",
 			"logs",
+			"wiki",
 			"dns",
 			"repo",
 			"secrets",

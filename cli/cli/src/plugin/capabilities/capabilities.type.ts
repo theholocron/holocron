@@ -3045,6 +3045,42 @@ export interface WikiProxyConfig {
 	headers: Record<string, string>;
 }
 
+/** One address the wiki provider asked, and what came back. Never carries a body or a header. */
+export interface WikiProbe {
+	/** The address asked, without a scheme. */
+	url: string;
+	/** The HTTP status, when an answer came back. */
+	status?: number;
+	/** Why no answer came back (a timeout, a refused connection), when none did. */
+	error?: string;
+}
+
+/**
+ * The wiki as it stands, read without changing anything: the local config the provider publishes from, the sources
+ * it lists, and the live site. `holocron doctor wiki` turns it into rows.
+ */
+export interface WikiInspection {
+	/** The provider's organization: the one the config declares and the one in the provider's own config file (null when none is readable). */
+	organization: { declared: string; found: string | null };
+	/** The docs instance the config declares and the one written in the provider's docs file (null when there is no file). */
+	instance: {
+		expectedUrl: string;
+		foundUrl: string | null;
+		expectedDomain?: string;
+		foundDomain?: string | null;
+	} | null;
+	/** The site's own address and, when a custom domain is declared, the domain: each is asked once. */
+	site: WikiProbe[];
+	/**
+	 * The pages the navigation lists against the source files under `docs/wiki`: `missing` are listed but not on disk
+	 * (the publish would fail), `unlisted` are on disk but not listed (never published). Null when there is no
+	 * navigation to read.
+	 */
+	navigation: { listed: number; missing: string[]; unlisted: string[] } | null;
+	/** The published site's page index (its sitemap), compared with `navigation.listed`. Null when none could be asked. */
+	published: (WikiProbe & { pages?: number }) | null;
+}
+
 /**
  * Engineering wiki provider.
  *
@@ -3079,6 +3115,12 @@ export interface Wiki extends ProviderIdentity {
 	 * not "the token works".
 	 */
 	whoami?(): Promise<{ ok: boolean }>;
+	/**
+	 * Read the wiki without changing it: organization, docs instance, whether the site answers, navigation against
+	 * the sources and the published page index. Never writes, never sends a token. Optional — a provider that cannot
+	 * read its site omits it (`holocron doctor wiki` skips with that reason).
+	 */
+	inspect?(): Promise<WikiInspection>;
 }
 
 /** Config for `Workers.deployScript()` — an arbitrary Worker, not a generated reverse-proxy. */

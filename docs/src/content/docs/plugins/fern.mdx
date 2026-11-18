@@ -55,6 +55,10 @@ Running `holocron setup` with `providers.wiki: "fern"` performs three steps:
 Both `fern/` files are committed to the repo — the `publish-wiki` CI workflow reads
 them at deploy time.
 
+## What `holocron doctor wiki` checks
+
+[`holocron doctor wiki`](/holocron/commands/doctor-wiki/) reads the plugin's `inspect()`: it compares `fern/fern.config.json` and the `instances:` block of `fern/docs.yml` with the config, asks the instance address, the custom domain and the sitemap with one unauthenticated GET each (no token is sent), and compares the navigation's `path:` entries with the files under `docs/wiki`. It changes nothing.
+
 ## Custom domain and multi-source routing
 
 Add `"publish-wiki"` to your `tasks` list to get the thin caller of the `publish-wiki` workflow,

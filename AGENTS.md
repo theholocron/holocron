@@ -150,6 +150,10 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   optional `Logs.readDataset` (`exists`, `retentionDays`) and `Logs.checkToken`: only a 404 on a dataset and a 401 on the token
   fail, a name, token or response that cannot be read is a skip, retention is an `info` row (ADR-0019), and nothing is created
   or printed beyond names and numbers.
+  `doctor wiki` (#1560, `commands/doctor-wiki/`, `wikiRows()`) reads the optional `Wiki.inspect()` (`WikiInspection`: organization and `instances:`
+  of `fern/` against the config, one unauthenticated GET each for the instance, the custom domain and the sitemap, the navigation's `path:`
+  entries against `docs/wiki`): a mismatch the files or the site prove fails (a 404, a missing listed page, fewer published pages than listed),
+  a 401/403 passes as restricted, an unreachable site or a provider with no `inspect` is a skip, unlisted pages are an `info` row; no token is sent.
   `doctor github-app` (#1851) compares each `githubApps` entry (`{ name, manifest, environment }`, this repo's two Sentinel
   instances) with its manifest file: the App's id and key are read in memory from the vault environment (`Vault.readEnvironment`,
   never printed), `getApp()` and `listAppInstallations()` of `@theholocron/github-client` read the live App with its JWT, and a
