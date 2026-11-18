@@ -31,7 +31,7 @@ import type {
  * `mdx(value, config)`, both returning a `VFile` with real `.messages`).
  *
  * Named `lint:language / Run alex` (`sentinelCheckName()`,
- * `.notes/ci-sentinel-check-names.spec.md`): the group is the concern, the
+ * `docs/wiki/specifications/ci-sentinel-check-names.spec.md`): the group is the concern, the
  * action is the tool.
  */
 export const SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME = sentinelCheckName("lint:language", "Run alex");

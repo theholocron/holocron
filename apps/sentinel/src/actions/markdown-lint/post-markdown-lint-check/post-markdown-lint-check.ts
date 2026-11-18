@@ -31,7 +31,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * works directly on fetched file content — no checkout.
  *
  * Named `lint:markdown / Run markdownlint` (`sentinelCheckName()`,
- * `.notes/ci-sentinel-check-names.spec.md`).
+ * `docs/wiki/specifications/ci-sentinel-check-names.spec.md`).
  *
  * **Not purely advisory** (same treatment inclusive language got in
  * holocron#865, and static analysis in holocron#873): `conclusion:
