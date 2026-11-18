@@ -1,9 +1,12 @@
 ---
+id: SPEC-0096
 status: draft
 issue: theholocron/holocron#2365
 blocked-by: []
 related:
   - theholocron/holocron#2302
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572636372710334617
 ---
 
 # `doctor monitoring` names a check that no config declares
