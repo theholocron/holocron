@@ -413,6 +413,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	}
 
 	if (!result.handled) {
+		// GitHub's `ping` (sent when a webhook is made, and by "Redeliver") only proves the signature and the URL;
+		// answering it as handled tells the sender the delivery worked.
+		if (result.githubEvent === "ping") {
+			return json({ handled: true, type: "ping" });
+		}
 		return json({ handled: false, reason: result.reason });
 	}
 
