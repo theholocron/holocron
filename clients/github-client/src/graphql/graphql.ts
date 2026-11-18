@@ -1,6 +1,8 @@
 import { createRestClient, ProviderApiError, type RestClient } from "@theholocron/http-client";
 import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
+import { describeGraphQLErrors, type GraphQLErrorEntry } from "./describe-graphql-errors.js";
+
 /**
  * GitHub's GraphQL API has exactly one endpoint (`POST /graphql`, always) —
  * unlike REST's per-resource paths, there's nothing here for `createRestClient()`
@@ -18,7 +20,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 export interface GraphQLClient {
 	/**
 	 * Sends one query or mutation to `POST /graphql` and returns its `data`. Throws a `ProviderApiError` (status `200`, with the
-	 * response's `errors` array) when GitHub answers with errors, and the transport's own `ProviderApiError` for a network or HTTP failure.
+	 * distinct `errors` as a JSON string in `details`) when GitHub answers with errors, and the transport's own `ProviderApiError` for a network or HTTP failure.
 	 */
 	query<T>(document: string, variables?: Record<string, unknown>): Promise<T>;
 }
@@ -39,7 +41,7 @@ export interface GraphQLClientConfig {
 
 interface GraphQLResponse<T> {
 	data?: T;
-	errors?: Array<{ message: string }>;
+	errors?: GraphQLErrorEntry[];
 }
 
 /** A {@link GraphQLClient} for GitHub's GraphQL API, built on the shared REST transport. */
@@ -61,11 +63,9 @@ export function createGitHubGraphQLClient(config: GraphQLClientConfig): GraphQLC
 			});
 
 			if (result.errors && result.errors.length > 0) {
-				throw new ProviderApiError(
-					`GitHub GraphQL → ${result.errors.map((e) => e.message).join("; ")}`,
-					200,
-					result.errors
-				);
+				// GitHub repeats one error per node over a limit: say each distinct one once, and keep `details` a string.
+				const { distinct, text } = describeGraphQLErrors(result.errors);
+				throw new ProviderApiError(`GitHub GraphQL → ${text}`, 200, JSON.stringify(distinct));
 			}
 
 			// A well-formed GraphQL response always has `data` when `errors` is

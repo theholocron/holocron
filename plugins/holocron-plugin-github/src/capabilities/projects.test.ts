@@ -2,6 +2,7 @@ import type { BoardSummary, BoardTemplate } from "@theholocron/cli";
 import { describe, expect, it, vi } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
+import { readClosingPullRequests } from "./project-pull-requests.js";
 import { GitHubProjects } from "./projects.js";
 
 const REPO = "theholocron/holocron";
@@ -547,12 +548,12 @@ describe("GitHubProjects items and setStatus", () => {
 		]);
 	});
 
-	it("items carries the closing pull requests with the aggregate check of each open one's head commit", async () => {
-		const closing = (number: number, state: string, conclusion: string | null, repo = REPO) => ({
+	describe("pull requests, read in a second step", () => {
+		const closing = (number: number, state: string, conclusion: string | null) => ({
 			number,
 			state,
-			isDraft: number === 11,
-			repository: { nameWithOwner: repo },
+			isDraft: false,
+			repository: { nameWithOwner: REPO },
 			commits: {
 				nodes: [
 					{
@@ -580,45 +581,112 @@ describe("GitHubProjects items and setStatus", () => {
 				],
 			},
 		});
-		const { projects, calls } = endpoint([
-			[
-				"closedByPullRequestsReferences",
-				() =>
-					page([
-						item(
-							"A",
-							1,
-							"OPEN",
-							{ Status: "In Progress" },
-							{
-								closedByPullRequestsReferences: {
-									nodes: [closing(10, "OPEN", "SUCCESS"), closing(11, "OPEN", null)],
-								},
-							}
-						),
-						item(
-							"B",
-							2,
-							"OPEN",
-							{ Status: "Todo" },
-							{ closedByPullRequestsReferences: { nodes: [closing(12, "MERGED", "SUCCESS", "o/r")] } }
-						),
-						item("C", 3, "OPEN", { Status: "Todo" }, { closedByPullRequestsReferences: { nodes: [] } }),
-						item("D", 4, "OPEN", { Status: "Todo" }),
-					]),
-			],
-		]);
-		const items = await projects.items("org", BOARD, TEMPLATE);
-		expect(calls[0]!.query).toContain('checkName: "ci / Required checks"');
-		expect(items.map((i) => i.pullRequests)).toEqual([
-			[
-				{ key: "#10", state: "open", draft: false, checks: "success" },
-				{ key: "#11", state: "open", draft: true, checks: "none" },
-			],
-			[{ key: "o/r#12", state: "merged", draft: false, checks: "none" }],
-			[],
-			undefined,
-		]);
+		const issue = { __typename: "Issue" };
+		const answer = (nodes: unknown[]) => ({ node: { closedByPullRequestsReferences: { nodes } } });
+
+		it("keeps the items query free of pull requests and reads only the issues a rule could still move", async () => {
+			const { projects, calls } = endpoint([
+				[
+					"closedByPullRequestsReferences",
+					(v) => answer(v.id === "C1" ? [closing(10, "OPEN", "SUCCESS")] : []),
+				],
+				[
+					"query($id: ID!, $after",
+					() =>
+						page([
+							item("A", 1, "OPEN", { Status: "Todo" }, issue),
+							item("B", 2, "OPEN", { Status: "Done" }, issue),
+							item("C", 3, "CLOSED", { Status: "Todo" }, issue),
+							item("D", 4, "OPEN", { Status: "Todo" }, { __typename: "PullRequest" }),
+							item(
+								"E",
+								5,
+								"OPEN",
+								{ Status: "Todo" },
+								{
+									...issue,
+									blockedBy: {
+										nodes: [{ number: 9, state: "OPEN", repository: { nameWithOwner: REPO } }],
+									},
+								}
+							),
+							item("F", 6, "OPEN", {}, issue),
+							item("G", 7, "OPEN", { Status: "Blocked" }, issue),
+							item("H", 8, "OPEN", { Status: "Todo" }),
+						]),
+				],
+			]);
+			const items = await projects.items("org", BOARD, TEMPLATE);
+			const itemsQuery = calls.find((c) => c.query.includes("items(first"))!.query;
+			expect(itemsQuery).not.toContain("closedByPullRequestsReferences");
+			const reads = calls.filter((c) => c.query.includes("closedByPullRequestsReferences"));
+			expect(reads.map((c) => c.variables)).toEqual([{ id: "C1" }]);
+			expect(reads[0]!.query).toContain('checkName: "ci / Required checks"');
+			expect(reads[0]!.query).toContain("commits(last: 1)");
+			expect(items.map((i) => i.pullRequests)).toEqual([
+				[{ key: "#10", state: "open", draft: false, checks: "success" }],
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+			]);
+		});
+
+		it("reads each issue on its own, a few at a time, and keeps a merged pull request without its checks", async () => {
+			const issues = Array.from({ length: 9 }, (_, n) => item(`I${n}`, n + 1, "OPEN", { Status: "Todo" }, issue));
+			const { projects, calls } = endpoint([
+				[
+					"closedByPullRequestsReferences",
+					(v) => answer([closing(Number(String(v.id).slice(1)) + 100, "MERGED", "SUCCESS")]),
+				],
+				["query($id: ID!, $after", () => page(issues)],
+			]);
+			const items = await projects.items("org", BOARD, TEMPLATE);
+			expect(calls.filter((c) => c.query.includes("closedByPullRequestsReferences"))).toHaveLength(9);
+			expect(items[0]!.pullRequests).toEqual([{ key: "#101", state: "merged", draft: false, checks: "none" }]);
+		});
+
+		it("leaves an issue whose read failed with no pull requests and says why, and still reads the others", async () => {
+			const { projects } = endpoint([
+				[
+					"closedByPullRequestsReferences",
+					(v) => {
+						if (v.id === "C1") throw new TypeError("network down");
+						if (v.id === "C2") return { node: null };
+						return answer([closing(10, "OPEN", null)]);
+					},
+				],
+				[
+					"query($id: ID!, $after",
+					() =>
+						page([
+							item("A", 1, "OPEN", { Status: "Todo" }, issue),
+							item("B", 2, "OPEN", { Status: "Todo" }, issue),
+							item("C", 3, "OPEN", { Status: "Todo" }, issue),
+						]),
+				],
+			]);
+			const items = await projects.items("org", BOARD, TEMPLATE);
+			expect(items[0]).not.toHaveProperty("pullRequests");
+			expect(items[0]!.pullRequestsProblem).toContain("network down");
+			expect(items[1]).not.toHaveProperty("pullRequests");
+			expect(items[1]!.pullRequestsProblem).toBe("GitHub returned no pull request list");
+			expect(items[2]).toMatchObject({ pullRequests: [{ key: "#10", checks: "none" }] });
+			expect(items[2]).not.toHaveProperty("pullRequestsProblem");
+		});
+
+		it("reads a thrown value that is not an Error as text", async () => {
+			const graphql = {
+				query: async () => {
+					throw "plain text";
+				},
+			};
+			const results = await readClosingPullRequests(graphql as never, ["X"], (_r, n) => `#${n}`);
+			expect(results.get("X")).toEqual({ problem: "plain text" });
+		});
 	});
 
 	it("items carries the priority of a P-level or a named option, and none for anything else", async () => {

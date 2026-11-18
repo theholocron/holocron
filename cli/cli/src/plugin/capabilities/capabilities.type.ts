@@ -3632,6 +3632,8 @@ export interface BoardItem {
 	priority?: IssuePriority;
 	/** The pull requests that close this issue, when the provider reads them. */
 	pullRequests?: BoardPullRequest[];
+	/** Why the provider could not read the pull requests of this item; the pull-request rules are then not applied to it. */
+	pullRequestsProblem?: string;
 }
 
 /** The state of the aggregate required check on a pull request's head commit. */

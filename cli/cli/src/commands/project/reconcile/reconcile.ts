@@ -107,6 +107,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 
 		let board: BoardSummary | undefined;
 		let plan: ReturnType<typeof planReconcile>;
+		const problems: string[] = [];
 		try {
 			board = await projects.find(owner, declared.name);
 			if (!board) {
@@ -115,6 +116,12 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 			}
 			const items = await projects.items(owner, board, template);
 			plan = planReconcile(items, template);
+			for (const item of items) {
+				if (item.pullRequestsProblem === undefined) continue;
+				problems.push(
+					`${item.key} pull requests could not be read (${item.pullRequestsProblem}): their rules were not applied`
+				);
+			}
 			// The pull-request rules run after, on items that rule left alone; a changed item settles on the next run.
 			const settled = new Set([...plan.changes.map((c) => c.key), ...plan.unset.map((i) => i.key)]);
 			for (const item of items) {
@@ -157,6 +164,11 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 				failStep(change.key, describeError(err));
 				logger.warn({ board: declared.name, key: change.key, reason: logReason(err) }, "reconcile project");
 			}
+		}
+		for (const problem of problems) {
+			print(`  ${style.warn(problem)}`);
+			logger.warn({ board: declared.name, reason: problem }, "reconcile project");
+			skipped++;
 		}
 		for (const item of plan.unset) {
 			print(`  ${style.warn(`${item.key} has no status: needs a decision, left as it is`)}`);

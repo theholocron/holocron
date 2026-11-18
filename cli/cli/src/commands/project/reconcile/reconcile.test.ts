@@ -421,6 +421,23 @@ describe("runProjectReconcile", () => {
 			expect(report.boards[0]!.unset).toEqual(["#3"]);
 		});
 
+		it("reports an item whose pull requests could not be read, and still applies every other rule", async () => {
+			const projects = withPrs([
+				item({ key: "#1", status: "Todo", pullRequestsProblem: "network down" }),
+				item({ key: "#2", status: "Todo", blockedBy: ["#9"], pullRequestsProblem: "network down" }),
+				item({ key: "#3", status: "Todo", pullRequests: open("none") }),
+			]);
+			const { run, lines } = setup(projects);
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#2", "Blocked");
+			expect(projects.setStatus).toHaveBeenCalledWith("theholocron", BOARD, "#3", "In Progress");
+			expect(projects.setStatus).toHaveBeenCalledTimes(2);
+			const text = lines.join("\n");
+			expect(text).toContain("#1 pull requests could not be read (network down): their rules were not applied");
+			expect(text).toContain("#2 pull requests could not be read");
+		});
+
 		it("reports a pull-request rule whose category the template lacks, and sets nothing", async () => {
 			const template = JSON.stringify({
 				statuses: [
