@@ -647,6 +647,16 @@ export interface DiscordEmoji {
 	available?: boolean;
 }
 
+/** What `POST /guilds/{id}/emojis` takes. */
+export interface CreateEmojiInput {
+	/** The emoji's name, the `name` of `:name:`. */
+	name: string;
+	/** The image as a `data:` URI (`data:image/png;base64,...`). */
+	image: string;
+	/** Roles allowed to use the emoji; everyone when left out. */
+	roles?: string[];
+}
+
 /** What `POST /channels/{id}/invites` takes. */
 export interface CreateInviteInput {
 	/** Seconds until it expires; `0` never. Discord's default is 86400. */

@@ -20,6 +20,7 @@ import {
 	PluginLoader,
 } from "../../plugin/index.js";
 import { botPermissionChecks } from "../bot-permission-checks/index.js";
+import { emojiChecks } from "../emoji-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
 	layoutSecretNames,
@@ -29,6 +30,7 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
+import { reactionSpelling } from "../notifications-reaction/index.js";
 import { webhookAvatarOf } from "../notifications-setup/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import { notificationsWorkflowChecks } from "../notifications-workflow-checks/index.js";
@@ -259,9 +261,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					`#${shown(channel.name)}: is ${isForum ? "a text channel, and the layout says forum" : "a forum, and the layout says text"}; delete it so \`setup\` can make it again`
 				);
 			} else if (isForum) {
-				if (channel.defaultReaction && (match.defaultReaction ?? "") !== channel.defaultReaction) {
+				const wantReaction = channel.defaultReaction ? reactionSpelling(channel.defaultReaction) : undefined;
+				if (wantReaction && (match.defaultReaction ?? "") !== wantReaction) {
 					channelProblems.push(
-						`#${shown(channel.name)}: default reaction is ${match.defaultReaction ? `"${shown(match.defaultReaction)}"` : "not set"} but the layout says "${shown(channel.defaultReaction)}"`
+						`#${shown(channel.name)}: default reaction is ${match.defaultReaction ? `"${shown(match.defaultReaction)}"` : "not set"} but the layout says "${shown(wantReaction)}"`
 					);
 				}
 				for (const tag of channel.tags ?? []) {
@@ -849,6 +852,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 
 	// The bot's own role: it holds, server-wide, the permissions the provider says it needs. Read from `inspect`.
 	checks.push(...botPermissionChecks({ found }));
+
+	// The server emoji the forums' reactions name: each is on the server.
+	checks.push(...emojiChecks({ layout, found }));
 
 	// The forum Sentinel keeps one post per pull request in: it is there, has every state's tag, and the bot can run it.
 	checks.push(...prFeedChecks({ layout, found }));

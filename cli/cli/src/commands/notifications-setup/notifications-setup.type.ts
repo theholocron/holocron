@@ -16,6 +16,8 @@ export interface RunNotificationsSetupInput {
 	preloaded?: boolean;
 	/** Reads a webhook avatar as a `data:` URI. Defaults to {@link loadAvatar}; tests pass their own. */
 	loadAvatar?: (source: string) => Promise<string>;
+	/** Reads the picture a server emoji is made from as a `data:` URI. Defaults to `loadEmojiImage`; tests pass their own. */
+	loadEmojiImage?: (source: string) => Promise<string>;
 	/** Reads the built relay Worker. Defaults to the file system; tests pass their own. */
 	readRelayCode?: (path: string) => Promise<string>;
 	/**
@@ -45,6 +47,8 @@ export interface NotificationsSetupReport {
 	categories: string[];
 	channels: ChannelOutcome[];
 	roles: RoleOutcome[];
+	/** The server emoji the layout gives an image, and whether each was made now. Absent when it gives none. */
+	emojis?: Array<{ name: string; created: boolean }>;
 	/** One entry per step that threw; the run continues past them. */
 	failures: Array<{ step: string; message: string }>;
 	message?: string;

@@ -8,6 +8,8 @@ export {
 	type DiscordChannel,
 	type DiscordClient,
 	type DiscordClientOptions,
+	type DiscordDefaultReaction,
+	type DiscordEmoji,
 	type DiscordForumTag,
 	type DiscordOAuthClient,
 	type DiscordPermissionOverwrite,

@@ -48,8 +48,8 @@ export interface DiscussionDeps {
 	guild: () => string;
 	/** The server's channels, fetched once per run. */
 	channels: () => Promise<DiscordChannel[]>;
-	/** The reactions the layout wants on the first message of a new post in this forum; empty when none. */
-	starterReactions?: (channel: string) => string[];
+	/** The reactions the layout wants on the first message of a new post in this forum, as the reaction route takes them (a character, or `name:id`); empty when none. */
+	starterReactions?: (channel: string) => string[] | Promise<string[]>;
 	/** Whether this forum's messages show no link previews (the pull-request feed's, where they bury the post). */
 	suppressEmbeds?: (channel: string) => boolean;
 }
@@ -246,7 +246,7 @@ export class DiscordDiscussions {
 	 * missing reaction must not fail the sync.
 	 */
 	private async react(post: string, channel: string): Promise<void> {
-		for (const emoji of this.deps.starterReactions?.(channel) ?? []) {
+		for (const emoji of (await this.deps.starterReactions?.(channel)) ?? []) {
 			await this.deps
 				.bot()
 				.channels.addReaction(post, post, emoji)

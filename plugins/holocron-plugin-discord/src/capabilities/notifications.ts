@@ -7,6 +7,7 @@ import {
 	type EnsureDiscussionInput,
 	type EnsuredResource,
 	type EnsureWebhookResult,
+	layoutEmojis,
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsApplicationLayout,
@@ -17,9 +18,11 @@ import {
 	type NotificationsMember,
 	type NotificationsOnboardingLayout,
 	type NotificationsPinnedLayout,
+	type NotificationsReaction,
 	type NotificationsServerLayout,
 	type NotificationsSignIn,
 	type NotificationsWelcomeLayout,
+	parseReaction,
 	ProviderApiError,
 	type ServerInspection,
 } from "@theholocron/cli";
@@ -32,6 +35,8 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type DiscordDefaultReaction,
+	type DiscordEmoji,
 	type DiscordForumTag,
 	type DiscordOAuthClient,
 	type DiscordPermissionOverwrite,
@@ -329,6 +334,28 @@ export class DiscordNotifications implements Notifications {
 		const categoryName = new Map(
 			channels.filter((c) => c.type === ChannelType.Category).map((c) => [c.id, c.name] as const)
 		);
+		// The server's emoji, read only when a reaction names one: the names a forum's default reaction is spelled with.
+		let emojis: string[] | undefined;
+		let emojisError: string | undefined;
+		const emojiById = new Map<string, string>();
+		if (layoutEmojis(layout).length > 0) {
+			try {
+				const list = await bot.guilds.emojis(this.guild());
+				emojis = [];
+				for (const e of list) {
+					if (!e.id || !e.name) continue;
+					emojis.push(e.name);
+					emojiById.set(e.id, e.name);
+				}
+			} catch (err) {
+				emojisError = reason(err);
+			}
+		}
+		const reactionText = (r: DiscordDefaultReaction | null | undefined): string | undefined => {
+			if (r?.emoji_id)
+				return emojiById.get(r.emoji_id) ? `:${emojiById.get(r.emoji_id)}:` : `custom emoji ${r.emoji_id}`;
+			return r?.emoji_name || undefined;
+		};
 		const wantsWebhook = new Set(
 			(layout.categories ?? []).flatMap((c) =>
 				(c.channels ?? [])
@@ -380,8 +407,8 @@ export class DiscordNotifications implements Notifications {
 					? {
 							kind: "forum" as const,
 							tags: (c.available_tags ?? []).map(DiscordNotifications.tagOf),
-							...(c.default_reaction_emoji?.emoji_name
-								? { defaultReaction: c.default_reaction_emoji.emoji_name }
+							...(reactionText(c.default_reaction_emoji)
+								? { defaultReaction: reactionText(c.default_reaction_emoji)! }
 								: {}),
 						}
 					: {}),
@@ -556,6 +583,8 @@ export class DiscordNotifications implements Notifications {
 			categoryAccess,
 			...(botPermissions ? { botPermissions } : {}),
 			...(botPermissionsError ? { botPermissionsError } : {}),
+			...(emojis ? { emojis } : {}),
+			...(emojisError ? { emojisError } : {}),
 			...(server ? { server } : {}),
 			...(serverError ? { serverError } : {}),
 			...(welcome ? { welcome } : {}),
@@ -1117,9 +1146,11 @@ export class DiscordNotifications implements Notifications {
 			guild: () => this.guild(),
 			channels: () => this.channelList(),
 			starterReactions: (channel) =>
-				(this.opts.layout?.categories ?? [])
-					.flatMap((c) => c.channels ?? [])
-					.find((c) => DiscordNotifications.same(c.name, channel))?.starterReactions ?? [],
+				this.starterReactionTexts(
+					(this.opts.layout?.categories ?? [])
+						.flatMap((c) => c.channels ?? [])
+						.find((c) => DiscordNotifications.same(c.name, channel))?.starterReactions ?? []
+				),
 			suppressEmbeds: (channel) =>
 				Boolean(
 					(this.opts.layout?.categories ?? [])
@@ -1996,7 +2027,7 @@ export class DiscordNotifications implements Notifications {
 		access?: NotificationsAccess;
 		kind?: "text" | "forum";
 		tags?: NotificationsForumTag[];
-		defaultReaction?: string;
+		defaultReaction?: NotificationsReaction;
 	}): Promise<EnsuredResource> {
 		const forum = input.kind === "forum";
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
@@ -2007,6 +2038,11 @@ export class DiscordNotifications implements Notifications {
 				`\`${input.name}\` exists as ${forum ? "a text channel" : "a forum"}, and Discord cannot turn it into ${forum ? "a forum" : "a text channel"}. Delete it in Discord (its messages go with it), then run setup again`
 			);
 		}
+		// A server emoji is looked up before anything is written, so a name the server lacks stops here with its name.
+		const reaction =
+			forum && input.defaultReaction !== undefined
+				? await this.defaultReactionOf(input.defaultReaction)
+				: undefined;
 		const overwrites = input.access ? await this.overwritesFor(input.access) : undefined;
 		if (existing) {
 			// Already there: reconcile what the layout asks for (category, topic, access, tags), leave the rest.
@@ -2020,12 +2056,9 @@ export class DiscordNotifications implements Notifications {
 				patch.available_tags = tags;
 				updated.push("tags");
 			}
-			if (forum && input.defaultReaction !== undefined) {
-				const have = existing.default_reaction_emoji;
-				if (have?.emoji_name !== input.defaultReaction || have.emoji_id) {
-					patch.default_reaction_emoji = { emoji_id: null, emoji_name: input.defaultReaction };
-					updated.push("default reaction");
-				}
+			if (reaction && !DiscordNotifications.sameReaction(existing.default_reaction_emoji, reaction)) {
+				patch.default_reaction_emoji = reaction;
+				updated.push("default reaction");
 			}
 			if (parent && existing.parent_id !== parent) {
 				patch.parent_id = parent;
@@ -2046,14 +2079,88 @@ export class DiscordNotifications implements Notifications {
 			name: input.name,
 			type: forum ? ChannelType.Forum : ChannelType.Text,
 			...(forum && input.tags ? { available_tags: input.tags.map((t) => DiscordNotifications.tagInput(t)) } : {}),
-			...(forum && input.defaultReaction
-				? { default_reaction_emoji: { emoji_id: null, emoji_name: input.defaultReaction } }
-				: {}),
+			...(reaction ? { default_reaction_emoji: reaction } : {}),
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),
 			...(overwrites ? { permission_overwrites: overwrites } : {}),
 		});
 		return { id: made.id, created: true };
+	}
+
+	/**
+	 * Finds the server emoji with this name or makes it from `image` (a `data:` URI). One that exists is left exactly as it
+	 * is: never replaced, renamed or deleted, and the image is not compared with it. Making one needs Create Guild
+	 * Expressions; without it the error says so and carries the link that invites the bot again asking for it.
+	 */
+	async ensureEmoji(input: { name: string; image: string }): Promise<EnsuredResource> {
+		const bot = this.bot();
+		const have = (await bot.guilds.emojis(this.guild())).find((e) => e.id && e.name === input.name);
+		if (have?.id) return { id: have.id, created: false };
+		try {
+			const made = await bot.guilds.createEmoji(this.guild(), { name: input.name, image: input.image });
+			return { id: made.id!, created: true };
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 403) {
+				throw new Error(
+					`Discord refused: the bot lacks Create Guild Expressions, which making emoji \`:${input.name}:\` needs. Invite it again with it (updates its role in place): ${await this.inviteUrl()}`,
+					{ cause: err }
+				);
+			}
+			throw err;
+		}
+	}
+
+	/** The server emoji with this name, or an error naming it and the two ways to get one. */
+	private async emojiNamed(name: string): Promise<DiscordEmoji & { id: string }> {
+		const emoji = (await this.bot().guilds.emojis(this.guild())).find((e) => e.id && e.name === name);
+		if (!emoji?.id) {
+			throw new Error(
+				`the server has no emoji named \`:${name}:\`; add it in the server's settings, or give the reaction an \`image\` so setup can make it`
+			);
+		}
+		return emoji as DiscordEmoji & { id: string };
+	}
+
+	/** A layout reaction as Discord's default reaction takes it: the emoji id of a server emoji, or the Unicode character; never both. */
+	private async defaultReactionOf(reaction: NotificationsReaction): Promise<DiscordDefaultReaction> {
+		const parsed = parseReaction(reaction);
+		if (parsed.kind === "unicode") return { emoji_id: null, emoji_name: parsed.value };
+		return { emoji_id: (await this.emojiNamed(parsed.name)).id, emoji_name: null };
+	}
+
+	/**
+	 * Whether a forum's default reaction is the wanted one. A server emoji is compared by its id alone (Discord may or may
+	 * not echo its name); a Unicode one by its character, with no id.
+	 */
+	private static sameReaction(
+		have: DiscordDefaultReaction | null | undefined,
+		want: DiscordDefaultReaction
+	): boolean {
+		if (want.emoji_id) return have?.emoji_id === want.emoji_id;
+		return !have?.emoji_id && have?.emoji_name === want.emoji_name;
+	}
+
+	/**
+	 * The starter reactions as the text the reaction route takes: the character of a Unicode emoji, `name:id` of a server
+	 * one. One the server lacks (or whose list cannot be read) is left out, like any reaction that fails: the post is made
+	 * and `doctor notifications` names the missing emoji.
+	 */
+	private async starterReactionTexts(reactions: NotificationsReaction[]): Promise<string[]> {
+		const texts: string[] = [];
+		let emojis: DiscordEmoji[] | undefined;
+		for (const reaction of reactions) {
+			const parsed = parseReaction(reaction);
+			if (parsed.kind === "unicode") {
+				texts.push(parsed.value);
+				continue;
+			}
+			emojis ??= await this.bot()
+				.guilds.emojis(this.guild())
+				.catch(() => []);
+			const emoji = emojis.find((e) => e.id && e.name === parsed.name);
+			if (emoji?.id) texts.push(`${emoji.name}:${emoji.id}`);
+		}
+		return texts;
 	}
 
 	/** Finds the webhook with this name on the channel, or creates it; the optional avatar is the picture it posts with. */

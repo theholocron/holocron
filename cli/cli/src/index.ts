@@ -10,6 +10,7 @@ export type {
 } from "./commands/auth/index.js";
 // What `holocron sync` writes to `codecov.yml`, by name, for a coverage provider's `checkRepo()` (#2167).
 export * from "./commands/coverage-expectations/index.js";
+export * from "./commands/notifications-reaction/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
 export * from "./commands/setup/derived-properties/index.js";
 export { CANONICAL_LABELS } from "./commands/setup/labels.js";
