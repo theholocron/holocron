@@ -653,3 +653,47 @@ describe("VercelDeployment.deletePreviewDeployments", () => {
 		expect((err as ProviderApiError).status).toBe(403);
 	});
 });
+
+describe("VercelDeployment.latestDeployment and listDomains", () => {
+	const dpl = (id: string, extra: Record<string, unknown> = {}) => ({
+		id,
+		url: `${id}.vercel.app`,
+		readyState: "READY",
+		createdAt: 1700000000000,
+		...extra,
+	});
+
+	it("returns the newest production deployment with its time, skipping previews", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					deployments: [dpl("prev"), dpl("prod", { target: "production", readyState: "ERROR" })],
+					pagination: {},
+				},
+			},
+		]);
+		expect(await deployment.latestDeployment("sentinel")).toMatchObject({
+			id: "prod",
+			status: "error",
+			target: "production",
+			createdAt: "2023-11-14T22:13:20.000Z",
+		});
+		expect(calls[0]?.url).toContain("projectId=sentinel");
+	});
+
+	it("is null with no production deployment", async () => {
+		const { deployment } = makeDeployment([{ status: 200, body: { deployments: [dpl("prev")] } }]);
+		expect(await deployment.latestDeployment("sentinel")).toBeNull();
+	});
+
+	it("lists the project's domain names", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.example.dev", apexName: "example.dev", verified: true }] },
+			},
+		]);
+		expect(await deployment.listDomains("sentinel")).toEqual(["sentinel.example.dev"]);
+	});
+});

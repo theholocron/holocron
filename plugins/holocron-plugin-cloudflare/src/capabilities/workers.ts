@@ -2,6 +2,7 @@ import type {
 	DeployScriptConfig,
 	DeployScriptResult,
 	WikiProxyConfig,
+	WorkerDeploymentState,
 	Workers,
 	WorkerScriptState,
 } from "@theholocron/cli";
@@ -73,6 +74,22 @@ export class CloudflareWorkers implements Workers {
 			routes: routes.filter((r) => r.script === name).map((r) => r.pattern),
 			bindingNames: secrets.map((secret) => secret.name),
 		};
+	}
+
+	/** The newest deployment of the script, and whether it serves all traffic. Reads only. */
+	async latestDeployment(script: string): Promise<WorkerDeploymentState | null> {
+		const deployments = await this.client().workers.listDeployments(this.accountId, script);
+		const [newest] = [...deployments].sort((a, b) => b.created_on.localeCompare(a.created_on));
+		if (!newest) return null;
+		return {
+			id: newest.id,
+			createdAt: newest.created_on,
+			active: newest.versions.length > 0 && newest.versions.some((v) => v.percentage === 100),
+		};
+	}
+
+	proxyScriptName(hostname: string): string {
+		return hostnameToScriptName(hostname);
 	}
 
 	/** Idempotent create-or-update for one route pattern — shared by both public methods. */

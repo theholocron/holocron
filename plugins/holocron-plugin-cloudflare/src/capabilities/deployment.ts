@@ -144,6 +144,24 @@ export class CloudflareDeployment implements Deployment {
 		return null;
 	}
 
+	/** The hostnames attached to the Pages project. Reads only. */
+	async listDomains(projectId: string): Promise<string[]> {
+		return (await this.client().pages.listDomains(this.accountId, projectId)).map((d) => d.name);
+	}
+
+	/** The newest production deployment of the project, or null. Reads only. */
+	async latestDeployment(projectId: string): Promise<DeploymentRecord | null> {
+		const all = await this.client().pages.listDeployments(this.accountId, projectId);
+		const [newest] = all
+			.filter((d) => d.environment === "production")
+			.sort((a, b) => b.created_on.localeCompare(a.created_on));
+		if (!newest) return null;
+		return {
+			...mapDeployment(newest, projectId, newest.deployment_trigger.metadata.branch, "production"),
+			createdAt: newest.created_on,
+		};
+	}
+
 	// ── internals ───────────────────────────────────────────────────────
 
 	private async getProjectByName(name: string): Promise<DeploymentProject | null> {

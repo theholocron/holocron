@@ -189,6 +189,22 @@ export class VercelDeployment implements Deployment {
 		return found;
 	}
 
+	/** The newest production deployment of the project in its latest page of deployments, or null. Reads only. */
+	async latestDeployment(projectId: string): Promise<DeploymentRecord | null> {
+		const { deployments } = await this.client().deployments.list({ projectId });
+		const newest = deployments.find((d) => d.target === "production");
+		if (!newest) return null;
+		return {
+			...mapDeployment(newest, newest.meta?.githubCommitRef ?? null),
+			...(newest.createdAt ? { createdAt: new Date(newest.createdAt).toISOString() } : {}),
+		};
+	}
+
+	/** The hostnames attached to the project. Reads only. */
+	async listDomains(projectId: string): Promise<string[]> {
+		return (await this.client().domains.list(projectId)).domains.map((d) => d.name);
+	}
+
 	/** Deletes the deployments by id; one already gone (404) is not counted and is not an error. */
 	async deletePreviewDeployments(_projectId: string, deploymentIds: string[]): Promise<number> {
 		let deleted = 0;

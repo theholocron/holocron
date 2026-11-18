@@ -1,0 +1,32 @@
+---
+title: "doctor workers"
+description: Check the declared Workers and deployment projects exist, have their route and bindings, and deployed healthily. Read-only.
+---
+
+```bash
+holocron doctor workers
+```
+
+A Worker or a Pages or Vercel project can be declared and still be missing its route, a binding, its domain, or a working deployment, and the first sign is traffic that fails. This check asks the `workers` and `deployment` providers about what the config declares. It changes nothing, deploys nothing, prints names, hostnames and times only (never a secret value or a token), and exits non-zero only while a row fails.
+
+## What is declared
+
+- **Workers**: the relay Worker of a notifications layout that feeds an error tracker (its `relay.script`, default `comlink`, serving `relay.host`), and the reverse proxy of a wiki that has a custom domain behind one. The relay's answers, webhook and tracker rows stay in [`doctor notifications`](/holocron/commands/doctor-notifications/).
+- **Deployment projects**: the project `holocron setup` makes, which is the preview project when the config carries a preview, otherwise one named like the repo, with the provider's own `domain`.
+
+## The rows
+
+| Row                                            | Passes when                                                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<name> Worker is deployed and routed`         | the script exists and has a route for its host. A missing script or route fails                                                                                    |
+| `<name> Worker has its bindings`               | every binding the relay reads for the tracker is bound, by name (a value is never read)                                                                            |
+| `<name> Worker's latest deployment is healthy` | the newest deployment serves all of the script's traffic. One split between versions fails                                                                         |
+| `<project> project exists`                     | the deployment provider lists the project. A missing one fails and names `holocron setup`                                                                          |
+| `<project> has its custom domain`              | the declared domain is attached to the project (only when one is declared)                                                                                         |
+| `<project> latest deployment is healthy`       | the newest production deployment is `ready`. An errored one fails with the provider's reason; one building, queued or cancelled is information, and none is a skip |
+
+## What is skipped, and what fails
+
+Only what the provider proves wrong fails. A missing token, a 401 or 403 (the token may not reach it), a provider that cannot read Workers, list domains or list deployments, and a plugin that failed to load are skips with the reason. With no Worker declared the Worker side is one passing row, and with no `deployment` provider the project side is a skip.
+
+`holocron doctor --all` runs it with the other deep checks.
