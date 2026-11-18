@@ -1,10 +1,13 @@
 ---
+id: SPEC-0098
 status: draft
 issue: theholocron/holocron#2407
 blocked-by: []
 related:
   - theholocron/holocron#1200
   - theholocron/holocron#1202
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1572744129442611301
 ---
 
 # The root's workspace dependencies make every package affected
