@@ -49,6 +49,13 @@ describe("writeMarker", () => {
 		expect(run).toHaveBeenCalledOnce();
 	});
 
+	it("falls back to the exit status when a failed tag or push printed nothing", () => {
+		const tagFails = vi.fn<Run>(() => result(128));
+		expect(writeMarker(tagFails, "/repo", "deployed/x", "new")).toBe("couldn't tag deployed/x: 128");
+		const pushFails = vi.fn<Run>((_c, args) => (args[0] === "tag" ? result(0) : result(2)));
+		expect(writeMarker(pushFails, "/repo", "deployed/x", "new")).toBe("couldn't push deployed/x: 2");
+	});
+
 	it("reports a push that fails", () => {
 		const run = vi.fn<Run>((_c, args) => (args[0] === "tag" ? result(0) : result(1, "", "denied")));
 		expect(writeMarker(run, "/repo", "deployed/x", "new")).toBe("couldn't push deployed/x: denied");
