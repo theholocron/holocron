@@ -120,6 +120,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `holocron project` (`commands/project/`, one parent, `project.command.ts`) has `list`, `create`, `close` and `setup`; each
   is `project-<name>/` and loads the provider through `openProjects()`; a new subcommand is one `.command()` there plus a
   `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry.
+  `holocron project status <issue> <status> [--board]` (`commands/project/project-status/`, #2388, spec `tech-board-status-automation`) is the one command under the real `project` group (`project.command.ts`; the others are verb-first, `close project`, `setup project`): it matches the issue key (`#12`, `12`, `owner/repo#12`, a tracker key) to a board item, checks the status against the template (any case, the valid names listed on a miss), and calls `Projects.setStatus` only. It never adds an item (it says how), asks nothing, and `--dry-run` prints the change.
   `holocron doctor project [--post]` (a `DEEP_CHECKS` entry, `commands/doctor-project/`) compares each declared board
   with its template, one row per status list, field, view and rule; what a board has beyond its template and the items
   `reconcile` would fix are `info` rows (shown as skipped), never a failure, and `--post` reuses `postDoctorReport()`.

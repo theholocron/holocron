@@ -852,6 +852,7 @@ holocron new tunnel --name sentinel-dev --hostname sentinel-dev.example.dev --po
 holocron list projects           # the org's project boards (also: create [template], close <number-or-name>, setup)
 holocron migrate project v5 --from github --to github:repo=acme/new --dry-run  # preview putting a board's issues on a board of the same name in the target (GitHub; --template picks the template a missing board is made from, default roadmap); a target without boards (Linear) gets a project of that name instead
 holocron migrate issues --all --from github --to linear:team=ENG --limit 20 --order newest --dry-run  # a trial run: read only the 20 last-created issues (--order oldest, the default, reads the first created); prints `limited to 20 of M`, and a second run with the same limit selects the same issues (`migrate issues` and `migrate project`, and `sync issues`; not `migrate issue`)
+holocron project status 1234 "In Progress"  # set an issue's status on the board by its key (a status of the board's template; --board picks one of several; --dry-run prints the change; asks nothing; the issue must already be on the board)
 holocron move issues v4 v5 --dry-run  # preview carrying the open items of one project board to another; without --dry-run it asks first (--yes skips)
 holocron doctor project         # does each declared board match its template? (read-only; --post shares the failures)
 holocron dev                    # the app, its vault variables and the tunnel, in one command (settings: `dev` in holocron.config)

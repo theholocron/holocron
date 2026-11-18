@@ -8,6 +8,7 @@ holocron list projects
 holocron new project roadmap --title "v5"
 holocron close project 7
 holocron setup project
+holocron project status 1234 "In Progress"
 ```
 
 `project` manages boards through the `projects` provider (GitHub Projects v2 today). A board is found by its name among the owner's open boards; no project number is stored anywhere.
@@ -57,11 +58,16 @@ Makes each board in `providers.projects.boards` match its template. For each: fi
 
 What the provider cannot do itself (turning on an automation rule, say) comes back as a todo, and every todo fails the run until a person has done it. A board that fails does not stop the next one; the run ends with a count of `ok`, `fail` and `skip` rows and exits non-zero if any row is `fail`.
 
+## `project status <issue> <status> [--board <name>]`
+
+Sets one item's status on a declared board by the issue's key. See [`project status`](/holocron/commands/project-status/).
+
 ## Options
 
-| Option      | Applies to                 | What it does                                                    |
-| ----------- | -------------------------- | --------------------------------------------------------------- |
-| `--title`   | `create`                   | The board's title. Defaults to the template's name.             |
-| `--yes`     | `create`, `close`          | Skip the question; for `create`, print an existing board's URL. |
-| `--org`     | all                        | The owner of the boards.                                        |
-| `--dry-run` | `create`, `close`, `setup` | Say what would change and call nothing that writes.             |
+| Option      | Applies to                           | What it does                                                    |
+| ----------- | ------------------------------------ | --------------------------------------------------------------- |
+| `--title`   | `create`                             | The board's title. Defaults to the template's name.             |
+| `--yes`     | `create`, `close`                    | Skip the question; for `create`, print an existing board's URL. |
+| `--org`     | all                                  | The owner of the boards.                                        |
+| `--board`   | `status`                             | The declared board to use. Defaults to the first one.           |
+| `--dry-run` | `create`, `close`, `setup`, `status` | Say what would change and call nothing that writes.             |
