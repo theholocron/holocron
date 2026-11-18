@@ -155,6 +155,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   of `fern/` against the config, one unauthenticated GET each for the instance, the custom domain and the sitemap, the navigation's `path:`
   entries against `docs/wiki`): a mismatch the files or the site prove fails (a 404, a missing listed page, fewer published pages than listed),
   a 401/403 passes as restricted, an unreachable site or a provider with no `inspect` is a skip, unlisted pages are an `info` row; no token is sent.
+  `doctor errors` (#1562, `commands/doctor-errors/`, `errorsRows()`) reads the optional `Errors.inspect()` (`ErrorsInspection`: the organization, and for each project a layout's `relay.errors.projects` declares, whether it exists, has a client key and how many enabled alert rules watch it; counts only, never a DSN or key) and fails a missing organization, project or key and a project no enabled rule watches; a missing token or `org`, or alert rules the token cannot read, is a skip. The relay's integration and rule stay `doctor notifications`' rows. Releases and sourcemap wiring are not declared in the config, so not checked.
   `doctor github-app` (#1851) compares each `githubApps` entry (`{ name, manifest, environment }`, this repo's two Sentinel
   instances) with its manifest file: the App's id and key are read in memory from the vault environment (`Vault.readEnvironment`,
   never printed), `getApp()` and `listAppInstallations()` of `@theholocron/github-client` read the live App with its JWT, and a

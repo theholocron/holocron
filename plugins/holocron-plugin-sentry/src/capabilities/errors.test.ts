@@ -225,3 +225,23 @@ describe("SentryErrors.inspectRelay", () => {
 		await expect(errors.inspectRelay(ask)).rejects.toThrow(/requires `org`/);
 	});
 });
+
+describe("SentryErrors.inspect", () => {
+	it("throws when no org is configured", async () => {
+		const { errors } = makeErrors([], {});
+		const err = await errors.inspect({ projects: ["a"] }).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/requires `org`/);
+	});
+
+	it("reads the org and a missing project through the client", async () => {
+		const { errors, calls } = makeErrors([
+			{ body: { id: "1", slug: ORG, name: "My Org" } },
+			{ status: 404, body: { detail: "Not Found" } },
+		]);
+		expect(await errors.inspect({ projects: ["gone"] })).toEqual({
+			org: { slug: ORG, exists: true, name: "My Org" },
+			projects: [{ slug: "gone", exists: false }],
+		});
+		expect(calls).toHaveLength(2);
+	});
+});

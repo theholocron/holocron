@@ -176,6 +176,37 @@ describe("the wiki entry", () => {
 	});
 });
 
+const runDoctorErrors = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-errors/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-errors/index.js")>()),
+	runDoctorErrors,
+}));
+
+describe("the errors entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const errors = DEEP_CHECKS.find((c) => c.name === "errors")!;
+
+	it("compares the errors capability and reports the run's status and counts", async () => {
+		expect(errors.capability).toBe("errors");
+		runDoctorErrors.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 3, fail: 1, skip: 1 } });
+		expect(await errors.run(input)).toEqual({ status: "fail", summary: { ok: 3, fail: 1, skip: 1 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorErrors.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `errors` provider is configured",
+		});
+		expect(await errors.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `errors` provider is configured",
+		});
+	});
+});
+
 describe("the logs entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const logs = DEEP_CHECKS.find((c) => c.name === "logs")!;

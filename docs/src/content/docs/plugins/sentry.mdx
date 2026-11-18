@@ -12,6 +12,10 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <CapabilitiesTable rows={[{ capability: "errors", token: "HOLOCRON_SENTRY_TOKEN (sentry)" }]} />
 
+## What `holocron doctor errors` checks
+
+[`holocron doctor errors`](/holocron/commands/doctor-errors/) reads the plugin's `inspect()`: the organization, and for each declared project whether it exists, has a client key and is watched by an enabled alert rule. It reads and counts only, so no DSN or key is returned.
+
 ## Self-contained activation
 
 The Sentry plugin activates automatically at runtime when `HOLOCRON_SENTRY_DSN`

@@ -1472,6 +1472,50 @@ export interface Errors extends ProviderIdentity {
 	 * Optional — a provider with no relay omits it.
 	 */
 	inspectRelay?(input: InspectRelayInput): Promise<RelayState>;
+	/**
+	 * Read the tracker's organization and the named projects without changing anything: whether each exists, whether it
+	 * has a client key (a DSN to give an SDK) and how many enabled alert rules watch it. Never returns a DSN or a key.
+	 * `holocron doctor errors` uses it. Optional — a provider with no management API omits it.
+	 */
+	inspect?(input: InspectErrorsInput): Promise<ErrorsInspection>;
+}
+
+/** What {@link Errors.inspect} reads. */
+export interface InspectErrorsInput {
+	/** The project slugs to look for. */
+	projects: string[];
+}
+
+/** The organization {@link Errors.inspect} asked for. */
+export interface ErrorsOrgState {
+	/** The slug that was asked for. */
+	slug: string;
+	/** Whether the provider has an organization by that slug. */
+	exists: boolean;
+	/** Its display name, when it exists. */
+	name?: string;
+}
+
+/** One project {@link Errors.inspect} looked for. */
+export interface ErrorsProjectState {
+	/** The project slug that was asked for. */
+	slug: string;
+	/** Whether the project exists in the organization. */
+	exists: boolean;
+	/** Whether it has at least one client key (a DSN). Undefined when the project is missing. */
+	hasDsn?: boolean;
+	/** How many enabled alert rules watch its issues. Undefined when the project is missing or the rules could not be read. */
+	alertRules?: number;
+}
+
+/** The tracker as the provider holds it. Carries counts and booleans only: no DSN, key or token. */
+export interface ErrorsInspection {
+	/** The organization asked for, and whether the provider has it. */
+	org: ErrorsOrgState;
+	/** One entry per requested project, in the order asked. */
+	projects: ErrorsProjectState[];
+	/** Why the alert rules could not be read (a token without the scope), when that is so. */
+	alertsUnreadable?: string;
 }
 
 /** What {@link Errors.ensureRelay} sets up at the error tracker. */

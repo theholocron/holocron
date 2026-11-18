@@ -92,6 +92,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor logs": "workspace",
 	// Reads the wiki's own files and site through the `wiki` provider.
 	"doctor wiki": "workspace",
+	// Reads the tracker's organization, projects and alert rules through the `errors` provider.
+	"doctor errors": "workspace",
 	// Reads the vault environment that holds each App's id and key, through the `vault` provider.
 	"doctor github-app": "workspace",
 	// `move issues` calls the `projects` provider, so its package must be resolvable.
