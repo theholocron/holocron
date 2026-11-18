@@ -1,3 +1,18 @@
+## [5.0.0-alpha.475](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.474...v5.0.0-alpha.475) (2026-11-18)
+
+### Bug Fixes
+
+* **monitoring:** 🐛 send a status page update again without theme colours when the plan refuses CSS ([#2349](https://github.com/theholocron/holocron/issues/2349)) ([5368e0c](https://github.com/theholocron/holocron/commit/5368e0cd8b884a2a15ae7a09ef24ddc52a275a06)), closes [#2348](https://github.com/theholocron/holocron/issues/2348)
+* **monitoring:** 🐛 use the repo description for the dashboard ([#2350](https://github.com/theholocron/holocron/issues/2350)) ([b3de418](https://github.com/theholocron/holocron/commit/b3de4185b3aecd2edee86869ccf3ad447578ae7a)), closes [#2339](https://github.com/theholocron/holocron/issues/2339)
+
+### Documentation
+
+* **specs:** 📚️ 📝 holocron new domain, a DNS record taken, made and kept ([#2354](https://github.com/theholocron/holocron/issues/2354)) ([8994ac0](https://github.com/theholocron/holocron/commit/8994ac03c2a609f354f0b289eb4f890942a656aa)), closes [#2352](https://github.com/theholocron/holocron/issues/2352)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2356](https://github.com/theholocron/holocron/issues/2356)) ([18d4b3a](https://github.com/theholocron/holocron/commit/18d4b3ac9323f95de51566aa240f922333854719))
+
 ## [5.0.0-alpha.474](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.473...v5.0.0-alpha.474) (2026-11-18)
 
 ### Features
