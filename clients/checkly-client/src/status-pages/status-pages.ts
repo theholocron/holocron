@@ -13,7 +13,7 @@ export type StatusRuleImpact = "UNDER_MAINTENANCE" | "DEGRADED_PERFORMANCE" | "P
 export interface StatusPageInput {
 	/** The page's title. */
 	name: string;
-	/** The page's address segment on Checkly (`<url>.checkly-dashboards.com`). */
+	/** The page's address segment on Checkly (`<url>.checkly-status-page.com`). */
 	url: string;
 	/** Text under the title. */
 	description?: string | null;

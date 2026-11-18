@@ -289,7 +289,7 @@ config no longer lists (it stays active until removed by hand), or another dashb
   already reads a new area with no change) which keeps the config short but is a larger change.
 - **Checkly's plan.** The free plan refuses a private dashboard (`400`) and a custom domain on a status page (`402`),
   found when `holocron setup` first ran. This repo declares the dashboard public (`private: false`) and the page with no
-  `domain`, so it is served at `<slug>.checkly-dashboards.com`; the code's defaults (private, a custom domain) are
+  `domain`, so it is served at `<slug>.checkly-status-page.com`; the code's defaults (private, a custom domain) are
   unchanged, and a paid plan drops the two overrides. The free plan also refuses the automation rules (`403`), so a page
   can declare `automation: false` (default `true`): no rule is read or made, the doctor does not compare them and says
   incidents are opened by hand (#2324).
