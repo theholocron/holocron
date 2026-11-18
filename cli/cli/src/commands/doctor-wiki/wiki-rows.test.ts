@@ -84,6 +84,23 @@ describe("wikiRows", () => {
 		expect(byId(f)["wiki:domain"]).toBeUndefined();
 	});
 
+	it("names every unlisted page when there are five or fewer", () => {
+		const f = healthy();
+		f.navigation = { listed: 3, missing: [], unlisted: ["docs/wiki/a.md", "docs/wiki/b.md"] };
+		expect(byId(f)["wiki:unlisted"]!.detail).toContain("(docs/wiki/a.md, docs/wiki/b.md)");
+	});
+
+	it("lists at most five unlisted pages and says how many more there are", () => {
+		const f = healthy();
+		const unlisted = Array.from({ length: 7 }, (_, i) => `docs/wiki/p${i}.md`);
+		f.navigation = { listed: 3, missing: [], unlisted };
+		const detail = byId(f)["wiki:unlisted"]!.detail;
+		expect(detail).toContain(
+			"docs/wiki/p0.md, docs/wiki/p1.md, docs/wiki/p2.md, docs/wiki/p3.md, docs/wiki/p4.md and 2 more"
+		);
+		expect(detail).not.toContain("p5.md");
+	});
+
 	it("fails a listed page that is not on disk and says nothing of unlisted ones then", () => {
 		const f = healthy();
 		f.navigation = { listed: 3, missing: ["docs/wiki/a.md"], unlisted: ["docs/wiki/b.md"] };

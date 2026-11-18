@@ -38,6 +38,22 @@ async function run(fakes: {
 	return { report, text: lines.join("\n") };
 }
 
+describe("doctor wiki defaults", () => {
+	it("builds its own loader and prints to the console when it is given none", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		const report = await runDoctorWiki({
+			loaded: {
+				resolved: resolveConfig({ name: "demo", org: "acme", providers: {} } as never),
+				filepath: "/tmp/x",
+			},
+			context: { repoRoot: "/tmp" },
+		});
+		expect(report.status).toBe("skip");
+		expect(log).toHaveBeenCalled();
+		log.mockRestore();
+	});
+});
+
 describe("doctor wiki", () => {
 	it("passes when the wiki matches", async () => {
 		const { report, text } = await run({ wiki: { inspect: async () => healthy } });
