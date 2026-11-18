@@ -173,6 +173,45 @@ describe("ensureStatusPage", () => {
 		});
 	});
 
+	const CSS_402 = {
+		status: 402,
+		body: { message: "Custom CSS for status pages is not part of your plan. Upgrade your plan to use custom CSS." },
+	};
+
+	it("sends the update again without themeColors when the plan refuses custom CSS", async () => {
+		const { monitoring, stub } = capability([
+			list(page({ footerText: "old", themeColors: { light: {}, dark: {} } })),
+			CSS_402,
+			{ status: 200, body: page() }, // PUT again
+			goodComponents(),
+			goodRules(),
+			active,
+		]);
+		const result = await monitoring.ensureStatusPage({ ...INPUT, footer: "new" });
+		expect(result.updated).toEqual(["footerText"]);
+		const puts = stub.calls.filter((c) => c.method === "PUT");
+		expect(puts).toHaveLength(2);
+		expect(puts[0]?.body).toHaveProperty("themeColors");
+		expect(puts[1]?.body).not.toHaveProperty("themeColors");
+		expect(puts[1]?.body).toMatchObject({ footerText: "new" });
+	});
+
+	it("throws a 402 that is not about styling, and one when there are no theme colours to leave out", async () => {
+		const other = capability([
+			list(page({ footerText: "old", themeColors: {} })),
+			{ status: 402, body: { message: "Custom domains are not part of your plan" } },
+		]);
+		expect(
+			await other.monitoring.ensureStatusPage({ ...INPUT, footer: "new" }).catch((e: unknown) => e)
+		).toMatchObject({ status: 402 });
+		const none = capability([list(page({ footerText: "old" })), CSS_402]);
+		expect(
+			await none.monitoring.ensureStatusPage({ ...INPUT, footer: "new" }).catch((e: unknown) => e)
+		).toMatchObject({ status: 402 });
+		expect(other.stub.calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+		expect(none.stub.calls.filter((c) => c.method === "PUT")).toHaveLength(1);
+	});
+
 	it("brings a page, a component's place and a rule in line without dropping what they hold", async () => {
 		const { monitoring, stub } = capability([
 			list(page({ isPrivate: true, logo: "https://example.com/l.png", url: "old" })),

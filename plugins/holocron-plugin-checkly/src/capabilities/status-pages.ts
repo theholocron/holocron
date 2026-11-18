@@ -9,11 +9,12 @@
  * resource. With `automation: false` (a plan without automated incidents) no rule is read or made.
  */
 
-import type {
-	MonitoringStatusComponentInput,
-	MonitoringStatusPageInput,
-	MonitoringStatusPageResult,
-	MonitoringStatusPageState,
+import {
+	type MonitoringStatusComponentInput,
+	type MonitoringStatusPageInput,
+	type MonitoringStatusPageResult,
+	type MonitoringStatusPageState,
+	ProviderApiError,
 } from "@theholocron/cli";
 
 import type {
@@ -55,6 +56,23 @@ function writable(page: StatusPage): StatusPageInput {
 	const out: Record<string, unknown> = {};
 	for (const key of PAGE_FIELDS) if (page[key] !== undefined) out[key] = page[key];
 	return out as unknown as StatusPageInput;
+}
+
+/**
+ * Update the page. The free plan refuses a body that carries `themeColors` (402, "Custom CSS ... is not part of your
+ * plan"), and the page holds its default colours there, so that one refusal is sent again without them. A plan that
+ * accepts the whole body is unaffected, and any other refusal is thrown.
+ */
+async function putPage(api: ChecklyClient["statusPages"], id: string, body: StatusPageInput): Promise<StatusPage> {
+	try {
+		return await api.update(id, body);
+	} catch (err) {
+		const refused = err instanceof ProviderApiError && err.status === 402 && /css|theme/i.test(String(err.details));
+		if (!refused || body.themeColors === undefined) throw err;
+		const without = { ...body };
+		delete without.themeColors;
+		return api.update(id, without);
+	}
 }
 
 /** The page fields the config states, in Checkly's names. */
@@ -144,7 +162,7 @@ export async function ensureStatusPage(
 		const have = writable(page);
 		const changed = (Object.keys(wanted) as (keyof StatusPageInput)[]).filter((k) => have[k] !== wanted[k]);
 		if (changed.length > 0) {
-			page = await api.update(page.id, { ...have, ...wanted });
+			page = await putPage(api, page.id, { ...have, ...wanted });
 			pageUpdated.push(
 				...changed.map((k) => (k === "url" ? "slug" : k === "customDomain" ? "domain" : String(k)))
 			);
