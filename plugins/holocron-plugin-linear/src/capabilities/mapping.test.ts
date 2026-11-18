@@ -52,6 +52,7 @@ describe("categories", () => {
 	it("makes the state type a board category is created as", () => {
 		expect(stateTypeFor("backlog")).toBe("backlog");
 		expect(stateTypeFor("planned")).toBe("unstarted");
+		expect(stateTypeFor("review")).toBe("started");
 		expect(stateTypeFor("active")).toBe("started");
 		expect(stateTypeFor("blocked")).toBe("started");
 		expect(stateTypeFor("done")).toBe("completed");

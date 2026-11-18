@@ -16,6 +16,12 @@ export const ROADMAP_TEMPLATE: BoardTemplate = {
 		{ name: "Todo", category: "planned", color: "BLUE", description: "Planned and ready to be worked on" },
 		{ name: "In Progress", category: "active", color: "YELLOW", description: "Currently being worked on" },
 		{
+			name: "In Review",
+			category: "review",
+			color: "ORANGE",
+			description: "Pull request is green and waiting on review",
+		},
+		{
 			name: "Blocked",
 			category: "blocked",
 			color: "RED",

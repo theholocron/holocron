@@ -45,7 +45,7 @@ export const board = (name: string, over: Partial<BoardSummary> = {}): BoardSumm
 /** The live state of a board that matches the built-in `roadmap` template. */
 export const roadmapState = (summary: BoardSummary, over: Partial<BoardState> = {}): BoardState => ({
 	board: summary,
-	statuses: ["Someday", "Todo", "In Progress", "Blocked", "Done"],
+	statuses: ["Someday", "Todo", "In Progress", "In Review", "Blocked", "Done"],
 	fields: [{ name: "Priority", type: "single_select", options: ["1 · Now", "2 · Next", "3 · Process"] }],
 	views: [
 		{ name: "Active", layout: "board", filter: "-status:Someday -status:Done", default: true },

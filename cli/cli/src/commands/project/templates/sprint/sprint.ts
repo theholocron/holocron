@@ -6,6 +6,7 @@ export const SPRINT_TEMPLATE: BoardTemplate = {
 	statuses: [
 		{ name: "Todo", category: "planned", color: "BLUE" },
 		{ name: "In Progress", category: "active", color: "YELLOW" },
+		{ name: "In Review", category: "review", color: "ORANGE" },
 		{ name: "Blocked", category: "blocked", color: "RED" },
 		{ name: "Done", category: "done", color: "GREEN" },
 	],

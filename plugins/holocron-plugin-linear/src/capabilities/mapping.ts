@@ -64,6 +64,7 @@ export function stateTypeFor(category: BoardStatusCategory): LinearStateType {
 		case "planned":
 			return "unstarted";
 		case "active":
+		case "review":
 		case "blocked":
 			return "started";
 		case "done":

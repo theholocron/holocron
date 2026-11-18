@@ -17,6 +17,7 @@ const CATEGORY: Record<BoardStatusCategory, StatusCategory> = {
 	backlog: "open",
 	planned: "open",
 	active: "in-progress",
+	review: "in-review",
 	blocked: "in-progress",
 	done: "done",
 };
