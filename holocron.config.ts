@@ -189,7 +189,7 @@ export default defineConfig({
 				dashboards: [
 					{
 						name: "The Holocron",
-						description: "Holocron CLI status",
+						description,
 						tags: ["sentinel", "comlink", "docs"],
 						private: false,
 						domain: `status.${domain}`,
