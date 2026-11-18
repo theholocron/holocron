@@ -1,3 +1,13 @@
+## [5.0.0-alpha.481](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.480...v5.0.0-alpha.481) (2026-11-18)
+
+### Features
+
+* **cli:** 🩺 doctor wiki, check the Fern site, domain and published pages ([#2368](https://github.com/theholocron/holocron/issues/2368)) ([dae04fc](https://github.com/theholocron/holocron/commit/dae04fcd336320c3d538d1ad70fa8a0ca6fa8339)), closes [#1560](https://github.com/theholocron/holocron/issues/1560) [#1560](https://github.com/theholocron/holocron/issues/1560)
+
+### Refactoring
+
+* **monitoring:** ♻️ move the monitoring declaration to .holocron/monitoring.ts ([#2373](https://github.com/theholocron/holocron/issues/2373)) ([6751ac0](https://github.com/theholocron/holocron/commit/6751ac091be699d434fe85c074e6a2fcaa7f390c)), closes [#2372](https://github.com/theholocron/holocron/issues/2372)
+
 ## [5.0.0-alpha.480](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.479...v5.0.0-alpha.480) (2026-11-18)
 
 ### Features
