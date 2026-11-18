@@ -272,6 +272,28 @@ describe("ChecklyMonitoring", () => {
 			expect(stub.calls[0]?.url).toContain("page=1");
 		});
 
+		it("reads an empty assertion property as none", async () => {
+			const { capability } = makeCapability([
+				{
+					status: 200,
+					body: [
+						api({
+							request: {
+								url: "https://example.com",
+								method: "GET",
+								assertions: [
+									{ source: "STATUS_CODE", comparison: "EQUALS", property: "", target: "200" },
+								],
+							},
+						}),
+					],
+				},
+			]);
+			expect((await capability.listChecks())[0]?.assertions).toEqual([
+				{ source: "status_code", comparison: "equals", target: "200" },
+			]);
+		});
+
 		it("reads a check's tags back", async () => {
 			const { capability } = makeCapability([{ status: 200, body: [api({ tags: ["sentinel", "web"] })] }]);
 			expect((await capability.listChecks())[0]?.tags).toEqual(["sentinel", "web"]);

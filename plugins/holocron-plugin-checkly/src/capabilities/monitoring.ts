@@ -84,7 +84,8 @@ function fromChecklyCheck(check: ApiCheck): MonitoringCheckInput {
 			{
 				source,
 				comparison,
-				...(a.property !== undefined ? { property: a.property } : {}),
+				// Checkly sends `""` for a source with no property (a status code): that is none.
+				...(a.property ? { property: a.property } : {}),
 				...(a.target !== undefined ? { target: a.target } : {}),
 			} as MonitoringAssertion,
 		];
