@@ -5,8 +5,11 @@ import type { Capability } from "../../config/compose/index.js";
  * Contributes: GitHub source/CI/issues providers, strict branch protection,
  * and the standard task set, spoken as flat task ids: the `lint` suite's leaves
  * (`lint:code`, `lint:editorconfig`, `lint:markdown`, `lint:data`, `lint:commits`),
- * `format`, `scan:secrets`, `test:unit`, `scan:code`, `annotate`, `mark-stale`,
- * `greet`, `update-deps` and `label`. Does NOT include typecheck — add that separately.
+ * `format`, `scan:secrets`, `test:unit`, `scan:code`, `mark-stale`,
+ * `greet`, `update-deps` and `label`. `annotate` (ReviewDog) is no longer in the set: `lint:code` annotates eslint and
+ * actionlint findings with problem matchers only where `ci/matchers/*.json` exist (the shared workflow skips them
+ * otherwise), so a repo lists `annotate` itself to keep ReviewDog, or provides its own matchers. A repo that got the
+ * `annotate` caller from this preset must delete that generated workflow by hand (#2338).
  * The gating tasks (lint leaves, `format`, `scan:secrets`, `test:unit`) are marked
  * `required` — `holocron setup` derives their branch-protection check contexts from
  * the manifest. A repo overrides a task by listing it again; `compose()` also lets
@@ -47,7 +50,6 @@ export function node(): Capability {
 			{ name: "lint:commits", required: true },
 			{ name: "test:unit", required: true },
 			"scan:code",
-			"annotate",
 			"mark-stale",
 			"greet",
 			"update-deps",

@@ -36,10 +36,12 @@ describe("withNode() capability", () => {
 
 	it("contributes the baseline workflow set without typecheck", () => {
 		const names = (withNode().tasks ?? []).map((w) => (typeof w === "string" ? w : w.name));
-		for (const expected of ["scan:code", "annotate", "mark-stale", "greet", "update-deps", "label"]) {
+		for (const expected of ["scan:code", "mark-stale", "greet", "update-deps", "label"]) {
 			expect(names).toContain(expected);
 		}
 		expect(names).not.toContain("typecheck");
+		// `annotate` is opt-in (#2331): the preset no longer adds a ReviewDog run; repos list it themselves or provide matchers.
+		expect(names).not.toContain("annotate");
 	});
 
 	it("speaks only flat ids: no dotted names, no suite names, no pre-flat workflow keys", () => {
