@@ -13,8 +13,8 @@ catalogs:
       specifier: ^11.0.1
       version: 11.0.1
     editorconfig:
-      specifier: ^3.0.2
-      version: 3.0.2
+      specifier: ^4.0.1
+      version: 4.0.1
     markdownlint:
       specifier: ^0.42.1
       version: 0.42.1
@@ -609,7 +609,7 @@ importers:
         version: 11.0.1
       editorconfig:
         specifier: catalog:apps
-        version: 3.0.2
+        version: 4.0.1
       eslint:
         specifier: 'catalog:'
         version: 10.15.0(jiti@2.7.0)
@@ -6884,8 +6884,8 @@ packages:
   '@octokit/types@17.0.0':
     resolution: {integrity: sha512-ByP1v7YL5SMveFPP7+sj0/ZuWCOOg/Chs4NafOMpq6WNIM/hdGY0S7C0TCGDBWu1aGmOxmUIhMx3cO+IdwYZ1Q==}
 
-  '@one-ini/wasm@0.2.1':
-    resolution: {integrity: sha512-TUqERXGNTifZ9y2g3wPxQrw3HpHv/02DsW3D90T9x0hhonrL1ZqpSmNrU2XkoIq0fP1N6gZfVQzy2Fw1ZvGBNg==}
+  '@one-ini/wasm@0.2.3':
+    resolution: {integrity: sha512-IGdUwmS5uJy9w+OSXIYtmZf6yMtYz18NZ4bm2Rg2oTCt/Cvp24VhpjhtaGG+bwwDs61T4rwAZAnxIOChy9AFiA==}
 
   '@open-draft/deferred-promise@2.2.0':
     resolution: {integrity: sha512-CecwLWx3rhxVQF6V4bAgPS5t+So2sTbPgAzafKkVizyi7tlwpcFpdFqq+wqF2OwNBmqFuu6tOyouTuxgpMfzmA==}
@@ -9571,6 +9571,10 @@ packages:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
+    engines: {node: '>=22.12.0'}
+
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -10032,9 +10036,9 @@ packages:
   ecdsa-sig-formatter@1.0.11:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
 
-  editorconfig@3.0.2:
-    resolution: {integrity: sha512-T0ix8GhtxyKVfUFEcvdNDt3YGqlwkFHbD4/5bgFUDgFmxhI/cSRAeJ87/Sz//Cq8Eam6JX/e23RkoFO71P7aAA==}
-    engines: {node: '>=20'}
+  editorconfig@4.0.1:
+    resolution: {integrity: sha512-Eq8Kxnr5Ce8bhT0Ugct7XqjPhLQaoUGEXTop6XWhcguwzlaFkAhTVwCUlGSOcXsiFoBEknlhyzGsmHlesi5eGg==}
+    engines: {node: '>=22'}
     hasBin: true
 
   ee-first@1.1.1:
@@ -14065,6 +14069,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.6:
+    resolution: {integrity: sha512-9lpSSU4Mly3mrtruwLs1eLK6+gzbzqeBFwRNjIjE+9LuDpWdYctrQlQ3ej1Ilgi7gknpsTRnPoLP8DpCHqHIJw==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   send@0.19.2:
     resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
     engines: {node: '>= 0.8.0'}
@@ -17914,7 +17923,7 @@ snapshots:
     dependencies:
       '@octokit/openapi-types': 28.0.0
 
-  '@one-ini/wasm@0.2.1': {}
+  '@one-ini/wasm@0.2.3': {}
 
   '@open-draft/deferred-promise@2.2.0': {}
 
@@ -20734,6 +20743,8 @@ snapshots:
 
   commander@14.0.3: {}
 
+  commander@15.1.0: {}
+
   commander@2.20.3: {}
 
   commander@3.0.2: {}
@@ -21146,12 +21157,12 @@ snapshots:
     dependencies:
       safe-buffer: 5.1.2
 
-  editorconfig@3.0.2:
+  editorconfig@4.0.1:
     dependencies:
-      '@one-ini/wasm': 0.2.1
-      commander: 14.0.3
-      minimatch: 10.2.6
-      semver: 7.8.5
+      '@one-ini/wasm': 0.2.3
+      commander: 15.1.0
+      minimatch: 11.0.8
+      semver: 7.8.6
 
   ee-first@1.1.1: {}
 
@@ -26562,6 +26573,8 @@ snapshots:
   semver@6.3.1: {}
 
   semver@7.8.5: {}
+
+  semver@7.8.6: {}
 
   send@0.19.2:
     dependencies:
