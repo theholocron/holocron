@@ -1,3 +1,11 @@
+## [5.0.0-alpha.472](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.471...v5.0.0-alpha.472) (2026-11-18)
+
+### Bug Fixes
+
+* **deploy:** 🐛 let a later release recover a missed deploy ([#2334](https://github.com/theholocron/holocron/issues/2334)) ([63b470e](https://github.com/theholocron/holocron/commit/63b470ef39a03c21872c5f3a8d241514bbbdf1b7)), closes [#2330](https://github.com/theholocron/holocron/issues/2330)
+* **monitoring:** 🐛 declare the dashboard's description and domain in the root config ([#2340](https://github.com/theholocron/holocron/issues/2340)) ([5173305](https://github.com/theholocron/holocron/commit/5173305b62bffa877bc4756fdd3ae6ff41378dff)), closes [#2339](https://github.com/theholocron/holocron/issues/2339)
+* **sentinel:** 🐛 answer GitHub's ping as handled ([#2341](https://github.com/theholocron/holocron/issues/2341)) ([4c312e6](https://github.com/theholocron/holocron/commit/4c312e6ae49554e116022d3df5e26ea917c1b913))
+
 ## [5.0.0-alpha.471](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.470...v5.0.0-alpha.471) (2026-11-18)
 
 ### Bug Fixes
