@@ -1,11 +1,11 @@
-import { defineConfig } from 'checkly'
+import { defineConfig } from "checkly";
 
 const config = defineConfig({
-  projectName: 'holocron',
-  logicalId: 'holocron',
-  checks: {
-    checkMatch: '__checks__/**/*.check.ts',
-  },
-})
+	projectName: "holocron",
+	logicalId: "holocron",
+	checks: {
+		checkMatch: "__checks__/**/*.check.ts",
+	},
+});
 
-export default config
+export default config;
