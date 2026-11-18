@@ -1,3 +1,9 @@
+## [1.58.0-alpha.42](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.41...clients-v1.58.0-alpha.42) (2026-11-18)
+
+### Features
+
+* **cli:** 🩺 doctor workers, check the declared Workers and deployment projects ([#2370](https://github.com/theholocron/holocron/issues/2370)) ([ba80c34](https://github.com/theholocron/holocron/commit/ba80c3411c6fb9a2990a7de2acf9239ec2a260ad)), closes [#1563](https://github.com/theholocron/holocron/issues/1563) [#1563](https://github.com/theholocron/holocron/issues/1563)
+
 ## [1.58.0-alpha.41](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.40...clients-v1.58.0-alpha.41) (2026-11-18)
 
 ### Bug Fixes
