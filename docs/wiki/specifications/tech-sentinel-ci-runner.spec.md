@@ -1,6 +1,6 @@
 ---
 id: SPEC-0034
-status: draft
+status: archived
 issue: theholocron/holocron#769
 blocked-by: []
 related:
@@ -16,6 +16,8 @@ discussion:
 ---
 
 # Sentinel as centralized CI runner
+
+> **Archived (2026-11-18).** The epic (#769) and its sub-issues are closed. Which checks Sentinel runs and which Actions keeps is now decided by `process-sentinel-and-actions-roles` (#2263): Sentinel hosting cost is acceptable, and the update below about cost (2026-10-06) is answered there. `pulls.listFiles()` and check-run annotations, listed below as not yet built, now exist; review comments on specific lines were not built.
 
 ## Relationship to prior specs
 
@@ -338,15 +340,13 @@ decision as the hosting-provider question, not a separate one.
 
 ## Open questions
 
-- Exact Bucket 2 dispatch payload shape (task selector: one task per
-  dispatch, or a batch?) — resolve during the `tsc` prototype, not here.
-- Whether Bucket 1's per-tool config (commitlint-config-shaped packages for
-  yamllint/alexjs/etc.) already exist in `@theholocron/configs` or need
-  building — check per tool during implementation.
-- Whether the eslint preset system, once built, should also become the
-  mechanism `holocron-config`'s own `react()`/`node()` presets compose
-  through, or stay a separate package — design question for that specific
-  sub-piece, not this spec.
+Answered 2026-11-18.
+
+- **Bucket 2 dispatch payload.** One task per dispatch; the spec's own update says to keep each task as its own workflow and not merge them.
+- **Per-tool config packages for Bucket 1.** Settled tool by tool during implementation (for example `ALEX_CONFIG` in `cli/astromech/src/lint/alex-config/`); nothing is left at spec level.
+- **eslint presets as the mechanism `react()`/`node()` compose through.** Dropped. `lint:code` runs in Actions now. A person who wants it files it as its own issue.
+
+Not verified: the dispatch payload code, and whether eslint preset parameterization was ever built.
 
 ## PR-stack
 

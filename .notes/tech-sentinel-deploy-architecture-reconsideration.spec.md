@@ -167,7 +167,7 @@ This started as a provider search but surfaced something more
 fundamental while discussing it: **Sentinel's own CPU-heavy in-process
 linting — not the hosting provider — is the actual root cost**, and an
 already-drafted, partially-shipped spec
-(`.notes/tech-sentinel-ci-runner.spec.md`, issue #769) is directly
+(`docs/wiki/specifications/tech-sentinel-ci-runner.spec.md`, issue #769) is directly
 relevant.
 
 That spec splits every CI check into two buckets: **Bucket 1** (file
