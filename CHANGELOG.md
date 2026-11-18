@@ -1,3 +1,21 @@
+## [5.0.0-alpha.478](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.477...v5.0.0-alpha.478) (2026-11-18)
+
+### Features
+
+* **cli:** ✨ holocron new issue: take a body file, assignees and report what a tracker drops ([#2362](https://github.com/theholocron/holocron/issues/2362)) ([7f01645](https://github.com/theholocron/holocron/commit/7f016458a9320de7b59b869ebfccd096a086097d)), closes [#2358](https://github.com/theholocron/holocron/issues/2358)
+
+### Bug Fixes
+
+* **logs:** 🐛 doctor logs probes the token with the CLI's dataset and reads a 403 as not visible ([#2360](https://github.com/theholocron/holocron/issues/2360)) ([63083c1](https://github.com/theholocron/holocron/commit/63083c13dedf094bc1edf576dc917af79e056631)), closes [#2357](https://github.com/theholocron/holocron/issues/2357)
+
+### Documentation
+
+* **specs:** 📚️ 📝 settle the Bruno, monitoring and Sentinel roles specs ([#2361](https://github.com/theholocron/holocron/issues/2361)) ([b20ab02](https://github.com/theholocron/holocron/commit/b20ab02e1dd74eb7ec20dc475f1e6808d19a1b3d)), closes [#2302](https://github.com/theholocron/holocron/issues/2302) [#2276](https://github.com/theholocron/holocron/issues/2276) [#2263](https://github.com/theholocron/holocron/issues/2263)
+
+### Chores
+
+* add in domains ([#2367](https://github.com/theholocron/holocron/issues/2367)) ([c8a3f17](https://github.com/theholocron/holocron/commit/c8a3f17082f503dcf8a3e69023d641c78f84ac5f))
+
 ## [5.0.0-alpha.477](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.476...v5.0.0-alpha.477) (2026-11-18)
 
 ### Features
