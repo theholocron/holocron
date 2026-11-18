@@ -63,7 +63,8 @@ export async function openPlan(input: ToolingOpenInput, options: OpenPlanOptions
 		const dir = join(repoRoot, WORKSPACE, folder, "environments");
 		for (const file of await environmentFiles(dir)) {
 			const environment = parseEnvironment(await readFile(join(dir, file), "utf8"), { format: "yml" });
-			for (const variable of environment.variables ?? []) {
+			// Bruno's reader always gives a list, empty for a file with none.
+			for (const variable of environment.variables as NonNullable<typeof environment.variables>) {
 				const entry = referencedName(variable.value);
 				if (entry !== undefined) {
 					const seen = wants.some((w) => w.collection === folder && w.variable === variable.name);

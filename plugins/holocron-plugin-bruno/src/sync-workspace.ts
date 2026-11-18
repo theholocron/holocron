@@ -477,9 +477,10 @@ export async function syncWorkspace(input: SyncWorkspaceInput): Promise<SyncWork
 				plan.files.push({ path: env.source, state: "conflict", note: conflictNote("The environment") });
 			} else {
 				// A workspace file already in step still gets its references: nothing else would ever add them.
-				const healed = now === undefined ? undefined : healReferences(now, input.secretRefs);
+				// Only a pair with both sides present gets here (a missing workspace file is made from the source).
+				const healed = healReferences(now as string, input.secretRefs);
 				plan.files.push({ path, state: healed === now ? "unchanged" : "changed" });
-				if (healed !== undefined && healed !== now) {
+				if (healed !== now) {
 					plan.write(path, healed);
 					finalText = healed;
 				}

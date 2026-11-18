@@ -282,12 +282,15 @@ export function environmentToSource(text: string, path: string): { name: string;
 	const environment = reading(path, () => parseEnvironment(text, { format: "yml" }));
 	return {
 		name: environment.name,
-		values: (environment.variables ?? []).map((variable) => ({
-			key: variable.name,
+		values: (environment.variables ?? []).map((variable) => {
 			// A variable that only refers to a `.env` entry is the workspace's form of a secret: the request file keeps it blank.
-			value: variable.secret || referencedName(variable.value) !== undefined ? "" : (variable.value ?? ""),
-			type: variable.secret || referencedName(variable.value) !== undefined ? "secret" : "default",
-			enabled: variable.enabled ?? true,
-		})),
+			const hidden = variable.secret || referencedName(variable.value) !== undefined;
+			return {
+				key: variable.name,
+				value: hidden ? "" : variable.value,
+				type: hidden ? "secret" : "default",
+				enabled: variable.enabled ?? true,
+			};
+		}),
 	};
 }

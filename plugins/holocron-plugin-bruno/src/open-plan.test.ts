@@ -96,6 +96,19 @@ describe("openPlan", () => {
 		expect(plan.launch.command).toBe("/opt/Bruno/bruno");
 	});
 
+	it("reads the platform from the process when none is given", async () => {
+		put(".bruno/.sync.json", baseline(["a"]));
+		const real = Object.getOwnPropertyDescriptor(process, "platform") as PropertyDescriptor;
+		try {
+			Object.defineProperty(process, "platform", { value: "darwin" });
+			expect((await openPlan(input("a"))).launch.command).toBe(MACOS_APP);
+			Object.defineProperty(process, "platform", { value: "linux" });
+			await expect(openPlan(input("a"))).rejects.toThrow(/set the `app` option/);
+		} finally {
+			Object.defineProperty(process, "platform", real);
+		}
+	});
+
 	it("rethrows a read error that is not a missing folder", async () => {
 		put(".bruno/.sync.json", baseline(["a"]));
 		put(".bruno/collections/a/environments", "a file, not a folder");

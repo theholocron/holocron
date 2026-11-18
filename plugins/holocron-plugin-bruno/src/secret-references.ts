@@ -52,7 +52,8 @@ export function withSecretReferences<T extends { variables?: unknown[] | undefin
 export function healReferences(text: string, refs: Record<string, string> | undefined): string {
 	if (!refs) return text;
 	const environment = parseEnvironment(text, { format: "yml" });
-	const wanted = (environment.variables ?? []).some(
+	// Bruno's reader always gives a list, empty for a file with none.
+	const wanted = (environment.variables as NonNullable<typeof environment.variables>).some(
 		(variable) => variable.secret && refs[variable.name] !== undefined
 	);
 	if (!wanted) return text;
