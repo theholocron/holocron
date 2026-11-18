@@ -71,6 +71,7 @@ const EVERY_COMMAND = [
 	"doctor tokens",
 	"doctor monitoring",
 	"doctor ci",
+	"doctor releases",
 	"probe",
 	"provider",
 	"reconcile project",

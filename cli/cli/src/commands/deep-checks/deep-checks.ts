@@ -6,6 +6,7 @@ import { doctorLogsCommand, runDoctorLogs } from "../doctor-logs/index.js";
 import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
 import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
+import { doctorReleasesCommand, runDoctorReleases } from "../doctor-releases/index.js";
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
@@ -143,6 +144,20 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorLogsCommand as never,
 		async run(input) {
 			const report = await runDoctorLogs(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "releases",
+		// It reads git tags and npm's public registry, no provider; `source` is the capability the repo's releases belong to.
+		capability: "source",
+		command: doctorReleasesCommand as never,
+		async run(input) {
+			const report = await runDoctorReleases(input);
 			return {
 				status: report.status,
 				summary: report.summary,
