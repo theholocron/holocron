@@ -93,7 +93,7 @@ describe("doctor project: the board", () => {
 		const order = await run(withBoards(), {
 			projects: healthy({
 				read: vi.fn(async () =>
-					roadmapState(v5, { statuses: ["Todo", "Someday", "In Progress", "Blocked", "Done"] })
+					roadmapState(v5, { statuses: ["Todo", "Someday", "In Progress", "In Review", "Blocked", "Done"] })
 				),
 			}),
 		});
@@ -176,7 +176,7 @@ describe("doctor project: the board", () => {
 
 	it("reports what the board has beyond the template as info and never fails on it", async () => {
 		const state = roadmapState(v5, {
-			statuses: ["Someday", "Todo", "In Progress", "Blocked", "Done", "Parked"],
+			statuses: ["Someday", "Todo", "In Progress", "In Review", "Blocked", "Done", "Parked"],
 			fields: [...roadmapState(v5).fields, { name: "Size", type: "number" }],
 			views: [...roadmapState(v5).views, { name: "Mine", layout: "table" }],
 		});

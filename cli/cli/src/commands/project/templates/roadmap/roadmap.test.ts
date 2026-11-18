@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import { ROADMAP_TEMPLATE } from "./roadmap.js";
 
 describe("ROADMAP_TEMPLATE", () => {
-	it("has the five statuses in board order, each with the category that says what it means", () => {
+	it("has the six statuses in board order, each with the category that says what it means", () => {
 		expect(ROADMAP_TEMPLATE.statuses.map((s) => [s.name, s.category])).toEqual([
 			["Someday", "backlog"],
 			["Todo", "planned"],
 			["In Progress", "active"],
+			["In Review", "review"],
 			["Blocked", "blocked"],
 			["Done", "done"],
 		]);

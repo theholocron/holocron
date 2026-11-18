@@ -3471,7 +3471,7 @@ export interface CredentialsInspection {
  * not done" never depends on an option being spelled `Done`. It is not the `issues` capability's {@link StatusCategory}: a board
  * tells a backlog idea from planned work and shows a blocked item, which an issue's own status does not.
  */
-export type BoardStatusCategory = "backlog" | "planned" | "active" | "blocked" | "done";
+export type BoardStatusCategory = "backlog" | "planned" | "active" | "review" | "blocked" | "done";
 
 /** One status a board offers, with the category that says what it means. */
 export interface BoardStatus {
@@ -3604,6 +3604,23 @@ export interface BoardItem {
 	blockedBy: string[];
 	/** The item's priority, when the board holds one. */
 	priority?: IssuePriority;
+	/** The pull requests that close this issue, when the provider reads them. */
+	pullRequests?: BoardPullRequest[];
+}
+
+/** The state of the aggregate required check on a pull request's head commit. */
+export type BoardPullRequestChecks = "success" | "failure" | "pending" | "none";
+
+/** One pull request that closes a {@link BoardItem}. */
+export interface BoardPullRequest {
+	/** The pull request's key (`#42`, or `owner/repo#42` from another repository). */
+	key: string;
+	/** Whether it is open, merged or closed without a merge. */
+	state: "open" | "merged" | "closed";
+	/** Whether it is a draft. A draft counts as a pull request. */
+	draft: boolean;
+	/** The aggregate required check on its head commit: `none` when it has not posted. */
+	checks: BoardPullRequestChecks;
 }
 
 /** What {@link Projects.ensure} did to bring a board in line with a template. */

@@ -31,7 +31,7 @@ The owner is the `org` option, else `--org`, else the config's `org`. `--org` on
 
 ## Templates
 
-A template says what a board looks like: its statuses (each with a category), its other fields and its views. `roadmap` and `sprint` ship with the CLI. A repo adds its own as `<name>.json` in the templates directory; a file with the name of a built-in replaces it, and `"extends": "roadmap"` starts from one and adds to it. A file with a problem is reported by name and left out; the rest still load.
+A template says what a board looks like: its statuses (each with a category), its other fields and its views. A status category is one of `backlog`, `planned`, `active`, `review`, `blocked` or `done`; the rules of `reconcile project` ask for a category, never a name, so `roadmap`'s `In Review` is the `review` status. A template with no `review` status never gets that rule applied: the item is reported, not guessed. `roadmap` and `sprint` ship with the CLI. A repo adds its own as `<name>.json` in the templates directory; a file with the name of a built-in replaces it, and `"extends": "roadmap"` starts from one and adds to it. A file with a problem is reported by name and left out; the rest still load.
 
 ## `list projects`
 

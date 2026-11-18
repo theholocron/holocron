@@ -1,6 +1,6 @@
 import type { ValidateTemplateResult } from "./validate-template.type.js";
 
-const CATEGORIES = ["backlog", "planned", "active", "blocked", "done"];
+const CATEGORIES = ["backlog", "planned", "active", "review", "blocked", "done"];
 const FIELD_TYPES = ["single_select", "text", "number", "date", "iteration"];
 const LAYOUTS = ["board", "table"];
 
