@@ -557,6 +557,14 @@ non-zero and the output includes the provider's own reason
 exited with 1`). Providers build asynchronously, so accepting a deployment
 isn't the same as it going live (holocron#911).
 
+With `--files`, a deployment that ends `error` because its package install
+failed (`Command "npm install" exited with 1`) is deployed again, twice more,
+after 60 s and then 120 s: right after a release the registry can lag a
+version published seconds earlier (holocron#2406). Each retry is reported, and
+when every try fails the command exits non-zero with the deployment URL, the
+install error and the manual redeploy command. Any other failure (a build
+error, a cancellation, a timeout) is never retried.
+
 Provider plugins support this through the `Deployment` capability's
 existing `getDeployment(id)`. They should set `errorMessage` on the
 returned `DeploymentRecord` whenever the provider exposes one.

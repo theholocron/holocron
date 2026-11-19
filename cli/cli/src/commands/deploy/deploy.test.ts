@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
-import { runDeploy, runDeployFromFiles, waitForDeployment } from "./deploy.js";
+import { isInstallFailure, runDeploy, runDeployFromFiles, waitForDeployment } from "./deploy.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -884,10 +884,11 @@ describe("waiting for the deployment to finish (holocron#911)", () => {
 			walkFiles: () => ["/tmp/deploy/api/webhook.mjs"],
 			readFile: () => "export default {}",
 			wait: noSleep,
+			retry: { attempts: 1 },
 		});
 
 		expect(report.status).toBe("fail");
-		expect(report.message).toBe('deployment dpl_1 ended error: Command "npm install" exited with 1');
+		expect(report.message).toContain('deployment dpl_1 ended error: Command "npm install" exited with 1');
 		expect(lines.join("\n")).toContain("https://sentinel-abc.vercel.app");
 		expect(log.warn).toHaveBeenCalledWith(
 			expect.objectContaining({ id: "dpl_1", status: "error", reason: 'Command "npm install" exited with 1' }),
@@ -979,5 +980,120 @@ describe("waiting for the deployment to finish (holocron#911)", () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe("retrying a files deployment whose install fails (holocron#2406)", () => {
+	const INSTALL_ERROR = 'Command "npm install" exited with 1';
+
+	/** A provider whose n-th deployment ends with `outcomes[n]` (the last repeats). */
+	function provider(outcomes: string[]) {
+		let deployed = 0;
+		const byId = new Map<string, string>();
+		return {
+			providerName: "vercel",
+			deployFunction: vi.fn(async () => {
+				const id = `dpl_${++deployed}`;
+				byId.set(id, outcomes[Math.min(deployed - 1, outcomes.length - 1)]!);
+				return { deploymentId: id, url: `sentinel-${deployed}.vercel.app` };
+			}),
+			getDeployment: vi.fn(async (id: string) => {
+				const outcome = byId.get(id)!;
+				return outcome === "ready"
+					? { id, url: "x.vercel.app", branch: null, status: "ready" as const }
+					: { id, url: "x.vercel.app", branch: null, status: "error" as const, errorMessage: outcome };
+			}),
+		};
+	}
+
+	async function run(p: ReturnType<typeof provider>, retry?: Parameters<typeof runDeployFromFiles>[0]["retry"]) {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", deployment: "vercel" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", { deployment: p }),
+		});
+		const lines: string[] = [];
+		const report = await runDeployFromFiles({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			projectId: "prj_1",
+			dir: "/d",
+			loader,
+			print: (l) => lines.push(l),
+			logger: fakeLogger(),
+			walkFiles: () => ["/d/a.js"],
+			readFile: () => "x",
+			wait: { sleep: async () => {} },
+			...(retry ? { retry } : {}),
+		});
+		return { report, text: lines.join("\n") };
+	}
+
+	it("redeploys after a transient install failure and succeeds", async () => {
+		const p = provider([INSTALL_ERROR, "ready"]);
+		const sleep = vi.fn(async () => {});
+		const { report, text } = await run(p, { sleep });
+		expect(p.deployFunction).toHaveBeenCalledTimes(2);
+		expect(sleep).toHaveBeenCalledExactlyOnceWith(60_000);
+		expect(report.status).toBe("ok");
+		expect(text).toContain("retrying in 60s (attempt 2 of 3)");
+		expect(text).toContain("sentinel-1.vercel.app");
+	});
+
+	it("fails with the URL, the install error and the manual command when every try fails", async () => {
+		const p = provider([INSTALL_ERROR]);
+		const sleep = vi.fn(async () => {});
+		const { report } = await run(p, { sleep });
+		expect(p.deployFunction).toHaveBeenCalledTimes(3);
+		expect(sleep.mock.calls).toEqual([[60_000], [120_000]]);
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain(INSTALL_ERROR);
+		expect(report.message).toContain("https://sentinel-3.vercel.app");
+		expect(report.message).toContain("after 3 attempts");
+		expect(report.message).toContain("run deploy");
+	});
+
+	it("repeats the last delay and says 'attempt' for a single try", async () => {
+		const sleep = vi.fn(async () => {});
+		await run(provider([INSTALL_ERROR]), { attempts: 3, delaysMs: [5], sleep });
+		expect(sleep.mock.calls).toEqual([[5], [5]]);
+		const once = await run(provider([INSTALL_ERROR]), { attempts: 0, sleep });
+		expect(once.report.message).toContain("after 1 attempt)");
+	});
+
+	it("uses no wait at all when the delay list is empty", async () => {
+		const sleep = vi.fn(async () => {});
+		await run(provider([INSTALL_ERROR, "ready"]), { delaysMs: [], sleep });
+		expect(sleep).toHaveBeenCalledExactlyOnceWith(0);
+	});
+
+	it("never retries a failure that is not an install", async () => {
+		const p = provider(['Command "pnpm run build" exited with 1']);
+		const sleep = vi.fn(async () => {});
+		const { report, text } = await run(p, { sleep });
+		expect(p.deployFunction).toHaveBeenCalledTimes(1);
+		expect(sleep).not.toHaveBeenCalled();
+		expect(report.status).toBe("fail");
+		expect(text).toContain("https://sentinel-1.vercel.app");
+		expect(report.message).not.toContain("by hand");
+	});
+
+	it("sleeps for real by default between tries", async () => {
+		vi.useFakeTimers();
+		try {
+			const pending = run(provider([INSTALL_ERROR, "ready"]));
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect((await pending).report.status).toBe("ok");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("isInstallFailure matches only an errored install", () => {
+		const rec = (status: "error" | "ready", errorMessage?: string) =>
+			({ id: "d", url: "u", branch: null, status, ...(errorMessage ? { errorMessage } : {}) }) as never;
+		expect(isInstallFailure(rec("error", 'Command "pnpm install" exited'))).toBe(true);
+		expect(isInstallFailure(rec("error"))).toBe(false);
+		expect(isInstallFailure(rec("ready", "npm install"))).toBe(false);
 	});
 });

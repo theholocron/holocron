@@ -42,7 +42,13 @@ import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Deployment, type DeploymentRecord, PluginLoader } from "../../plugin/index.js";
+import {
+	assertPluginsResolvable,
+	type DeployFunctionResult,
+	type Deployment,
+	type DeploymentRecord,
+	PluginLoader,
+} from "../../plugin/index.js";
 import type {
 	DeployFilesReport,
 	DeployReport,
@@ -53,6 +59,10 @@ import type {
 
 const DEFAULT_WAIT_TIMEOUT_MS = 10 * 60_000;
 const DEFAULT_WAIT_INTERVAL_MS = 5_000;
+
+/** Tries for a files deployment whose install fails (the first plus two retries), and the waits between them (3 minutes in all). */
+const DEFAULT_INSTALL_RETRY_ATTEMPTS = 3;
+const DEFAULT_INSTALL_RETRY_DELAYS_MS = [60_000, 120_000];
 
 const TERMINAL_STATUSES: ReadonlySet<DeploymentRecord["status"]> = new Set(["ready", "error", "cancelled"]);
 
@@ -82,6 +92,11 @@ export async function waitForDeployment(
 		}
 		await sleep(intervalMs);
 	}
+}
+
+/** True for a deployment the provider ended in `error` because its package install failed. */
+export function isInstallFailure(record: DeploymentRecord): boolean {
+	return record.status === "error" && /\b(?:npm|pnpm|yarn) install\b/i.test(record.errorMessage ?? "");
 }
 
 /** One terminal, non-ready record as a single human-readable failure line. */
@@ -241,22 +256,45 @@ export async function runDeployFromFiles(input: RunDeployFromFilesInput): Promis
 	}
 
 	try {
-		const result = await withSpinner(
-			`Deploying ${fileCount} file${fileCount === 1 ? "" : "s"} from ${input.dir}…`,
-			() =>
-				deploy.deployFunction!(input.projectId, {
-					files,
-					...(input.target ? { target: input.target } : {}),
-					...(input.previewKey && !input.target ? { meta: { holocronPreview: input.previewKey } } : {}),
-				})
-		);
-		logger.info({ url: result.url, id: result.deploymentId }, "deploy: triggered (files)");
-		const record = await withSpinner(`Waiting for ${withScheme(result.url)} to finish…`, () =>
-			waitForDeployment(deploy, result.deploymentId, input.wait)
-		);
-		if (record.status !== "ready") {
-			const message = terminalFailure(record);
-			print(`  ${style.fail(`${message} — ${withScheme(result.url)}`)}`);
+		const retry = input.retry ?? {};
+		const attempts = Math.max(1, retry.attempts ?? DEFAULT_INSTALL_RETRY_ATTEMPTS);
+		const delays = retry.delaysMs ?? DEFAULT_INSTALL_RETRY_DELAYS_MS;
+		const sleep = retry.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+		let result: DeployFunctionResult;
+		for (let attempt = 1; ; attempt++) {
+			result = await withSpinner(
+				`Deploying ${fileCount} file${fileCount === 1 ? "" : "s"} from ${input.dir}…`,
+				() =>
+					deploy.deployFunction!(input.projectId, {
+						files,
+						...(input.target ? { target: input.target } : {}),
+						...(input.previewKey && !input.target ? { meta: { holocronPreview: input.previewKey } } : {}),
+					})
+			);
+			logger.info({ url: result.url, id: result.deploymentId, attempt }, "deploy: triggered (files)");
+			const record = await withSpinner(`Waiting for ${withScheme(result.url)} to finish…`, () =>
+				waitForDeployment(deploy, result.deploymentId, input.wait)
+			);
+			if (record.status === "ready") break;
+			// A deployment that failed to install right after a release usually means the registry had not caught up
+			// with a version published seconds earlier (holocron#2406); only that is worth another try.
+			if (isInstallFailure(record) && attempt < attempts) {
+				const delayMs = delays[Math.min(attempt - 1, delays.length - 1)] ?? 0;
+				print(
+					`  ${style.warn(`${terminalFailure(record)} — ${withScheme(result.url)}; retrying in ${Math.round(delayMs / 1000)}s (attempt ${attempt + 1} of ${attempts})`)}`
+				);
+				logger.warn(
+					{ id: record.id, reason: record.errorMessage, attempt },
+					"deploy: install failed, retrying"
+				);
+				await sleep(delayMs);
+				continue;
+			}
+			const base = terminalFailure(record);
+			const message = isInstallFailure(record)
+				? `${base} — ${withScheme(result.url)} (after ${attempt} attempt${attempt === 1 ? "" : "s"}). Redeploy by hand with \`pnpm --filter @theholocron/sentinel run deploy\` once npm serves the staged versions.`
+				: base;
+			print(`  ${style.fail(`${message}${isInstallFailure(record) ? "" : ` — ${withScheme(result.url)}`}`)}`);
 			logger.warn(
 				{ id: record.id, status: record.status, reason: record.errorMessage },
 				"deploy: failed (files)"
