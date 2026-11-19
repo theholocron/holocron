@@ -1,3 +1,18 @@
+## [5.0.0-alpha.497](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.496...v5.0.0-alpha.497) (2026-11-19)
+
+### Features
+
+* **notifications:** ✨ 🎨 colour the developer emoji and keep their SVG sources ([#2438](https://github.com/theholocron/holocron/issues/2438)) ([e827361](https://github.com/theholocron/holocron/commit/e82736136100c00d03b2a19fdf96eb527daf2909)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
+### Documentation
+
+* **specs:** 📚️ 📝 work commands for the life of one piece of work ([#2433](https://github.com/theholocron/holocron/issues/2433)) ([e48f2e9](https://github.com/theholocron/holocron/commit/e48f2e980d8165f40f1a0c9f6a55c848df170ae7)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2436](https://github.com/theholocron/holocron/issues/2436)) ([c72f12c](https://github.com/theholocron/holocron/commit/c72f12c4759b25fabc26a94bb22998a38f39d772))
+* **specs:** 🔧 🔄 sync spec discussions ([#2437](https://github.com/theholocron/holocron/issues/2437)) ([1db06d0](https://github.com/theholocron/holocron/commit/1db06d0a4e4f0da8270a8523b571f91a079d3bb6))
+
 ## [5.0.0-alpha.496](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.495...v5.0.0-alpha.496) (2026-11-19)
 
 ### Bug Fixes
