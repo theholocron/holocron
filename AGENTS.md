@@ -226,6 +226,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   what lets that token push. The marker is a git tag, not read
   from the provider: `DeploymentRecord` carries no commit, and Sentinel deploys by
   file upload (`deployFunction`), so a provider cannot be asked what is live.
+  `holocron deploy --files` redeploys a deployment that ends `error` on its package install (`isInstallFailure()`: the provider's `errorMessage` names `npm`/`pnpm`/`yarn install`) up to three tries in all, after 60 s then 120 s (`DeployRetryOptions`, #2406: the registry can lag a version published seconds before the release's deploy), reporting each retry; when all fail it exits non-zero with the deployment URL, the install error and the manual `pnpm --filter @theholocron/sentinel run deploy`, so the red `Deploy` job says what to do. Any other failure is never retried.
   The workflows read a few organization Actions variables (`vars.HOLOCRON_TURBO_TEAM`, `vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, …; each is read as `vars.HOLOCRON_X || vars.X` and mapped onto the bare name a tool such as turbo or wrangler reads, #1864). They
   are declared under `repo.variables` and written by `holocron setup`, or, for this repo, filled from the `ci` layer's 1Password Environment by `holocron sync secrets --env ci` (`repo.variables.sync`), never set by hand. A
   missing one fails quietly, so the templates warn and say where it is declared: the shared `setup` composite action

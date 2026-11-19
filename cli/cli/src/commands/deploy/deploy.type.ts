@@ -21,6 +21,15 @@ export interface DeployWaitOptions {
 	now?: () => number;
 }
 
+/** Retrying a files deployment that ends in `error` on its package install (holocron#2406). */
+export interface DeployRetryOptions {
+	/** Total tries, the first included. Default 3. */
+	attempts?: number;
+	/** Wait before each retry, the last one repeating. Default 60 s then 120 s. */
+	delaysMs?: number[];
+	sleep?: (ms: number) => Promise<void>;
+}
+
 export interface RunDeployInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
@@ -70,6 +79,8 @@ export interface RunDeployFromFilesInput {
 	walkFiles?: (dir: string) => string[];
 	readFile?: (path: string) => string;
 	wait?: DeployWaitOptions;
+	/** Retry of an install failure; any other failure is never retried. */
+	retry?: DeployRetryOptions;
 }
 
 export interface DeployFilesReport {
