@@ -2813,6 +2813,36 @@ describe("forum channels", () => {
 		expect(n.ensureCategory).not.toHaveBeenCalled();
 	});
 
+	describe("forumLayoutProblem emojis", () => {
+		const withEmojis = (emojis: unknown[]) => ({ ...forumLayout({}), emojis }) as unknown as NotificationsLayout;
+
+		it("accepts an emojis entry with a name and a picture under .holocron/media/", () => {
+			expect(
+				forumLayoutProblem(
+					withEmojis([{ emoji: ":git_commit:", image: ".holocron/media/emoji/git_commit.png" }])
+				)
+			).toBeUndefined();
+		});
+
+		it("refuses an entry that is not a server emoji or has a bad picture", () => {
+			expect(forumLayoutProblem(withEmojis([{ emoji: "git_commit", image: ".holocron/media/a.png" }]))).toMatch(
+				/an `emojis` entry/
+			);
+			expect(forumLayoutProblem(withEmojis([{ emoji: ":git_commit:", image: "elsewhere/a.png" }]))).toMatch(
+				/an `emojis` entry: `image` must be a file under/
+			);
+		});
+
+		it("refuses a bare name or an entry with no picture, since nothing could make the emoji", () => {
+			expect(forumLayoutProblem(withEmojis([":git_commit:"]))).toBe(
+				"an `emojis` entry must be `{ emoji, image }`"
+			);
+			expect(forumLayoutProblem(withEmojis([{ emoji: ":git_commit:" }]))).toBe(
+				"an `emojis` entry must be `{ emoji, image }`"
+			);
+		});
+	});
+
 	describe("forumLayoutProblem", () => {
 		it("accepts a forum with tags, a text channel, and a layout with no categories", () => {
 			expect(forumLayoutProblem(forumLayout({}))).toBeUndefined();
