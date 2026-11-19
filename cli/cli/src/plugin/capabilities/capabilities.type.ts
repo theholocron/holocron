@@ -2293,14 +2293,15 @@ export interface ToolingExportResult {
 	issues: ToolingExportIssue[];
 }
 
-/** What an `ensure*` call found or made. `created: false` means it already existed. */
 /** What {@link Notifications.checkEmoji} found out about one server emoji. */
 export interface EmojiCheck {
+	/** Whether the server lacks the emoji, holds the same picture, holds a different one, or could not be compared. */
 	state: "missing" | "same" | "different" | "unknown";
 	/** Why the pictures could not be compared, for `unknown`. */
 	note?: string;
 }
 
+/** What an `ensure*` call found or made. `created: false` means it already existed. */
 export interface EnsuredResource {
 	/** The provider's id for the resource. */
 	id: string;
