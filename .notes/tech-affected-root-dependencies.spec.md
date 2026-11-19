@@ -59,43 +59,47 @@ changing what a shared config change selects.
 
 ## Options
 
-None is chosen.
-
-1. **Keep the packages installed at the root, but not as workspace dependencies turbo can see.** Candidates: a `link:` or
-   `file:` specifier, or a pnpm `dependenciesMeta` or hoisting setting. Needs a spike: whether turbo still matches the
-   name, whether pnpm still links the package, and whether `holocron` resolves its plugins from the root.
+1. **Keep the packages installed at the root, but not as workspace dependencies turbo can see.** Chosen. The root lists
+   them as `link:./<path>`.
 2. **Move the root's tooling dependencies into a private workspace package** (for example `tools/`) that the root does not
    depend on. Plugins would then not resolve from the root, so the CLI's lookup would have to start from that package or
-   read a configured directory. This changes the CLI, not only the manifests.
+   read a configured directory. This changes the CLI, not only the manifests. Not needed now that option 1 works.
 3. **Cut the implicit edge.** Turbo has no setting for it that I found. Not verified: a newer turbo release, or a
    `turbo.json` option.
-4. **Accept it and scope `--affected` differently** (for example, treat a CLI change as a full run on purpose and say so
-   in #1202's acceptance). Cheapest; it leaves the saving small.
+4. **Accept it and scope `--affected` differently.** Cheapest; it leaves the saving small.
 
-## Spike (before choosing)
+## Decision
 
-1. In a scratch worktree, replace the root's 34 entries with option 1's specifier and run `turbo ls --filter="...@theholocron/cli"`
-   again. The goal is 25.
-2. Run `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm exec holocron show config` and one `holocron run` task to
-   show the plugins still resolve.
-3. Run `turbo run test:unit --affected --dry=json` with a one-file change in `cli/cli`, to show `--affected` follows the
-   same graph as `--filter`. Not verified today.
-4. Check `knip`, `probe deps check` and the catalog rules still pass: the check treats a hard-coded workspace version as
-   a failure.
+The root's 34 `@theholocron/*` entries become `link:./<path>`. The spike (2026-11-18, turbo 2.11.11, pnpm 10.34.4, in a
+scratch worktree) found:
+
+| Check                                                                      | Result                                                        |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `turbo ls --filter="...@theholocron/cli"`                                  | 88 before, 25 after, the same before and after `pnpm install` |
+| `turbo run test:unit --affected --dry=json`, one file changed in `cli/cli` | 85 `test:unit` tasks before, 25 after                         |
+| `pnpm install --frozen-lockfile`, `pnpm build`                             | pass; all 34 symlinks stay in the root `node_modules`         |
+| `holocron show config`, `probe generated check`, `holocron run typecheck`  | pass                                                          |
+| Root `eslint.config.ts`, the git hooks (`lint-staged`, `commitlint`), knip | pass                                                          |
+| `probe deps check`                                                         | failed on all 34 entries, until the rule excepted the root    |
+
+`--affected` follows the same graph as `--filter`. `probe deps check` now accepts `link:` for a workspace package in the
+root manifest only (`collectEdges()`), and still fails it anywhere else.
+
+One cost: a fresh clone gets the `holocron` bin in `node_modules/.bin` only after a second `pnpm install` once the build
+is done, as it did before; `pnpm holocron` runs the built file by path and does not need it.
 
 ## Open questions
 
-1. Which option? Decide after the spike.
-2. Does the root need `@theholocron/cli` itself, now that the `holocron` script runs the built file? It is needed if a
+1. Does the root need `@theholocron/cli` itself, now that the `holocron` script runs the built file? It is needed if a
    root config imports `defineConfig` from it.
-3. What does the 24-package list (the CLI's direct dependents, mostly plugins) need to keep? Left alone here; the closure
+2. What does the 24-package list (the CLI's direct dependents, mostly plugins) need to keep? Left alone here; the closure
    they make is real and small.
-4. Is `turbo.json`'s `globalDependencies` still right once the root's dependencies stop counting, so a root manifest
+3. Is `turbo.json`'s `globalDependencies` still right once the root's dependencies stop counting, so a root manifest
    change still triggers a full run? See `tech-affected-ci`.
 
 ## Not verified
 
-- That the root can drop its workspace entries without breaking `pnpm exec holocron`, the hooks in `.husky/` or the root
-  `eslint.config.ts`.
-- That `--affected` uses the same graph as `--filter`.
+- CI on a pull request, Sentinel, and the release and publish workflows with the `link:` root.
+- `pnpm`'s own `--filter` (only turbo's graph was measured).
+- Whether Dependabot or the `peers` catalog handling treats a `link:` entry differently.
 - The turbo behaviour above on any version other than 2.11.11.
