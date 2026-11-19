@@ -35,81 +35,77 @@ Goals: one place for an issue's kind (Type); an `area` label on pull requests, f
 
 Non-goals: new kind labels; labels on pull requests that replace the Conventional Commit type; `holocron new issue --type` (a separate spec; this one only says what it needs, see "What `new issue` does"); deleting labels from issues and pull requests; per-package labels.
 
-## Decisions already made (maintainer)
+## Decisions (maintainer)
 
 1. Kind labels stay on pull requests, set from the title's type by `labeler.yml`. On issues, kind is Type (Bug, Feature, Task).
 2. Area labels with a prefix are added, automated from the changed folders where possible.
 3. Existing issues are backfilled: `bug` to Bug, `enhancement` to Feature, `chore` to Task; Type is relied on afterwards.
 
+### Answers to the open questions (maintainer, 2026-11-19)
+
+1. **Sentinel applies the area labels**, for pull requests (from the changed folders) and also for issues.
+2. **Format is `area:<name>`, no space.** There is no existing standard to match: `priority: high` appears only as a spelling in `issues-migration.ts` and is not a live label.
+3. **The set of areas.** `cli` is one area although it spans five packages (`cli`, `astromech`, `datapad`, `dagobah`, `kyber`). Each app (`sentinel`, `comlink`, `council`) is its own area. `area:configs` is the `configs/` group. The root's own config files (`holocron.config.ts`, `.holocron/**`, `turbo.json`, `pnpm-workspace.yaml`, the root ESLint config) get `area:tooling`.
+4. **Where the list lives.** `.holocron/repo.ts` as `repo.labels.areas` (name to folder patterns). Issues have no changed files, so a second key, `repo.labels.scopes`, maps a title scope (`feat(sentinel)`) to an area, and `holocron new issue` gains `--area`. Also a requirement: the `work` commands (spec `tool-work-commands`, issue #2429) must update the issue's area labels as the work is done, from the PR's changed folders.
+5. **Kind labels** (`bug`, `enhancement`, `chore`) stay on old issues; nothing is stripped.
+6. **The backfill** is a dry-run-first writer probe the maintainer runs. It covers more than the issue Type: it sets Type and area where derivable, fills project and milestone where a source exists, and prints a list of every issue still lacking project, milestone, Priority or Effort, grouped by field, so the maintainer can hand it to someone to decide. The agent never runs it against the live service. The number of issues missing a project or milestone has not been counted.
+
 ## Area labels
 
 ### Which areas
 
-Enumerated from the tree. The brief's list is right; additions and corrections are marked.
+Enumerated from the tree and settled by the maintainer (Answers 3 and 4). The label is `area:<name>`, no space.
 
-| Area label (proposed) | Paths                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `area: cli`           | `cli/**` (the five packages `cli`, `astromech`, `datapad`, `dagobah`, `kyber` are one area: they release together and share a scope)                   |
-| `area: sentinel`      | `apps/sentinel/**`                                                                                                                                     |
-| `area: comlink`       | `apps/comlink/**`                                                                                                                                      |
-| `area: council`       | `apps/council/**`                                                                                                                                      |
-| `area: plugins`       | `plugins/**` (22 directories on disk, not 21: `holocron-plugin-turbo` is the one the repo layout in `AGENTS.md` omits). One label, not one per plugin. |
-| `area: clients`       | `clients/**` (the folder also holds `scripts/`)                                                                                                        |
-| `area: configs`       | `configs/**`                                                                                                                                           |
-| `area: utils`         | `utils/**`                                                                                                                                             |
-| `area: observability` | `observability/**`                                                                                                                                     |
-| `area: skills`        | `skills/**`, `.claude/skills/**`                                                                                                                       |
-| `area: themes`        | `themes/**`                                                                                                                                            |
-| `area: docs`          | `docs/**` except `docs/wiki/**`, and `fern/**` (the documentation site and its config)                                                                 |
-| `area: specs`         | `docs/wiki/**` (specifications and decisions), `.notes/**`                                                                                             |
-| `area: ci`            | `ci/**`, `.github/workflows/**` (generated copies of `ci/`)                                                                                            |
+| Area label           | Paths                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `area:cli`           | `cli/**` (the packages `cli`, `astromech`, `datapad`, `dagobah` and `kyber` are one area)                                                              |
+| `area:sentinel`      | `apps/sentinel/**`                                                                                                                                     |
+| `area:comlink`       | `apps/comlink/**`                                                                                                                                      |
+| `area:council`       | `apps/council/**`                                                                                                                                      |
+| `area:plugins`       | `plugins/**` (22 directories on disk, not 21: `holocron-plugin-turbo` is the one the repo layout in `AGENTS.md` omits). One label, not one per plugin. |
+| `area:clients`       | `clients/**` (the folder also holds `scripts/`)                                                                                                        |
+| `area:configs`       | `configs/**` (the `configs/` group)                                                                                                                    |
+| `area:utils`         | `utils/**`                                                                                                                                             |
+| `area:observability` | `observability/**`                                                                                                                                     |
+| `area:skills`        | `skills/**`, `.claude/skills/**`                                                                                                                       |
+| `area:themes`        | `themes/**`                                                                                                                                            |
+| `area:docs`          | `docs/**` except `docs/wiki/**`, and `fern/**` (the documentation site and its config)                                                                 |
+| `area:specs`         | `docs/wiki/**` (specifications and decisions), `.notes/**`                                                                                             |
+| `area:ci`            | `ci/**`, `.github/workflows/**` (generated copies of `ci/`)                                                                                            |
+| `area:tooling`       | The root's own config files: `holocron.config.ts`, `.holocron/**`, `turbo.json`, `pnpm-workspace.yaml` and the root ESLint config                      |
 
-Missed in the brief: `fern/` (the wiki's config, goes with `docs`), `ci/` (a real package: `@theholocron/ci`, with workflows, actions and matchers), `.notes/` (specs in progress, goes with `specs`), `.claude/` and `.holocron/` (the latter holds config and the org agent instructions: proposed `area: config` is not added, because `holocron.config.ts` and `.holocron/**` are the repo's own settings and would label nearly every setup PR; they get no area, see Q3), and root files (`pnpm-workspace.yaml`, `package.json`, `turbo.json`, lockfile: no area; the `dependencies` kind already says it). `scripts/` at the root is also left without one.
+`fern/`, `ci/`, `.notes/`, `.claude/` and `.holocron/` were missing from the first list and are placed above. Other root files (`package.json`, the lockfile) and the root `scripts/` folder get no area; the `dependencies` kind already says the first. The exact patterns are the ones in `repo.labels.areas` (Answer 4), which is the one list; this table is its starting content.
 
 A pull request touching several folders gets several labels. A pull request touching none of the listed paths gets none; that is correct, not a failure.
 
-### Label format: options
+### Label format
 
-| Option | Example      | For                                                                                                                                                                     | Against                                                                                                                                             |
-| ------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A      | `area: cli`  | Sorts together in the label list and the picker; reads as a field; matches the `priority: high` label spelling that `splitLabels()` in the GitHub plugin already parses | Colon and space in a name; Linear label groups may use the colon differently (Not verified)                                                         |
-| B      | `area/cli`   | No space, shell and URL friendly                                                                                                                                        | Unlike the existing `priority: high`; slash is a Linear nested-label separator (Not verified), so it may become a group on migrate                  |
-| C      | `cli` (bare) | Shortest                                                                                                                                                                | Collides with the kind labels `ci`, `documentation` and with the 2 issues already labeled `cli`; no prefix to filter on or to tell apart from kinds |
-
-**Recommendation: A, `area: <name>`**, one colour for the whole family (a muted blue, `1d76db`, not used by a kind label; kinds use `0075ca`, `0366d6`, `a2eeef`, so the colour is Q2's detail), description `Changes under <paths>`. Kind labels keep their names, so nothing existing is renamed.
+Decided: `area:<name>`, no space (Answer 2). There is no existing standard to match: `priority: high` appears only as a spelling that `splitLabels()` in `issues-migration.ts` parses, and is not a live label. Kind labels keep their names, so nothing existing is renamed. The family has one colour and the description `Changes under <paths>`; the colour is a detail for the implementing change. Whether Linear treats the colon as plain text or as a group is Not verified.
 
 ### `docs` against `documentation`
 
-With the prefix the two no longer collide: `documentation` stays the **kind** (a `docs:` PR), `area: docs` is the **place** (the site). They routinely differ: a `docs(specs):` PR is kind `documentation` and area `area: specs`; a `feat(docs):` PR is kind `enhancement` and area `area: docs`. Recommended: keep both names, make the descriptions say it (`documentation`: `Documentation only (kind)`; `area: docs`: `The documentation site and its config`), rename nothing. Renaming the kind (`kind: docs`) would touch 222 items, `labeler.yml`, `CANONICAL_LABELS` and Linear for no gain once the prefix exists. The same argument covers `ci` the kind against `area: ci`.
+With the prefix the two no longer collide: `documentation` stays the **kind** (a `docs:` PR), `area:docs` is the **place** (the site). They routinely differ: a `docs(specs):` PR is kind `documentation` and area `area:specs`; a `feat(docs):` PR is kind `enhancement` and area `area:docs`. Keep both names and make the descriptions say it (`documentation`: `Documentation only (kind)`; `area:docs`: `The documentation site and its config`), renaming nothing. The same argument covers `ci` the kind against `area:ci`.
 
-### Automation: options
+### Who applies them
 
-| Option                                                          | What it is                                                                                                                                                                                                    | For                                                                                                                                                                                                                                                                                          | Against                                                                                                                                                                                                                                                                                              |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. `actions/labeler` in a workflow                              | A second reusable (`ci/workflows/label-areas.yml`) over `changed-files` globs; its own file `.github/labeler-areas.yml` (a different schema from the title config, so it cannot be merged into `labeler.yml`) | Off the shelf; globs are the tool's own; `sync-labels` removes an area when its files leave the diff                                                                                                                                                                                         | A new task, caller, check name and `CI_HOME` frozen-reusable question (the `.github` copies do not move until `CI_HOME` does); runs on a runner with a token for every PR; the `pull_request_target` question for fork PRs (Not verified: this repo's PRs are same-repo, forks are not a case today) |
-| 2. A Sentinel action (`apps/sentinel/src/actions/area-labels/`) | Reads the PR's changed files through the API, maps them by the repo's declared globs, adds and removes `area:` labels; pure `planAreaLabels(files, areas)` plus a thin API layer, like `pr-feed`              | Needs only the diff and the API, which is Sentinel's side of `process-sentinel-and-actions-roles` (#2263); no runner minute, no checkout; the glob map is declared once in config and read by `setup` (to make the labels) and Sentinel (to apply them); a quiet `skipped` when unconfigured | Sentinel is not a check here: it makes a write (labels), unlike the ten checks of the role split; the App needs `issues`/`pull_requests` write (Not verified: the installed permissions); production Sentinel is down (#1100), so it works only on the dev instance until that is back               |
-| 3. Extend `issue-labeler`                                       | Add regexes on the title                                                                                                                                                                                      | No new task                                                                                                                                                                                                                                                                                  | Cannot see paths; scopes are topics (see Problem); would label wrongly                                                                                                                                                                                                                               |
+Decided: Sentinel (Answer 1), for pull requests and for issues. The other options were `actions/labeler` in a workflow (a new task, caller and frozen-reusable question, and a runner for every PR) and extending `issue-labeler` (it reads text, not paths, so it cannot do this); neither was chosen.
 
-**Recommendation: 2 (Sentinel), with 1 as the fallback if the App cannot hold the permission.** Rationale: the area map is declared per repository (folder layouts differ), the work is a pure function of the diff and the API, and #2263 already puts exactly that class of work in Sentinel. The map lives in config, names only, as a new key of the `repo` area (`.holocron/repo.ts`, `satisfies RepoConfig`): `labels: { areas: [{ name: "cli", paths: ["cli/**"] }, ...] }` (proposed shape, final name Q4). `setup` makes the labels; `doctor repo` reports one declared and missing. A repo that declares no `areas` gets nothing: no label, no workflow, no change.
+- **Pull requests.** A Sentinel action (`apps/sentinel/src/actions/area-labels/`) reads the PR's changed files through the API, maps them by the declared patterns and adds and removes `area:` labels. A pure `planAreaLabels(files, areas)` plus a thin API layer, like `pr-feed`. It needs only the diff and the API, which is Sentinel's side of `process-sentinel-and-actions-roles` (#2263), and it is a quiet `skipped` when the repo declares no areas.
+- **Issues.** An issue has no changed files, so the map has a second key, `repo.labels.scopes`, from a title scope to an area (`feat(sentinel)` to `area:sentinel`). Sentinel applies the label on an issue's `opened` and `edited` delivery from its title's scope. A title with no scope, or a scope the map does not name, gets no label. `holocron new issue` gains `--area <name>`, which adds the label at filing and is checked against the declared names. The title scopes are topics, not folders (see Problem), which is why `scopes` is an explicit map and never a guess.
+- **Work commands.** The `work` commands (spec `tool-work-commands`, issue #2429) must update the issue's area labels as the work is done, from the changed folders of the PR that does it, through the same `planAreaLabels()` so there is one mapping. They only add labels and never remove one a person put there. This spec states the requirement; the commands themselves are built under #2429.
 
-**Which repositories.** The kind labels (`CANONICAL_LABELS`, `labeler.yml`) are org-wide: `setup` writes them to every org repo and `doctor repo` checks them. **Area labels are not org-wide**, because they name this repo's folders. They apply to repos that declare `areas`, which today is holocron only (`clients`, `configs`, `utils`, `observability`, `skills`, `themes` are folders here now; their former repos are archived). `CANONICAL_LABELS` therefore does not change. `doctor repo` already reads canonical labels with `flagExtra: false` (labels outside the set are left alone), so a per-repo `area: x` label is never a finding; the doctor gains a row only for a declared area that is missing.
+The map is declared in config, names only, in `.holocron/repo.ts` (`satisfies RepoConfig`): `labels: { areas: { cli: ["cli/**"], ... }, scopes: { sentinel: "sentinel", ... } }` (Answer 4; the exact shape is settled by the implementing change). `setup` makes the labels, `doctor repo` reports a declared one that is missing, and Sentinel reads the same map. A repo that declares no `areas` gets nothing: no label, no workflow, no change.
 
-### Issue area labels
+Open for the implementing change: the dev Sentinel App's installed permissions (it needs `issues` and `pull_requests` write; Not verified), and that production Sentinel is down (#1100), so this works only on the dev instance until it is back.
 
-Three ways, not exclusive:
-
-- **By hand or with `new issue --label "area: cli"`**: works today, no code. The label is validated nowhere.
-- **From the title's scope**: rejected, scopes are topics (`feat(monitoring)`, `chore(env)`) with no folder.
-- **From the pull request that closes the issue**: Sentinel's board-status handler already reads `closingIssuesReferences`; the same action can copy a PR's `area:` labels to the issues it closes, only adding, never removing. It labels the issue when work is done, not when it is filed, so it helps filtering history, not triage.
-
-**Recommendation:** by hand at filing (and an optional picker later in `new issue`), plus the copy-from-PR step as a later, separate change. No automated labeling of a new issue from its title.
+**Which repositories.** The kind labels (`CANONICAL_LABELS`, `labeler.yml`) are org-wide. **Area labels are not**, because they name this repo's folders. They apply to repos that declare `areas`, which today is holocron only. `CANONICAL_LABELS` does not change. `doctor repo` reads canonical labels with `flagExtra: false` (labels outside the set are left alone), so a per-repo `area:x` label is never a finding; the doctor gains a row only for a declared area that is missing.
 
 ## Kind: Type on issues, labels on pull requests
 
 - `labeler.yml` is unchanged: it keeps labeling PRs (and only PRs, as today).
 - On an issue, kind is Type. Types exist only on issues, never PRs, which is why both mechanisms stay.
 - `bug`, `enhancement`, `chore` on an issue are no longer set by anything once `new issue` sets Type. Existing ones are left in place (see Backfill).
-- The mapping `bug` to Bug, `enhancement` to Feature, `chore` to Task is the only one decided. The other kind labels that appear on issues (`refactor` 17, `documentation` 19, `ci` 44, `test` 4, `performance` 1, `dependencies` 2) have no Type of their own; Q5.
+- The mapping `bug` to Bug, `enhancement` to Feature, `chore` to Task is the only one decided. The other kind labels that appear on issues (`refactor` 17, `documentation` 19, `ci` 44, `test` 4, `performance` 1, `dependencies` 2) have no Type of their own; Q1 below.
 
 ## Retiring a label without losing it
 
@@ -121,7 +117,7 @@ Deleting a label strips it from every issue and pull request that had it, and `s
 | **Retired (no deletion)** | Out of `CANONICAL_LABELS`, **not** in `STALE_LABELS` | `setup` and `doctor` ignore it (`flagExtra: false`); existing items keep it; nothing applies it |
 | Deleted                   | In `STALE_LABELS`                                    | Removed from every item that had it, everywhere `setup` runs                                    |
 
-Recommendation: retire by removing from `CANONICAL_LABELS` and stay out of `STALE_LABELS` unless the label has no use in any org repo (count first with `gh label list` and `gh issue list --label` per repo; the figures given are for holocron only, Not verified for the others). A retired label has no marker in the code; an inline comment next to the list is enough, and a `RETIRED_LABELS` constant would be a third list to keep with no consumer. A rename (`gh label edit --name`) also keeps every attachment, which is how `cli` (2 issues) becomes `area: cli`.
+Recommendation: retire by removing from `CANONICAL_LABELS` and stay out of `STALE_LABELS` unless the label has no use in any org repo (count first with `gh label list` and `gh issue list --label` per repo; the figures given are for holocron only, Not verified for the others). A retired label has no marker in the code; an inline comment next to the list is enough, and a `RETIRED_LABELS` constant would be a third list to keep with no consumer. A rename (`gh label edit --name`) also keeps every attachment, which is how `cli` (2 issues) becomes `area:cli`.
 
 ### Stock labels, one by one (holocron counts: issues / PRs)
 
@@ -134,7 +130,7 @@ Recommendation: retire by removing from `CANONICAL_LABELS` and stay out of `STAL
 | `triage`                        | 2/0    | Keep for now. A lifecycle label, not a kind; if the project board's status replaces it, retire it in that work, not here.                          |
 | `performance`                   | 1/0    | Keep. It is the `perf:` PR label the labeler sets; zero PRs so far means no `perf:` commit yet, not an unused rule.                                |
 | `epic`                          | 1/0    | Leave alone. Not canonical; no Type for it exists (the org's Types are Task, Bug, Feature). Revisit if an `Epic` Type is added.                    |
-| `cli`                           | 2/0    | Rename to `area: cli` when area labels land; keeps both issues.                                                                                    |
+| `cli`                           | 2/0    | Rename to `area:cli` when area labels land; keeps both issues.                                                                                     |
 | `wontfix` 6/28, `duplicate` 1/0 | in use | Keep.                                                                                                                                              |
 | `released` 230/802              | in use | Keep (set by the release workflow, not a kind).                                                                                                    |
 
@@ -142,9 +138,9 @@ Recommendation: retire by removing from `CANONICAL_LABELS` and stay out of `STAL
 
 Read in `plugins/holocron-plugin-linear/src/provider/setup.ts`, `provider-config.ts` and `plugins/holocron-plugin-github/src/capabilities/issues-migration.ts`.
 
-- `provider linear setup` makes the labels the `labels` option lists, taking a colour from `CANONICAL_LABELS` by name (`colorOf()`). Linear has **no issue Type**, so kind there stays a label (`bug`, `enhancement`, `chore`): the canonical list must keep those three, which this spec does not touch. An `area: cli` label would get no canonical colour (it is not in `CANONICAL_LABELS`) and is made with Linear's default unless `colorOf()` learns the area family; a small follow-up, not a blocker.
+- `provider linear setup` makes the labels the `labels` option lists, taking a colour from `CANONICAL_LABELS` by name (`colorOf()`). Linear has **no issue Type**, so kind there stays a label (`bug`, `enhancement`, `chore`): the canonical list must keep those three, which this spec does not touch. An `area:cli` label would get no canonical colour (it is not in `CANONICAL_LABELS`) and is made with Linear's default unless `colorOf()` learns the area family; a small follow-up, not a blocker.
 - `IssueRecord` carries `labels: string[]` and no type or kind. So today a GitHub issue migrated to Linear keeps its `bug` label, and one with a Type but no label arrives with **no kind at all**. Once issues rely on Type this becomes a loss. Recommended follow-up, separate from this spec's implementation: add an optional `kind` (`bug`, `feature`, `task`) to `IssueRecord`; the GitHub export fills it from Type, falling back to the label map; the Linear import writes the kind label; the GitHub import and `sync` set Type from `kind` and do not write the kind label. Until then, the backfill must happen _before_ any migration that depends on Type, and the labels left on old issues (below) keep those migrations whole.
-- `splitLabels()` already turns a `priority: <level>` label into the Priority field; `area: x` is not matched by it and travels as an ordinary label both ways. Whether Linear treats `area: cli` as plain text or as a group, and whether the `:` is accepted, is Not verified.
+- `splitLabels()` already turns a `priority: <level>` label into the Priority field; `area:x` is not matched by it and travels as an ordinary label both ways. Whether Linear treats `area:cli` as plain text or as a group, and whether the `:` is accepted, is Not verified.
 
 ## What `holocron new issue` does
 
@@ -152,22 +148,26 @@ Today it sets labels and no Type (`run-issue-create.ts` passes `labels`). A `--t
 
 ## Backfill
 
-Writes to live issues. Described here; **not run by this spec's author**.
+Writes to live issues. Described here; **not run by this spec's author, and the agent never runs it against the live service** (Answer 6).
 
-- **What.** For each issue in `theholocron/holocron` (and, if wanted, each org repo, Q6) that has no Type: `bug` gives Bug, `enhancement` gives Feature, `chore` gives Task. An issue that already has a Type is never changed (the 184 that do). An issue with more than one of the three labels is listed and left for a person. Closed issues are included, so history filters work. Pull requests are skipped (no Type exists for them; GitHub's issues API also returns PRs, so they must be filtered).
-- **Scale.** 310 label occurrences against 184 typed; the number to change is smaller (overlap unknown, to be read by the dry run).
-- **How.** A writer probe on the GitHub plugin, `holocron probe github issue-types`, with `writes: true` so it follows the probe rules: it lists the plan and does nothing on `--dry-run`, asks first without `--yes`, goes through `ctx.write`, never repeats a done write, and stops cleanly on a rate limit and reports what is left (`sync issues` already does the same). It is idempotent: a second run finds every issue typed and changes nothing. A one-off `gh` script is rejected: "anything that can be automated belongs in the CLI", and the probe can be reused for another repo.
-- **Review.** The dry run prints a table (issue, current labels, proposed Type) and counts per mapping, plus the skipped ones with the reason (already typed, ambiguous, no kind label). The maintainer reads it, and may attach it to the issue; only then is the real run started.
+- **What it sets.** For each issue in `theholocron/holocron` (Q2 below for other repos) it fills what it can derive:
+  - **Type**: where there is none, `bug` gives Bug, `enhancement` gives Feature, `chore` gives Task. An issue that already has a Type is never changed (the 184 that do). An issue with more than one of the three labels is listed and left for a person.
+  - **Area**: where derivable, from the title's scope through `repo.labels.scopes`, or from the changed folders of a pull request that closed the issue. Added only.
+  - **Project and milestone**: filled where a source exists (the board or milestone of a linked pull request or a sibling, as the implementing change defines it); an issue with no source is left and listed.
+  - Closed issues are included so history filters work. Pull requests are skipped (GitHub's issues API returns them, so they are filtered).
+- **What it prints.** A table (issue, current labels, proposed Type and area, proposed project and milestone), counts per mapping, the skipped ones with the reason (already typed, ambiguous, no kind label), and then a list of **every issue still lacking a project, milestone, Priority or Effort, grouped by field**, so the maintainer can hand that list to someone to decide. The probe never invents a Priority or an Effort.
+- **Scale.** 310 kind-label occurrences against 184 typed; the number to change is smaller (overlap unknown, read by the dry run). **The number of issues missing a project or a milestone has not been counted.** The dry run is what counts it.
+- **How.** A writer probe on the GitHub plugin, `holocron probe github issue-types` (the name may widen, since it now sets more than Type), with `writes: true` so it follows the probe rules: it lists the plan and does nothing on `--dry-run`, asks first without `--yes`, goes through `ctx.write`, never repeats a done write, and stops cleanly on a rate limit and reports what is left. It is **dry-run first**: the maintainer reads the dry run, may attach it to the issue, and only then starts the real run. It is idempotent: a second run changes nothing. A one-off `gh` script is rejected: "anything that can be automated belongs in the CLI".
 - **Who runs it.** The maintainer, with a token that can write issues (the `github.issues` token). Nobody else and no schedule: it is a one-time repair.
-- **After.** The kind labels are **left on the issues**. Nothing is lost, filters by `label:bug` keep working, and Linear migration keeps its source of kind (above). Stripping them from issues is a separate decision (Q5), never part of the backfill. `new issue` stops adding them once it sets Type.
+- **After.** The kind labels are **left on the issues** (Answer 5). Nothing is lost, filters by `label:bug` keep working, and Linear migration keeps its source of kind. `new issue` stops adding them once it sets Type.
 
 ## Rollout
 
 One pull request is one focused change; the spec is this PR. In order, each after the previous is merged:
 
 1. **This spec** (design only).
-2. **Area declaration and labels**: the `repo.labels.areas` shape (`RepoConfig`), `setup` makes the labels, `doctor repo` row, tests, docs (`cli/cli/README.md`), `.holocron/repo.ts` declares this repo's areas; rename `cli` to `area: cli` by hand after merge.
-3. **Area labeling on PRs**: the Sentinel `area-labels` action (or the `actions/labeler` workflow if Q1 says so), with the pure planner and its tests; deploy on the dev instance first and check a real PR.
+2. **Area declaration and labels**: the `repo.labels.areas` shape (`RepoConfig`), `setup` makes the labels, `doctor repo` row, tests, docs (`cli/cli/README.md`), `.holocron/repo.ts` declares this repo's areas; rename `cli` to `area:cli` by hand after merge.
+3. **Area labeling on PRs**: the Sentinel `area-labels` action (or the `actions/labeler` workflow), with the pure planner and its tests; deploy on the dev instance first and check a real PR.
 4. **Type on `new issue`** (its own spec, `--type`), and the Linear `kind` follow-up.
 5. **Backfill probe** and its docs; then the maintainer's dry run and real run.
 6. **Retire the stock labels** (`question`, `invalid`) by editing `CANONICAL_LABELS` and its test; no deletion.
@@ -177,18 +177,16 @@ Step 5 should wait for step 4 so that no new unlabeled, untyped issue appears be
 
 ## Open questions for the maintainer
 
-1. **Where do area labels get applied: Sentinel (recommended) or `actions/labeler`?** Does the dev Sentinel App have `issues`/`pull_requests` write, and are you content for it to write labels (not a check)?
-2. **Prefix format:** `area: cli` (recommended), `area/cli`, or bare? And the colour of the family.
-3. **The set of areas.** Is one `area: cli` for the five `cli/` packages right, or should `kyber`/`astromech` stand alone? Do you want `area: apps` (one) or the three app labels (recommended)? Should `.holocron/**` and the root config files carry an `area: config`? Is `area: specs` separate from `area: docs` (recommended) or one?
-4. **The config key:** `repo.labels.areas` in `.holocron/repo.ts`, or a new `.holocron/` area file? (`repo` is local to a repo, which is right here.)
-5. **Other kind labels on issues** (`refactor`, `documentation`, `ci`, `test`, `performance`, `dependencies`): map to Task, leave unmapped, or put a new Type in the org? And do you ever want kind labels stripped from issues once Type is set, or left forever (recommended)?
-6. **Backfill scope:** holocron only, or every org repo? Who runs it (you, as recommended)?
-7. **Retiring:** `question` and `invalid` are retired without deletion (recommended). Is that count zero in the other org repos too? Keep `good first issue` and `help wanted`, and `triage` as recommended?
-8. **Linear `kind` on `IssueRecord`:** do the follow-up now, or accept losing the kind of a Type-only issue on migrate until it is needed?
+Resolved: where area labels are applied (Answer 1), the label format (2), the set of areas (3), the config key (4), what happens to kind labels on old issues (5) and what the backfill covers and who runs it (6). Still open:
+
+1. **Other kind labels on issues** (`refactor`, `documentation`, `ci`, `test`, `performance`, `dependencies`): map to Task, leave unmapped, or put a new Type in the org?
+2. **Backfill scope:** holocron only (assumed), or every org repo?
+3. **Retiring:** `question` and `invalid` are retired without deletion (recommended). Is that count zero in the other org repos too? Keep `good first issue` and `help wanted`, and `triage`, as recommended?
+4. **Linear `kind` on `IssueRecord`:** do the follow-up now, or accept losing the kind of a Type-only issue on migrate until it is needed?
 
 ## Not verified
 
-- No write was made, so the following were not tried: setting a Type through the REST or GraphQL API, the Sentinel App's installed permissions, and whether a label named `area: cli` is accepted unchanged by Linear (colon, space, and the slash in option B) or turned into a group.
+- No write was made, so the following were not tried: setting a Type through the REST or GraphQL API, the Sentinel App's installed permissions, and whether a label named `area:cli` is accepted unchanged by Linear (colon, space, and the slash in option B) or turned into a group.
 - Label counts and Type counts are the maintainer's; I re-read only the org's Type names (`Task`, `Bug`, `Feature`) and the repo's label list (19 labels on holocron, including `epic` and `cli`, which are not canonical).
 - Whether `question`, `invalid` and the other stock labels are used in the other org repos, and whether GitHub Discussions are enabled anywhere.
 - That `actions/labeler` can be run for fork PRs safely; every PR in this repo is same-repo, so I did not look.
