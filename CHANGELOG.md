@@ -1,3 +1,18 @@
+## [5.0.0-alpha.493](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.492...v5.0.0-alpha.493) (2026-11-19)
+
+### Bug Fixes
+
+* **deploy:** 🐛 🔁 retry a Vercel deployment that fails npm install right after a release ([#2423](https://github.com/theholocron/holocron/issues/2423)) ([385b9d9](https://github.com/theholocron/holocron/commit/385b9d9995833f3d29a72d5c19cf8e3afa02d750)), closes [#2406](https://github.com/theholocron/holocron/issues/2406)
+
+### Documentation
+
+* **specs:** 📚️ 📝 archive the affected root dependencies spec with its answers ([#2424](https://github.com/theholocron/holocron/issues/2424)) ([6f71c31](https://github.com/theholocron/holocron/commit/6f71c317615387801063bf3e48b1772454253308)), closes [#2407](https://github.com/theholocron/holocron/issues/2407)
+* **specs:** 📚️ 📝 archive the board status automation spec ([#2420](https://github.com/theholocron/holocron/issues/2420)) ([0f0c853](https://github.com/theholocron/holocron/commit/0f0c8538f1878848e143333422eeb89da969b8db))
+
+### Chores
+
+* **ci:** 🔧 👷 link the root's workspace packages so a change does not select every package ([#2422](https://github.com/theholocron/holocron/issues/2422)) ([4a20156](https://github.com/theholocron/holocron/commit/4a20156faabd477a94a561e735ceabf05cdf9760)), closes [#2407](https://github.com/theholocron/holocron/issues/2407) [#1202](https://github.com/theholocron/holocron/issues/1202)
+
 ## [5.0.0-alpha.492](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.491...v5.0.0-alpha.492) (2026-11-18)
 
 ### Bug Fixes
