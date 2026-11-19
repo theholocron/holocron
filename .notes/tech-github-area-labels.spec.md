@@ -1,4 +1,5 @@
 ---
+id: SPEC-0101
 status: draft
 issue: theholocron/holocron#2430
 blocked-by: []
@@ -7,6 +8,8 @@ related:
   - theholocron/holocron#2134
   - theholocron/holocron#2253
   - theholocron/holocron#1967
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573051082706522126
 ---
 
 # GitHub labels: kind on pull requests, Type on issues, area labels on both
