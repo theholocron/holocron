@@ -1,4 +1,5 @@
 ---
+id: SPEC-0100
 status: draft
 issue: theholocron/holocron#2366
 blocked-by: []
@@ -8,6 +9,8 @@ related:
   - theholocron/holocron#2359
   - theholocron/holocron#1738
   - theholocron/holocron#1535
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573010026983858186
 ---
 
 # Mirror status page incidents to Discord
