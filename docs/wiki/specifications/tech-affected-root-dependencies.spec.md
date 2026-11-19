@@ -1,6 +1,6 @@
 ---
 id: SPEC-0098
-status: draft
+status: archived
 issue: theholocron/holocron#2407
 blocked-by: []
 related:
@@ -88,17 +88,23 @@ root manifest only (`collectEdges()`), and still fails it anywhere else.
 One cost: a fresh clone gets the `holocron` bin in `node_modules/.bin` only after a second `pnpm install` once the build
 is done, as it did before; `pnpm holocron` runs the built file by path and does not need it.
 
-## Open questions
+## Open questions, answered
 
-1. Does the root need `@theholocron/cli` itself, now that the `holocron` script runs the built file? It is needed if a
-   root config imports `defineConfig` from it.
-2. What does the 24-package list (the CLI's direct dependents, mostly plugins) need to keep? Left alone here; the closure
-   they make is real and small.
-3. Is `turbo.json`'s `globalDependencies` still right once the root's dependencies stop counting, so a root manifest
-   change still triggers a full run? See `tech-affected-ci`.
+1. **Does the root need `@theholocron/cli`?** Yes, for now: `holocron.config.ts` imports `defineConfig` and
+   `@theholocron/cli/presets` from it. The `link:` entry costs nothing, so it stays.
+2. **What should the CLI's 24 direct dependents keep?** All of it. They import the CLI, so a CLI change selecting them
+   (25 packages with the CLI) is correct.
+3. **Is `turbo.json`'s `globalDependencies` still right?** Measured on 2026-11-18 (turbo 2.11.11, `turbo run test:unit
+--affected --dry=json`, counting `test:unit` tasks): `pnpm-workspace.yaml` and `turbo.json` select all 88 packages,
+   which `globalDependencies` and turbo's own handling give. An edit to the root `package.json` (a description, a new
+   script) and a comment-only edit to `pnpm-lock.yaml` select none, and that is no change: the root script edit also
+   selected none on the commit before the `link:` change, for `test:unit`. A version bump lives in a catalog, so it
+   touches `pnpm-workspace.yaml` and runs everything. No change to `globalDependencies`.
 
 ## Not verified
 
+- A real dependency change in `pnpm-lock.yaml` with no catalog edit (only a comment-only edit was tried), and
+  root-level tasks (`//#lint:*`) under `--affected` for a root-only change, which selected none before or after.
 - CI on a pull request, Sentinel, and the release and publish workflows with the `link:` root.
 - `pnpm`'s own `--filter` (only turbo's graph was measured).
 - Whether Dependabot or the `peers` catalog handling treats a `link:` entry differently.
