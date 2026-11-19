@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { COMMAND_REGISTRY } from "../../interactive-menu/command-catalog/index.js";
+import { CARDINALITY } from "../../plugin/capabilities/index.js";
 import { COMMAND_CONTEXTS } from "../contexts/contexts.js";
 import { DEEP_CHECKS } from "./deep-checks.js";
+import { NO_DEEP_CHECK } from "./no-deep-check.js";
 
 const runDoctorNotifications = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-notifications/index.js", async (importActual) => ({
@@ -299,6 +301,26 @@ describe("the releases entry", () => {
 			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no release tags to check",
 		});
+	});
+});
+
+describe("every capability has a deep check or a listed reason", () => {
+	const capabilities = Object.keys(CARDINALITY);
+	const checked = new Set<string>(DEEP_CHECKS.map((c) => c.capability));
+	const listed = Object.keys(NO_DEEP_CHECK);
+
+	it.each(capabilities)("`%s` is in DEEP_CHECKS or NO_DEEP_CHECK", (capability) => {
+		expect(checked.has(capability) || listed.includes(capability)).toBe(true);
+	});
+
+	it.each(capabilities)("`%s` is not in both", (capability) => {
+		expect(checked.has(capability) && listed.includes(capability)).toBe(false);
+	});
+
+	it.each(listed)("NO_DEEP_CHECK entry `%s` is a capability with no check and gives a reason", (capability) => {
+		expect(capabilities).toContain(capability);
+		expect(checked.has(capability)).toBe(false);
+		expect((NO_DEEP_CHECK as Record<string, string>)[capability]).toMatch(/\S/);
 	});
 });
 

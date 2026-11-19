@@ -72,3 +72,7 @@ Runs every deep check in turn and prints one row for each, then the closing coun
 - **It exits 1 when any check did not pass**, and 0 otherwise.
 - **It changes nothing.** `doctor notifications` on its own leaves one labelled test post in the layout's test channel; inside `--all` it runs as `--built-only`, which posts nothing. Run `holocron doctor notifications` for the delivery check.
 - **It is the deep checks, not the smoke check too.** Plain `holocron doctor` is the smoke check and stays a separate command.
+
+## How the checks are tested
+
+The checks' tests run against hand-written fakes; none reaches a live service. A test also fails for a capability that has neither a deep check nor a listed reason for having none (`NO_DEEP_CHECK` in `cli/cli/src/commands/deep-checks/no-deep-check.ts`), so adding a capability means adding a check or saying why not. The only scheduled runs against real services are `doctor-tokens` and `check-tokens`, which have a service account; `doctor --all` is not scheduled.
