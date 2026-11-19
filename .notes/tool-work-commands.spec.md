@@ -28,7 +28,7 @@ One piece of work passes through the same steps every time: an issue with its fi
 
 Goals: one command per moment in the life of the work, each previewable with `--dry-run`, each asking before an outward write, each safe to run twice. Issue-side behaviour goes through the provider-neutral `issues` capability so it works with Linear.
 
-Non-goals: the CLI never calls a model (effort and the pull request title are inputs, chosen by a person or passed by an agent or skill as flags); no merge by the CLI unless Q5 says so; no change to how the board's status rules work; no change to `sync specs`.
+Non-goals: the CLI never calls a model (effort and the pull request title are inputs, chosen by a person or passed by an agent or skill as flags); no merge by the CLI; no change to how the board's status rules work; no change to `sync specs`.
 
 ## Decisions already made
 
@@ -36,13 +36,29 @@ Non-goals: the CLI never calls a model (effort and the pull request title are in
 - **Spec files stay.** They are the design record; the issue is the tracking record. A small issue can use its body as the spec.
 - **The pull request side is GitHub only.** The issue side is provider-neutral; on Linear the pull request links back with the key (`Closes ENG-42`).
 
+## Decisions
+
+The maintainer answered the open questions; each is recorded here and the matching question below is marked resolved.
+
+1. **Implementation order.** The six pull requests in "Rollout" are accepted as written.
+2. **`close work` never merges.** It only marks the pull request ready. The maintainer merges. (Was Q5.)
+3. **`--status` guards the three states the board owns.** `update work --status` refuses In Review, Blocked and Done unless `--force`, because the board automation owns those three and overwrites a hand-set value. `--force` is for when the automation is down, and the command says the value is temporary. Other statuses need no flag. (Was Q6.)
+4. **Branch, worktree, body, assignee.** (Was Q2, Q3, Q4 and Q7.)
+   - The branch is named `<type>/<issue>-<slug>`, for example `feat/2429-work-commands`. The repo does not follow this uniformly today; it is adopted, and `start work` creates the branch.
+   - `start work` creates the worktree under `.claude/worktrees/<name>`. `--no-worktree` only makes the branch.
+   - The pull request body template links the issue and the spec file and holds a checklist of the four definition-of-done items: code, tests, docs, green checks. It replaces the phase list, so `--phases` is dropped.
+   - The default assignee comes from the git config user, not the token's identity (under an agent's token, `me` is the bot). `--assignee` overrides it.
+5. **Area labels follow the work.** `update work` and `close work` update the linked issue's area labels from the folders the pull request changes. The label format (`area:<name>`), the list of areas (`repo.labels.areas` in `.holocron/repo.ts`) and the rule that the root config files are `area:tooling` are defined in spec `tech-github-area-labels` (issue #2430, draft PR #2432); this spec does not redefine them. `new issue` also takes `--area`, resolved from the same list.
+
+The two-pull-request default (spec first, then implementation) and the verb names are unchanged.
+
 ## Commands
 
 Every command is a `workspace` command (`assertPluginsResolvable`), needs a `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry, and a menu decision for each option (`command-options.test.ts`). Flags below are proposals. "Writes" names the service, so the outward-facing steps can be seen.
 
 ### `new issue` and `update issue` (tracker only)
 
-`new issue <title>` gains: `--type bug|feature|task`, `--priority urgent|high|medium|low`, `--effort high|medium|low`, `--start-date`, `--target-date`, `--parent <key>`, `--blocked-by <key>` (repeatable), `--project <board>`, and keeps `--body`, `--body-file`, `--label`, `--assignee`, `--milestone`, `--yes`.
+`new issue <title>` gains: `--type bug|feature|task`, `--priority urgent|high|medium|low`, `--effort high|medium|low`, `--start-date`, `--target-date`, `--parent <key>`, `--blocked-by <key>` (repeatable), `--project <board>`, and keeps `--body`, `--body-file`, `--label`, `--assignee`, `--milestone`, `--area <name>` (repeatable; resolved from `repo.labels.areas`, see `tech-github-area-labels`, #2430), `--yes`.
 
 `update issue <key>` takes the same field flags to set them, plus `--title`, `--add-label` / `--remove-label`, `--unblock <key>`, `--clear <field>` and `--state open|closed`. A field not named is left alone; nothing is cleared unless asked.
 
@@ -57,7 +73,7 @@ Safeguards: asks before writing unless `--yes` (no terminal and no `--yes` is `N
 
 ### `new work <title>`
 
-`new issue` plus the optional spec. Extra flags: `--spec [name]` (scaffolds through the existing `new spec <issue>`, `commands/ideas-promote/`), `--effort` (asked on a terminal when absent; an agent or skill passes it), `--assignee` (default: the current user, Q4). The spec is written to the working tree only; `new work` makes no branch and no commit (that is `start work`'s first commit).
+`new issue` plus the optional spec. Extra flags: `--spec [name]` (scaffolds through the existing `new spec <issue>`, `commands/ideas-promote/`), `--effort` (asked on a terminal when absent; an agent or skill passes it), `--assignee` (default: the git config user, see Decisions). The spec is written to the working tree only; `new work` makes no branch and no commit (that is `start work`'s first commit).
 
 | Step                         | Writes to          |
 | ---------------------------- | ------------------ |
@@ -66,18 +82,18 @@ Safeguards: asks before writing unless `--yes` (no terminal and no `--yes` is `N
 
 ### `start work <issue>`
 
-Flags: `--name <slug>`, `--title <pull request title>`, `--base alpha`, `--worktree [path]` / `--no-worktree`, `--spec <path>`, `--phases <names>`, `--no-pr`, `--yes`, `--dry-run`.
+Flags: `--name <slug>`, `--title <pull request title>`, `--base alpha`, `--worktree [path]` (default `.claude/worktrees/<name>`) / `--no-worktree`, `--spec <path>`, `--no-pr`, `--yes`, `--dry-run`.
 
 Steps, in order, each a row through `printCheckRows`:
 
 1. Read the issue (`Issues.get`) and its Type, parent and blockers.
 2. Set the issue's start date (today) and Effort when they are empty (tracker write).
-3. `git fetch origin <base>`, then make the branch and, by default, a worktree from `origin/<base>` (local).
+3. `git fetch origin <base>`, then make the branch, named `<type>/<issue>-<slug>`, and, by default, a worktree under `.claude/worktrees/<name>` from `origin/<base>` (local).
 4. Make the first commit with `-s`:
    - **work has a spec:** the spec file (`status: draft`), so if the work never starts the pull request is only a spec pull request and can merge as one;
    - **no spec:** `--allow-empty`, subject a Conventional Commit (type from the issue Type: Bug `fix`, Feature `feat`, Task `chore`, no Type `chore`; scope guessed from the issue's labels or the paths it names), the same text as the intended pull request title; the body links the issue and the spec.
 5. Push the branch (remote write). Hooks run; `--no-verify` is the person's choice, not a default.
-6. Open a draft pull request linked to the issue (`Refs` or `Closes`), body from a short template (spec link, a list of phases), and copy the issue's fields to the pull request where GitHub has them (labels, assignees, milestone, project). Type, Priority and the date fields exist only on issues, so they are not copied (remote write).
+6. Open a draft pull request linked to the issue (`Refs` or `Closes`), body from a short template (links to the issue and the spec file, and a checklist of the four definition-of-done items: code, tests, docs, green checks), and copy the issue's fields to the pull request where GitHub has them (labels, assignees, milestone, project). Type, Priority and the date fields exist only on issues, so they are not copied (remote write).
 
 The board status is not set: the open linked pull request moves it to In Progress (Sentinel's board-status handler, the hourly `reconcile-projects`). The last row says so and names `update work --status` for when the automation is down.
 
@@ -93,10 +109,11 @@ The board status is not set: the open linked pull request moves it to In Progres
 
 ### `update work <issue>`
 
-Flags: every `update issue` field flag, `--title` (the pull request's; `--issue-title` for the issue's), `--blocked-by`, `--unblock`, `--label`, `--start` (alias of `start work`), `--status <status>` (manual override), `--dry-run`, `--yes`.
+Flags: every `update issue` field flag, `--title` (the pull request's; `--issue-title` for the issue's), `--blocked-by`, `--unblock`, `--label`, `--start` (alias of `start work`), `--status <status>` (manual override), `--force`, `--dry-run`, `--yes`.
 
 - Issue fields go through `Issues.update` (new). The pull request's title and body go through a new `Source.updatePullRequest`. The board goes through `Projects.setStatus` only.
-- **`--status`** is the manual path (`holocron project status` exists). It is temporary: the rules overwrite it once the automation is back (#2388, `planReconcile()` then `planPullRequestStatus()`). The command prints that after every use. What it accepts is Q6.
+- **`--status`** is the manual path (`holocron project status` exists). It is temporary: the rules overwrite it once the automation is back (#2388, `planReconcile()` then `planPullRequestStatus()`). The command prints that after every use. It refuses In Review, Blocked and Done unless `--force`, because the automation owns those three; `--force` is for when the automation is down. Other statuses need no flag.
+- **Area labels.** Each run reads the pull request's changed folders and updates the linked issue's `area:<name>` labels to match (areas and the root-config rule as defined in `tech-github-area-labels`, #2430). Only area labels are added or removed; other labels are left alone.
 - Blocked comes from a blocked-by link: `--blocked-by` writes the link and the rule sets the status.
 
 ### `close work <issue>`
@@ -104,7 +121,7 @@ Flags: every `update issue` field flag, `--title` (the pull request's; `--issue-
 Flags: `--wait`, `--timeout`, `--abandon`, `--keep-worktree`, `--yes`, `--dry-run`.
 
 1. Find the pull request from the issue (a closing reference, or the branch) and read the `ci / Required checks` aggregate; with `--wait` poll until it completes or the timeout passes. Not green stops here and names the failing checks.
-2. Green: mark ready (the `gh pr ready` equivalent, a new `Source.markReady`) after asking. The board moves to In Review by itself.
+2. Green: mark ready (the `gh pr ready` equivalent, a new `Source.markReady`) after asking. The board moves to In Review by itself. This is the last step on the pull request: the command never merges; the maintainer does. It also updates the issue's area labels from the pull request's changed folders, as `update work` does.
 3. Update the issue's relations (a closed blocker unblocks).
 4. After the merge (the command is run again): remove the worktree and the local branch (local) and check the remote branch is gone. GitHub's automation deletes it; the command only checks and reports a row. Done is set by the rules when the issue closes.
 
@@ -175,7 +192,7 @@ Outward actions ask first (`--yes` skips; no terminal and no `--yes` is `NonInte
 
 ## Rollout
 
-One pull request per focused change, in this order, each with tests and docs:
+One pull request per focused change, in this order (accepted by the maintainer), each with tests and docs. The area-label parts (`--area`, and the label update in `update work` and `close work`) depend on `tech-github-area-labels` (#2430) landing first or in step:
 
 1. `Issues.create` and `Issues.update` with every field, the GitHub and Linear implementations, `new issue` flags and `update issue`.
 2. `Source` pull request methods and the github-client calls (create, update, mark ready).
@@ -196,12 +213,12 @@ One pull request per focused change, in this order, each with tests and docs:
 ## Open questions
 
 1. **One pull request or two** for work that has a spec (the tension above). Recommendation: two by default, `--one-pr` opt-in.
-2. **The phase template** in the pull request body: names and count (for example Design, Build, Docs, Verify), and whether it is a task list.
-3. **Branch naming**: `<type>/<issue>-<slug>` (`feat/2429-work-commands`), the number first, or the Linear key.
-4. **Default assignee:** the token's user (`getMyself()`), which is the bot under an agent's token. Should an agent's run assign the person, or nobody?
-5. **Does `close work` merge** or only mark ready? Merging cannot be undone and the maintainer merges today. Recommendation: only mark ready.
-6. **What `--status` accepts:** any status, or only those the rules do not own (Backlog, Planned, In Progress)? Recommendation: refuse In Review, Blocked and Done unless `--force`.
-7. **Worktree location:** `.claude/worktrees/<slug>` (where agents work today), a sibling directory, or a config key. `--no-worktree` only branches.
+2. **The phase template.** Resolved: replaced by the definition-of-done checklist (Decisions, 4).
+3. **Branch naming.** Resolved: `<type>/<issue>-<slug>` (Decisions, 4).
+4. **Default assignee.** Resolved: the git config user, `--assignee` overrides (Decisions, 4).
+5. **Does `close work` merge?** Resolved: it never merges (Decisions, 2).
+6. **What `--status` accepts:** Resolved: refuses In Review, Blocked and Done without `--force` (Decisions, 3).
+7. **Worktree location:** Resolved: `.claude/worktrees/<name>` (Decisions, 4).
 8. **Linear start date:** does an issue have one? The client has `dueDate` only. If not, `start work` drops it with a row, or writes it as a label or a comment.
 9. **Carrying the new fields through `export`, `import` and `sync`** (so `sync issues` copies effort and type): in or out of this spec?
 10. **Issue with no Type:** `chore` plus a note, or ask. And `Closes` or `Refs` by default in the pull request body (work that does not fully close the issue)?
