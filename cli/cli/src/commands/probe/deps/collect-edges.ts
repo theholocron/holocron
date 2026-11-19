@@ -5,7 +5,11 @@ import { CATALOG_SECTIONS } from "./constants.js";
 import type { DependencyEdge, DependencySection } from "./deps.type.js";
 import { groupOf } from "./group-of.js";
 
-/** Every dependency edge in the workspace: one per manifest entry that is not a `workspace:` link. */
+/**
+ * Every dependency edge in the workspace: one per manifest entry that is not a `workspace:` link. The root manifest's
+ * `link:` entries for workspace packages are left out too: turbo gives the root an edge to every package that has no
+ * internal dependency, so a `workspace:` entry there makes every package affected by a change to any of them (#2407).
+ */
 export function collectEdges(root: string, dirs: string[]): { edges: DependencyEdge[]; inRepo: Set<string> } {
 	const edges: DependencyEdge[] = [];
 	const inRepo = new Set<string>();
@@ -23,6 +27,7 @@ export function collectEdges(root: string, dirs: string[]): { edges: DependencyE
 			for (const [name, spec] of Object.entries(entries)) {
 				const range = String(spec);
 				if (range.startsWith("workspace:")) continue;
+				if (dir === "" && range.startsWith("link:") && inRepo.has(name)) continue;
 				edges.push({ name, spec: range, section, pkg: json.name ?? "(root)", dir, group: groupOf(dir), file });
 			}
 		}

@@ -158,11 +158,11 @@ The relay Worker (`apps/comlink`) is an app, not a provider, so these are the CL
 
 The `deps` group is the CLI's own, like `core` and `comlink`. It reads every workspace `package.json` and `pnpm-workspace.yaml` live on each run (nothing is cached or generated) and checks them against the catalog rule written at the top of `pnpm-workspace.yaml`: a dependency used by two or more groups (a top-level folder) is in the default `catalog:`, one used by a single group is in that group's named catalog (`catalog:configs`), peer ranges stay out of catalogs, and a package that lives in this repo is linked with `workspace:`.
 
-| Probe                            | Changes things | What it does                                                                                                                                  |
-| -------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `holocron probe deps report`     | no             | Prints a markdown report of every dependency, its catalog and range, and how widely it is used                                                |
-| `holocron probe deps who <name>` | no             | Lists the packages that use the dependencies whose name contains `<name>`, by group, with how (`prod`, `dev`, `peer`)                         |
-| `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version, dependency in the wrong catalog or unused catalog entry. CI runs it |
+| Probe                            | Changes things | What it does                                                                                                                                                                        |
+| -------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe deps report`     | no             | Prints a markdown report of every dependency, its catalog and range, and how widely it is used                                                                                      |
+| `holocron probe deps who <name>` | no             | Lists the packages that use the dependencies whose name contains `<name>`, by group, with how (`prod`, `dev`, `peer`)                                                               |
+| `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version (the root's `link:` entries excepted), dependency in the wrong catalog or unused catalog entry. CI runs it |
 
 CI runs `holocron probe deps check` on every pull request (the `validate:deps / Check dependency catalogs` required check, the `validate:deps` task).
 

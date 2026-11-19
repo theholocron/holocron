@@ -275,106 +275,106 @@ importers:
         specifier: 'catalog:'
         version: 11.0.1(semantic-release@25.0.9(typescript@5.9.3))
       '@theholocron/astro-config':
-        specifier: workspace:^
+        specifier: link:./configs/astro-config
         version: link:configs/astro-config
       '@theholocron/astromech':
-        specifier: workspace:*
+        specifier: link:./cli/astromech
         version: link:cli/astromech
       '@theholocron/cli':
-        specifier: workspace:*
+        specifier: link:./cli/cli
         version: link:cli/cli
       '@theholocron/commitlint-config':
-        specifier: workspace:^
+        specifier: link:./configs/commitlint-config
         version: link:configs/commitlint-config
       '@theholocron/devmoji-config':
-        specifier: workspace:^
+        specifier: link:./configs/devmoji-config
         version: link:configs/devmoji-config
       '@theholocron/docs-theme':
-        specifier: workspace:^
+        specifier: link:./themes/docs-theme
         version: link:themes/docs-theme
       '@theholocron/eslint-config':
-        specifier: workspace:^
+        specifier: link:./configs/eslint-config
         version: link:configs/eslint-config
       '@theholocron/holocron-plugin-1password':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-1password
         version: link:plugins/holocron-plugin-1password
       '@theholocron/holocron-plugin-axiom':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-axiom
         version: link:plugins/holocron-plugin-axiom
       '@theholocron/holocron-plugin-bruno':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-bruno
         version: link:plugins/holocron-plugin-bruno
       '@theholocron/holocron-plugin-checkly':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-checkly
         version: link:plugins/holocron-plugin-checkly
       '@theholocron/holocron-plugin-clerk':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-clerk
         version: link:plugins/holocron-plugin-clerk
       '@theholocron/holocron-plugin-cloudflare':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-cloudflare
         version: link:plugins/holocron-plugin-cloudflare
       '@theholocron/holocron-plugin-codecov':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-codecov
         version: link:plugins/holocron-plugin-codecov
       '@theholocron/holocron-plugin-discord':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-discord
         version: link:plugins/holocron-plugin-discord
       '@theholocron/holocron-plugin-doppler':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-doppler
         version: link:plugins/holocron-plugin-doppler
       '@theholocron/holocron-plugin-fern':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-fern
         version: link:plugins/holocron-plugin-fern
       '@theholocron/holocron-plugin-github':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-github
         version: link:plugins/holocron-plugin-github
       '@theholocron/holocron-plugin-infisical':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-infisical
         version: link:plugins/holocron-plugin-infisical
       '@theholocron/holocron-plugin-linear':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-linear
         version: link:plugins/holocron-plugin-linear
       '@theholocron/holocron-plugin-neon':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-neon
         version: link:plugins/holocron-plugin-neon
       '@theholocron/holocron-plugin-obsidian':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-obsidian
         version: link:plugins/holocron-plugin-obsidian
       '@theholocron/holocron-plugin-posthog':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-posthog
         version: link:plugins/holocron-plugin-posthog
       '@theholocron/holocron-plugin-postman':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-postman
         version: link:plugins/holocron-plugin-postman
       '@theholocron/holocron-plugin-sentry':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-sentry
         version: link:plugins/holocron-plugin-sentry
       '@theholocron/holocron-plugin-slack':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-slack
         version: link:plugins/holocron-plugin-slack
       '@theholocron/holocron-plugin-turbo':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-turbo
         version: link:plugins/holocron-plugin-turbo
       '@theholocron/holocron-plugin-vercel':
-        specifier: workspace:*
+        specifier: link:./plugins/holocron-plugin-vercel
         version: link:plugins/holocron-plugin-vercel
       '@theholocron/lint-staged-config':
-        specifier: workspace:^
+        specifier: link:./configs/lint-staged-config
         version: link:configs/lint-staged-config
       '@theholocron/prettier-config':
-        specifier: workspace:^
+        specifier: link:./configs/prettier-config
         version: link:configs/prettier-config
       '@theholocron/semantic-release-config':
-        specifier: workspace:^
+        specifier: link:./configs/semantic-release-config
         version: link:configs/semantic-release-config
       '@theholocron/skills':
-        specifier: workspace:^
+        specifier: link:./skills
         version: link:skills
       '@theholocron/tsconfig':
-        specifier: workspace:^
+        specifier: link:./configs/tsconfig
         version: link:configs/tsconfig
       '@theholocron/tsdown-config':
-        specifier: workspace:^
+        specifier: link:./configs/tsdown-config
         version: link:configs/tsdown-config
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
@@ -18199,7 +18199,7 @@ snapshots:
       debug: 4.4.3
       invariant: 2.2.4
       metro: 0.87.3
-      semver: 7.8.5
+      semver: 7.8.6
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -26016,7 +26016,7 @@ snapshots:
       react-refresh: 0.14.2
       regenerator-runtime: 0.13.11
       scheduler: 0.28.0
-      semver: 7.8.5
+      semver: 7.8.6
       stacktrace-parser: 0.1.11
       tinyglobby: 0.2.17
       whatwg-fetch: 3.6.20
@@ -26935,7 +26935,7 @@ snapshots:
       esbuild: 0.25.12
       esbuild-register: 3.6.0(esbuild@0.25.12)
       recast: 0.23.21
-      semver: 7.8.5
+      semver: 7.8.6
       ws: 8.22.0
     optionalDependencies:
       prettier: 3.10.1

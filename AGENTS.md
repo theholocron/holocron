@@ -378,7 +378,12 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   range for consumers, and `catalog:` would publish one pinned version in its
   place.
 - Our own packages in this repo are always `workspace:^`, never a catalog (the
-  CLI and the plugins' peer on it is `workspace:*`). The one catalog of our
+  CLI and the plugins' peer on it is `workspace:*`).
+  The one exception is the root `package.json`, which lists the workspace packages the
+  root's tooling and `holocron.config.ts` load as `link:./<path>` (#2407): turbo gives the
+  root an edge to every package that has no internal dependency, so a `workspace:` entry
+  there made every package affected by a change to any of them (a CLI change selected 88
+  of 88 packages, 25 with `link:`). `probe deps check` accepts `link:` only in the root. The one catalog of our
   own packages is `peers`: the minimum client and util versions the plugins
   accept as peers. A package that is not in this repo, such as
   `vitest`, is an ordinary dependency in its group's catalog.

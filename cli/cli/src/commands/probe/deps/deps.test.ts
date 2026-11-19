@@ -210,6 +210,14 @@ describe("a workspace on disk", () => {
 		expect(pinned[0]).toContain('use "workspace:^"');
 	});
 
+	it("accepts the root linking a workspace package with link:, and no other manifest", () => {
+		manifest("", { name: "root", devDependencies: { typescript: "catalog:", "@x/cli": "link:./cli/cli" } });
+		manifest("plugins/b", { name: "@x/plugin-b", devDependencies: { "@x/cli": "link:../../cli/cli" } });
+		const problems = checkDeps(planDeps(root)).filter((p) => p.includes("workspace package"));
+		expect(problems).toHaveLength(1);
+		expect(problems[0]).toContain("plugins/b/package.json");
+	});
+
 	it("reports a workspace package that is reached through a catalog", () => {
 		manifest("plugins/b", { name: "@x/plugin-b", devDependencies: { "@x/cli": "catalog:cli" } });
 		const problems = checkDeps(planDeps(root));
