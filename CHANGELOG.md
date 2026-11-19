@@ -1,3 +1,19 @@
+## [5.0.0-alpha.496](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.495...v5.0.0-alpha.496) (2026-11-19)
+
+### Bug Fixes
+
+* **notifications:** 🐛 restore the emoji PNGs the editorconfig auto-fix corrupted ([#2434](https://github.com/theholocron/holocron/issues/2434)) ([37b55a9](https://github.com/theholocron/holocron/commit/37b55a9c5ed54a66113d5e1c372ca42d2fdca5e9))
+
+### Documentation
+
+* **specs:** 📚️ 📝 design the area labels, issue Type and label backfill ([#2432](https://github.com/theholocron/holocron/issues/2432)) ([fb2866b](https://github.com/theholocron/holocron/commit/fb2866b998ac399f0cf982c321eb6ed1b3e0cf20)), closes [#2430](https://github.com/theholocron/holocron/issues/2430)
+* **specs:** 📚️ 📝 draft the spec for mirroring status page incidents to Discord ([#2428](https://github.com/theholocron/holocron/issues/2428)) ([7c919c6](https://github.com/theholocron/holocron/commit/7c919c6846d6b8720ec6f8f6b57536c751fe9b8e)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+* **specs:** 📚️ 📝 draft the spec for Sentinel posting the ci aggregate check ([#2427](https://github.com/theholocron/holocron/issues/2427)) ([cd4b1a5](https://github.com/theholocron/holocron/commit/cd4b1a544e4af8dd5f851b612617f56c1f15e593)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2435](https://github.com/theholocron/holocron/issues/2435)) ([ca6078a](https://github.com/theholocron/holocron/commit/ca6078a33888aa96b90df7350c7c5d2dfbed6700))
+
 ## [5.0.0-alpha.495](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.494...v5.0.0-alpha.495) (2026-11-19)
 
 ### Features
