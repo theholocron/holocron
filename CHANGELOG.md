@@ -1,3 +1,9 @@
+## [5.0.0-alpha.494](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.493...v5.0.0-alpha.494) (2026-11-19)
+
+### Bug Fixes
+
+* **lint:** 🐛 leave binary images out of the editorconfig check ([#2431](https://github.com/theholocron/holocron/issues/2431)) ([68fc29d](https://github.com/theholocron/holocron/commit/68fc29d3c239e2bbcf9a4d1bf42486cf1a55de24))
+
 ## [5.0.0-alpha.493](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.492...v5.0.0-alpha.493) (2026-11-19)
 
 ### Bug Fixes
