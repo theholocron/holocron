@@ -5,6 +5,8 @@ import { repoBase, splitRepo } from "../utils.js";
 export interface GitHubPullRequest {
 	/** The pull request's number. */
 	number: number;
+	/** The pull request's GraphQL node id (what `markReadyForReview` and a board's `addProjectV2ItemById` take). */
+	node_id?: string;
 	/** The pull request's title. */
 	title: string;
 	/** The pull request's description, as written (markdown); `null` when it has none. */
@@ -52,6 +54,32 @@ export interface GitHubPullRequest {
 	mergeable?: boolean | null;
 	/** `dirty` means it conflicts with its base; see `mergeable`. */
 	mergeable_state?: string;
+}
+
+/** The body of {@link pulls}`.createPullRequest`. */
+export interface CreatePullRequestInput {
+	/** The title. */
+	title: string;
+	/** The branch with the changes. */
+	head: string;
+	/** The branch to merge into. */
+	base: string;
+	/** The description (markdown). */
+	body?: string;
+	/** Open it as a draft. */
+	draft?: boolean;
+}
+
+/** The fields {@link pulls}`.updatePullRequest` can change; a field left out is left alone. */
+export interface UpdatePullRequestInput {
+	/** The title. */
+	title?: string;
+	/** The description (markdown). */
+	body?: string;
+	/** The branch to merge into. */
+	base?: string;
+	/** Open or close it. */
+	state?: "open" | "closed";
 }
 
 /** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
@@ -207,6 +235,14 @@ const LIST_REVIEW_THREADS_QUERY = `
 	}
 `;
 
+const MARK_READY_MUTATION = `
+	mutation($pullRequestId: ID!) {
+		markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
+			pullRequest { id isDraft }
+		}
+	}
+`;
+
 const RESOLVE_REVIEW_THREAD_MUTATION = `
 	mutation($threadId: ID!) {
 		resolveReviewThread(input: { threadId: $threadId }) {
@@ -227,6 +263,35 @@ export function pulls(rest: RestClient, graphql: GraphQLClient) {
 	return {
 		getPullRequest: (repo: string, number: number): Promise<GitHubPullRequest> =>
 			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls/${number}`),
+
+		/**
+		 * Opens a pull request (`POST /pulls`). GitHub answers 422 when the head has no commit beyond the base or a pull
+		 * request for the same head and base is already open.
+		 */
+		createPullRequest: (repo: string, input: CreatePullRequestInput): Promise<GitHubPullRequest> =>
+			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls`, { method: "POST", body: { ...input } }),
+
+		/** Changes a pull request's own fields (`PATCH /pulls/{number}`). Labels, assignees and the milestone are the issues API's. */
+		updatePullRequest: (repo: string, number: number, input: UpdatePullRequestInput): Promise<GitHubPullRequest> =>
+			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls/${number}`, {
+				method: "PATCH",
+				body: { ...input },
+			}),
+
+		/** The open pull requests whose head is `branch` of the repository itself (`GET /pulls?head=owner:branch`). */
+		listOpenByHead: (repo: string, branch: string): Promise<GitHubPullRequest[]> => {
+			const [owner] = splitRepo(repo);
+			return rest.request<GitHubPullRequest[]>(
+				`${repoBase(repo)}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=100`
+			);
+		},
+
+		/**
+		 * Takes a draft pull request out of draft (GraphQL `markPullRequestReadyForReview`; REST has no call). Takes the
+		 * node id, which a pull request read carries as `node_id`.
+		 */
+		markReadyForReview: (nodeId: string): Promise<void> =>
+			graphql.query(MARK_READY_MUTATION, { pullRequestId: nodeId }),
 
 		/**
 		 * Every pull request in one state, newest first, read a page at a time until a page comes back short.

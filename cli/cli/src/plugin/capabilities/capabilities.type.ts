@@ -453,6 +453,28 @@ export interface Source extends ProviderIdentity {
 	deleteBranch?(name: string, repo?: string): Promise<void>;
 
 	/**
+	 * Opens a pull request, a draft by default, and links it to an issue with a `Closes` or `Refs` line in the body.
+	 * Idempotent: an open pull request for the same head is returned (`created: false`), never a second one. Labels,
+	 * assignees, milestone and projects are applied after it is made, and what the provider cannot apply comes back in
+	 * `dropped`. Optional — providers without pull requests omit this.
+	 */
+	createPullRequest?(input: PullRequestInput, repo?: string): Promise<PullRequestResult>;
+
+	/**
+	 * Changes a pull request: a field not in the patch is left alone and nothing is cleared unless the patch says so.
+	 * Optional — providers without pull requests omit this.
+	 */
+	updatePullRequest?(number: number, patch: PullRequestPatch, repo?: string): Promise<PullRequestResult>;
+
+	/**
+	 * Takes a draft pull request out of draft. Idempotent: one that is not a draft (or is closed or merged) is
+	 * left as it is and reported as `false`. Optional — providers without drafts omit this.
+	 *
+	 * @returns `true` when the pull request was a draft and now is not.
+	 */
+	markReady?(number: number, repo?: string): Promise<boolean>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -486,6 +508,66 @@ export interface SourceBranch {
 	name: string;
 	/** The commit the branch points at. */
 	sha: string;
+}
+
+/** What {@link Source.createPullRequest} takes. */
+export interface PullRequestInput extends PullRequestFields {
+	/** The pull request's title; a Conventional Commit line, since the squashed title is what a release reads. */
+	title: string;
+	/** The branch with the changes. */
+	head: string;
+	/** The branch to merge into. */
+	base: string;
+	/** Open it as a draft. Default `true`. */
+	draft?: boolean;
+	/** The issue the pull request is for; a `Closes` or `Refs` line is added to the body unless the body already names it. */
+	link?: PullRequestLink;
+}
+
+/** A pull request's link to the issue it is for. */
+export interface PullRequestLink {
+	/** The issue, as the tracker spells it: `#12`, `12`, `owner/repo#12` or `ENG-42`. */
+	issue: string;
+	/** `Closes` closes the issue on merge; `Refs` only mentions it. Default `Refs`. */
+	keyword?: "Closes" | "Refs";
+}
+
+/** What {@link Source.updatePullRequest} takes; every field is optional. */
+export interface PullRequestPatch extends PullRequestFields {
+	/** A new title. */
+	title?: string;
+	/** A new base branch. */
+	base?: string;
+	/** Open or close it. */
+	state?: "open" | "closed";
+	/** Labels to take off; those in `labels` are added. */
+	removeLabels?: string[];
+}
+
+/** The fields a pull request mirrors from its issue, shared by {@link PullRequestInput} and {@link PullRequestPatch}. */
+export interface PullRequestFields {
+	/** The description (markdown). */
+	body?: string;
+	/** Labels to add; existing ones are kept. */
+	labels?: string[];
+	/** Assignee logins to add; existing ones are kept. */
+	assignees?: string[];
+	/** The milestone's title; a title that does not exist is dropped, never created. */
+	milestone?: string;
+	/** Titles of the boards to put the pull request on; one already there or not found is left or dropped. */
+	projects?: string[];
+}
+
+/** What {@link Source.createPullRequest} and {@link Source.updatePullRequest} return. */
+export interface PullRequestResult {
+	/** The pull request as it now stands. */
+	pullRequest: PullRequest;
+	/** Whether this call made it; `false` when an open one for the same head was reused. Always `false` for an update. */
+	created: boolean;
+	/** Whether it is a draft. */
+	draft: boolean;
+	/** What the provider could not apply (a milestone or board it does not have, a label it refused), by name. */
+	dropped: string[];
 }
 
 /** A pull request as {@link Source.getPullRequest} and {@link Source.listPullRequests} report it. */

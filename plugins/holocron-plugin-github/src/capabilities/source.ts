@@ -7,6 +7,9 @@ import {
 	type PagesConfig,
 	ProviderApiError,
 	type PullRequest,
+	type PullRequestInput,
+	type PullRequestPatch,
+	type PullRequestResult,
 	type RepoRef,
 	type RepoSettings,
 	type Ruleset,
@@ -25,13 +28,13 @@ import {
 	createGitHubClient,
 	type CreatePagesPayload,
 	type GitHubClient,
-	type GitHubPullRequest,
 	type UpdatePagesPayload,
 } from "@theholocron/github-client";
 
 import { readRepoFile, writeRepoFile } from "./files.js";
 import { syncLabels } from "./labels.js";
 import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
+import { createPullRequest, markReady, toPullRequest, updatePullRequest } from "./pull-requests.js";
 import { readRepoInfo, readSecurity, toRulesetDetail } from "./read-repo.js";
 import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
@@ -47,18 +50,6 @@ export interface SourceOptions {
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
-}
-
-function toPullRequest(raw: GitHubPullRequest): PullRequest {
-	return {
-		number: raw.number,
-		title: raw.title,
-		state: raw.state,
-		merged: raw.merged_at !== null,
-		branch: raw.head.ref,
-		headSha: raw.head.sha,
-		url: raw.html_url,
-	};
 }
 
 /**
@@ -381,6 +372,18 @@ export class GitHubSource implements Source {
 
 	async listPullRequestCommits(number: number, repo?: string): Promise<string[]> {
 		return (await this.client.pulls.listCommits(repo ?? this.repo, number)).map((commit) => commit.sha);
+	}
+
+	async createPullRequest(input: PullRequestInput, repo?: string): Promise<PullRequestResult> {
+		return createPullRequest(this.client, repo ?? this.repo, input);
+	}
+
+	async updatePullRequest(number: number, patch: PullRequestPatch, repo?: string): Promise<PullRequestResult> {
+		return updatePullRequest(this.client, repo ?? this.repo, number, patch);
+	}
+
+	async markReady(number: number, repo?: string): Promise<boolean> {
+		return markReady(this.client, repo ?? this.repo, number);
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {

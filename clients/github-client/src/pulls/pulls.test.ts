@@ -341,3 +341,64 @@ describe("pulls.resolveReviewThread", () => {
 		expect(body.query).toContain("resolveReviewThread");
 	});
 });
+
+describe("pulls.createPullRequest", () => {
+	it("POSTs title, head, base, body and draft to /pulls", async () => {
+		const { fetch, calls } = stubFetch([
+			{ status: 201, body: { ...RAW_PR, state: "open", merged_at: null, node_id: "PR_1" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.createPullRequest(REPO, {
+			title: "feat: x",
+			head: "feat/1-x",
+			base: "alpha",
+			body: "Refs #1",
+			draft: true,
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/pulls");
+		expect(calls[0]?.body).toEqual({
+			title: "feat: x",
+			head: "feat/1-x",
+			base: "alpha",
+			body: "Refs #1",
+			draft: true,
+		});
+		expect(result.node_id).toBe("PR_1");
+	});
+});
+
+describe("pulls.updatePullRequest", () => {
+	it("PATCHes only the fields given", async () => {
+		const { fetch, calls } = stubFetch([{ body: RAW_PR }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.pulls.updatePullRequest(REPO, 42, { title: "fix: new" });
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/pulls/42");
+		expect(calls[0]?.body).toEqual({ title: "fix: new" });
+	});
+});
+
+describe("pulls.listOpenByHead", () => {
+	it("GETs open pull requests by owner:branch", async () => {
+		const { fetch, calls } = stubFetch([{ body: [RAW_PR] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listOpenByHead(REPO, "feat/1-x");
+		expect(calls[0]?.url).toContain("state=open&head=theholocron%3Afeat%2F1-x");
+		expect(result).toHaveLength(1);
+	});
+});
+
+describe("pulls.markReadyForReview", () => {
+	it("sends the markPullRequestReadyForReview mutation with the node id", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { data: { markPullRequestReadyForReview: { pullRequest: { id: "PR_1", isDraft: false } } } } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.pulls.markReadyForReview("PR_1");
+		expect(calls[0]?.url).toContain("/graphql");
+		const body = calls[0]?.body as { query: string; variables: { pullRequestId: string } };
+		expect(body.query).toContain("markPullRequestReadyForReview");
+		expect(body.variables).toEqual({ pullRequestId: "PR_1" });
+	});
+});
