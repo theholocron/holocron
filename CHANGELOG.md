@@ -1,3 +1,14 @@
+## [5.0.0-alpha.498](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.497...v5.0.0-alpha.498) (2026-11-19)
+
+### Features
+
+* **notifications:** ✨ 🎨 add the seven 16px-only git icons as server emoji ([#2441](https://github.com/theholocron/holocron/issues/2441)) ([49454af](https://github.com/theholocron/holocron/commit/49454af83788a95853d3ce81a593ee893c5948b6)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
+### Documentation
+
+* **specs:** 📚️ 📝 record the work-commands decisions and area labels ([#2440](https://github.com/theholocron/holocron/issues/2440)) ([7f653e9](https://github.com/theholocron/holocron/commit/7f653e9e7c82f9e7aeb1872fb249dcce11cde40e))
+* **specs:** 📝 record the maintainer's answers in the area labels spec ([#2439](https://github.com/theholocron/holocron/issues/2439)) ([c5275fb](https://github.com/theholocron/holocron/commit/c5275fb11f6906e2931dcb5c76e28da9934582e1))
+
 ## [5.0.0-alpha.497](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.496...v5.0.0-alpha.497) (2026-11-19)
 
 ### Features
