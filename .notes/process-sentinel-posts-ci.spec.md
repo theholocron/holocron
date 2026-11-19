@@ -33,7 +33,7 @@ This spec is the design. It builds nothing.
 ## What exists today (read from the repo)
 
 - **The aggregate** (`ci/workflows/ci.yml`): `expected` is a list of task ids; each needs a check run whose name starts with
-  `<id> / `, all of them completed. `statuses` is a list of contexts (`codecov/patch`, ...), each accepted as a check run
+  `<id> /`, all of them completed. `statuses` is a list of contexts (`codecov/patch`, ...), each accepted as a check run
   named like the context, else as a commit status. `success`, `skipped` and `neutral` pass. An id with no run at the
   timeout fails as "never posted". Only the newest run of each check name counts (latest `started_at`, then `id`, #2171).
   The job never waits for itself (it drops `ci` from `expected`).
