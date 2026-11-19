@@ -12,6 +12,13 @@ describe("isEditorConfigExcluded (holocron#927)", () => {
 		expect(isEditorConfigExcluded("public/logo.svg")).toBe(true);
 	});
 
+	it("excludes binary images, which a text fix would corrupt (holocron#2412)", () => {
+		expect(isEditorConfigExcluded(".holocron/media/emoji/git_merge.png")).toBe(true);
+		expect(isEditorConfigExcluded("a/b.JPG".toLowerCase())).toBe(true);
+		expect(isEditorConfigExcluded("a/b.webp")).toBe(true);
+		expect(isEditorConfigExcluded("a/png.ts")).toBe(false);
+	});
+
 	it("keeps checking everything else", () => {
 		expect(isEditorConfigExcluded("src/index.ts")).toBe(false);
 		expect(isEditorConfigExcluded("docs/public/x.ts")).toBe(false);
