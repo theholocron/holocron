@@ -1,4 +1,5 @@
 ---
+id: SPEC-0102
 status: draft
 issue: theholocron/holocron#2429
 blocked-by: []
@@ -7,6 +8,8 @@ related:
   - theholocron/holocron#2253
   - theholocron/holocron#2388
   - theholocron/holocron#1994
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573051454606938224
 ---
 
 # Work commands: the life of one piece of work
