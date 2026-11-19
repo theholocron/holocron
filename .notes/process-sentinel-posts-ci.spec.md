@@ -1,4 +1,5 @@
 ---
+id: SPEC-0099
 status: draft
 issue: theholocron/holocron#2426
 blocked-by: []
@@ -11,6 +12,8 @@ related:
   - theholocron/holocron#1478
   - theholocron/holocron#1738
   - theholocron/holocron#2388
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573009245530493092
 ---
 
 # Sentinel posts the `ci` aggregate check itself
