@@ -145,11 +145,17 @@ export default {
 						{ name: "merged", emoji: "🟣", moderated: true },
 						{ name: "closed", emoji: "🚫", moderated: true },
 					],
-					// As in `ideas`: one default reaction (Discord takes one per forum) and the bot adds the starters to the first
-					// message of each post, so every pull request opens with approve, disapprove and question to hand. The
-					// default is 🔀, the closest Unicode has to a merge or branch icon.
-					defaultReaction: "🔀",
-					starterReactions: ["👍", "👎", "❓"],
+					// One default reaction (Discord takes one per forum); the bot adds the starters to the first message of each
+					// post. Unicode has no branch or merge glyph, so these are server emoji (#2412): Octicons (MIT, notice in
+					// `.holocron/media/emoji/LICENSE`). `setup notifications` makes each from its `image` when the server has none.
+					defaultReaction: {
+						emoji: ":git_pull_request:",
+						image: ".holocron/media/emoji/git_pull_request.png",
+					},
+					starterReactions: [
+						{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" },
+						{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
+					],
 					feeds: { prs: true },
 				},
 				// The test channel: the doctor's own test post is left here, never in a real channel.

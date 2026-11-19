@@ -151,6 +151,15 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			starterReactions: ["👍", "👎", "❓"],
 			feeds: { prs: true },
 		});
+		// And (#2412): the `prs` forum's reactions are server emoji made from Octicons under `.holocron/media/emoji/`.
+		const prs = build!.channels!.find((c) => c.name === "prs")!;
+		Object.assign(prs, {
+			defaultReaction: { emoji: ":git_pull_request:", image: ".holocron/media/emoji/git_pull_request.png" },
+			starterReactions: [
+				{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" },
+				{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
+			],
+		});
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
 		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
 		expect(repoBefore.variables).toEqual({
