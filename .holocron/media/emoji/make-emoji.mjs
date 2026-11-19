@@ -1,4 +1,4 @@
-// Makes the server emoji pictures: each `svg/<name>.svg` (an Octicons 24px icon, MIT, notice in `LICENSE`) is given the
+// Makes the server emoji pictures: each `svg/<name>.svg` (an Octicons icon, 24px or 16px, MIT, notice in `LICENSE`) is given the
 // fill in COLOURS and rasterised to `<name>.png`, 128x128 and transparent (Discord takes at most 256 KiB).
 //
 //   node .holocron/media/emoji/make-emoji.mjs
@@ -31,6 +31,14 @@ const COLOURS = {
 	git_pull_request: SUCCESS,
 	git_pull_request_closed: DANGER,
 	git_pull_request_draft: MUTED,
+	// The 16px-only agent, locked and unlisted icons (a viewBox of 0 0 16 16 scales to the same 128x128).
+	git_pull_request_agent: SUCCESS,
+	git_draft_agent: MUTED,
+	git_closed_agent: DANGER,
+	git_merge_agent: DONE,
+	git_merge_queue_agent: ATTENTION,
+	git_pull_request_locked: ATTENTION,
+	git_pull_request_unlisted: MUTED,
 };
 
 const SIZE = 128;

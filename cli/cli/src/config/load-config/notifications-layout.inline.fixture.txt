@@ -12,6 +12,13 @@
 		{ emoji: ":git_merge_queue:", image: ".holocron/media/emoji/git_merge_queue.png" },
 		{ emoji: ":git_pull_request_closed:", image: ".holocron/media/emoji/git_pull_request_closed.png" },
 		{ emoji: ":git_pull_request_draft:", image: ".holocron/media/emoji/git_pull_request_draft.png" },
+		{ emoji: ":git_pull_request_agent:", image: ".holocron/media/emoji/git_pull_request_agent.png" },
+		{ emoji: ":git_draft_agent:", image: ".holocron/media/emoji/git_draft_agent.png" },
+		{ emoji: ":git_closed_agent:", image: ".holocron/media/emoji/git_closed_agent.png" },
+		{ emoji: ":git_merge_agent:", image: ".holocron/media/emoji/git_merge_agent.png" },
+		{ emoji: ":git_merge_queue_agent:", image: ".holocron/media/emoji/git_merge_queue_agent.png" },
+		{ emoji: ":git_pull_request_locked:", image: ".holocron/media/emoji/git_pull_request_locked.png" },
+		{ emoji: ":git_pull_request_unlisted:", image: ".holocron/media/emoji/git_pull_request_unlisted.png" },
 	],
 	// Where a full `holocron doctor notifications` run leaves its one visible test post.
 	testChannel: "holonet",
