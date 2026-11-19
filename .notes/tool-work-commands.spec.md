@@ -71,7 +71,7 @@ Steps, in order, each a row through `printCheckRows`:
 2. Set the issue's start date (today) and Effort when they are empty (tracker write).
 3. `git fetch origin <base>`, then make the branch and, by default, a worktree from `origin/<base>` (local).
 4. Make the first commit with `-s`:
-   - **work has a spec:** the spec file (`status: draft`), so if the work never starts the pull request is just a spec pull request and can merge as one;
+   - **work has a spec:** the spec file (`status: draft`), so if the work never starts the pull request is only a spec pull request and can merge as one;
    - **no spec:** `--allow-empty`, subject a Conventional Commit (type from the issue Type: Bug `fix`, Feature `feat`, Task `chore`, no Type `chore`; scope guessed from the issue's labels or the paths it names), the same text as the intended pull request title; the body links the issue and the spec.
 5. Push the branch (remote write). Hooks run; `--no-verify` is the person's choice, not a default.
 6. Open a draft pull request linked to the issue (`Refs` or `Closes`), body from a short template (spec link, a list of phases), and copy the issue's fields to the pull request where GitHub has them (labels, assignees, milestone, project). Type, Priority and the date fields exist only on issues, so they are not copied (remote write).
@@ -119,7 +119,7 @@ Flags: `--wait`, `--timeout`, `--abandon`, `--keep-worktree`, `--yes`, `--dry-ru
 Today the process is Issue, Spec, pull request, merge, and one pull request is one focused change (`.holocron/org.md`). A spec pull request merges first; the implementation is another pull request. A first commit that is the spec, in the pull request that later carries the implementation, changes that:
 
 - The spec merges with the code, not before it. A spec on `alpha` as `draft` for review before any code is written (the point of `preview-specs`, the forum post and a gatekeeper's `accepted`) is now reviewed inside a pull request that may already hold code.
-- `.notes/` holds only in-progress specs; a settled one moves to `docs/wiki/specifications/`. Moving it in the same pull request makes the diff bigger, and the move is invisible in review unless one commit does only the move.
+- `.notes/` holds only in-progress specs; a settled one moves to `docs/wiki/specifications/`. Moving it in the same pull request makes the diff larger, and the move is invisible in review unless one commit does only the move.
 - The aggregate and Codecov run on every push, so a pull request that begins as one spec file runs the whole CI.
 - One pull request, one squashed commit: the title will be `feat(...)`, so the spec's own history disappears into the squash, and the abandoned-after-spec path merges under a title (`docs(specs)`) that `start work` did not guess.
 
