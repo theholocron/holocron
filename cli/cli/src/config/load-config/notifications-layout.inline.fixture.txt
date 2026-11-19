@@ -5,6 +5,14 @@
 	relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
+	emojis: [
+		{ emoji: ":git_branch_check:", image: ".holocron/media/emoji/git_branch_check.png" },
+		{ emoji: ":git_commit:", image: ".holocron/media/emoji/git_commit.png" },
+		{ emoji: ":git_compare:", image: ".holocron/media/emoji/git_compare.png" },
+		{ emoji: ":git_merge_queue:", image: ".holocron/media/emoji/git_merge_queue.png" },
+		{ emoji: ":git_pull_request_closed:", image: ".holocron/media/emoji/git_pull_request_closed.png" },
+		{ emoji: ":git_pull_request_draft:", image: ".holocron/media/emoji/git_pull_request_draft.png" },
+	],
 	// Where a full `holocron doctor notifications` run leaves its one visible test post.
 	testChannel: "holonet",
 	// Keep ordinary members from pinging the whole server, and from adding emoji, stickers, sounds or
@@ -132,6 +140,9 @@
 					],
 					defaultReaction: { emoji: ":git_pull_request:", image: ".holocron/media/emoji/git_pull_request.png" },
 					starterReactions: [
+						"👍",
+						"👎",
+						"❓",
 						{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" },
 						{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
 					],

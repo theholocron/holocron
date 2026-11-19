@@ -156,10 +156,23 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		Object.assign(prs, {
 			defaultReaction: { emoji: ":git_pull_request:", image: ".holocron/media/emoji/git_pull_request.png" },
 			starterReactions: [
+				"👍",
+				"👎",
+				"❓",
 				{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" },
 				{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
 			],
 		});
+		// And (#2412): the rest of the Octicons `git-*` set is declared on the layout, named by no reaction.
+		expect(options.layout?.emojis).toBeUndefined();
+		options.layout!.emojis = [
+			"git_branch_check",
+			"git_commit",
+			"git_compare",
+			"git_merge_queue",
+			"git_pull_request_closed",
+			"git_pull_request_draft",
+		].map((name) => ({ emoji: `:${name}:`, image: `.holocron/media/emoji/${name}.png` }));
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
 		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
 		expect(repoBefore.variables).toEqual({

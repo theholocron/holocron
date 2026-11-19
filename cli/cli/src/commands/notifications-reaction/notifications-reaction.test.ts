@@ -131,6 +131,29 @@ describe("layoutEmojis", () => {
 		expect(emojis).toEqual([{ name: "git_merge", image: ".holocron/media/a.png" }]);
 	});
 
+	it("also lists the layout's own `emojis`, after the reactions", () => {
+		const layout = {
+			...layoutOf({ default: ":git_merge:" }),
+			emojis: [
+				{ emoji: ":git_commit:", image: ".holocron/media/c.png" },
+				{ emoji: ":git_merge:", image: ".holocron/media/m.png" },
+			],
+		} as NotificationsLayout;
+		expect(layoutEmojis(layout)).toEqual([
+			{ name: "git_merge", image: ".holocron/media/m.png" },
+			{ name: "git_commit", image: ".holocron/media/c.png" },
+		]);
+		expect(emojiConflictProblem(layout)).toBeUndefined();
+		const clash = {
+			...layout,
+			emojis: [
+				{ emoji: ":git_commit:", image: ".holocron/media/c.png" },
+				{ emoji: ":git_commit:", image: ".holocron/media/d.png" },
+			],
+		} as NotificationsLayout;
+		expect(emojiConflictProblem(clash)).toMatch(/given two different images/);
+	});
+
 	it("is empty for Unicode reactions, no reactions, no layout and no channels", () => {
 		expect(layoutEmojis(layoutOf({ default: "🔀", starter: ["✅"] }))).toEqual([]);
 		expect(layoutEmojis(layoutOf({}))).toEqual([]);
