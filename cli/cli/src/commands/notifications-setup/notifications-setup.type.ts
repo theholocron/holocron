@@ -11,6 +11,17 @@ export interface RunNotificationsSetupInput {
 	scope?: SecretScope;
 	/** Which `notifications` provider, when several can provision. */
 	provider?: string;
+	/**
+	 * Make the layout's server emoji again from their images even when the server has them (`--replace`). Only emoji the
+	 * layout gives an `image` are touched. Asks first unless `yes` or a dry run; the old emoji and its reactions are lost.
+	 */
+	replaceEmoji?: boolean;
+	/** Replace without asking (`--yes`; required without a terminal). */
+	yes?: boolean;
+	/** Whether a terminal can be asked. Defaults to whether stdin is one. */
+	interactive?: boolean;
+	/** Asks the yes/no question. Defaults to an inquirer prompt. */
+	confirm?: (message: string) => Promise<boolean>;
 	loader?: PluginLoader;
 	/** The loader has already loaded its providers (a caller that built on them): do not load, and replace, them again. */
 	preloaded?: boolean;
@@ -43,12 +54,13 @@ export interface RoleOutcome {
 }
 
 export interface NotificationsSetupReport {
-	status: "ok" | "fail" | "dry-run";
+	/** `cancelled` when the person said no to replacing emoji; nothing was written. */
+	status: "ok" | "fail" | "dry-run" | "cancelled";
 	categories: string[];
 	channels: ChannelOutcome[];
 	roles: RoleOutcome[];
 	/** The server emoji the layout gives an image, and whether each was made now. Absent when it gives none. */
-	emojis?: Array<{ name: string; created: boolean }>;
+	emojis?: Array<{ name: string; created: boolean; replaced?: boolean }>;
 	/** One entry per step that threw; the run continues past them. */
 	failures: Array<{ step: string; message: string }>;
 	message?: string;

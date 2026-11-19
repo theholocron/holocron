@@ -28,7 +28,7 @@ import {
 } from "@theholocron/cli";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { BOT_NEEDS, botNeeds } from "../bot-needs.js";
+import { BOT_NEEDS, botNeeds, replaceNeeds } from "../bot-needs.js";
 import {
 	ApplicationFlag,
 	ChannelType,
@@ -2089,25 +2089,79 @@ export class DiscordNotifications implements Notifications {
 
 	/**
 	 * Finds the server emoji with this name or makes it from `image` (a `data:` URI). One that exists is left exactly as it
-	 * is: never replaced, renamed or deleted, and the image is not compared with it. Making one needs Create Guild
-	 * Expressions; without it the error says so and carries the link that invites the bot again asking for it.
+	 * is (not replaced, renamed or deleted, and the image is not compared with it) unless `replace` is set. Making one
+	 * needs Create Guild Expressions; without it the error says so and carries the link that invites the bot again asking
+	 * for it.
+	 *
+	 * With `replace`, Discord has no way to change an emoji's image, so a new one is made. Names are unique per server, so
+	 * the new emoji is made first under a temporary name (`<name>_new`), the old one deleted, and the new one renamed: a
+	 * failure before the delete leaves the old emoji as it was (the new one is removed again), and one after it leaves the
+	 * new emoji under the temporary name, which the error gives. The new emoji has a new id, so the caller must read ids
+	 * again (forum default reactions and starter reactions are looked up by name each time, so `setup`'s channel step
+	 * does). Reactions made with the old emoji disappear with it. Deleting an emoji the bot did not make needs Manage
+	 * Guild Expressions; a 403 says so with the invite link.
 	 */
-	async ensureEmoji(input: { name: string; image: string }): Promise<EnsuredResource> {
+	async ensureEmoji(input: { name: string; image: string; replace?: boolean }): Promise<EnsuredResource> {
 		const bot = this.bot();
-		const have = (await bot.guilds.emojis(this.guild())).find((e) => e.id && e.name === input.name);
-		if (have?.id) return { id: have.id, created: false };
-		try {
-			const made = await bot.guilds.createEmoji(this.guild(), { name: input.name, image: input.image });
-			return { id: made.id!, created: true };
-		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 403) {
-				throw new Error(
-					`Discord refused: the bot lacks Create Guild Expressions, which making emoji \`:${input.name}:\` needs. Invite it again with it (updates its role in place): ${await this.inviteUrl()}`,
-					{ cause: err }
-				);
+		const guild = this.guild();
+		const all = await bot.guilds.emojis(guild);
+		const have = all.find((e) => e.id && e.name === input.name);
+		if (have?.id && !input.replace) return { id: have.id, created: false };
+		if (!have?.id) {
+			try {
+				const made = await bot.guilds.createEmoji(guild, { name: input.name, image: input.image });
+				return { id: made.id!, created: true };
+			} catch (err) {
+				throw await this.emojiRefused(err, `making emoji \`:${input.name}:\``, "Create Guild Expressions");
 			}
-			throw err;
 		}
+		const temporary = `${input.name.slice(0, 28)}_new`;
+		const leftover = all.find((e) => e.id && e.name === temporary);
+		if (leftover) {
+			throw new Error(
+				`the server already has an emoji \`:${temporary}:\` (left by an earlier replace that did not finish?); delete or rename it, then run setup again. \`:${input.name}:\` was not touched`
+			);
+		}
+		let made: DiscordEmoji;
+		try {
+			made = await bot.guilds.createEmoji(guild, { name: temporary, image: input.image });
+		} catch (err) {
+			throw await this.emojiRefused(err, `replacing emoji \`:${input.name}:\``, "Create Guild Expressions");
+		}
+		try {
+			await bot.guilds.deleteEmoji(guild, have.id);
+		} catch (err) {
+			await bot.guilds.deleteEmoji(guild, made.id!).catch(() => undefined); // put back what it was; the old emoji is untouched
+			throw await this.emojiRefused(
+				err,
+				`deleting the old emoji \`:${input.name}:\` (the new one was removed again, nothing changed)`,
+				"Manage Guild Expressions",
+				replaceNeeds(this.opts.layout)
+			);
+		}
+		try {
+			await bot.guilds.renameEmoji(guild, made.id!, input.name);
+		} catch (err) {
+			throw new Error(
+				`the old emoji \`:${input.name}:\` was deleted and the new one made, but renaming it failed (${reason(err)}); it is now \`:${temporary}:\` (id ${made.id}) -- rename it to \`${input.name}\` in the server's settings`,
+				{ cause: err }
+			);
+		}
+		return { id: made.id!, created: false, updated: ["image"] };
+	}
+
+	/** A 403 on an emoji write becomes an error naming the permission with the link that asks for it; anything else passes through. */
+	private async emojiRefused(
+		err: unknown,
+		doing: string,
+		permission: string,
+		invite: PermissionName[] = this.needs()
+	): Promise<unknown> {
+		if (!(err instanceof ProviderApiError && err.status === 403)) return err;
+		return new Error(
+			`Discord refused: the bot lacks ${permission}, which ${doing} needs. Invite it again with it (updates its role in place): ${await this.inviteUrl(invite)}`,
+			{ cause: err }
+		);
 	}
 
 	/** The server emoji with this name, or an error naming it and the two ways to get one. */

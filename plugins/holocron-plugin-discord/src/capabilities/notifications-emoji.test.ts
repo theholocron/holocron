@@ -170,6 +170,141 @@ describe("DiscordNotifications.ensureEmoji", () => {
 	});
 });
 
+describe("DiscordNotifications.ensureEmoji with replace", () => {
+	const image = "data:image/png;base64,AAAA";
+	const NEW = { id: "901", name: "git_merge_new" };
+	const refused = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
+	const inviteBits = (err: Error) =>
+		BigInt(
+			new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(
+				"permissions"
+			)!
+		);
+
+	it("makes the new emoji first under a temporary name, deletes the old one, then renames", async () => {
+		const { notifs, calls } = make([
+			{ body: [MERGE] },
+			{ body: NEW },
+			{ status: 204 },
+			{ body: { id: "901", name: "git_merge" } },
+		]);
+		expect(await notifs.ensureEmoji({ name: "git_merge", image, replace: true })).toEqual({
+			id: "901",
+			created: false,
+			updated: ["image"],
+		});
+		expect(calls.slice(1).map((c) => [c.method, c.url.replace(BASE, ""), c.body])).toEqual([
+			["POST", `/guilds/${GUILD}/emojis`, { name: "git_merge_new", image }],
+			["DELETE", `/guilds/${GUILD}/emojis/900`, null],
+			["PATCH", `/guilds/${GUILD}/emojis/901`, { name: "git_merge" }],
+		]);
+	});
+
+	it("still only makes an emoji the server lacks, and leaves one alone without replace", async () => {
+		const missing = make([{ body: [] }, { body: MERGE }]);
+		expect(await missing.notifs.ensureEmoji({ name: "git_merge", image, replace: true })).toEqual({
+			id: "900",
+			created: true,
+		});
+		expect(missing.calls[1]?.body).toEqual({ name: "git_merge", image });
+		const same = make([{ body: [MERGE] }]);
+		expect(await same.notifs.ensureEmoji({ name: "git_merge", image, replace: false })).toEqual({
+			id: "900",
+			created: false,
+		});
+	});
+
+	it("shortens a long name so the temporary one is still a legal name", async () => {
+		const long = "a".repeat(32);
+		const { notifs, calls } = make([
+			{ body: [{ id: "900", name: long }] },
+			{ body: NEW },
+			{ status: 204 },
+			{ body: { id: "901", name: long } },
+		]);
+		await notifs.ensureEmoji({ name: long, image, replace: true });
+		expect((calls[1]?.body as { name: string }).name).toBe(`${"a".repeat(28)}_new`);
+	});
+
+	it("stops, changing nothing, when a temporary emoji from an earlier run is there", async () => {
+		const { notifs, calls } = make([{ body: [MERGE, NEW] }]);
+		const err = (await notifs
+			.ensureEmoji({ name: "git_merge", image, replace: true })
+			.catch((e: unknown) => e)) as Error;
+		expect(err.message).toMatch(/already has an emoji `:git_merge_new:`/);
+		expect(err.message).toMatch(/`:git_merge:` was not touched/);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("leaves the old emoji and says Create Guild Expressions when the new one is refused", async () => {
+		const { notifs, calls } = make([{ body: [MERGE] }, refused, bot]);
+		const err = (await notifs
+			.ensureEmoji({ name: "git_merge", image, replace: true })
+			.catch((e: unknown) => e)) as Error;
+		expect(err.message).toMatch(/lacks Create Guild Expressions, which replacing emoji `:git_merge:` needs/);
+		expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+	});
+
+	it("removes the new emoji again and asks for Manage Guild Expressions when the old one cannot be deleted", async () => {
+		const { notifs, calls } = make([{ body: [MERGE] }, { body: NEW }, refused, { status: 204 }, bot]);
+		const err = (await notifs
+			.ensureEmoji({ name: "git_merge", image, replace: true })
+			.catch((e: unknown) => e)) as Error;
+		expect(err.message).toMatch(/lacks Manage Guild Expressions/);
+		expect(err.message).toMatch(/nothing changed/);
+		expect((inviteBits(err) & BigInt(permissions(["ManageGuildExpressions"]))) !== 0n).toBe(true);
+		expect(calls.filter((c) => c.method === "DELETE").map((c) => c.url.replace(BASE, ""))).toEqual([
+			`/guilds/${GUILD}/emojis/900`,
+			`/guilds/${GUILD}/emojis/901`,
+		]);
+	});
+
+	it("passes another delete failure through, even when taking the new emoji back fails too", async () => {
+		const { notifs } = make([
+			{ body: [MERGE] },
+			{ body: NEW },
+			{ status: 500, body: { message: "boom" } },
+			{ status: 500, body: { message: "boom" } },
+		]);
+		const err = await notifs.ensureEmoji({ name: "git_merge", image, replace: true }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).not.toMatch(/lacks/);
+	});
+
+	it("names the temporary emoji when the rename fails after the old one is gone", async () => {
+		const { notifs } = make([
+			{ body: [MERGE] },
+			{ body: NEW },
+			{ status: 204 },
+			{ status: 500, body: { message: "boom" } },
+		]);
+		const err = (await notifs
+			.ensureEmoji({ name: "git_merge", image, replace: true })
+			.catch((e: unknown) => e)) as Error;
+		expect(err.message).toMatch(/now `:git_merge_new:` \(id 901\)/);
+		expect(err.message).toMatch(/rename it to `git_merge`/);
+	});
+
+	it("gives a forum's default reaction the new id when the channel step runs after the replace", async () => {
+		const { notifs, calls } = make([
+			{ body: [MERGE] },
+			{ body: NEW },
+			{ status: 204 },
+			{ body: { id: "901", name: "git_merge" } },
+			{ body: [forum(custom)] },
+			{ body: [{ id: "901", name: "git_merge" }] },
+			{ body: forum({ emoji_id: "901", emoji_name: null }) },
+		]);
+		await notifs.ensureEmoji({ name: "git_merge", image, replace: true });
+		const result = await notifs.ensureChannel({ name: "prs", kind: "forum", defaultReaction: ":git_merge:" });
+		expect(result.updated).toEqual(["default reaction"]);
+		expect(calls[6]).toMatchObject({
+			method: "PATCH",
+			body: { default_reaction_emoji: { emoji_id: "901", emoji_name: null } },
+		});
+	});
+});
+
 describe("DiscordNotifications.inspect: server emoji", () => {
 	it("spells a server emoji default reaction as :name: and lists the emoji", async () => {
 		const { notifs } = make([

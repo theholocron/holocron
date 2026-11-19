@@ -11,8 +11,8 @@
  * shared preset would apply it from every repo.
  */
 
-import { input as prompt } from "@inquirer/prompts";
-import { createProgress, describeError, logReason, style } from "@theholocron/kyber/ui";
+import { confirm, input as prompt } from "@inquirer/prompts";
+import { createProgress, describeError, logReason, NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -586,6 +586,24 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
+	// Replacing emoji deletes the old ones and their reactions: say which, and ask, before anything is written.
+	const replaceEmoji = (input.replaceEmoji ?? false) && emojiImages.size > 0;
+	if (replaceEmoji && !dryRun && !input.yes) {
+		const names = [...emojiImages.keys()].map((name) => `:${name}:`).join(", ");
+		if (!(input.interactive ?? Boolean(process.stdin.isTTY))) {
+			throw new NonInteractiveError(
+				`\`setup notifications --replace\` makes ${names} again and deletes the old ones; pass --yes to run it without asking, or --dry-run to preview`
+			);
+		}
+		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
+			`Replace ${emojiImages.size === 1 ? "server emoji" : `${emojiImages.size} server emoji`} ${names}? Each is made again from its image with a new id and the old one deleted, so reactions made with the old one disappear from existing posts.`
+		);
+		if (!proceed) {
+			print(`  ${style.skip("cancelled; nothing was written")}`);
+			return { ...report, status: "cancelled" };
+		}
+	}
+
 	// The relay webhook's URL, kept here between creating it and handing it to the Worker; never reported or printed.
 	let relayWebhook: string | undefined;
 
@@ -649,23 +667,37 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		});
 	}
 
-	// Server emoji next, made only where the server lacks one: a channel's reactions name them.
+	// Server emoji next, made only where the server lacks one (or made again with --replace): a channel's reactions name
+	// them, and are looked up by name once the channels are reached, so a replaced emoji's new id is the one they get.
 	if (emojiImages.size > 0) print(`\n${style.header("Emoji")}`);
 	for (const [name, image] of emojiImages) {
 		await attempt(`emoji :${name}:`, async () => {
 			if (dryRun) {
 				print(
-					`  ${style.skip(`would ensure emoji :${name}: (made from its image only when the server has none)`)}`
+					`  ${style.skip(
+						replaceEmoji
+							? `would replace emoji :${name}: (made again from its image, a new id; made if the server has none)`
+							: `would ensure emoji :${name}: (made from its image only when the server has none)`
+					)}`
 				);
 				tally.skip++;
 				return;
 			}
-			const result = await notifications.ensureEmoji!({ name, image }); // checked above, before anything was written
-			report.emojis = [...(report.emojis ?? []), { name, created: result.created }];
+			const result = await notifications.ensureEmoji!({
+				name,
+				image,
+				...(replaceEmoji ? { replace: true } : {}),
+			}); // checked above, before anything was written
+			const replaced = !result.created && (result.updated?.length ?? 0) > 0;
+			report.emojis = [
+				...(report.emojis ?? []),
+				{ name, created: result.created, ...(replaced ? { replaced: true } : {}) },
+			];
+			const verb = result.created ? "created" : replaced ? "replaced" : "exists ";
 			print(
-				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} emoji :${name}: (id ${result.id})`)}`
+				`  ${(result.created || replaced ? style.success : style.skip)(`${verb} emoji :${name}: (id ${result.id})`)}`
 			);
-			made(result.created);
+			made(result.created || replaced);
 		});
 	}
 

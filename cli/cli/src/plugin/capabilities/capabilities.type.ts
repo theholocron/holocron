@@ -2455,7 +2455,7 @@ export type NotificationsPicture = string | { url?: string; image?: string };
  * with its name between colons (`":git_merge:"`, the name Discord shows; 2 to 32 letters, digits and underscores).
  * The object form, `{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }`, also says where `setup`
  * finds a picture to make the emoji from when the server has none (a file under `.holocron/media/`: PNG, JPEG, GIF,
- * WebP or AVIF, at most 256 KiB). `setup` never changes or deletes an emoji the server already has.
+ * WebP or AVIF, at most 256 KiB). `setup` never changes or deletes an emoji the server already has, unless it is run with `--replace`.
  */
 export type NotificationsReaction = string | { emoji: string; image?: string };
 
@@ -3004,9 +3004,13 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<EnsuredResource>;
 	/**
 	 * Find the server emoji named `name` (without colons) or make it from `image`, a `data:` URI. An emoji that
-	 * exists is left exactly as it is: never replaced, renamed or deleted, and `image` is not compared with it.
+	 * exists is left exactly as it is, never replaced, renamed or deleted, and `image` is not compared with it, unless
+	 * `replace` is true: then an existing emoji is made again from `image` (it gets a new id, and what was reacted with
+	 * the old one is gone), the new one made before the old one is removed so a failure never leaves the server without
+	 * it. The result then has `created: false` and `updated: ["image"]`, with the new id. Only for an emoji the layout
+	 * gives an `image`; the caller asks first.
 	 */
-	ensureEmoji?(input: { name: string; image: string }): Promise<EnsuredResource>;
+	ensureEmoji?(input: { name: string; image: string; replace?: boolean }): Promise<EnsuredResource>;
 	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {
 		channel: string;

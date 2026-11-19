@@ -37,3 +37,12 @@ export function botNeeds(layout: NotificationsLayout | undefined): PermissionNam
 		...(makesEmoji ? (["CreateGuildExpressions"] as PermissionName[]) : []),
 	];
 }
+
+/**
+ * What `setup notifications --replace` also needs: Manage Guild Expressions (Discord's "Manage Expressions"), which
+ * deleting an emoji someone else made takes (Create Guild Expressions covers only the bot's own). It is not part of
+ * {@link botNeeds}, since whether emoji are replaced is a choice of one run, not of the layout.
+ */
+export function replaceNeeds(layout: NotificationsLayout | undefined): PermissionName[] {
+	return [...botNeeds(layout), "ManageGuildExpressions"];
+}

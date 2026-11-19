@@ -264,6 +264,24 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 				bodyIds(body.roles);
 				return rest.request<DiscordEmoji>(`/guilds/${id(guildId)}/emojis`, { method: "POST", body });
 			},
+			/**
+			 * `PATCH /guilds/:id/emojis/:id` — renames a custom emoji (the image cannot change). The bot may change an emoji it
+			 * made with Create Guild Expressions; one made by someone else needs Manage Guild Expressions.
+			 */
+			renameEmoji: (guildId: string, emojiId: string, name: string) =>
+				rest.request<DiscordEmoji>(`/guilds/${id(guildId)}/emojis/${id(emojiId)}`, {
+					method: "PATCH",
+					body: { name },
+				}),
+			/**
+			 * `DELETE /guilds/:id/emojis/:id` — deletes a custom emoji, and so every reaction made with it. The bot may delete
+			 * an emoji it made with Create Guild Expressions; one made by someone else needs Manage Guild Expressions.
+			 */
+			deleteEmoji: (guildId: string, emojiId: string): Promise<void> =>
+				rest.request<void>(`/guilds/${id(guildId)}/emojis/${id(emojiId)}`, {
+					method: "DELETE",
+					expectNoContent: true,
+				}),
 			/** `PUT /guilds/:id/members/:id/roles/:id` — gives the member the role; giving one they have is a no-op. */
 			addMemberRole: (guildId: string, userId: string, roleId: string): Promise<void> =>
 				rest.request<void>(`/guilds/${id(guildId)}/members/${id(userId)}/roles/${id(roleId)}`, {

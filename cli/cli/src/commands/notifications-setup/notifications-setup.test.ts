@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,6 +11,12 @@ import type { Monitoring, Notifications, NotificationsLayout } from "../../plugi
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
 import { feedProblem, forumLayoutProblem, PR_FEED_TAGS, runNotificationsSetup } from "./notifications-setup.js";
+
+const confirmPrompt = vi.hoisted(() => vi.fn());
+vi.mock("@inquirer/prompts", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@inquirer/prompts")>()),
+	confirm: confirmPrompt,
+}));
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -82,6 +89,10 @@ function setup(
 		loadAvatar?: (source: string) => Promise<string>;
 		loadEmojiImage?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
+		replace?: boolean;
+		yes?: boolean;
+		interactive?: boolean;
+		confirm?: (message: string) => Promise<boolean>;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -157,6 +168,10 @@ function setup(
 				...(opts.loadEmojiImage ? { loadEmojiImage: opts.loadEmojiImage } : {}),
 				...(opts.relay?.readCode ? { readRelayCode: opts.relay.readCode } : {}),
 				...(opts.pause ? { pause: opts.pause } : {}),
+				...(opts.replace ? { replaceEmoji: true } : {}),
+				...(opts.yes ? { yes: true } : {}),
+				...(opts.interactive !== undefined ? { interactive: opts.interactive } : {}),
+				...(opts.confirm ? { confirm: opts.confirm } : {}),
 				print: (l) => lines.push(l),
 				logger: log,
 			}),
@@ -2769,6 +2784,218 @@ describe("forum channels", () => {
 			expect(report.status).toBe("fail");
 			expect(report.failures).toEqual([{ step: "emoji :git_merge:", message: "Discord refused" }]);
 			expect(report.channels).toHaveLength(1);
+		});
+
+		describe("--replace", () => {
+			type Input = { name: string; image: string; replace?: boolean };
+			const replacing = () => vi.fn(async (_input: Input) => ({ id: "901", created: false, updated: ["image"] }));
+
+			it("passes replace to the provider, reports the replacement and runs before the channels", async () => {
+				const order: string[] = [];
+				const ensureEmoji = vi.fn(async (_input: Input) => {
+					order.push("emoji");
+					return { id: "901", created: false, updated: ["image"] };
+				});
+				const ensureChannel = vi.fn(async (_input: { name: string }) => {
+					order.push("channel");
+					return { id: "1", created: true };
+				});
+				const layout = forumLayout({ defaultReaction: withImage, starterReactions: [":git_merge:"] });
+				const { run, lines } = setup(fakeNotifications({ layout, ensureEmoji, ensureChannel }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					yes: true,
+				});
+				const report = await run();
+				expect(report.status).toBe("ok");
+				expect(ensureEmoji).toHaveBeenCalledWith(expect.objectContaining({ name: "git_merge", replace: true }));
+				expect(report.emojis).toEqual([{ name: "git_merge", created: false, replaced: true }]);
+				expect(lines.join("\n")).toContain("replaced emoji :git_merge: (id 901)");
+				// The channel step reads the emoji's id by name when it runs, so it sees the id made here.
+				expect(order).toEqual(["emoji", "channel"]);
+				expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ defaultReaction: withImage }));
+			});
+
+			it("says created for an emoji the server lacked, and exists for a provider that did not replace it", async () => {
+				const ensureEmoji = vi
+					.fn(async (_input: Input) => ({ id: "1", created: false }))
+					.mockResolvedValueOnce({ id: "900", created: true });
+				const layout = forumLayout({
+					defaultReaction: withImage,
+					starterReactions: [{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" }],
+				});
+				const { run, lines } = setup(fakeNotifications({ layout, ensureEmoji }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					yes: true,
+				});
+				const report = await run();
+				expect(report.emojis).toEqual([
+					{ name: "git_merge", created: true },
+					{ name: "git_branch", created: false },
+				]);
+				expect(lines.join("\n")).toContain("created emoji :git_merge: (id 900)");
+				expect(lines.join("\n")).toContain("exists  emoji :git_branch: (id 1)");
+			});
+
+			it("asks first, naming each emoji and the loss of reactions, and goes on when told yes", async () => {
+				const ensureEmoji = replacing();
+				const confirm = vi.fn(async () => true);
+				const layout = forumLayout({ defaultReaction: withImage });
+				const report = await setup(fakeNotifications({ layout, ensureEmoji }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					interactive: true,
+					confirm,
+				}).run();
+				expect(report.status).toBe("ok");
+				expect(confirm).toHaveBeenCalledOnce();
+				const question = (confirm.mock.calls as unknown as string[][])[0]![0]!;
+				expect(question).toContain("server emoji :git_merge:");
+				expect(question).toContain("reactions made with the old one disappear");
+				expect(ensureEmoji).toHaveBeenCalledOnce();
+			});
+
+			it("counts the emoji in the question when there are several", async () => {
+				const confirm = vi.fn(async () => true);
+				const layout = forumLayout({
+					defaultReaction: withImage,
+					starterReactions: [{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" }],
+				});
+				await setup(fakeNotifications({ layout, ensureEmoji: replacing() }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					interactive: true,
+					confirm,
+				}).run();
+				expect((confirm.mock.calls as unknown as string[][])[0]![0]).toContain(
+					"2 server emoji :git_merge:, :git_branch:"
+				);
+			});
+
+			it("writes nothing when the answer is no", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+				});
+				const { run, lines } = setup(n, {
+					loadEmojiImage: readImage,
+					replace: true,
+					interactive: true,
+					confirm: async () => false,
+				});
+				const report = await run();
+				expect(report.status).toBe("cancelled");
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+				expect(n.ensureCategory).not.toHaveBeenCalled();
+				expect(lines.join("\n")).toContain("cancelled; nothing was written");
+			});
+
+			it("asks through a prompt when no confirm is injected", async () => {
+				confirmPrompt.mockResolvedValueOnce(true);
+				const ensureEmoji = replacing();
+				const layout = forumLayout({ defaultReaction: withImage });
+				const report = await setup(fakeNotifications({ layout, ensureEmoji }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					interactive: true,
+				}).run();
+				expect(report.status).toBe("ok");
+				expect(confirmPrompt).toHaveBeenCalledWith(expect.objectContaining({ default: false }));
+			});
+
+			it("takes the terminal from stdin when it is not said", async () => {
+				const tty = process.stdin.isTTY;
+				process.stdin.isTTY = false;
+				try {
+					const n = fakeNotifications({
+						layout: forumLayout({ defaultReaction: withImage }),
+						ensureEmoji: replacing(),
+					});
+					const err = await setup(n, { loadEmojiImage: readImage, replace: true })
+						.run()
+						.catch((e: unknown) => e);
+					expect(err).toBeInstanceOf(NonInteractiveError);
+				} finally {
+					process.stdin.isTTY = tty;
+				}
+			});
+
+			it("refuses without a terminal and without --yes, writing nothing", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+				});
+				const err = await setup(n, { loadEmojiImage: readImage, replace: true, interactive: false })
+					.run()
+					.catch((e: unknown) => e);
+				expect(err).toBeInstanceOf(NonInteractiveError);
+				expect((err as Error).message).toMatch(/pass --yes to run it without asking, or --dry-run/);
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+				expect(n.ensureCategory).not.toHaveBeenCalled();
+			});
+
+			it("lists each emoji it would replace on --dry-run, with no question and no write", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+				});
+				const confirm = vi.fn(async () => true);
+				const { run, lines } = setup(n, {
+					loadEmojiImage: readImage,
+					replace: true,
+					dryRun: true,
+					interactive: false,
+					confirm,
+				});
+				const report = await run();
+				expect(report.status).toBe("dry-run");
+				expect(confirm).not.toHaveBeenCalled();
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+				expect(lines.join("\n")).toContain("would replace emoji :git_merge:");
+			});
+
+			it("fails closed on an unusable image before asking or writing", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+				});
+				const confirm = vi.fn(async () => true);
+				const report = await setup(n, {
+					loadEmojiImage: async () => {
+						throw new Error("it is 300 KiB");
+					},
+					replace: true,
+					interactive: true,
+					confirm,
+				}).run();
+				expect(report.status).toBe("fail");
+				expect(confirm).not.toHaveBeenCalled();
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+			});
+
+			it("has nothing to replace, and asks nothing, when the layout gives no emoji an image", async () => {
+				const n = fakeNotifications({ layout: forumLayout({ defaultReaction: ":git_merge:" }) });
+				const confirm = vi.fn(async () => true);
+				const report = await setup(n, { replace: true, interactive: true, confirm }).run();
+				expect(report.status).toBe("ok");
+				expect(confirm).not.toHaveBeenCalled();
+			});
+
+			it("reports a replacement that failed and goes on", async () => {
+				const ensureEmoji = vi.fn(async (_input: Input) => {
+					throw new Error("Discord refused: the bot lacks Manage Guild Expressions");
+				});
+				const layout = forumLayout({ defaultReaction: withImage });
+				const report = await setup(fakeNotifications({ layout, ensureEmoji }), {
+					loadEmojiImage: readImage,
+					replace: true,
+					yes: true,
+				}).run();
+				expect(report.status).toBe("fail");
+				expect(report.failures[0]?.step).toBe("emoji :git_merge:");
+				expect(report.channels).toHaveLength(1);
+			});
 		});
 
 		it("refuses, before anything is written, an image that cannot be used", async () => {

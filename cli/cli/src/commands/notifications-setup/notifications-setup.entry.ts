@@ -4,6 +4,6 @@ export const notificationsSetupEntry: MenuEntry = {
 	name: "setup notifications",
 	description: "Apply the server layout a notifications provider declares in holocron.config.ts",
 	positionals: [],
-	skipOptions: ["scope", "provider"],
+	skipOptions: ["scope", "provider", "replace", "yes"],
 	supportsDryRun: true,
 };
