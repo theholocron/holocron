@@ -41,7 +41,7 @@ describe("REUSABLE_WORKFLOWS['release'] republish job (holocron#1387)", () => {
 			spawnSync("bash", ["-c", `set -e\nGITHUB_OUTPUT=$(mktemp)\n${script}\ncat "$GITHUB_OUTPUT"`], {
 				encoding: "utf8",
 				env: {
-					PATH: process.env["PATH"] ?? "",
+					PATH: "/usr/bin:/bin", // fixed: a directory on a developer's own PATH can change what `bash` prints
 					TAG: "",
 					RELEASE_GROUP: "",
 					EXCLUDED_GROUPS: "",
