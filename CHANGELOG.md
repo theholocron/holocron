@@ -1,3 +1,9 @@
+## [5.0.0-alpha.495](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.494...v5.0.0-alpha.495) (2026-11-19)
+
+### Features
+
+* **notifications:** 🎨 add the Octicons git icons as server emoji ([#2425](https://github.com/theholocron/holocron/issues/2425)) ([94b49b7](https://github.com/theholocron/holocron/commit/94b49b7677af69429ab99f17927955233e8ec3d6)), closes [#2412](https://github.com/theholocron/holocron/issues/2412) [#2412](https://github.com/theholocron/holocron/issues/2412)
+
 ## [5.0.0-alpha.494](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.493...v5.0.0-alpha.494) (2026-11-19)
 
 ### Bug Fixes
