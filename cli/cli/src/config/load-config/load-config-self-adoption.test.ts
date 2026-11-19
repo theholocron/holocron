@@ -172,6 +172,13 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"git_merge_queue",
 			"git_pull_request_closed",
 			"git_pull_request_draft",
+			"git_pull_request_agent",
+			"git_draft_agent",
+			"git_closed_agent",
+			"git_merge_agent",
+			"git_merge_queue_agent",
+			"git_pull_request_locked",
+			"git_pull_request_unlisted",
 		].map((name) => ({ emoji: `:${name}:`, image: `.holocron/media/emoji/${name}.png` }));
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
 		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
