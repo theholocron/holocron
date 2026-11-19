@@ -12,6 +12,9 @@ brew "editorconfig-checker"
 brew "gitleaks"
 brew "yamllint"
 
+# `.holocron/media/emoji/make-emoji.mjs` rasterises the server emoji SVGs.
+brew "librsvg" # bin: rsvg-convert
+
 # Needed by `holocron dev` and `holocron new tunnel` (the Cloudflare tunnel connector).
 brew "cloudflared"
 
