@@ -211,6 +211,11 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			}
 		}
 	}
+	for (const emoji of layout.emojis ?? []) {
+		const problem = reactionProblem("an `emojis` entry", emoji);
+		if (problem) return problem;
+		if (typeof emoji === "string" || !emoji.image) return "an `emojis` entry must be `{ emoji, image }`";
+	}
 	const emojiProblem = emojiConflictProblem(layout);
 	if (emojiProblem) return emojiProblem;
 	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));

@@ -2735,6 +2735,13 @@ export interface NotificationsLayout {
 	 */
 	webhookAvatar?: NotificationsPicture;
 	/**
+	 * Server emoji to make that no reaction names, each `{ emoji: ":name:", image }` (a file under `.holocron/media/`, as
+	 * for a reaction). `setup` makes the ones the server lacks, with the emoji the forums' reactions name, and never
+	 * replaces, renames or deletes one; `doctor notifications` expects every one on the server. A name given here and in
+	 * a reaction takes one picture. A server holds a limited number of emoji, so list only what is wanted.
+	 */
+	emojis?: Array<{ emoji: string; image: string }>;
+	/**
 	 * The Worker that carries other services' alerts into the channels with a `feeds.errors`: built beforehand
 	 * (`apps/comlink`), deployed by `setup notifications` with each channel's webhook URL as a secret, and served at
 	 * `host`. Secrets set some other way (the service's signing secret) are kept across deploys.

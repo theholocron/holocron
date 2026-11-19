@@ -18,6 +18,16 @@ export default {
 	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
+	// The rest of the Octicons `git-*` set (MIT, notice in `.holocron/media/emoji/LICENSE`), made on the server for
+	// anyone to use; no reaction names them (#2412). The `prs` forum's own three are made through its reactions below.
+	emojis: [
+		{ emoji: ":git_branch_check:", image: ".holocron/media/emoji/git_branch_check.png" },
+		{ emoji: ":git_commit:", image: ".holocron/media/emoji/git_commit.png" },
+		{ emoji: ":git_compare:", image: ".holocron/media/emoji/git_compare.png" },
+		{ emoji: ":git_merge_queue:", image: ".holocron/media/emoji/git_merge_queue.png" },
+		{ emoji: ":git_pull_request_closed:", image: ".holocron/media/emoji/git_pull_request_closed.png" },
+		{ emoji: ":git_pull_request_draft:", image: ".holocron/media/emoji/git_pull_request_draft.png" },
+	],
 	// Where a full `holocron doctor notifications` run leaves its one visible test post.
 	testChannel: "holonet",
 	// Keep ordinary members from pinging the whole server, and from adding emoji, stickers, sounds or
@@ -145,11 +155,20 @@ export default {
 						{ name: "merged", emoji: "🟣", moderated: true },
 						{ name: "closed", emoji: "🚫", moderated: true },
 					],
-					// As in `ideas`: one default reaction (Discord takes one per forum) and the bot adds the starters to the first
-					// message of each post, so every pull request opens with approve, disapprove and question to hand. The
-					// default is 🔀, the closest Unicode has to a merge or branch icon.
-					defaultReaction: "🔀",
-					starterReactions: ["👍", "👎", "❓"],
+					// One default reaction (Discord takes one per forum); the bot adds the starters to the first message of each
+					// post. Unicode has no branch or merge glyph, so these are server emoji (#2412): Octicons (MIT, notice in
+					// `.holocron/media/emoji/LICENSE`). `setup notifications` makes each from its `image` when the server has none.
+					defaultReaction: {
+						emoji: ":git_pull_request:",
+						image: ".holocron/media/emoji/git_pull_request.png",
+					},
+					starterReactions: [
+						"👍",
+						"👎",
+						"❓",
+						{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" },
+						{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
+					],
 					feeds: { prs: true },
 				},
 				// The test channel: the doctor's own test post is left here, never in a real channel.
