@@ -109,7 +109,7 @@ found. Without `text`, `search` makes one request as before.
 
 What it sets, for each issue it reads, and never over a value that is already there:
 
-- **Type**: `bug` gives Bug, `enhancement` gives Feature and `chore` gives Task. An issue that already has a Type keeps it. An issue with two of the three labels is listed and left for a person, and one with none has no source.
+- **Type**: `bug` gives Bug, `enhancement` gives Feature and `chore` gives Task. An issue that already has a Type keeps it. An issue with none of those three but with `ci`, `documentation`, `refactor`, `test`, `performance` or `dependencies` gets Task (issue #2494); the three always win. An issue with two of the three labels is listed and left for a person, and one with no label that maps to a Type has no source.
 - **Area labels**: from the scope of the title through `repo.labels.scopes`; with `--pull-requests`, a pull request gets them from its changed files through `repo.labels.areas`. Labels are only added, never removed (the kind labels stay), and one the repository does not have is reported and not added.
 - **Milestone**: from the issue's parent when the parent has one; otherwise `--milestone` for an issue in the window named by `--issues` or `--since`. No other source is used: it does not guess from a sibling or a linked pull request.
 - **Project**: `--project` adds an issue in the window that is on no project. An issue on any other project is left alone.
