@@ -108,7 +108,7 @@ holocron probe github issue-types -- --since 2026-09-01 --milestone v5.0 --proje
 | `--project <title>`  | none    | The organization project for an issue in the window that is on no project. Needs `--issues` or `--since`.                                                             |
 | `--pull-requests`    | off     | Also give pull requests their area labels, from their changed files. Skipped otherwise, as the spec says.                                                             |
 
-See [Backfilling issues](/holocron/plugins/github/#backfilling-issues) for what it sets and the rules it follows.
+`--limit` caps each run, not the job: the last rows print the `--after` resume command until nothing is left. The `N ok, M fail` footer is not the number of changes; read the `summary` row. See [Backfilling issues](/holocron/plugins/github/#backfilling-issues) for the output and the rules it follows.
 
 ## Axiom
 

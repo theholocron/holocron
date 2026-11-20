@@ -116,7 +116,15 @@ What it sets, for each issue it reads, and never over a value that is already th
 
 It never sets a Priority or an Effort. It ends with the **issues it read that are still without a project, a milestone, a Priority or an Effort**, one list per field, counted after the changes it would make, so the maintainer can hand them to someone to decide. **The number of issues missing a project or a milestone has not been counted**: the dry run is what counts it. The Priority and Effort lists cover the organization's issue fields of those names and are skipped, with the reason, when the fields cannot be listed.
 
-A run reads at most `--limit` issues (default 100), oldest first. A rate limit (429, or a 403 naming it) stops it cleanly with what it did; the last row prints the command with `--after <number>` to resume from. Pull requests are passed over unless `--pull-requests` is given.
+`--limit` caps **each run** (default 100 items, oldest first); it is not the size of the job. A rate limit (429, or a 403 naming it) also stops a run cleanly. Until nothing is left, the last rows say so and print the command with `--after <number>` to continue; run it again until the `summary` row ends with "the window is finished". Pull requests are passed over unless `--pull-requests` is given.
+
+The report is about items, not checks. The `summary` row gives the items read (and how many are pull requests), the items changed (or, on a dry run, that would be), the pull requests passed over, the failures, and whether the limit or the rate limit stopped the run. Each "without ..." row is an `info` row measured over the items that run read, for example `0 of 100 items read`. So the footer `N ok, M fail` counts nothing the run did: do not read it as the number of changes. If the organization issue fields cannot be read (the token was refused), Priority and Effort were **not checked**, and a `fail` row says so with the reason; that is a gap in the report, not an empty list.
+
+```text
+info summary: read 100 items; would change 31; passed over 12 pull requests (give --pull-requests to include them); 0 failures; stopped at the limit of 100, more remain
+info without a project: 87 of 100 items read
+info resume: the limit was reached; to continue: holocron probe github issue-types -- --after 802 --limit 100 ...
+```
 
 Not verified against the live API: writing an issue's Type, adding an issue to a project (`addProjectV2ItemById`), and the sub-issue parent and issue-field value reads. The kind labels, the Type names and the project and milestone titles used here (`v5.0`, `v5`) are the maintainer's, not read.
 
