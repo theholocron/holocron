@@ -184,7 +184,23 @@ Build the Worker first (`pnpm --filter @theholocron/comlink run build`). `setup`
 
 With `relay.errors`, `setup` also does the tracker's side. For Sentry it makes a custom integration (`relay.errors.integration`, default `Comlink`) whose webhook is the Worker's URL, installs it, and makes an alert rule (`relay.errors.rule`, default `Errors to Discord (Comlink)`, every `relay.errors.projects` project, at most one notice per issue every `relay.errors.frequency` minutes, default 5) that sends to it. When Sentry gives the integration's signing secret (it may show it only when the integration is made), `setup` hands it to the Worker as `COMLINK_<SOURCE>_SECRET` in the same deploy and prints nothing. When it does not, the Worker keeps the secret it has and `setup` says so; copy the secret from the integration's page into the 1Password Environment `Comlink` and run `holocron sync secrets --env Comlink --cwd apps/comlink --worker comlink`. An integration or rule that exists is adopted, not duplicated: its webhook, alert action, project list and enabled state are put right and everything else a person set is kept. Sentry does not let a call delete an integration, so `setup` never does. It needs a Sentry token of its own, `sentry.comlink` (see [Tokens](/tokens)); the general Sentry token is the last resort.
 
-Needs an `errors`, a `workers` and a `dns` provider. The relay posts to one channel, so only one channel may have `feeds.errors`. `relay.zone` (default: the `dns` provider finds the zone of that hostname itself, so it is rarely needed), `relay.script` (default `comlink`) and `relay.code` (default `apps/comlink/dist/worker.js`) override the defaults. A `--dry-run` previews all of it and calls nothing. If the webhook already exists but was made by a person, its URL cannot be read back: delete it and run `setup` again.
+Needs an `errors` provider (only for `feeds.errors`), a `workers` and a `dns` provider. The relay posts to one channel, so only one channel may have `feeds.errors`. `relay.zone` (default: the `dns` provider finds the zone of that hostname itself, so it is rarely needed), `relay.script` (default `comlink`) and `relay.code` (default `apps/comlink/dist/worker.js`) override the defaults. A `--dry-run` previews all of it and calls nothing. If the webhook already exists but was made by a person, its URL cannot be read back: delete it and run `setup` again.
+
+### Other relay sources
+
+A service other than the error tracker is declared under `relay.sources`, keyed by the source's id (the path the relay serves it at, lower-case letters and digits, `vercel`), and carried by a channel with `feeds.relay.<id>`:
+
+```ts
+layout: {
+  relay: {
+    host: "comlink.theholocron.dev",
+    sources: { vercel: { capability: "deployment", events: ["deployment.error"], scope: ["prj_abc"] } },
+  },
+  categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { vercel: true } } }] }],
+}
+```
+
+`capability` names the provider that makes the vendor's webhook (`deployment`, `dns`, `vault`, `auth` or `workers`); its plugin implements the optional `ensureRelaySource`. `name` (default the id, capitalised), `events`, `scope` and `options` are handed to it as they are written, in the vendor's own terms. `setup` asks the provider to make the webhook for `https://<relay.host>/<id>` (found again by that URL, so a second run changes nothing and nothing is deleted), makes the channel's dedicated webhook (`feeds.relay.<id>.webhook`, default the id capitalised, and `avatar` as for the other feeds), and deploys the Worker once with `COMLINK_<ID>_WEBHOOK` and, when the provider made or chose a secret, `COMLINK_<ID>_SECRET`. Neither value is printed, reported or stored anywhere else. A vendor that lets the caller choose the secret is given a fresh one to use only when it makes the webhook; a webhook that already exists keeps its secret, which cannot be read back, and the Worker keeps the one it has. A step the vendor's API cannot do is reported as a failure that names it, and the Worker is still deployed. One source feeds one channel, and a forum takes no relay feed.
 
 ## Options
 

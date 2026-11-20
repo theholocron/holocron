@@ -2507,3 +2507,62 @@ describe("runDoctorNotifications — the Notifications workflow", () => {
 		]);
 	});
 });
+
+describe("runDoctorNotifications — relay sources", () => {
+	const LAYOUT: NotificationsLayout = {
+		relay: {
+			host: "comlink.example.com",
+			sources: { vercel: { capability: "deployment", events: ["deployment.error"] } },
+		},
+		categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { vercel: true } } }] }],
+	};
+	const FOUND: ServerInspection = {
+		categories: ["ALERTS"],
+		channels: [{ name: "deploys", category: "ALERTS", webhooks: ["Vercel"], webhookAvatars: [] }],
+		roles: [],
+	};
+
+	function sourceRun(deployment: Record<string, unknown> | undefined) {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { notifications: ["discord"], ...(deployment ? { deployment: "vercel" } : {}) },
+		});
+		const notifications = fakeNotifications({ layout: LAYOUT, found: FOUND });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+			...(deployment
+				? {
+						"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+							deployment: { key: "deployment", providerName: "vercel", ...deployment },
+						}),
+					}
+				: {}),
+		});
+		return runDoctorNotifications({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+			builtOnly: true,
+			fetch: (async () => ({ status: 401 }) as Response) as unknown as typeof fetch,
+		});
+	}
+
+	it("checks each source's webhook at the vendor through its provider and keeps it under --built-only", async () => {
+		const inspectRelaySource = vi.fn(async () => ({ exists: true, events: ["deployment.error"] }));
+		const report = await sourceRun({ inspectRelaySource });
+		expect(byId(report, "relay-source:vercel").status).toBe("pass");
+		expect(inspectRelaySource).toHaveBeenCalledWith(
+			expect.objectContaining({ url: "https://comlink.example.com/vercel", source: "vercel" })
+		);
+	});
+
+	it("fails a missing webhook and skips when the capability has no provider", async () => {
+		const missing = await sourceRun({ inspectRelaySource: async () => ({ exists: false }) });
+		expect(byId(missing, "relay-source:vercel").status).toBe("fail");
+		const none = await sourceRun(undefined);
+		expect(byId(none, "relay-source:vercel").status).toBe("skip");
+		expect(byId(none, "relay-source:vercel").detail).toContain("`deployment` provider");
+	});
+});

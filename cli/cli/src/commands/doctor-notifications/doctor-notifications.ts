@@ -37,6 +37,7 @@ import { notificationsWorkflowChecks } from "../notifications-workflow-checks/in
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { prFeedChecks } from "../pr-feed-checks/index.js";
 import { relayChecks } from "../relay-checks/index.js";
+import { relaySourceChecks } from "../relay-sources/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
 import type {
@@ -888,6 +889,16 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			layout,
 			errors: loader.has("errors") ? loader.get("errors") : undefined,
 			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
+		}))
+	);
+
+	// The vendors' side of each relay source (`relay.sources`): the webhook that posts to the relay. Read-only as well.
+	checks.push(
+		...(await relaySourceChecks({
+			layout,
+			provider: (capability) => (loader.has(capability) ? loader.get(capability) : undefined),
+			missingReason: (capability) =>
+				whyMissing(loader, capability, `no \`${capability}\` provider is configured`),
 		}))
 	);
 

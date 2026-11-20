@@ -15,6 +15,7 @@ import { describeError, logReason, style } from "@theholocron/kyber/ui";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type CapabilityKey,
 	type MonitoringAlertSettings,
 	type Notifications,
 	type NotificationsLayout,
@@ -74,12 +75,7 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 }
 
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
-export function whyMissing(
-	loader: PluginLoader,
-	key:
-		"secrets" | "vault" | "notifications" | "source" | "monitoring" | "errors" | "workers" | "dns" | "environments",
-	fallback: string
-): string {
+export function whyMissing(loader: PluginLoader, key: CapabilityKey, fallback: string): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
 	return failure ? `${fallback} (\`${failure.provider}\` failed to load: ${describeError(failure.error)})` : fallback;
 }
@@ -223,7 +219,8 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	}
 
 	const relay = spec.feeds?.errors;
-	if (relay && !notifications.ensureWebhook) {
+	const relays = spec.feeds?.relay ?? [];
+	if ((relay || relays.length > 0) && !notifications.ensureWebhook) {
 		throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
 	}
 
@@ -240,6 +237,10 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		}
 		if (relay) {
 			print(`  ${style.skip(`would ensure webhook ${relay.webhook} for the relay Worker (errors)`)}`);
+			if (tally) tally.skip++;
+		}
+		for (const other of relays) {
+			print(`  ${style.skip(`would ensure webhook ${other.webhook} for the relay Worker (${other.source})`)}`);
 			if (tally) tally.skip++;
 		}
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
@@ -267,7 +268,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	};
 	if (!webhookCfg) {
 		if (feed) await provisionFeed(deps, spec, feed, outcome);
-		if (relay) await provisionRelayFeed(deps, spec, relay, outcome);
+		await provisionRelayFeeds(deps, spec, outcome);
 		return outcome;
 	}
 
@@ -324,8 +325,16 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		throw new Error(`webhook ${webhookName} is ready but setting its avatar failed (${hook.avatarError})`);
 	}
 	if (feed) await provisionFeed(deps, spec, feed, outcome);
-	if (relay) await provisionRelayFeed(deps, spec, relay, outcome);
+	await provisionRelayFeeds(deps, spec, outcome);
 	return outcome;
+}
+
+/** The relay webhooks of a channel: the error tracker's, then one for each other source it carries. */
+async function provisionRelayFeeds(deps: ProvisionDeps, spec: ChannelSpec, outcome: ChannelOutcome): Promise<void> {
+	if (spec.feeds?.errors) await provisionRelayFeed(deps, spec, spec.feeds.errors, outcome);
+	for (const other of spec.feeds?.relay ?? []) {
+		await provisionRelayFeed(deps, spec, other, outcome, other.source);
+	}
 }
 
 /**
@@ -337,7 +346,8 @@ async function provisionRelayFeed(
 	deps: ProvisionDeps,
 	spec: ChannelSpec,
 	feed: { webhook: string; avatar?: string },
-	outcome: ChannelOutcome
+	outcome: ChannelOutcome,
+	source?: string
 ): Promise<void> {
 	const { notifications, print, tally } = deps;
 	const hook = await notifications.ensureWebhook!({
@@ -356,13 +366,15 @@ async function provisionRelayFeed(
 		if (done > 0) tally.ok += done;
 		else tally.skip++;
 	}
-	outcome.relayWebhook = { name: feed.webhook, created: hook.created, ...(avatarSet ? { updated: ["avatar"] } : {}) };
+	const recorded = { name: feed.webhook, created: hook.created, ...(avatarSet ? { updated: ["avatar"] } : {}) };
+	if (source === undefined) outcome.relayWebhook = recorded;
+	else (outcome.relayWebhooks ??= []).push({ source, ...recorded });
 	if (!hook.url) {
 		throw new Error(
 			`webhook ${feed.webhook} already exists and its URL cannot be read back, so the relay cannot post through it — delete it in the provider and re-run`
 		);
 	}
-	deps.onRelayWebhook?.(hook.url);
+	deps.onRelayWebhook?.(hook.url, source);
 	if (hook.avatarError) {
 		throw new Error(`webhook ${feed.webhook} is ready but setting its avatar failed (${hook.avatarError})`);
 	}

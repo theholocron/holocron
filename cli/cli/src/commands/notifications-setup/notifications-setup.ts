@@ -18,6 +18,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type CapabilityKey,
 	type Dns,
 	type EmojiCheck,
 	type Errors,
@@ -53,6 +54,14 @@ import {
 	tagEmojiProblem,
 } from "../notifications-reaction/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import {
+	declaredRelaySources,
+	ensureRelaySource,
+	genericRelayFeeds,
+	newRelaySecret,
+	type RelaySourceProvider,
+	relaySourcesProblem,
+} from "../relay-sources/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
 import { channelWebhookAvatars } from "./channel-webhook-avatars/index.js";
@@ -65,8 +74,10 @@ import {
 	deployRelay,
 	errorsFeedWebhook,
 	relayProblem,
+	wantsAnyRelay,
 	wantsRelay,
 } from "./relay.js";
+import type { RelayBinding } from "./relay.type.js";
 import { withElevation } from "./with-elevation.js";
 
 /**
@@ -190,8 +201,13 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			}
 			continue;
 		}
-		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
-			return `${where}: a forum takes no \`webhook\` or the \`monitoring\` and \`errors\` feeds; its conversations are posts`;
+		if (
+			channel.webhook ||
+			channel.feeds?.monitoring ||
+			channel.feeds?.errors ||
+			Object.values(channel.feeds?.relay ?? {}).some(Boolean)
+		) {
+			return `${where}: a forum takes no \`webhook\` or the \`monitoring\` and \`errors\` feeds (nor \`relay\` ones); its conversations are posts`;
 		}
 		if (channel.defaultReaction !== undefined) {
 			const problem = reactionProblem("`defaultReaction`", channel.defaultReaction);
@@ -444,28 +460,37 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		if (orphan) return refuse(orphan);
 	}
 
-	// Channels fed by the error tracker go through the relay Worker: it needs the tracker, somewhere to run and DNS.
+	// Channels fed by the error tracker or by a relay source go through the relay Worker: it needs somewhere to run and
+	// DNS, the tracker needs an `errors` provider, and each source needs the provider of its capability.
 	let errors: Errors | undefined;
 	let workers: Workers | undefined;
 	let dns: Dns | undefined;
-	if (wantsRelay(layout)) {
-		const early = relayProblem(layout);
+	const sourceProviders = new Map<string, RelaySourceProvider>();
+	const declaredSources = declaredRelaySources(layout);
+	const wantsErrors = wantsRelay(layout);
+	if (wantsAnyRelay(layout) || declaredSources.length > 0) {
+		const early = relayProblem(layout) ?? relaySourcesProblem(layout);
 		if (early) return refuse(early);
-		for (const [key, what] of [
-			["errors", "an `errors` provider (the tracker whose alerts it carries)"],
+		const needs: Array<readonly [CapabilityKey, string]> = [
 			["workers", "a `workers` provider (where it runs)"],
 			["dns", "a `dns` provider (for its host)"],
-		] as const) {
+			...(wantsErrors ? [["errors", "an `errors` provider (the tracker whose alerts it carries)"] as const] : []),
+		];
+		for (const { id, spec } of declaredSources) {
+			needs.push([spec.capability, `a \`${spec.capability}\` provider (it makes the ${id} webhook)`]);
+		}
+		for (const [key, what] of needs) {
 			if (!loader.has(key)) {
-				return refuse(
-					whyMissing(loader, key, `a channel is fed by the error tracker, which needs ${what} — add one`)
-				);
+				return refuse(whyMissing(loader, key, `the relay Worker needs ${what} — add one`));
 			}
 		}
-		errors = loader.get("errors");
+		if (wantsErrors) errors = loader.get("errors");
 		workers = loader.get("workers");
 		dns = loader.get("dns");
-		const clash = relayProblem(layout, errors, monitoring);
+		for (const { id, spec } of declaredSources) {
+			sourceProviders.set(id, loader.get(spec.capability));
+		}
+		const clash = relayProblem(layout, errors, monitoring) ?? relaySourcesProblem(layout, errors?.providerName);
 		if (clash) return refuse(clash);
 	}
 
@@ -474,6 +499,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
 	const errorsAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
 		channel.feeds?.errors ? feedAvatarOf(layout, channel.feeds.errors) : [];
+	const relayFeedsOf = (channel: NotificationsChannelLayout) =>
+		genericRelayFeeds(layout).filter((f) => f.channel === channel);
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
 	// A relative path is the repository's, wherever the command is run from.
@@ -484,6 +511,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			channelWebhookAvatars(layout, channel),
 			feedAvatarsOf(channel),
 			errorsAvatarsOf(channel),
+			...relayFeedsOf(channel).map((f) => feedAvatarOf(layout, f.feed)),
 		]) {
 			const key = JSON.stringify(sources);
 			if (sources.length > 0 && !avatars.has(key)) {
@@ -623,7 +651,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 
 	// The relay webhook's URL, kept here between creating it and handing it to the Worker; never reported or printed.
-	let relayWebhook: string | undefined;
+	const relayWebhooks = new Map<string, string>();
 
 	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
 	const tally = { ok: 0, skip: 0 };
@@ -764,7 +792,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						notifications,
 						...(secrets ? { secrets } : {}),
 						...(monitoring ? { monitoring } : {}),
-						onRelayWebhook: (url: string) => void (relayWebhook = url),
+						onRelayWebhook: (url: string, source?: string) =>
+							void relayWebhooks.set(source ?? errors!.providerName, url),
 						scope: scope ?? { kind: "repo" },
 						dryRun,
 						print,
@@ -781,10 +810,10 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(channel.tags ? { tags: channel.tags } : {}),
 						...(channel.defaultReaction ? { defaultReaction: channel.defaultReaction } : {}),
 						...(webhook ? { webhook } : {}),
-						...(channel.feeds?.monitoring || channel.feeds?.errors
+						...(channel.feeds?.monitoring || channel.feeds?.errors || relayFeedsOf(channel).length > 0
 							? {
 									feeds: {
-										...(channel.feeds.monitoring
+										...(channel.feeds?.monitoring
 											? {
 													monitoring: {
 														...monitoringFeed(
@@ -802,7 +831,22 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 													},
 												}
 											: {}),
-										...(channel.feeds.errors
+										...(relayFeedsOf(channel).length > 0
+											? {
+													relay: relayFeedsOf(channel).map((f) => ({
+														source: f.source,
+														webhook: f.webhook,
+														...(feedAvatarOf(layout, f.feed).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(feedAvatarOf(layout, f.feed))
+																	)!,
+																}
+															: {}),
+													})),
+												}
+											: {}),
+										...(channel.feeds?.errors
 											? {
 													errors: {
 														webhook: errorsFeedWebhook(channel.feeds.errors, errors!),
@@ -833,13 +877,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 
 	// The relay Worker, once its channel's webhook exists: its URL is the Worker's secret.
-	if (errors && workers && dns && wantsRelay(layout)) {
+	if (workers && dns && (wantsErrors || wantsAnyRelay(layout))) {
 		print(`\n${style.header("Relay")}`);
-		// The tracker's side first: its integration, its alert rule, and the secret that signs its requests. A failure
-		// here is reported but does not stop the Worker from being deployed with its webhook.
+		// Each source's side first: the tracker's integration and alert rule, and the vendors' webhooks, with the secrets
+		// that sign their requests. A failure here is reported but does not stop the Worker from being deployed with the
+		// webhooks that are ready.
 		const tracker = layout.relay!.errors;
-		let signingSecret: string | undefined;
-		if (tracker && errors.ensureRelay) {
+		const signingSecrets = new Map<string, string>();
+		if (errors && tracker && errors.ensureRelay) {
 			await attempt(`${errors.providerName} alert relay`, async () => {
 				const integration = tracker.integration ?? DEFAULT_RELAY_INTEGRATION;
 				const rule = tracker.rule ?? DEFAULT_RELAY_RULE;
@@ -856,7 +901,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					projects: tracker.projects,
 					rule: { name: rule, ...(tracker.frequency ? { frequency: tracker.frequency } : {}) },
 				});
-				signingSecret = result.clientSecret;
+				if (result.clientSecret) signingSecrets.set(errors.providerName, result.clientSecret);
 				for (const [what, name, outcome] of [
 					["integration", integration, result.integration],
 					["alert rule", rule, result.rule],
@@ -869,10 +914,26 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					);
 					made(changed);
 				}
-				if (!signingSecret) {
+				if (!result.clientSecret) {
 					print(
 						`  ${style.warn(`${errors.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
 					);
+				}
+			});
+		}
+		for (const source of declaredSources) {
+			const provider = sourceProviders.get(source.id)!;
+			await attempt(`${provider.providerName} relay source ${source.id}`, async () => {
+				const ensured = await ensureRelaySource(
+					source,
+					provider,
+					{ host: layout.relay!.host, newSecret: newRelaySecret },
+					{ print, made, dryRun }
+				);
+				if (ensured.secret) signingSecrets.set(source.id, ensured.secret);
+				for (const todo of ensured.todo) {
+					print(`  ${style.fail(`${provider.providerName} relay source ${source.id}: ${todo}`)}`);
+					report.failures.push({ step: `${provider.providerName} relay source ${source.id}`, message: todo });
 				}
 			});
 		}
@@ -882,14 +943,19 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				tally.skip++;
 				return;
 			}
-			if (!relayWebhook) {
+			const wanted = [...(errors ? [errors.providerName] : []), ...declaredSources.map((d) => d.id)];
+			const bindings: RelayBinding[] = wanted.flatMap((source) => {
+				const webhook = relayWebhooks.get(source);
+				const signingSecret = signingSecrets.get(source);
+				return webhook ? [{ source, webhook, ...(signingSecret ? { signingSecret } : {}) }] : [];
+			});
+			const missing = wanted.filter((source) => !relayWebhooks.has(source));
+			if (bindings.length === 0) {
 				throw new Error("no relay webhook to give the Worker (its channel failed above)");
 			}
 			const deployed = await deployRelay({
 				relay: layout.relay!,
-				source: errors.providerName,
-				webhook: relayWebhook,
-				...(signingSecret ? { signingSecret } : {}),
+				sources: bindings,
 				repoRoot: input.context.repoRoot,
 				workers: workers,
 				dns: dns,
@@ -897,6 +963,11 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			});
 			print(`  ${style.success(`deployed ${deployed.script} at ${deployed.host}`)}`);
 			tally.ok++;
+			if (missing.length > 0) {
+				throw new Error(
+					`no relay webhook for ${missing.join(", ")} (its channel failed above), so the Worker has none`
+				);
+			}
 		});
 	}
 

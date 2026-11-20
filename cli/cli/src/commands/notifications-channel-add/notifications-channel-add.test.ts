@@ -1156,3 +1156,85 @@ describe("provisionChannel — relay feed", () => {
 		expect(dry.created).toBe(false);
 	});
 });
+
+describe("provisionChannel — relay source feeds", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/vercel-token";
+	const deps = (notifications: Notifications, lines: string[], extra: object = {}) => ({
+		notifications,
+		scope: { kind: "repo" as const },
+		dryRun: false,
+		print: (l: string) => void lines.push(l),
+		...extra,
+	});
+
+	it("makes one webhook per source and hands each URL over with its source id, showing none", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async (w: { name: string }) => ({ created: true, url: `${HOOK}/${w.name}` })),
+		});
+		const lines: string[] = [];
+		const urls: Array<[string, string | undefined]> = [];
+		const out = await provisionChannel(
+			deps(n, lines, { onRelayWebhook: (u: string, s?: string) => void urls.push([u, s]) }),
+			{
+				name: "deploys",
+				category: "ALERTS",
+				feeds: {
+					errors: { webhook: "Sentry" },
+					relay: [
+						{ source: "vercel", webhook: "Vercel" },
+						{ source: "doppler", webhook: "Doppler", avatar: "data:image/png;base64,AAAA" },
+					],
+				},
+			}
+		);
+		expect(urls).toEqual([
+			[`${HOOK}/Sentry`, undefined],
+			[`${HOOK}/Vercel`, "vercel"],
+			[`${HOOK}/Doppler`, "doppler"],
+		]);
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: true });
+		expect(out.relayWebhooks).toEqual([
+			{ source: "vercel", name: "Vercel", created: true },
+			{ source: "doppler", name: "Doppler", created: true },
+		]);
+		expect(JSON.stringify(out)).not.toContain("vercel-token");
+		expect(lines.join("\n")).not.toContain("vercel-token");
+	});
+
+	it("previews each source and refuses a provider that cannot make webhooks", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn() });
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(deps(n, lines, { dryRun: true, tally }), {
+			name: "deploys",
+			feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] },
+		});
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("would ensure webhook Vercel for the relay Worker (vercel)");
+		expect(tally).toEqual({ ok: 0, skip: 2 });
+		const none = fakeNotifications({ ensureWebhook: undefined });
+		await expect(
+			provisionChannel(deps(none, []), {
+				name: "deploys",
+				feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] },
+			})
+		).rejects.toThrow(/cannot create webhooks/);
+	});
+});
+
+describe("provisionChannel — relay source preview without a tally", () => {
+	it("prints what it would do and counts nothing", async () => {
+		const lines: string[] = [];
+		const n = fakeNotifications({ ensureWebhook: vi.fn() });
+		await provisionChannel(
+			{
+				notifications: n,
+				scope: { kind: "repo" as const },
+				dryRun: true,
+				print: (l: string) => void lines.push(l),
+			},
+			{ name: "deploys", feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] } }
+		);
+		expect(lines.join("\n")).toContain("(vercel)");
+	});
+});

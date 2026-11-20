@@ -1202,7 +1202,7 @@ export interface DeployFunctionResult {
 }
 
 /** A deployment platform: projects, environment variables and deployments. */
-export interface Deployment extends ProviderIdentity {
+export interface Deployment extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `deployment` capability. */
 	readonly key: "deployment";
 	/**
@@ -1406,7 +1406,7 @@ export interface WebhookDashboardInfo {
 }
 
 /** An identity provider: describes what an app needs from it, proves the credentials work and, where the provider allows, manages users and webhooks. */
-export interface Auth extends ProviderIdentity {
+export interface Auth extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `auth` capability. */
 	readonly key: "auth";
 
@@ -1512,7 +1512,7 @@ export interface EnvironmentEntry {
 }
 
 /** A secret store, the source of truth that `holocron sync secrets` reads from. */
-export interface Vault extends ProviderIdentity {
+export interface Vault extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `vault` capability. */
 	readonly key: "vault";
 
@@ -1612,7 +1612,7 @@ export interface DnsRecordRequest {
 }
 
 /** DNS record management for a domain. */
-export interface Dns extends ProviderIdentity {
+export interface Dns extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `dns` capability. */
 	readonly key: "dns";
 	/** Every record in the domain's zone. */
@@ -1638,6 +1638,79 @@ export interface Dns extends ProviderIdentity {
 // with no provider entry in `holocron.config`. The provider entry only
 // enables `holocron setup` provisioning and `holocron doctor` checks.
 // ───────────────────────────────────────────────────────────────────────
+
+/**
+ * The capabilities whose provider may carry a relay source (`NotificationsLayout.relay.sources`): the vendors whose
+ * webhook is made through a service they already offer. The tracker (`errors`) has its own, richer pair
+ * (`ensureRelay`).
+ */
+export type RelaySourceCapability = "deployment" | "dns" | "vault" | "auth" | "workers";
+
+/** What {@link RelaySourceMethods.ensureRelaySource} sets up at the vendor. */
+export interface EnsureRelaySourceInput {
+	/** The source's id, the path the relay serves it at (`vercel`). */
+	source: string;
+	/** Where the vendor posts, e.g. `https://comlink.theholocron.dev/vercel`. The webhook is found again by this. */
+	url: string;
+	/** The webhook's name at the vendor, when it has one (also how a provider may find it). */
+	name: string;
+	/** The vendor's own event names to subscribe to, as the layout gives them. */
+	events?: string[];
+	/** What the webhook covers, in the vendor's terms (project ids, config slugs, alert types). */
+	scope?: string[];
+	/** Anything else the vendor takes, copied from the layout and judged by the provider. */
+	options?: Record<string, unknown>;
+	/**
+	 * A fresh signing secret, for a vendor that lets the caller choose it. Use it only when making the webhook: an
+	 * existing one keeps its secret, which cannot be read back. A credential: never print or log it.
+	 */
+	secret?: string;
+}
+
+/** Which webhook to read back: the names {@link EnsureRelaySourceInput} was given, without the parts that write. */
+export type InspectRelaySourceInput = Omit<EnsureRelaySourceInput, "secret">;
+
+/** What {@link RelaySourceMethods.ensureRelaySource} did. */
+export interface EnsureRelaySourceResult {
+	/** Whether the webhook was made now rather than adopted. */
+	created: boolean;
+	/** For one adopted, the settings that differed and were changed. */
+	updated: string[];
+	/**
+	 * The secret the relay verifies this vendor's requests with: the one the provider made or the `secret` it was given,
+	 * returned only when the webhook was made (or its secret changed) now. Absent for an adopted webhook, so the Worker
+	 * keeps the secret it has. A credential: never print or store it.
+	 */
+	secret?: string;
+	/** Steps the provider's API cannot do (a dashboard setting, a redirect), each one sentence. Any fails the run. */
+	todo?: string[];
+}
+
+/** A vendor's webhook as the provider holds it. Never carries the signing secret. */
+export interface RelaySourceState {
+	/** Whether a webhook for this URL exists. */
+	exists: boolean;
+	/** Whether it is on. Undefined when the vendor has no such switch. */
+	enabled?: boolean;
+	/** The events it subscribes to, when the vendor reports them. */
+	events?: string[];
+	/** What it covers, when the vendor reports it. */
+	scope?: string[];
+	/** Whether it has a signing secret, when the vendor says (the value is never read). */
+	hasSecret?: boolean;
+}
+
+/**
+ * The optional methods a vendor plugin adds to its capability to make its own webhook for a relay source (spec
+ * `tech-relay-sources`). Idempotent like `ensureRelay`: a webhook found by its URL is adopted and only what differs is
+ * changed, nothing is deleted.
+ */
+export interface RelaySourceMethods {
+	/** Make or adopt the vendor's webhook for `input.url` and say what was done, with the secret when it was just set. */
+	ensureRelaySource?(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult>;
+	/** Read the webhook back without changing anything (`holocron doctor notifications`). Never reads the secret. */
+	inspectRelaySource?(input: InspectRelaySourceInput): Promise<RelaySourceState>;
+}
 
 /** Error tracking: describes what an app needs at runtime and, where the provider allows, creates projects and relays alerts. */
 export interface Errors extends ProviderIdentity {
@@ -2740,6 +2813,12 @@ export interface NotificationsChannelLayout {
 		 */
 		errors?: boolean | { webhook?: string; avatar?: NotificationsPicture };
 		/**
+		 * Relay sources whose alerts this channel carries, keyed by the source's id (`relay.sources`). Each gets a
+		 * dedicated webhook (default the id, capitalised) whose URL goes to the Worker as `COMLINK_<ID>_WEBHOOK` and
+		 * nowhere else; `avatar` is as for `monitoring`. One source feeds one channel.
+		 */
+		relay?: Record<string, boolean | { webhook?: string; avatar?: NotificationsPicture }>;
+		/**
 		 * The pull-request feed: Sentinel keeps one post in this forum for each pull request, tagged with its state
 		 * (spec `tech-sentinel-pr-feed`). Only for `kind: "forum"`, and the forum's `tags` must hold all eight state tags:
 		 * `draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged` and `closed`. `true` follows every
@@ -2749,6 +2828,20 @@ export interface NotificationsChannelLayout {
 		 */
 		prs?: boolean | NotificationsPrsFeed;
 	};
+}
+
+/** One relay source in the layout: which provider makes the vendor's webhook and what it covers. */
+export interface NotificationsRelaySource {
+	/** The capability whose provider makes the webhook (`deployment` for Vercel). Its plugin implements `ensureRelaySource`. */
+	capability: RelaySourceCapability;
+	/** The webhook's name at the vendor; the id, capitalised, when absent. */
+	name?: string;
+	/** The vendor's event names to subscribe to; the provider's default when absent. */
+	events?: string[];
+	/** What it covers, in the vendor's terms (project ids, config slugs, alert types); everything the token sees when absent. */
+	scope?: string[];
+	/** Anything else the vendor takes, judged by its provider. */
+	options?: Record<string, unknown>;
 }
 
 /** The object form of a forum's `feeds.prs`: what the pull-request feed leaves out. */
@@ -2964,6 +3057,13 @@ export interface NotificationsLayout {
 		script?: string;
 		/** The built Worker, relative to the repo root. Default `apps/comlink/dist/worker.js`. */
 		code?: string;
+		/**
+		 * Other services whose webhook the relay carries, keyed by id (the path it is served at, `vercel`; lower-case
+		 * letters, digits and `-`). A channel takes one with `feeds.relay`. `setup notifications` asks the provider of
+		 * `capability` to make the webhook (`ensureRelaySource`), gives the Worker its secret as `COMLINK_<ID>_SECRET`,
+		 * and `doctor notifications` checks it. The relay must have a source of that id (`apps/comlink`).
+		 */
+		sources?: Record<string, NotificationsRelaySource>;
 		/**
 		 * The error tracker's side, when its provider can manage it (`Errors.ensureRelay`): the projects whose issues
 		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
@@ -3579,7 +3679,7 @@ export interface DeployScriptResult {
  * secrets — for a consumer that isn't a reverse-proxy (a webhook
  * receiver, for instance).
  */
-export interface Workers extends ProviderIdentity {
+export interface Workers extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `workers` capability. */
 	readonly key: "workers";
 	/**
