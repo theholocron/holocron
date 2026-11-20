@@ -123,6 +123,12 @@ describe("dependabot.format", () => {
 		]);
 	});
 
+	it("ignores an action that is only a property of every object", () => {
+		for (const action of ["constructor", "toString", "__proto__"]) {
+			expect(dependabot.format(eventHeaders(), delivery({ action }))).toBeNull();
+		}
+	});
+
 	it("rejects malformed carried payloads", () => {
 		for (const bad of [null, {}, { action: 1 }, delivery({ alert: undefined })]) {
 			expect(() => dependabot.format(eventHeaders(), bad)).toThrow(MalformedDelivery);

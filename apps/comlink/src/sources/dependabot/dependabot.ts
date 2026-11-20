@@ -57,8 +57,8 @@ export const dependabot: Source = {
 		const delivery = payload as DependabotDelivery | null;
 		if (!delivery || typeof delivery.action !== "string")
 			throw new MalformedDelivery("dependabot_alert without an action");
+		if (!Object.hasOwn(ACTIONS, delivery.action)) return null;
 		const event = ACTIONS[delivery.action];
-		if (!event) return null;
 		const alert = delivery.alert;
 		if (!alert) throw new MalformedDelivery(`${delivery.action} without alert`);
 
@@ -83,7 +83,7 @@ export const dependabot: Source = {
 		const url = safeUrl(alert.html_url) ?? safeUrl(delivery.repository?.html_url);
 		return message("Dependabot", {
 			title: clip(`${event.label}: ${packageName}${number}`, 256),
-			...(summary ? { description: clip(summary, 4096) } : {}),
+			description: clip(summary, 4096),
 			...(url ? { url } : {}),
 			color: event.color,
 			fields,

@@ -4,3 +4,5 @@ variables:
     value: http://127.0.0.1:8787
   - name: sentrySecret
     value: "{{process.env.PROD_COMLINK_SENTRY_SECRET}}"
+  - secret: true
+    name: dependabotSecret
