@@ -1,3 +1,9 @@
+## [1.58.0-alpha.45](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.44...clients-v1.58.0-alpha.45) (2026-11-20)
+
+### Features
+
+* **notifications:** ✨ 😀 replace a server emoji whose picture changed in setup notifications ([#2443](https://github.com/theholocron/holocron/issues/2443)) ([f1d1b3d](https://github.com/theholocron/holocron/commit/f1d1b3df3398c06f033fb443bb91a8bb8bcf3395)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
 ## [1.58.0-alpha.44](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.43...clients-v1.58.0-alpha.44) (2026-11-18)
 
 ### Bug Fixes
