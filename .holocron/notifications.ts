@@ -153,14 +153,14 @@ export default {
 					kind: "forum",
 					topic: "One post for each pull request, tagged with its state and kept up to date. Open the post to follow the review; comment on GitHub, not here.",
 					tags: [
-						{ name: "draft", emoji: "✏️", moderated: true },
-						{ name: "conflicts", emoji: "⚔️", moderated: true },
+						{ name: "draft", emoji: ":git_pull_request_draft:", moderated: true },
+						{ name: "conflicts", emoji: "❌", moderated: true },
 						{ name: "failing", emoji: "❌", moderated: true },
-						{ name: "changes requested", emoji: "🔧", moderated: true },
-						{ name: "ready", emoji: "✅", moderated: true },
-						{ name: "waiting", emoji: "⏳", moderated: true },
-						{ name: "merged", emoji: "🟣", moderated: true },
-						{ name: "closed", emoji: "🚫", moderated: true },
+						{ name: "changes requested", emoji: ":git_compare:", moderated: true },
+						{ name: "ready", emoji: ":git_branch_check:", moderated: true },
+						{ name: "waiting", emoji: ":git_branch:", moderated: true },
+						{ name: "merged", emoji: ":git_merge:", moderated: true },
+						{ name: "closed", emoji: ":git_pull_request_closed:", moderated: true },
 					],
 					// One default reaction (Discord takes one per forum); the bot adds the starters to the first message of each
 					// post. Unicode has no branch or merge glyph, so these are server emoji (#2412): Octicons (MIT, notice in

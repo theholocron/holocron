@@ -3266,6 +3266,19 @@ describe("forum channels", () => {
 			);
 		});
 
+		it("accepts a tag's server emoji that has a picture, and refuses one without, by name", () => {
+			const emojis = [{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }];
+			const tags = [{ name: "merged", emoji: ":git_merge:" }];
+			expect(forumLayoutProblem({ ...forumLayout({ tags }), emojis })).toBeUndefined();
+			expect(forumLayoutProblem(forumLayout({ tags }))).toMatch(
+				/channel `.*`: tag `merged` emoji `:git_merge:` has no picture/
+			);
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "merged", emoji: ":bad name:" }] }))).toMatch(
+				/tag `merged` emoji: `:bad name:` is not an emoji/
+			);
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "merged", emoji: "🟣" }] }))).toBeUndefined();
+		});
+
 		it("refuses a pinned message for a forum, and allows one for a text channel", () => {
 			const pinned = (channel: string) => ({ pinned: [{ channel, content: "hi" }] });
 			const layout = {
