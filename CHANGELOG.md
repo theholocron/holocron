@@ -1,3 +1,17 @@
+## [5.0.0-alpha.513](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.512...v5.0.0-alpha.513) (2026-11-20)
+
+### Bug Fixes
+
+* **notifications:** 🐛 deploy the relay Worker before making a vendor webhook that tests its URL ([#2528](https://github.com/theholocron/holocron/issues/2528)) ([a46aa0f](https://github.com/theholocron/holocron/commit/a46aa0f7b0ab7d2eb0407e32dfaf703af15b584f)), closes [#2527](https://github.com/theholocron/holocron/issues/2527)
+
+### Documentation
+
+* **notifications:** 📚️ 📝 spec: a relay source can name its own provider ([#2526](https://github.com/theholocron/holocron/issues/2526)) ([000613e](https://github.com/theholocron/holocron/commit/000613e8bd3f0d5d54d352272a7893f640b9713d)), closes [#2519](https://github.com/theholocron/holocron/issues/2519)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2529](https://github.com/theholocron/holocron/issues/2529)) ([a1dc7f3](https://github.com/theholocron/holocron/commit/a1dc7f3ab596c2a5adabf3757faf93733821a18f))
+
 ## [5.0.0-alpha.512](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.511...v5.0.0-alpha.512) (2026-11-20)
 
 ### Features
