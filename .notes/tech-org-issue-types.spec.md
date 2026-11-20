@@ -1,4 +1,5 @@
 ---
+id: SPEC-0106
 status: draft
 issue: theholocron/holocron#2512
 blocked-by: []
@@ -10,6 +11,8 @@ related:
   - theholocron/holocron#2495
   - theholocron/holocron#2488
   - theholocron/holocron#2511
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573240841978249246
 ---
 
 # Declare the organization's issue Types in config and create them with `apply issue-types` and `setup`
