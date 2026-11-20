@@ -24,10 +24,13 @@ There is one route per source, `https://comlink.theholocron.dev/<source>`.
 3. The source formats the delivery as a Discord embed with pings turned off. It can also say it does not carry the delivery (202, acknowledged and dropped so the service does not retry), or that it cannot read one it should carry (422).
 4. The message is posted to the source's own webhook (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
 
-| Source       | Path          | Verified by                                                                                     | Carries                                            |
-| ------------ | ------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                    | issue alerts (`event_alert`)                       |
-| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body) | notifications (any alert type that carries `text`) |
+| Source       | Path          | Verified by                                                                                                                 | Carries                                                     |
+| ------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                                                | issue alerts (`event_alert`)                                |
+| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body)                             | notifications (any alert type that carries `text`)          |
+| `clerk`      | `/clerk`      | `svix-signature`: base64 HMAC-SHA256 of `svix-id.svix-timestamp.body` under the `whsec_` secret, timestamp within 5 minutes | user and organization created/deleted, member added/removed |
+
+The `clerk` source takes a Clerk webhook endpoint (Dashboard, Webhooks) subscribed to `user.created`, `user.deleted`, `organization.created`, `organization.deleted`, `organizationMembership.created` and `organizationMembership.deleted`; any other event type is acknowledged and dropped. Clerk delivers through Svix, so a delivery is refused unless `svix-id`, `svix-timestamp` and `svix-signature` are present, the timestamp is within five minutes of now (replay protection) and one of the space-separated `v1,` signatures matches. Its two bindings are `COMLINK_CLERK_SECRET` (the endpoint's signing secret, `whsec_...`) and `COMLINK_CLERK_WEBHOOK`. The payload shape is taken from Clerk's and Svix's documentation and has not been checked against a live delivery. There is no layout feed or `ensure…` method for it: the endpoint is made by hand in the Clerk dashboard and the bindings are set with `wrangler secret put`.
 
 ## Relaying more Sentry projects
 
