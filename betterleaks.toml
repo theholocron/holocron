@@ -1,0 +1,18 @@
+title = "betterleaks config"
+
+# Advisory scan only (#1573): gitleaks is still the required secret check.
+# This file is the betterleaks form of .gitleaks.toml, whose `allowlists`
+# tables v2 no longer reads. Keep the two in step until gitleaks is replaced.
+minVersion = "2.0.0-rc.1"
+
+# A filter that returns true discards the finding.
+# PostHog public project token: a client-side analytics key, not a secret.
+# The whole detected secret must match (the bundled copy in dist/cli.mjs is
+# cut to a different length each time; holocron#1067, #1090).
+filter = '''finding.secret matches "^phc_AC4vFCvYzwnzmG7Vg5nEc3PZKZztoPyf([A-Za-z0-9]{0,12})?$"'''
+
+# Sentry build plugin env file: gitignored, never committed.
+prefilter = '''attributes.path matches "\\.env\\.sentry-build-plugin"'''
+
+[extend]
+useDefault = true
