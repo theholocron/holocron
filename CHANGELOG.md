@@ -1,3 +1,19 @@
+## [5.0.0-alpha.502](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.501...v5.0.0-alpha.502) (2026-11-20)
+
+### Features
+
+* **cli:** ✨ add update work to keep issue, pull request and board in step ([#2454](https://github.com/theholocron/holocron/issues/2454)) ([1b6b93d](https://github.com/theholocron/holocron/commit/1b6b93d8b3f7f653848fe97f662d2446877e18f8)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **issues:** ✨ new issue and update issue carry every issue field ([#2446](https://github.com/theholocron/holocron/issues/2446)) ([b62c17a](https://github.com/theholocron/holocron/commit/b62c17ab9d9a0525e97f0155d13cc410b83e25f3)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **source:** add pull request create, update and mark-ready methods ([#2445](https://github.com/theholocron/holocron/issues/2445)) ([a67612b](https://github.com/theholocron/holocron/commit/a67612b0dab0ab95b8415425c05a6e58d66e4518)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **sync:** 🧹 remove generated thin callers whose task is no longer configured ([#2460](https://github.com/theholocron/holocron/issues/2460)) ([f8badae](https://github.com/theholocron/holocron/commit/f8badae90c10947f1104531dc27298afbdc0b87d)), closes [#2338](https://github.com/theholocron/holocron/issues/2338) [#2332](https://github.com/theholocron/holocron/issues/2332) [#2338](https://github.com/theholocron/holocron/issues/2338)
+* **work:** ✨ add close work: ready the pull request, clean up, abandon ([#2457](https://github.com/theholocron/holocron/issues/2457)) ([a8525f0](https://github.com/theholocron/holocron/commit/a8525f08671dd887a3e60fe7b843bd23850e9dba)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **work:** ✨ add new work, an issue with every field and a spec stub ([#2451](https://github.com/theholocron/holocron/issues/2451)) ([a3af403](https://github.com/theholocron/holocron/commit/a3af40342dc980626ff4eb47da964697b58c1c63)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **work:** ✨ add start work with branch, worktree, first commit and draft PR ([#2448](https://github.com/theholocron/holocron/issues/2448)) ([36d7aae](https://github.com/theholocron/holocron/commit/36d7aae17ab25de4fcb89de22a7cef475d2d8855)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+
+### Documentation
+
+* 🌐 record Cloudflare as the registrar for theholocron.dev ([#2458](https://github.com/theholocron/holocron/issues/2458)) ([b4639c2](https://github.com/theholocron/holocron/commit/b4639c2df97ac05ceb395936d210caa41f90c8ba)), closes [#1571](https://github.com/theholocron/holocron/issues/1571)
+
 ## [5.0.0-alpha.501](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.500...v5.0.0-alpha.501) (2026-11-20)
 
 ### Bug Fixes
