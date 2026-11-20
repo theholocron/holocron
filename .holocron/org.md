@@ -87,9 +87,11 @@ observability (`observability/`) live in that monorepo as well.
 
 The board's statuses follow the pull request, so an agent only starts the work and marks the pull request ready.
 
-1. **Starting an issue:** `holocron project status <issue> "In Progress"` (the automation does the same once a pull
-   request exists).
-2. **Open the pull request as a draft** (`gh pr create --draft`) as soon as there is something to push.
+1. **Starting an issue:** `holocron start work <issue>` makes the branch, the first commit and a draft pull request,
+   and the open pull request moves the board to In Progress. Only while the automation is down, set it by hand with
+   `holocron update work <issue> --status "In Progress"` (a hand-set status is temporary).
+2. **Open the pull request as a draft** (`start work` does; otherwise `gh pr create --draft`) as soon as there is
+   something to push.
 3. **When the `ci / Required checks` aggregate is green, mark it ready** (`gh pr ready`). The board moves to In Review by
    itself.
 4. **Never set In Review, Blocked or Done by hand.** The rules own them; Blocked comes from a blocked-by link, never

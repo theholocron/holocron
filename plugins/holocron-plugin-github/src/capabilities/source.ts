@@ -374,6 +374,13 @@ export class GitHubSource implements Source {
 		return (await this.client.pulls.listCommits(repo ?? this.repo, number)).map((commit) => commit.sha);
 	}
 
+	async listPullRequestFiles(number: number, repo?: string): Promise<string[]> {
+		const files = await this.client.pulls.listFiles(repo ?? this.repo, number);
+		return [
+			...new Set(files.flatMap((f) => (f.previous_filename ? [f.filename, f.previous_filename] : [f.filename]))),
+		];
+	}
+
 	async createPullRequest(input: PullRequestInput, repo?: string): Promise<PullRequestResult> {
 		return createPullRequest(this.client, repo ?? this.repo, input);
 	}
