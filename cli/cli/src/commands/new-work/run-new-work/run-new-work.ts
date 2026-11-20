@@ -10,16 +10,15 @@
 
 import { join } from "node:path";
 
-import { select } from "@inquirer/prompts";
-import { runGit } from "@theholocron/kyber/git";
 import { type CheckRow, printCheckRows, style } from "@theholocron/kyber/ui";
 
-import type { IssueEffort } from "../../../plugin/index.js";
 import { realPromoteIo } from "../../ideas-promote/real-promote-io/index.js";
 import { runIdeasPromote } from "../../ideas-promote/run-ideas-promote/index.js";
 import { specName } from "../../ideas-promote/spec-name/index.js";
 import { runIssueCreate } from "../../issue-create/run-issue-create/index.js";
 import { gitAssignee } from "../git-assignee/index.js";
+import { promptEffort } from "../prompt-effort/index.js";
+import { readGitConfig } from "../read-git-config/index.js";
 import type { NewWorkReport, RunNewWorkInput } from "./run-new-work.type.js";
 
 const row = (id: string, status: CheckRow["status"], detail: string): CheckRow => ({
@@ -29,31 +28,6 @@ const row = (id: string, status: CheckRow["status"], detail: string): CheckRow =
 	detail,
 	problems: [],
 });
-
-/* v8 ignore start -- the prompt and the real git config are only used outside tests, which inject both */
-const promptEffort = async (): Promise<IssueEffort | undefined> => {
-	const answer = await select<IssueEffort | "none">({
-		message: "Effort:",
-		choices: [
-			{ name: "high", value: "high" },
-			{ name: "medium", value: "medium" },
-			{ name: "low", value: "low" },
-			{ name: "leave it unset", value: "none" },
-		],
-	});
-	return answer === "none" ? undefined : answer;
-};
-
-const realGitConfig =
-	(cwd: string) =>
-	(key: string): string | undefined => {
-		try {
-			return runGit(["config", "--get", key], cwd) || undefined;
-		} catch {
-			return undefined;
-		}
-	};
-/* v8 ignore stop */
 
 export async function runNewWork(input: RunNewWorkInput): Promise<NewWorkReport> {
 	/* v8 ignore next -- the console is only used outside tests, which inject `print` */
@@ -88,7 +62,9 @@ export async function runNewWork(input: RunNewWorkInput): Promise<NewWorkReport>
 	const assignees =
 		input.assignees && input.assignees.length > 0
 			? input.assignees
-			: [gitAssignee(input.gitConfig ?? realGitConfig(root))].filter((a): a is string => Boolean(a));
+			: [gitAssignee(input.gitConfig ?? ((key) => readGitConfig(root, key)))].filter((a): a is string =>
+					Boolean(a)
+				);
 	if (!input.assignees?.length && assignees.length === 0) {
 		extra.push(
 			row(

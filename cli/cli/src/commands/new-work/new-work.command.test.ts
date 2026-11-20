@@ -31,7 +31,20 @@ afterEach(() => void (process.exitCode = undefined));
 
 describe("new work", () => {
 	it("passes the title, the issue fields, --yes and the context", async () => {
-		await go("Fix it", "--effort", "low", "--area", "cli", "--label", "bug", "--assignee", "octo", "--yes");
+		await go(
+			"Fix it",
+			"--effort",
+			"low",
+			"--area",
+			"cli",
+			"--label",
+			"bug",
+			"--assignee",
+			"octo",
+			"--milestone",
+			"v4.0",
+			"--yes"
+		);
 		expect(runNewWork).toHaveBeenCalledWith(
 			expect.objectContaining({
 				title: "Fix it",
@@ -39,6 +52,7 @@ describe("new work", () => {
 				areas: ["cli"],
 				labels: ["bug"],
 				assignees: ["octo"],
+				milestone: "v4.0",
 				yes: true,
 				context: expect.objectContaining({ repoRoot: "/repo", cliToken: "t", org: "acme" }),
 			})
