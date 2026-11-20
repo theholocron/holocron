@@ -175,6 +175,12 @@ describe("GitHubIssues.update", () => {
 		]);
 	});
 
+	it("closes as not planned when the state reason says so", async () => {
+		const { issues, calls } = fake({ [`GET ${base}/issues/7`]: { body: issue(7) } });
+		await issues.update("#7", { state: "closed", stateReason: "not_planned" });
+		expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({ state: "closed", state_reason: "not_planned" });
+	});
+
 	it("writes nothing when the issue is already as asked", async () => {
 		const { issues, calls } = fake({
 			[`GET ${base}/issues/7`]: {

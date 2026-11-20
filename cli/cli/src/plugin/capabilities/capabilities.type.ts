@@ -482,6 +482,13 @@ export interface Source extends ProviderIdentity {
 	markReady?(number: number, repo?: string): Promise<boolean>;
 
 	/**
+	 * The verdict of the aggregate check (`ci / Required checks`) on a pull request's newest commit, read each time it
+	 * is asked, with the checks that failed. `close work` reads it before it marks a pull request ready. Optional —
+	 * providers without checks omit this.
+	 */
+	getPullRequestChecks?(number: number, repo?: string): Promise<PullRequestChecks>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -575,6 +582,19 @@ export interface PullRequestResult {
 	draft: boolean;
 	/** What the provider could not apply (a milestone or board it does not have, a label it refused), by name. */
 	dropped: string[];
+}
+
+/** Where the aggregate check of a pull request stands. */
+export type PullRequestChecksState = "success" | "failure" | "pending" | "none";
+
+/** What {@link Source.getPullRequestChecks} returns. */
+export interface PullRequestChecks {
+	/** The aggregate's verdict: `pending` while it runs (a cancelled run counts), `none` when it has not been posted. */
+	state: PullRequestChecksState;
+	/** The commit the verdict is for. */
+	sha?: string;
+	/** The checks that failed on that commit, newest run of each name; empty unless something failed. */
+	failing: Array<{ name: string; url?: string }>;
 }
 
 /** A pull request as {@link Source.getPullRequest} and {@link Source.listPullRequests} report it. */
@@ -879,6 +899,8 @@ export interface IssuePatch extends IssueFields {
 	body?: string;
 	/** Open or close the issue. */
 	state?: "open" | "closed";
+	/** Why it is closed, for a provider that records one (GitHub's state reason); only read with `state: "closed"`. Default `completed`. */
+	stateReason?: "completed" | "not_planned";
 	/** Labels to add. */
 	addLabels?: string[];
 	/** Labels to remove; one the issue lacks is left. */

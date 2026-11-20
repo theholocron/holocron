@@ -92,8 +92,10 @@ The board's statuses follow the pull request, so an agent only starts the work a
    `holocron update work <issue> --status "In Progress"` (a hand-set status is temporary).
 2. **Open the pull request as a draft** (`start work` does; otherwise `gh pr create --draft`) as soon as there is
    something to push.
-3. **When the `ci / Required checks` aggregate is green, mark it ready** (`gh pr ready`). The board moves to In Review by
-   itself.
+3. **When the `ci / Required checks` aggregate is green, mark it ready** with `holocron close work <issue> --wait` (it
+   waits for the aggregate, marks the pull request ready and never merges; `gh pr ready` does the same by hand). The
+   board moves to In Review by itself. After the maintainer merges, run `holocron close work <issue>` again to remove
+   the worktree and the local branch.
 4. **Never set In Review, Blocked or Done by hand.** The rules own them; Blocked comes from a blocked-by link, never
    from the status.
 

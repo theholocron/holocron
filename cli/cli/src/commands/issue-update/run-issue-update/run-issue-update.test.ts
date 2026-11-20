@@ -81,6 +81,13 @@ describe("runIssueUpdate", () => {
 		expect(text).toContain("updated: title");
 	});
 
+	it("sends the state reason only with a closed state", async () => {
+		const closed = await run({ state: "closed", stateReason: "not_planned", title: undefined });
+		expect(closed.issues!.update).toHaveBeenCalledWith("#12", { state: "closed", stateReason: "not_planned" });
+		const open = await run({ state: "open", stateReason: "not_planned", title: undefined });
+		expect(open.issues!.update).toHaveBeenCalledWith("#12", { state: "open" });
+	});
+
 	it("says so when the issue was already as asked, and lists what was dropped", async () => {
 		const unchanged = await run({ issues: issuesFake(async () => ({ key: "#12", changed: [] })) });
 		expect(unchanged.text).toContain("already as asked; nothing changed");

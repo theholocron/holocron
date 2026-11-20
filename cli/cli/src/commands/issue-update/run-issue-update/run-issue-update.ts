@@ -91,6 +91,7 @@ export async function runIssueUpdate(input: RunIssueUpdateInput): Promise<IssueU
 		...(title ? { title } : {}),
 		...(input.body !== undefined ? { body: input.body } : {}),
 		...(input.state ? { state: input.state } : {}),
+		...(input.state === "closed" && input.stateReason ? { stateReason: input.stateReason } : {}),
 		...(addLabels.length > 0 ? { addLabels } : {}),
 		...(removeLabels.length > 0 ? { removeLabels } : {}),
 		...(assignees.length > 0 ? { assignees } : {}),
