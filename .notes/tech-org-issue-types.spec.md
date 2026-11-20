@@ -113,7 +113,7 @@ Rules, all from the issue:
 
 - **Never delete, never rename.** `updateType` sends the Type's current name back (the documented `PUT` body requires `name` and `is_enabled`), so a rename cannot happen; a Type is matched by name case-insensitively and a Type whose name differs only by case is "exists", not a second one.
 - **A Type that exists is left alone**, whatever its description, colour or enabled flag. A person's edit in the settings is never overwritten by the default run.
-- **Opt-in update:** `apply issue-types --update` also sets `description` and `color` on an existing declared Type whose value differs, and only a field the declaration states. It lists each change first (`was` and `to`), asks first like the create, and never changes `is_enabled` (turning a Type off or on hides it for everyone; an invalid declared Type is reported, and a person flips it). Without a stated field there is nothing to update.
+- **Opt-in update:** `apply issue-types --update` also sets `description` and `color` on an existing declared Type whose value differs, and only a field the declaration states. It lists each change first (`was` and `to`), asks first like the create, and never changes `is_enabled` (turning a Type off or on hides it for everyone; an incorrectly declared Type is reported, and a person flips it). Without a stated field there is nothing to update.
 - **Idempotent.** A second run changes nothing. A create that answers 409 or 422 for a name that now exists (a race with a person or a second run) is read as exists after one more `list`, as `Source.ensureLabel` style calls elsewhere do; any other 4xx is a failing row.
 - **A GitHub list with more than the documented cap is not assumed:** see "Limits".
 
@@ -152,7 +152,7 @@ What `docs tokens` and the `github token` probe then need (the three-places rule
 
 - **A declared Type that the organization lacks: `fail`**, naming it and `holocron apply issue-types`.
 - **An undeclared Type the organization has: `info`**, by name (a person's own Type is not wrong).
-- **A declared Type with a different description, colour or enabled flag: `info`**, by field (`was`, `declared`), naming `apply issue-types --update` for description and colour. A declared Type that is disabled is an `info` row, never a failure.
+- **A declared Type with a different description, colour or enabled flag: `info`**, by field (`was`, `declared`), naming `apply issue-types --update` for description and colour. A declared Type that is turned off is an `info` row, never a failure.
 - A list that cannot be read, a provider with no `listTypes`, or no declaration: a `skip` with the reason. No declaration is not a failure: a repo that declares nothing is unchanged.
 - It prints names, counts and colours only; no token or id.
 
