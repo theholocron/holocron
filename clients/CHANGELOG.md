@@ -1,3 +1,9 @@
+## [1.58.0-alpha.48](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.47...clients-v1.58.0-alpha.48) (2026-11-20)
+
+### Features
+
+* **vercel:** ✨ make the Vercel webhook for a relay source ([#2470](https://github.com/theholocron/holocron/issues/2470)) ([9bcee98](https://github.com/theholocron/holocron/commit/9bcee98757049726f6cd75842e0aa2bfb795d894))
+
 ## [1.58.0-alpha.47](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.46...clients-v1.58.0-alpha.47) (2026-11-20)
 
 ### Features
