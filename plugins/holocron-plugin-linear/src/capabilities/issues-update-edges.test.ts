@@ -99,6 +99,34 @@ describe("LinearIssues.update, labels", () => {
 	});
 });
 
+describe("a failure that is not an Error", () => {
+	// A client that rejects with a bare string, as a transport layer sometimes does.
+	const scope = {
+		teamKey: "ENG",
+		team: async () => ({ id: "team1", key: "ENG", name: "Engineering" }),
+		client: {
+			issues: {
+				get: async () => {
+					throw "plain text failure";
+				},
+				create: async () => issue({ id: "new", identifier: "ENG-9" }),
+				update: async () => issue(),
+				relate: async () => undefined,
+			},
+		},
+	} as unknown as ConstructorParameters<typeof LinearIssues>[0];
+
+	it("is named as text when the parent cannot be read on create", async () => {
+		const out = await new LinearIssues(scope).create({ summary: "t", parent: "ENG-7" });
+		expect(out.dropped).toEqual(["parent ENG-7 (plain text failure)"]);
+	});
+
+	it("is named as text when a blocker cannot be read on create", async () => {
+		const out = await new LinearIssues(scope).create({ summary: "t", blockedBy: ["ENG-3"] });
+		expect(out.dropped).toEqual(["blocked by ENG-3 (plain text failure)"]);
+	});
+});
+
 describe("LinearIssues.update, refused writes", () => {
 	it("drops an estimate the team refuses and reports the rest as changed", async () => {
 		let n = 0;
