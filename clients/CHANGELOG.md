@@ -1,3 +1,11 @@
+## [1.58.0-alpha.46](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.45...clients-v1.58.0-alpha.46) (2026-11-20)
+
+### Features
+
+* **issues:** ✨ new issue and update issue carry every issue field ([#2446](https://github.com/theholocron/holocron/issues/2446)) ([b62c17a](https://github.com/theholocron/holocron/commit/b62c17ab9d9a0525e97f0155d13cc410b83e25f3)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **source:** add pull request create, update and mark-ready methods ([#2445](https://github.com/theholocron/holocron/issues/2445)) ([a67612b](https://github.com/theholocron/holocron/commit/a67612b0dab0ab95b8415425c05a6e58d66e4518)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **work:** ✨ add close work: ready the pull request, clean up, abandon ([#2457](https://github.com/theholocron/holocron/issues/2457)) ([a8525f0](https://github.com/theholocron/holocron/commit/a8525f08671dd887a3e60fe7b843bd23850e9dba)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+
 ## [1.58.0-alpha.45](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.44...clients-v1.58.0-alpha.45) (2026-11-20)
 
 ### Features
