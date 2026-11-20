@@ -71,6 +71,8 @@ export const SENTINEL_ROLE_SYNC_LOG_MSG = "runRoleSync: finished";
 export const SENTINEL_PR_FEED_LOG_MSG = "runPrFeed: finished";
 /** Logged once per board-status delivery, whatever its result (spec `tech-board-status-automation`, #2388) — never hand-copy this string elsewhere. */
 export const SENTINEL_BOARD_STATUS_LOG_MSG = "runBoardStatus: finished";
+/** Logged once per area-labels delivery, whatever its result (spec `tech-github-area-labels`, #2430) — never hand-copy this string elsewhere. */
+export const SENTINEL_AREA_LABELS_LOG_MSG = "runAreaLabels: finished";
 /** The one check run whose completion tells the #prs feed how CI went: the `ci` aggregate (holocron#1613). Other check runs are dropped before anything is fetched. */
 export const SENTINEL_PR_FEED_CHECK_NAME = "ci / Required checks";
 /** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */

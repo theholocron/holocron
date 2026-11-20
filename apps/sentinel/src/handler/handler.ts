@@ -207,12 +207,15 @@ import {
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
 	type PrFeedTrigger,
+	runAreaLabels,
+	type RunAreaLabelsResult,
 	runBoardStatus,
 	type RunBoardStatusResult,
 	runPrFeed,
 	type RunPrFeedResult,
 	runRoleSync,
 	syncPropertiesFromConfig,
+	toAreaLabelsTrigger,
 	toBoardStatusTrigger,
 	toPrFeedTrigger,
 	validateAdrs,
@@ -227,6 +230,7 @@ import {
 	resolveAxiomConfig,
 	resolveErrorSink,
 	SENTINEL_ADRS_LOG_MSG,
+	SENTINEL_AREA_LABELS_LOG_MSG,
 	SENTINEL_BOARD_STATUS_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
@@ -455,16 +459,27 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// feed reads run none of the checks below. opened/synchronize/edited run the feed first and the checks after, each
 	// independent of the other: the feed never throws (a failure is a result), and a check that throws still reaches the
 	// catch in handleWebhookRequest with the feed already done.
+	// An issue's area labels (#2430) are the only thing an `issues` delivery asks of Sentinel: no check, feed or board.
+	if (event.type === "issues.area") {
+		const areaLabels = await runAreas(event, repo, env);
+		return json({ handled: true, type: event.type, areaLabels });
+	}
+
 	const trigger = toPrFeedTrigger(event);
 	if (trigger) {
 		const prFeed = await runFeed(event, repo, trigger, env);
 		// The board follows the pull request (part 5 of #2388): independent of the feed and of the checks, and never the
 		// reason for an error status, because the hourly `reconcile-projects` run repairs a miss.
 		const boardStatus = await runBoard(event, repo, env);
+		// So do a pull request's area labels (#2430): add-only, and a miss is repaired by the next push or title edit.
+		const areaLabels = await runAreas(event, repo, env);
 		if (FEED_ONLY_EVENTS.has(event.type)) {
-			return json({ handled: true, type: event.type, prFeed, boardStatus }, prFeed.status === "fail" ? 500 : 200);
+			return json(
+				{ handled: true, type: event.type, prFeed, boardStatus, areaLabels },
+				prFeed.status === "fail" ? 500 : 200
+			);
 		}
-		return withPrFeed(await handleChecks(event, repo, env), prFeed, boardStatus);
+		return withPrFeed(await handleChecks(event, repo, env), prFeed, boardStatus, areaLabels);
 	}
 	return handleChecks(event, repo, env);
 }
@@ -525,14 +540,43 @@ async function runBoard(event: SentinelEvent, repo: string, env: Env): Promise<R
 	return boardStatus;
 }
 
-/** Adds the feed's result (and the board's) to a checks response, answering 500 when the feed failed so the delivery can be redelivered. */
+/**
+ * Runs the area labels for a delivery they read (a pull request or an issue) and logs its result; `undefined` for any
+ * other event. Never throws, and no result changes the response status: a label that is missing from the repository is
+ * a warning, a failure is an error line and an error-tracker event, and the next push or title edit tries again.
+ */
+async function runAreas(event: SentinelEvent, repo: string, env: Env): Promise<RunAreaLabelsResult | undefined> {
+	const trigger = toAreaLabelsTrigger(event);
+	if (!trigger) return undefined;
+	let areaLabels: RunAreaLabelsResult;
+	let thrown: unknown;
+	try {
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		areaLabels = await runAreaLabels({ client, repo, trigger });
+	} catch (err) {
+		thrown = err;
+		areaLabels = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
+	}
+	if (areaLabels.status === "fail") {
+		errors.capture(thrown ?? new Error(`area labels failed: ${areaLabels.reason}`));
+		logger.error({ repo, type: event.type, areaLabels }, SENTINEL_AREA_LABELS_LOG_MSG);
+	} else if (areaLabels.status === "ok" && areaLabels.missing.length > 0) {
+		logger.warn({ repo, type: event.type, areaLabels }, SENTINEL_AREA_LABELS_LOG_MSG);
+	} else {
+		logger.info({ repo, type: event.type, areaLabels }, SENTINEL_AREA_LABELS_LOG_MSG);
+	}
+	return areaLabels;
+}
+
+/** Adds the feed's result (and the board's and the area labels') to a checks response, answering 500 when the feed failed so the delivery can be redelivered. */
 async function withPrFeed(
 	response: Response,
 	prFeed: RunPrFeedResult,
-	boardStatus?: RunBoardStatusResult
+	boardStatus?: RunBoardStatusResult,
+	areaLabels?: RunAreaLabelsResult
 ): Promise<Response> {
 	const body = (await response.json()) as Record<string, unknown>;
-	return json({ ...body, prFeed, boardStatus }, prFeed.status === "fail" ? 500 : response.status);
+	return json({ ...body, prFeed, boardStatus, areaLabels }, prFeed.status === "fail" ? 500 : response.status);
 }
 
 /** The check pipelines for a `push.default-branch` or `pull_request.*` event (everything below). */

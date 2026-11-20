@@ -11,6 +11,8 @@ export type SentinelEventType =
 	| "pull_request_review"
 	/** A completed `ci / Required checks` check run; only the #prs feed reads it. */
 	| "check_run.completed"
+	/** An `issues` `opened`, or an `edited` that changed the title; only the area labels read it. */
+	| "issues.area"
 	| "team.membership"
 	| "organization.member-removed";
 
@@ -33,6 +35,8 @@ export interface SentinelEvent {
 	action?: string;
 	/** The pull requests a `pull_request*` delivery is about (one) or a `check_run` belongs to (none for a fork's). Set only when the payload names them. */
 	pullNumbers?: number[];
+	/** The issue an `issues.area` delivery is about. */
+	issueNumber?: number;
 	/** Set for `check_run.completed` only. */
 	checkRun?: SentinelCheckRun;
 	/** `"owner/repo"` — absent for installation events, which aren't scoped to one repo. */
@@ -78,6 +82,17 @@ export interface GitHubMembershipWebhookPayload {
 export interface GitHubPullRequestNumberPayload {
 	number?: number;
 	pull_request?: { number?: number };
+}
+
+/** The part of an `issues` delivery Sentinel reads (area labels): which issue, and whether an edit changed its title. */
+export interface GitHubIssuesWebhookPayload {
+	/** `opened`, `edited`, `closed`, `labeled`, and so on. */
+	action: string;
+	issue: { number: number };
+	/** Present on an `edited` delivery: the fields that changed. */
+	changes?: { title?: unknown };
+	repository: { full_name: string };
+	installation?: { id: number };
 }
 
 /** The part of a `pull_request_review` delivery Sentinel reads. */
