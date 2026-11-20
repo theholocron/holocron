@@ -1,3 +1,4 @@
+export * from "./area-labels/index.js";
 export * from "./auto-fix-loop/index.js";
 export * from "./board-status/index.js";
 export * from "./capability-compliance/index.js";

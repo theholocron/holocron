@@ -27,6 +27,9 @@
  * `{ handled: false }` rather than throwing, since an unrecognized-but-
  * validly-signed delivery isn't an error, just not actionable in v1.
  *
+ * The area labels (holocron#2430) read `issues` deliveries too: `opened`, and `edited` when the title changed
+ * (`issues.area`); every other `issues` action is `{ handled: false }`.
+ *
  * The #prs feed (holocron#1833) also reads `pull_request` actions the checks do not
  * (`pull_request.feed`: reopened, closed, ready_for_review, converted_to_draft,
  * review_requested, review_request_removed, labeled, and an edit of neither title nor
@@ -49,6 +52,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { SENTINEL_PR_FEED_CHECK_NAME } from "../constants/index.js";
 import type {
 	GitHubCheckRunWebhookPayload,
+	GitHubIssuesWebhookPayload,
 	GitHubMembershipWebhookPayload,
 	GitHubOrganizationWebhookPayload,
 	GitHubPullRequestNumberPayload,
@@ -208,6 +212,26 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 						url: run.html_url,
 						...(run.details_url ? { detailsUrl: run.details_url } : {}),
 					},
+					...(deliveryId ? { deliveryId } : {}),
+					raw: payload,
+				},
+			};
+		}
+		case "issues": {
+			// Area labels read an issue's title, so only a new issue or an edit of the title matters.
+			const p = payload as unknown as GitHubIssuesWebhookPayload;
+			const titleEdit = p.action === "edited" && p.changes?.title !== undefined;
+			if (p.action !== "opened" && !titleEdit) {
+				return { handled: false, reason: `issues action "${p.action}" is not handled`, githubEvent };
+			}
+			return {
+				handled: true,
+				event: {
+					type: "issues.area",
+					repo: p.repository.full_name,
+					installationId: p.installation?.id ?? 0,
+					action: p.action,
+					issueNumber: p.issue.number,
 					...(deliveryId ? { deliveryId } : {}),
 					raw: payload,
 				},

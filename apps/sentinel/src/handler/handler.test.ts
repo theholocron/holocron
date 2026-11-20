@@ -85,6 +85,7 @@ vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presenc
 }));
 vi.mock("../actions/pr-feed/run-pr-feed/run-pr-feed.js", () => ({ runPrFeed: vi.fn() }));
 vi.mock("../actions/board-status/run-board-status/run-board-status.js", () => ({ runBoardStatus: vi.fn() }));
+vi.mock("../actions/area-labels/run-area-labels/run-area-labels.js", () => ({ runAreaLabels: vi.fn() }));
 vi.mock("../actions/role-sync/run-role-sync/run-role-sync.js", () => ({ runRoleSync: vi.fn() }));
 vi.mock("../utils/validate-config/validate-config.js", () => ({ validateConfig: vi.fn() }));
 vi.mock("../utils/webhook/webhook.js", async (importOriginal) => {
@@ -116,6 +117,7 @@ import {
 	postFormattingCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
+	runAreaLabels,
 	runBoardStatus,
 	runPrFeed,
 	runRoleSync,
@@ -146,6 +148,7 @@ function req(body = "{}", method = "POST"): Request {
 }
 
 const SKIPPED_BOARD = { status: "skipped" as const, reason: "not set up" };
+const SKIPPED_AREAS = { status: "skipped" as const, reason: "no areas declared" };
 
 beforeEach(() => {
 	vi.mocked(parseWebhookEvent).mockReset();
@@ -176,6 +179,8 @@ beforeEach(() => {
 	vi.mocked(runPrFeed).mockReset();
 	vi.mocked(runBoardStatus).mockReset();
 	vi.mocked(runBoardStatus).mockResolvedValue(SKIPPED_BOARD);
+	vi.mocked(runAreaLabels).mockReset();
+	vi.mocked(runAreaLabels).mockResolvedValue(SKIPPED_AREAS);
 	vi.mocked(findAutoFixLoop).mockReset();
 	vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: [] });
 	vi.mocked(postAutoFixLoopComment).mockReset();
@@ -2027,6 +2032,108 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 		});
 	});
 
+	describe("the area labels", () => {
+		const ADDED = { status: "ok" as const, added: ["area:cli"], missing: [], dropped: [] };
+		const issueEvent = {
+			handled: true as const,
+			event: {
+				type: "issues.area" as const,
+				repo: "acme/demo",
+				installationId: 7,
+				action: "opened",
+				issueNumber: 9,
+				raw: {},
+			},
+		};
+
+		it("is the only thing an issue delivery asks for: no feed, board or check runs", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(issueEvent);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runAreaLabels).mockResolvedValue(ADDED);
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({ handled: true, type: "issues.area", areaLabels: ADDED });
+			expect(runAreaLabels).toHaveBeenCalledWith({
+				client: FAKE_CLIENT,
+				repo: "acme/demo",
+				trigger: { kind: "issue", number: 9 },
+			});
+			expect(runPrFeed).not.toHaveBeenCalled();
+			expect(runBoardStatus).not.toHaveBeenCalled();
+			expect(validateConfig).not.toHaveBeenCalled();
+		});
+
+		it("runs for a reopened pull request beside the feed and the board, and adds its result", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({
+				handled: true,
+				event: { ...feedEvent("pull_request.feed").event, action: "reopened" },
+			});
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(runAreaLabels).mockResolvedValue(ADDED);
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(await res.json()).toEqual({
+				handled: true,
+				type: "pull_request.feed",
+				prFeed: OK,
+				boardStatus: SKIPPED_BOARD,
+				areaLabels: ADDED,
+			});
+			expect(runAreaLabels).toHaveBeenCalledWith({
+				client: FAKE_CLIENT,
+				repo: "acme/demo",
+				trigger: { kind: "pull_request", number: 12 },
+			});
+		});
+
+		it("adds its result to the checks' response for an opened pull request", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({
+				handled: true,
+				event: { ...feedEvent("pull_request.feed").event, type: "pull_request.opened", action: "opened" },
+			});
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(runAreaLabels).mockResolvedValue(ADDED);
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(await res.json()).toMatchObject({ areaLabels: ADDED });
+		});
+
+		it("does not run for an event it does not read", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request_review"));
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			await handleWebhookRequest(req(), ENV);
+			expect(runAreaLabels).not.toHaveBeenCalled();
+		});
+
+		it("never changes the status: a missing label or a failed run is logged and the delivery stays 200", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(issueEvent);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runAreaLabels).mockResolvedValue({ status: "ok", added: [], missing: ["area:cli"], dropped: [] });
+			expect((await handleWebhookRequest(req(), ENV)).status).toBe(200);
+			vi.mocked(runAreaLabels).mockResolvedValue({ status: "fail", reason: "boom" });
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toMatchObject({ areaLabels: { status: "fail", reason: "boom" } });
+			expect(fakeErrorSink.captureException).toHaveBeenCalledWith(
+				expect.objectContaining({ message: "area labels failed: boom" })
+			);
+		});
+
+		it("is a fail result, not a throw, when the installation token cannot be had", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(issueEvent);
+			vi.mocked(createInstallationClient).mockRejectedValueOnce(new Error("bad credentials"));
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toMatchObject({ areaLabels: { status: "fail", reason: "bad credentials" } });
+			expect(runAreaLabels).not.toHaveBeenCalled();
+			vi.mocked(createInstallationClient).mockRejectedValueOnce("nope");
+			expect(await (await handleWebhookRequest(req(), ENV)).json()).toMatchObject({
+				areaLabels: { status: "fail", reason: "nope" },
+			});
+		});
+	});
+
 	describe("on an event the checks also handle", () => {
 		const opened = {
 			handled: true as const,
@@ -2090,6 +2197,7 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 				reason: expect.stringContaining("payload missing"),
 				prFeed: { status: "skipped", reason: "off" },
 				boardStatus: SKIPPED_BOARD,
+				areaLabels: SKIPPED_AREAS,
 			});
 		});
 
@@ -2211,6 +2319,7 @@ describe("handler — error tracking (holocron#1045)", () => {
 				installationId: 7,
 				action: "closed",
 				pullNumbers: [12],
+				raw: {},
 			},
 		} as never);
 		vi.mocked(runPrFeed).mockResolvedValue({ status: "fail", reason: "Missing Access" });

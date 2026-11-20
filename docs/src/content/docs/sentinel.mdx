@@ -71,6 +71,12 @@ holocron setup --cwd apps/sentinel
 - **Automated.** A workflow deploys on merges to `main` that touch the app, and a `deploy` task with `on: "release"` deploys it after a release that changes it (see [`holocron deploy`](/holocron/commands/deploy/)).
 - **Secrets.** `holocron sync secrets --env prod --cwd apps/sentinel` syncs the 1Password Environment of the `prod` layer to the deployment. It targets production only, deliberately, so the app's private key is never exposed to PR preview deployments. The sync writes nothing to repository Actions secrets here (an Environment with no `repo.secrets.sync` entry is refused unless `--github-secret` names the destination, #2104). GitHub refuses names that start with `GITHUB_`, which is why the App's id and key are `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`. An Environment that still holds the old bare names has them reported as skipped (`invalid name`) rather than failing with a 422; they are read by the deployed app from Vercel, not by Actions, so nothing is lost. Pass `--github-secret SENTINEL_AXIOM_INGEST_TOKEN` (as the Sentinel Secrets Sync workflow does) to keep the other keys out of GitHub as well.
 
+## Area labels
+
+Sentinel adds `area:<name>` labels (holocron#2430, `tech-github-area-labels`). A pull request, when it is opened, reopened, pushed to or has its title edited, gets the labels of the folders it changes (read from the API); an issue, when it is opened or has its title edited, gets the label its title's scope maps to. Both maps are `repo.labels` (`areas` and `scopes`) in the repository's own config, so a repo that declares no `areas` is left alone.
+
+It only adds. It never removes a label a person put there and never makes a label: a wanted label the repository lacks is logged, and [`holocron setup`](/holocron/commands/setup/) makes the declared ones. An item carries at most four `area:` labels, counting the ones already on it; for a pull request the files' areas come first and the title's scopes fill what is left. A closed item and a delivery a bot caused do nothing. It needs the App's existing Issues and Pull requests write permissions and a subscription to the `issues` event, which is added by hand to an App that already exists.
+
 ## GitHub App registration
 
 Registering the App is a one-time, manual web-UI flow, done under the org. Deploy first and attach the custom domain, then register with `https://sentinel.theholocron.dev/api/webhook` as the webhook URL.

@@ -561,9 +561,57 @@ describe("parseWebhookEvent — check_run events", () => {
 describe("parseWebhookEvent — unrecognized event categories", () => {
 	it("leaves a validly-signed but out-of-v1-scope event category unhandled, not an error", () => {
 		const body = JSON.stringify({ action: "opened" });
-		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "issues"), secret: SECRET });
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "star"), secret: SECRET });
 		expect(result.handled).toBe(false);
-		expect((result as { githubEvent: string }).githubEvent).toBe("issues");
+		expect((result as { githubEvent: string }).githubEvent).toBe("star");
+	});
+});
+
+describe("parseWebhookEvent — issues events (area labels)", () => {
+	const issue = (action: string, extra: Record<string, unknown> = {}, installation = true) =>
+		JSON.stringify({
+			action,
+			issue: { number: 9 },
+			repository: { full_name: "acme/demo" },
+			...(installation ? { installation: { id: 7 } } : {}),
+			...extra,
+		});
+	const parse = (body: string) => parseWebhookEvent({ body, headers: signedHeaders(body, "issues"), secret: SECRET });
+
+	it("handles an opened issue, naming the issue and the repo", () => {
+		const result = parse(issue("opened"));
+		expect(result.handled).toBe(true);
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "issues.area",
+			repo: "acme/demo",
+			installationId: 7,
+			action: "opened",
+			issueNumber: 9,
+		});
+	});
+
+	it("handles an edit that changed the title, with no installation id sent", () => {
+		const result = parse(issue("edited", { changes: { title: { from: "old" } } }, false));
+		expect((result as { event: unknown }).event).toMatchObject({ type: "issues.area", installationId: 0 });
+	});
+
+	it("leaves an edit of the body and any other action unhandled", () => {
+		for (const body of [
+			issue("edited", { changes: { body: { from: "old" } } }),
+			issue("edited"),
+			issue("closed"),
+		]) {
+			expect(parse(body).handled).toBe(false);
+		}
+	});
+
+	it("carries the delivery id when GitHub sends one, and none when it does not", () => {
+		const body = issue("opened");
+		const event = (headers: Record<string, string | string[] | undefined>) =>
+			(parseWebhookEvent({ body, headers, secret: SECRET }) as unknown as { event: Record<string, unknown> })
+				.event;
+		expect(event(signedHeaders(body, "issues"))["deliveryId"]).toBe("delivery-123");
+		expect(event(signedHeaders(body, "issues", { "x-github-delivery": undefined }))["deliveryId"]).toBeUndefined();
 	});
 });
 
