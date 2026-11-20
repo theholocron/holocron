@@ -51,6 +51,7 @@ export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 - `readEnvironment?(config)` — reads all KEY=VALUE pairs from a config (powers `holocron sync secrets`)
 - `ensureProject?(name)` — creates a Doppler project if missing
 - `ensureEnvironment?(project, name)` — creates a config (branch) inside a project
+- `ensureRelaySource?(input)` / `inspectRelaySource?(input)` — make and read back the project's webhook for a [Comlink relay source](/holocron/comlink/#adding-a-source) (`relay.sources.<id>` with `capability: "vault"`). The webhook is found by URL in the project (`options.project`, else the configured one) and never changed or deleted; `scope` is the config slugs; the signing secret is chosen by Holocron, sent on create only and handed to the Worker. A token Doppler refuses is a `todo`, because the reference does not say which token type can manage webhooks.
 
 ## Example: sync Doppler → GitHub + Vercel
 

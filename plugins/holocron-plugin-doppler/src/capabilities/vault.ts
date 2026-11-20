@@ -23,8 +23,16 @@
  * ProviderApiError with `status: 409` which we catch and swallow.
  */
 
-import type { EnsureResult, Vault } from "@theholocron/cli";
+import type {
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
+	EnsureResult,
+	InspectRelaySourceInput,
+	RelaySourceState,
+	Vault,
+} from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
+import type { DopplerWebhook } from "@theholocron/doppler-client";
 
 import type { DopplerClient } from "../rest.js";
 
@@ -112,6 +120,63 @@ export class DopplerVault implements Vault {
 		return out;
 	}
 
+	// ── relay source (Comlink) ──────────────────────────────────────────
+
+	/**
+	 * Make the Doppler webhook for a relay source, found again by its URL in the project (`options.project`, else the
+	 * vault's). `scope` is the config slugs it fires for; `events` has no meaning here (a Doppler webhook fires on
+	 * secret changes) and is ignored. The secret in the input is the signing secret and is sent only on create; Doppler
+	 * never returns it. An existing webhook is adopted unchanged: no update call is made, `inspectRelaySource` reports
+	 * a difference. Doppler does not document which token type may manage webhooks, so a 401/403 is a `todo`.
+	 */
+	async ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		const project = this.relayProject(input);
+		let found: DopplerWebhook | undefined;
+		try {
+			found = await this.findWebhook(project, input.url);
+		} catch (err) {
+			const todo = webhookAccessTodo(err, project);
+			if (todo) return { created: false, updated: [], todo: [todo] };
+			throw err;
+		}
+		if (found) return { created: false, updated: [] };
+		try {
+			await this.client().webhooks.create(project, {
+				url: input.url,
+				name: input.name,
+				...(input.secret ? { secret: input.secret } : {}),
+				...(input.scope ? { enableConfigs: input.scope } : {}),
+			});
+		} catch (err) {
+			const todo = webhookAccessTodo(err, project);
+			if (todo) return { created: false, updated: [], todo: [todo] };
+			throw err;
+		}
+		return { created: true, updated: [], ...(input.secret ? { secret: input.secret } : {}) };
+	}
+
+	/** Read the webhook back by URL: whether it exists, is enabled, covers every declared config and has a secret. */
+	async inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		const found = await this.findWebhook(this.relayProject(input), input.url);
+		if (!found) return { exists: false };
+		return {
+			exists: true,
+			...(found.enabled !== undefined ? { enabled: found.enabled } : {}),
+			...(found.enabledConfigs ? { scope: found.enabledConfigs } : {}),
+			...(found.hasSecret !== undefined ? { hasSecret: found.hasSecret } : {}),
+		};
+	}
+
+	private relayProject(input: InspectRelaySourceInput): string {
+		const project = input.options?.project;
+		return typeof project === "string" && project ? project : this.project;
+	}
+
+	private async findWebhook(project: string, url: string): Promise<DopplerWebhook | undefined> {
+		const res = await this.client().webhooks.list(project);
+		return (res.webhooks ?? []).find((w) => w.url === url);
+	}
+
 	// ── bootstrap ───────────────────────────────────────────────────────
 
 	async ensureProject(name: string): Promise<EnsureResult> {
@@ -167,6 +232,21 @@ function parseReference(reference: string): ParsedReference {
 	}
 	const [project, config, ...nameParts] = parts;
 	return { project: project, config: config, name: nameParts.join("/") };
+}
+
+/**
+ * A refused webhook call as a step for a person. Doppler's reference does not say which token type may manage
+ * webhooks (a service token is limited to one config's secrets), so a refusal names what to try, never a guess.
+ */
+function webhookAccessTodo(err: unknown, project: string): string | undefined {
+	if (err instanceof ProviderApiError && (err.status === 401 || err.status === 403)) {
+		return (
+			`Doppler refused the webhook call for project ${project}: use a token that can manage the project's webhooks ` +
+			`(a personal token of a member who can, not a config-scoped service token), or add the webhook in the ` +
+			`project's Webhooks page and set the secret yourself`
+		);
+	}
+	return undefined;
 }
 
 /**
