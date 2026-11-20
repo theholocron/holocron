@@ -1,3 +1,13 @@
+## [5.0.0-alpha.508](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.507...v5.0.0-alpha.508) (2026-11-20)
+
+### Features
+
+* **comlink:** ✨ relay Clerk webhooks (Svix signatures) ([#2464](https://github.com/theholocron/holocron/issues/2464)) ([5937ff7](https://github.com/theholocron/holocron/commit/5937ff71f26113b49365c15893159c4ebfb3b661)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+
+### Documentation
+
+* **specs:** 📝 declare the organization's issue Types and create them ([#2515](https://github.com/theholocron/holocron/issues/2515)) ([32aeed4](https://github.com/theholocron/holocron/commit/32aeed447395883a0ee149d6d33be739f9161973)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [5.0.0-alpha.507](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.506...v5.0.0-alpha.507) (2026-11-20)
 
 ### Features
