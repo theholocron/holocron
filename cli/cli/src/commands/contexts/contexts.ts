@@ -150,6 +150,8 @@ export const COMMAND_CONTEXTS = {
 	"new issue": "workspace",
 	// Changes the issue through the `issues` provider (and `projects` for `--project`), so their packages must be resolvable.
 	"update issue": "workspace",
+	// Reads the issue through `issues`, opens the pull request through `source` and runs git, so those packages must resolve.
+	"start work": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**

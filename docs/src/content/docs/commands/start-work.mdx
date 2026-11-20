@@ -1,0 +1,73 @@
+---
+title: "start work"
+description: Start work on an issue with its branch, worktree, first commit, push and a draft pull request.
+---
+
+```bash
+holocron start work <issue> [--name <slug>] [--title <text>] [--base <branch>] [--no-worktree] [--worktree-path <path>] [--spec <file>] [--one-pr] [--type bug|feature|task] [--effort high|medium|low] [--assignee <login>]... [--project <board>] [--no-pr] [--dry-run] [--yes]
+```
+
+Does the first moments of a piece of work in one run, so nobody types the `git` and `gh` steps by hand. It reads the issue through the repo's `issues` provider, makes the branch `<type>/<issue>-<slug>` (for example `feat/2429-work-commands`), a worktree for it under `.claude/worktrees/<name>`, the first commit, pushes, and opens a **draft** pull request through the `source` provider. Part 3 of the work commands (spec `tool-work-commands`, issue #2429).
+
+```bash
+holocron start work "#2429" --effort medium
+holocron start work "#2429" --spec .notes/tool-work-commands.spec.md
+holocron start work ENG-42 --no-worktree --dry-run
+```
+
+## Steps
+
+Each step prints a row and is safe to run twice.
+
+| Step               | What it does                                                                                                            | Writes to         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| issue              | Reads the issue (`Issues.get`), and its labels, milestone and assignee when the provider can export it                  | nothing           |
+| start date, Effort | Sets the start date to today, and Effort when `--effort` is given, only when this run makes the branch                  | tracker           |
+| branch, worktree   | `git fetch origin <base>`, then the branch from `origin/<base>` and a worktree (`--no-worktree` switches to it instead) | local git         |
+| first commit       | The spec file when there is one, otherwise an empty commit; always signed off (`-s`)                                    | local git         |
+| push               | `git push -u origin <branch>`; hooks run                                                                                | the remote        |
+| pull request       | A draft against `<base>`, linked to the issue, with the labels, assignees and milestone of the issue                    | GitHub (`source`) |
+| board status       | Not set: the open pull request moves the issue to In Progress                                                           | nothing           |
+
+## The first commit and the pull request title
+
+GitHub refuses a pull request with no commits beyond its base, so the work starts with a commit.
+
+- **With `--spec <file>`:** the first commit is the spec file (copied into the worktree, the original left where it is). By default the pull request carries only the spec: its title is `docs(specs): <title>`, the branch is `docs/...` and the body says `Refs`, so the issue stays open. Run `start work` again, without `--spec`, once the spec has merged to start the implementation. `--one-pr` instead makes one pull request for the spec and the code: the spec is still the first commit, the title is the code's and the body says `Closes`.
+- **Without a spec:** an empty commit whose subject is the pull request's title, with `Refs <issue>` in its body.
+
+The title is a Conventional Commit, because semantic-release reads the squashed title; `--title` sets it whole. Otherwise the type comes, in order, from `--type` (Bug `fix`, Feature `feat`, Task `chore`), the type the issue's own title starts with, a kind label (`bug`, `enhancement`, `documentation`, `chore`), then `chore`, and the scope is the one the issue's title names. The row says what decided it and, for a `feat` or `fix` to `alpha`, that it publishes a prerelease. Change it later with `update work --title`.
+
+The body links the issue and the spec file and lists the four definition-of-done items as a checklist: code, tests, docs, green checks. The provider adds the `Closes` or `Refs` line.
+
+## Behavior
+
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal and without either it refuses.
+- **`--dry-run`** runs the reads (the issue, whether the branch exists) and prints each step as `would ...`. It writes nothing: no tracker call, no remote call and no local git write, not even `git fetch`.
+- **Run it again to carry on.** An existing branch is reused (and its worktree found, or made), a commit already on the branch is not made twice, the push is repeated harmlessly and the pull request is found by its branch. The start date is only written when the run makes the branch, because the issue's current date cannot be read. After a git failure nothing is deleted; the row says to run the command again.
+- **A tracker field the provider refuses** (Linear has no start date) is a `not carried across` row, not a failure.
+- **The board status is left to the automation.** Sentinel's board-status handler and the hourly `reconcile-projects` move the issue to In Progress from the open linked pull request. While they are down, `holocron project status <issue> "In Progress"` sets it by hand.
+- Effort is never chosen by the command; pass `--effort`.
+
+## Options
+
+| Option                   | Description                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `--name <slug>`          | The branch and worktree name, kebab-case (default: the issue's title)           |
+| `--title <text>`         | The pull request's title (default: made from the issue, see above)              |
+| `--base <branch>`        | Where to start from and merge into (default `repo.defaultBranch`, else `alpha`) |
+| `--no-worktree`          | Make no worktree: only make the branch and switch the repo to it                |
+| `--worktree-path <path>` | Where the worktree goes (default `.claude/worktrees/<name>`)                    |
+| `--spec <file>`          | The work's spec file, the first commit                                          |
+| `--one-pr`               | With `--spec`: one pull request for the spec and the code                       |
+| `--type <kind>`          | `bug`, `feature` or `task`, deciding the commit type                            |
+| `--effort <size>`        | Set the issue's Effort with its start date                                      |
+| `--assignee <login>`     | Assign the pull request, besides the issue's own assignee; repeat for more      |
+| `--project <board>`      | Put the pull request on this board                                              |
+| `--no-pr`                | Stop after the push                                                             |
+| `--dry-run`              | Show what would be done, change nothing                                         |
+| `--yes`                  | Start without asking (required without a terminal)                              |
+
+## Tokens
+
+The `issues` and `source` providers read their tokens through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring), and `git` pushes with whatever the machine has. The command needs both providers' plugin packages to resolve.
