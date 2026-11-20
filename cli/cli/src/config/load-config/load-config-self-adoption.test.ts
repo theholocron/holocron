@@ -121,6 +121,16 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// And (#2131): the layout names who reads the notification secrets.
 		expect(options.layout?.readers).toBeUndefined();
 		options.layout!.readers = ["theholocron/holocron", "theholocron/.github"];
+		// And (#2465): Cloudflare's alerts reach #alerts through the relay, a source of its own made at the vendor.
+		expect(options.layout?.relay?.sources).toBeUndefined();
+		options.layout!.relay!.sources = {
+			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+		};
+		const alerts = (options.layout?.categories ?? [])
+			.flatMap((c) => c.channels ?? [])
+			.find((c) => c.name === "alerts");
+		expect(alerts?.feeds).toBeUndefined();
+		alerts!.feeds = { relay: { cloudflare: true } };
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.
 		const ideas = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])
