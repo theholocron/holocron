@@ -966,6 +966,8 @@ export interface IssueRecord {
 	priority?: IssuePriority;
 	/** Label names. */
 	labels: string[];
+	/** What kind of issue it is: the Type or the kind label on GitHub, the kind label on Linear. `undefined` when the source names none. */
+	kind?: IssueKind;
 	/** Who it is assigned to. */
 	assignee?: TrackerUser;
 	/** The milestone (GitHub) or project (Linear) it belongs to, by name. */

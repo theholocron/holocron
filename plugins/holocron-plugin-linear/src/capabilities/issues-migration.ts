@@ -23,6 +23,7 @@ import {
 } from "@theholocron/cli";
 import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 
+import { kindOfLabels, labelsFor } from "./issue-kind.js";
 import { fromLinearPriority, isClosed, normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
@@ -108,6 +109,8 @@ export async function exportIssues(
 		const closed = isClosed(issue.state.type);
 		const comments = await client.issues.comments(issue.id);
 		const priority = fromLinearPriority(issue.priority);
+		const labelNames = issue.labels.nodes.map((l) => l.name);
+		const kind = kindOfLabels(labelNames);
 		const migratedFrom = issue.attachments?.nodes.find((a) => a.title.startsWith(MIGRATED_TITLE_PREFIX))?.url;
 		records.push({
 			key: issue.identifier,
@@ -118,7 +121,8 @@ export async function exportIssues(
 			statusCategory: statusCategory(issue.state),
 			closed,
 			...(priority ? { priority } : {}),
-			labels: issue.labels.nodes.map((l) => l.name),
+			labels: labelNames,
+			...(kind ? { kind } : {}),
 			...(issue.assignee
 				? {
 						assignee: {
@@ -201,7 +205,7 @@ export async function importIssues(
 			closed: record.closed,
 		});
 		const ids: string[] = [];
-		for (const name of record.labels) {
+		for (const name of labelsFor(record)) {
 			let id = labelIds.get(name.toLowerCase());
 			if (!id) {
 				id = (await client.teams.createLabel({ name, teamId: team.id })).id;

@@ -13,6 +13,7 @@ import type { ImportOptions, ImportResult, IssueRecord, SyncResult } from "@theh
 import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { LinearIssueUpdate } from "@theholocron/linear-client";
 
+import { labelsFor } from "./issue-kind.js";
 import { assigneeFor, droppedFor, importIssues, renderComment } from "./issues-migration.js";
 import { pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
@@ -98,11 +99,12 @@ export async function syncIssues(
 					patch.stateId = wanted.id;
 					changes.push("state");
 				}
-				if (sorted(record.labels) !== sorted(issue.labels.nodes.map((l) => l.name))) {
+				const wantedLabels = labelsFor(record);
+				if (sorted(wantedLabels) !== sorted(issue.labels.nodes.map((l) => l.name))) {
 					changes.push("labels");
 					if (!options.dryRun) {
 						const ids: string[] = [];
-						for (const name of record.labels) {
+						for (const name of wantedLabels) {
 							let id = labelIds.get(name.toLowerCase());
 							if (!id) {
 								id = (await client.teams.createLabel({ name, teamId: team.id })).id;

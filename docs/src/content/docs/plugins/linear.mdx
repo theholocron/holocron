@@ -85,19 +85,20 @@ returned `Issue` carries the description as `body`, so a caller can confirm a ma
 
 Linear does not need to match GitHub feature for feature. Keep this table in mind when moving **back** to GitHub.
 
-| Thing                 | GitHub                                    | Linear                                                                     |
-| --------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
-| Priority              | a project field (the repo uses `P0`…`P3`) | built into every issue; migrates as a `priority: <level>` label on GitHub  |
-| Statuses              | per project (`Status` field)              | per **team**, shared by every project; `ensure` adds, never removes        |
-| Custom fields         | yes (single select, number, date, …)      | none; a template's extra fields come back as `todos`                       |
-| Views                 | managed by `setup project`                | not managed; a template's views come back as `todos`                       |
-| Automation            | project workflows (read, report)          | team auto-archive / auto-close (read); turning one on is a `todo`          |
-| Milestone             | milestone                                 | project (`create` and `migrate --milestone` use a project's name)          |
-| Backdating            | no                                        | yes, so a migrated issue keeps its created date                            |
-| Parent and blocked-by | read through GraphQL                      | native; **not set** when importing into GitHub                             |
-| Assignee              | a login                                   | matched by email on import; unmatched assignees are dropped                |
-| Comment author        | the commenter                             | comments are posted by the token's user, with the author named in the text |
-| Move between boards   | rewrites the project item                 | an issue is in one project, so `move issues` changes its project           |
+| Thing                     | GitHub                                                                              | Linear                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Priority                  | a project field (the repo uses `P0`…`P3`)                                           | built into every issue; migrates as a `priority: <level>` label on GitHub       |
+| Kind (bug, feature, task) | the issue Type (Bug, Feature, Task), else the `bug`, `enhancement` or `chore` label | no Type: the same three labels; `IssueRecord.kind` carries it both ways (below) |
+| Statuses                  | per project (`Status` field)                                                        | per **team**, shared by every project; `ensure` adds, never removes             |
+| Custom fields             | yes (single select, number, date, …)                                                | none; a template's extra fields come back as `todos`                            |
+| Views                     | managed by `setup project`                                                          | not managed; a template's views come back as `todos`                            |
+| Automation                | project workflows (read, report)                                                    | team auto-archive / auto-close (read); turning one on is a `todo`               |
+| Milestone                 | milestone                                                                           | project (`create` and `migrate --milestone` use a project's name)               |
+| Backdating                | no                                                                                  | yes, so a migrated issue keeps its created date                                 |
+| Parent and blocked-by     | read through GraphQL                                                                | native; **not set** when importing into GitHub                                  |
+| Assignee                  | a login                                                                             | matched by email on import; unmatched assignees are dropped                     |
+| Comment author            | the commenter                                                                       | comments are posted by the token's user, with the author named in the text      |
+| Move between boards       | rewrites the project item                                                           | an issue is in one project, so `move issues` changes its project                |
 
 ## Setup and doctor
 
@@ -149,6 +150,8 @@ The config file is not touched. See [provider](/holocron/commands/provider/) for
 `create` and `update` (`holocron new issue`, `holocron update issue`) map the neutral fields like this: priority is Linear's priority, the target date is the due date, the parent is the parent issue, a blocker is a `blocks` relation (`unblock` deletes it), effort is the estimate on a 1-3-5 scale (low, medium, high) and the kind is the label `bug`, `enhancement` or `chore`. Linear has no issue Type, and the client reads and writes a due date only, so a start date is a `dropped` line, never a label or a comment. A team with estimates off may refuse the estimate: it is written on its own, after the rest, and a refusal is a `dropped` line (how Linear answers is not verified). `--clear` empties priority, due date, estimate, assignee, project and parent; `--state open` picks the team's first open state and `closed` its first completed one.
 
 ## Migrating
+
+**The kind of an issue** (#2485, spec `tech-issue-kind-on-record`) travels as the optional `kind` of the migrated record. Linear's export reads it from the kind label (`bug`, `enhancement`, `chore`; two different kind labels name none), and its `import` and `sync` add that label to the issue, making it on the team when missing and not adding it twice. So a GitHub issue that has a Type and no kind label arrives in Linear with its kind, and a Linear issue's kind becomes the Type on a GitHub target. A record with no kind is migrated exactly as before. Nothing is lost here, so Linear has no `dropped` line for the kind.
 
 `holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.
 

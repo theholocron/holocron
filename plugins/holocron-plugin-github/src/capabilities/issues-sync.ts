@@ -13,6 +13,7 @@ import type { ImportOptions, IssueRecord, SyncResult } from "@theholocron/cli";
 import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { hasKindType, writeKind } from "./issue-kind.js";
 import { createPrioritySetter, type PrioritySetter } from "./issue-priority.js";
 import {
 	createFromRecord,
@@ -85,6 +86,8 @@ async function create(
 	const number = await createFromRecord(client, repo, record, options);
 	const field = await priority.set(number, record.priority, { isNew: true });
 	if (field.note) dropped.push(field.note);
+	const kindNote = record.kind ? await writeKind(client, repo, number, record.kind) : undefined;
+	if (kindNote) dropped.push(kindNote);
 	return { source: record.key, key: `#${number}`, created: true, updated: false, changes: [], dropped };
 }
 
@@ -129,6 +132,11 @@ async function update(
 	const field = await priority.set(issue.number, record.priority, { dryRun: options.dryRun });
 	if (field.changed) changes.push("priority field");
 
+	const kindWrong = record.kind !== undefined && !hasKindType(issue, record.kind);
+	if (kindWrong) changes.push("kind");
+	const kindNote =
+		kindWrong && !options.dryRun ? await writeKind(client, repo, issue.number, record.kind!) : undefined;
+
 	const comments = await client.issues.listComments(repo, issue.number);
 	const seen = new Set(comments.map((c) => COMMENT_HEADER.exec(c.body)?.[1]));
 	const missing = record.comments.filter((c) => !seen.has(c.createdAt));
@@ -144,6 +152,6 @@ async function update(
 		created: false,
 		updated: changes.length > 0,
 		changes,
-		dropped: [...droppedFor(record), ...(field.note ? [field.note] : [])],
+		dropped: [...droppedFor(record), ...(field.note ? [field.note] : []), ...(kindNote ? [kindNote] : [])],
 	};
 }
