@@ -2861,17 +2861,17 @@ export interface NotificationsLayout {
 		/** The built Worker, relative to the repo root. Default `apps/comlink/dist/worker.js`. */
 		code?: string;
 		/**
-		 * The error tracker's side, when its provider can manage it (`Errors.ensureRelay`): the projects whose issues
-		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
-		 * `Errors to Discord (Comlink)`) and throttle in minutes (default 5). Left out, nothing is done at the tracker.
-		 */
-		/**
 		 * Other services whose webhook the relay carries, keyed by id (the path it is served at, `vercel`; lower-case
 		 * letters, digits and `-`). A channel takes one with `feeds.relay`. `setup notifications` asks the provider of
 		 * `capability` to make the webhook (`ensureRelaySource`), gives the Worker its secret as `COMLINK_<ID>_SECRET`,
 		 * and `doctor notifications` checks it. The relay must have a source of that id (`apps/comlink`).
 		 */
 		sources?: Record<string, NotificationsRelaySource>;
+		/**
+		 * The error tracker's side, when its provider can manage it (`Errors.ensureRelay`): the projects whose issues
+		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
+		 * `Errors to Discord (Comlink)`) and throttle in minutes (default 5). Left out, nothing is done at the tracker.
+		 */
 		errors?: {
 			/** The tracker projects whose issues are sent. */
 			projects: string[];
