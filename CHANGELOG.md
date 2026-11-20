@@ -1,3 +1,9 @@
+## [5.0.0-alpha.511](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.510...v5.0.0-alpha.511) (2026-11-20)
+
+### Features
+
+* **cloudflare:** ✨ make the Cloudflare notification webhook for a relay source ([#2472](https://github.com/theholocron/holocron/issues/2472)) ([4bf1bb8](https://github.com/theholocron/holocron/commit/4bf1bb8f928c48c70d733f5fa39f04ad7c1b73ba)), closes [#1666](https://github.com/theholocron/holocron/issues/1666) [#2465](https://github.com/theholocron/holocron/issues/2465)
+
 ## [5.0.0-alpha.510](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.509...v5.0.0-alpha.510) (2026-11-20)
 
 ### Features
