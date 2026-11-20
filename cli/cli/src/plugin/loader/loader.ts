@@ -64,6 +64,8 @@ const system = createPluginSystem<
 			...(config.repo?.name ? { repo: config.repo.name } : {}),
 			// What `holocron sync` writes to `codecov.yml` depends on it, so a coverage provider's repo check needs it too.
 			...(config.repoValidation?.docsCoverage ? { docsCoverage: config.repoValidation.docsCoverage } : {}),
+			// The `issue-types` backfill of the GitHub plugin maps titles and folders to areas through the same map.
+			...(config.repo?.labels ? { areaLabels: config.repo.labels } : {}),
 			...context,
 			...(effectiveToken !== undefined ? { cliToken: effectiveToken } : {}),
 			cliTokens: undefined,

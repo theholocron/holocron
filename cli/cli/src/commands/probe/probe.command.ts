@@ -26,6 +26,8 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			...(argv.files ? ["--files"] : []),
 			...(argv.only ?? []).flatMap((name) => ["--only", String(name)]),
 			...(argv.copy ? ["--copy"] : []),
+			// What follows a bare `--` is the probe's own options (`probe github issue-types -- --since 2026-09-01`).
+			...(argv["--"] ?? []).map(String),
 		];
 		const report = await runProbeCommand({
 			loaded,

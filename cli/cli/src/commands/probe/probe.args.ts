@@ -6,6 +6,8 @@ export interface ProbeArgs extends GlobalArgs {
 	provider?: string;
 	probe?: string;
 	args?: string[];
+	/** What follows a bare `--` (the parser is set to `populate--`): the probe's own options. */
+	"--"?: Array<string | number>;
 	lcov?: string;
 	warn?: boolean;
 	files?: boolean;

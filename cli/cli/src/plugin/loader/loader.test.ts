@@ -337,6 +337,32 @@ describe("PluginLoader — repo defaults", () => {
 		expect(seen[1]).not.toHaveProperty("docsCoverage");
 	});
 
+	it("hands plugins repo.labels as areaLabels, and nothing when it is unset", async () => {
+		const seen: Array<Record<string, unknown>> = [];
+		const importer = vi.fn(async (pkg: string) => {
+			if (pkg === "@theholocron/holocron-plugin-1password") {
+				return { createPlugin: () => ({ name: "1p", capabilities: { vault: () => ({}) } }) };
+			}
+			return {
+				createPlugin: (opts: Record<string, unknown>) => {
+					seen.push(opts);
+					return { name: "gh", capabilities: { source: () => ({}) } };
+				},
+			};
+		});
+		const labels = { areas: { cli: ["cli/**"] }, scopes: { cli: "cli" } };
+		for (const repo of [{ labels }, undefined]) {
+			const config = resolveConfig({
+				name: "demo",
+				...(repo ? { repo } : {}),
+				providers: { vault: "1password", source: "github" },
+			});
+			await new PluginLoader(config, { repoRoot: "/tmp" }, importer as unknown as PluginImporter).load();
+		}
+		expect(seen[0]?.areaLabels).toEqual(labels);
+		expect(seen[1]).not.toHaveProperty("areaLabels");
+	});
+
 	it("context.repo (CLI --repo flag) overrides config.repo", async () => {
 		const captured: Record<string, unknown> = {};
 		const config = resolveConfig({
