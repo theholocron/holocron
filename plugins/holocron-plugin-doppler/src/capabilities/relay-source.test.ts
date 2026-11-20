@@ -53,6 +53,20 @@ describe("DopplerVault.ensureRelaySource", () => {
 		expect(JSON.stringify(made)).not.toContain("s3cret-value");
 	});
 
+	it("sends no secret and no configs when the input has none, and returns no secret", async () => {
+		const { vault, stub } = vaultOf([{ body: {} }, { body: {} }]);
+		const res = await vault.ensureRelaySource({ source: "doppler", url: URL_, name: "Doppler" });
+		expect(res).toEqual({ created: true, updated: [] });
+		expect(stub.calls[1]?.body).toEqual({ url: URL_, name: "Doppler" });
+	});
+
+	it("rethrows a failure of the create call that is not about access", async () => {
+		const err = await vaultOf([{ body: { webhooks: [] } }, { status: 500, body: {} }])
+			.vault.ensureRelaySource(input)
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+	});
+
 	it("rethrows other failures", async () => {
 		const err = await vaultOf([{ status: 500, body: {} }])
 			.vault.ensureRelaySource(input)
@@ -64,6 +78,15 @@ describe("DopplerVault.ensureRelaySource", () => {
 describe("DopplerVault.inspectRelaySource", () => {
 	it("reports a missing webhook", async () => {
 		expect(await vaultOf([{ body: { webhooks: [] } }]).vault.inspectRelaySource(input)).toEqual({ exists: false });
+	});
+
+	it("leaves out what Doppler did not report", async () => {
+		const state = await vaultOf([{ body: { webhooks: [{ url: URL_ }] } }]).vault.inspectRelaySource(input);
+		expect(state).toEqual({ exists: true });
+	});
+
+	it("reports a missing webhook when Doppler returns no list", async () => {
+		expect(await vaultOf([{ body: {} }]).vault.inspectRelaySource(input)).toEqual({ exists: false });
 	});
 
 	it("reports state without any secret value", async () => {

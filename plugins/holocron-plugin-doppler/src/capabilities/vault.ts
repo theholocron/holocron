@@ -124,7 +124,7 @@ export class DopplerVault implements Vault {
 
 	/**
 	 * Make the Doppler webhook for a relay source, found again by its URL in the project (`options.project`, else the
-	 * vault's). `scope` is the config slugs it fires for; `events` has no meaning here (a Doppler webhook fires on
+	 * vault's). `scope` is the config slugs it applies to; `events` has no meaning here (a Doppler webhook is sent on
 	 * secret changes) and is ignored. The secret in the input is the signing secret and is sent only on create; Doppler
 	 * never returns it. An existing webhook is adopted unchanged: no update call is made, `inspectRelaySource` reports
 	 * a difference. Doppler does not document which token type may manage webhooks, so a 401/403 is a `todo`.

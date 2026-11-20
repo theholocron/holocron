@@ -12,7 +12,7 @@ export interface DopplerWebhook {
 	enabled?: boolean;
 	/** Whether a signing secret is set (the value is never returned). */
 	hasSecret?: boolean;
-	/** The config slugs it fires for. */
+	/** The config slugs it applies to. */
 	enabledConfigs?: string[];
 	/** Whether the caller may change it. */
 	canManage?: boolean;
@@ -32,7 +32,7 @@ export interface DopplerWebhookInput {
 	name?: string;
 	/** The signing secret Doppler uses for `X-Doppler-Signature`. A credential. */
 	secret?: string;
-	/** The config slugs it fires for. */
+	/** The config slugs it applies to. */
 	enableConfigs?: string[];
 }
 
