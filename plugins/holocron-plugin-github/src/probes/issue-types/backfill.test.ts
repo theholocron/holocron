@@ -40,7 +40,7 @@ describe("runBackfill", () => {
 			"type 3 Task",
 		]);
 		expect(text).toContain(
-			"info Type: Bug 1, Feature 1, Task 1 set; 0 already typed, 0 with no kind label, 0 with two kind labels"
+			"info Type: Bug 1, Feature 1, Task 1 set; 0 already typed, 0 with no label that maps to a Type, 0 with two kind labels"
 		);
 		expect(text).toContain("info area labels: added to 2 items");
 	});
@@ -67,7 +67,9 @@ describe("runBackfill", () => {
 			{ since: "2026-01-01", milestone: "v5.0", project: "v5" }
 		);
 		expect(writes).toEqual([]);
-		expect(text).toContain("info Type: none set; 1 already typed, 0 with no kind label, 0 with two kind labels");
+		expect(text).toContain(
+			"info Type: none set; 1 already typed, 0 with no label that maps to a Type, 0 with two kind labels"
+		);
 	});
 
 	it("leaves an issue with two kind labels, and one with none, for a person and says so", async () => {
@@ -77,7 +79,17 @@ describe("runBackfill", () => {
 		]);
 		expect(writes).toEqual([]);
 		expect(text).toContain("info #1: has bug and enhancement: left for a person to choose");
-		expect(text).toContain("info Type: none set; 0 already typed, 1 with no kind label, 1 with two kind labels");
+		expect(text).toContain(
+			"info Type: none set; 0 already typed, 1 with no label that maps to a Type, 1 with two kind labels"
+		);
+	});
+
+	it("gives an issue with only another kind label the Type Task", async () => {
+		const { writes, text } = await run([item(1, { labels: ["ci"] })]);
+		expect(writes).not.toEqual([]);
+		expect(text).toContain(
+			"info Type: Task 1 set; 0 already typed, 0 with no label that maps to a Type, 0 with two kind labels"
+		);
 	});
 
 	it("takes the milestone of the parent first, then --milestone, and the project only from --project", async () => {

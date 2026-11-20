@@ -89,7 +89,7 @@ export function reportBackfill(ctx: ProbeContext, input: ReportInput): void {
 	ctx.say({
 		status: "info",
 		label: "Type",
-		detail: `${types || "none"} ${verb}; ${tally.typed} already typed, ${tally.noKind} with no kind label, ${tally.ambiguous.length} with two kind labels`,
+		detail: `${types || "none"} ${verb}; ${tally.typed} already typed, ${tally.noKind} with no label that maps to a Type, ${tally.ambiguous.length} with two kind labels`,
 	});
 	for (const a of tally.ambiguous) {
 		ctx.say({

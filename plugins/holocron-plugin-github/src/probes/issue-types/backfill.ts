@@ -162,7 +162,8 @@ async function handle(
  * The backfill of `holocron probe github issue-types` (spec `tech-github-area-labels`, rollout item 5): reads a window of
  * issues, and for each adds what it can derive and nothing else.
  *
- * - **Type** from the kind labels (`bug`, `enhancement`, `chore`); one that has a Type keeps it, one with two kind labels
+ * - **Type** from the kind labels (`bug`, `enhancement`, `chore`, else Task for `ci`, `documentation`, `refactor`, `test`,
+ *   `performance`, `dependencies`); one that has a Type keeps it, one with two kind labels
  *   is listed and left.
  * - **Area labels** from the title's scope, or, for a pull request with `--pull-requests`, from its changed files; only
  *   added, and only when the label exists (`holocron setup` makes them).
