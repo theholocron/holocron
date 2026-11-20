@@ -60,6 +60,10 @@ See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications
 
 The vendor's side is set up the same way for every source, so nobody opens a vendor's dashboard: declare it in the layout (`relay.sources`, `feeds.relay`; see [`setup notifications`](/holocron/commands/setup-notifications/)), implement the optional `ensureRelaySource` and `inspectRelaySource` in the vendor's plugin, and `setup notifications` makes the webhook, hands its signing secret to the Worker as `COMLINK_<ID>_SECRET` in the same deploy and makes the channel webhook `COMLINK_<ID>_WEBHOOK`; `doctor notifications` checks both. Where a vendor's API cannot do a step, `setup` reports it as a failing `todo`.
 
+### Doppler
+
+`relay.sources.doppler` with `capability: "vault"` makes the Doppler webhook through the `vault` provider (`ensureRelaySource`, `POST /v3/webhooks?project=`), with no dashboard step. `scope` is the config slugs it applies to (all of them when left out, which is unverified); `options.project` names another project than the vault's; `events` is ignored, because a Doppler webhook is sent on secret changes. Holocron chooses the signing secret, Doppler stores it and never returns it, and `setup notifications` hands it to the Worker as `COMLINK_DOPPLER_SECRET` in the same deploy. The webhook is found again by its URL, so a second run changes nothing: an existing webhook is adopted as it is, never changed or deleted, and `doctor notifications` reports a missing, turned-off or secret-less one (`hasSecret`) and a config it does not cover. Doppler's reference does not say which token type may manage webhooks (a service token is scoped to one config's secrets). When Doppler answers 401 or 403, the run reports a failing `todo` naming what to use: a personal token of a member who can manage the project's webhooks, or adding the webhook by hand with the same URL and secret.
+
 A source is one file under `src/sources/<id>/` implementing `Source` (`verify` and `format`), plus one entry in the list in `src/worker.ts`. Nothing else changes.
 
 ## Sending a delivery by hand
