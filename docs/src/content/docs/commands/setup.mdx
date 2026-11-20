@@ -124,6 +124,7 @@ holocron setup --repo my-org/my-project
 ## Notes
 
 - Workflow files written by `setup` are **generated artifacts** — overwritten on each run. Do not edit them manually; edit the workflow templates in `theholocron/holocron` and run `holocron sync github` instead.
+- `setup` removes a generated caller whose task is no longer in `tasks`, by the same rule as [`sync`](/holocron/commands/sync/#workflows): the file must carry the generated header, not be `# HAND-MAINTAINED`, name this package in its `# Source package:` line and not be written by this run. Each removal is a `remove obsolete workflow <file>` step, `--dry-run` lists it without deleting, and nothing is removed when `tasks` is empty or a task has no template.
 - Skills are gitignored and re-installed on each `setup` run. Running `setup` on a fresh clone restores them.
 - `setup` is idempotent — running it again on the same repo produces the same result and does not create duplicate labels, environments, or teams.
 
