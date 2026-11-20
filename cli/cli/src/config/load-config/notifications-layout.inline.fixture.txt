@@ -2,7 +2,13 @@
 	readers: ["theholocron/holocron", "theholocron/.github"],
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
-	relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "holocron"] } },
+	relay: {
+		host: "comlink.theholocron.dev",
+		errors: { projects: ["holocron-cli", "holocron"] },
+		sources: {
+			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+		},
+	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
 	emojis: [
@@ -57,6 +63,7 @@
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
+					feeds: { relay: { cloudflare: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.

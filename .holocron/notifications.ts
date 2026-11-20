@@ -15,7 +15,16 @@ export default {
 	readers: ["theholocron/holocron", "theholocron/.github"],
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
-	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
+	// `sources` are the other vendors whose signed webhook the relay carries; setup makes each webhook at the vendor and
+	// hands the Worker its secret (#2465). Only Cloudflare is here: Vercel and Doppler are not this repo's `deployment`
+	// or `vault` provider, and Clerk is not used. Add the id and a channel's `feeds.relay` to take another.
+	relay: {
+		host: `comlink.${domain}`,
+		errors: { projects: ["holocron-cli", "holocron"] },
+		sources: {
+			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+		},
+	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
 	// The rest of the Octicons `git-*` set (MIT, notice in `.holocron/media/emoji/LICENSE`), made on the server for
@@ -72,6 +81,8 @@ export default {
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
+					// Cloudflare's incident and certificate alerts arrive through the Comlink relay, by a webhook of their own.
+					feeds: { relay: { cloudflare: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.
