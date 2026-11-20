@@ -19,8 +19,8 @@
       "kind": "environment",
       "source": "apps/comlink/src/worker.environment.json",
       "workspace": "collections/comlink-relay/environments/Comlink (local).yml",
-      "sourceHash": "ac422cbaf40ea7052f72478e0a3e6cb22dc151299e13d674a7152d7673f05abe",
-      "workspaceHash": "2f84fb828e470f4d96116c51d2cd60d22d9818b6e8a88cbc7e73c160612b2ac1"
+      "sourceHash": "40fcc755c628134bfe772a7303dca727a44e42e597c38ec03f1a941f939752e9",
+      "workspaceHash": "9cdacb28386e6e5d2d6809493127a39256892c72927615314cb10c50c7254298"
     },
     {
       "kind": "collection",

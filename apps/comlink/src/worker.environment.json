@@ -12,6 +12,12 @@
       "value": "",
       "type": "secret",
       "enabled": true
+    },
+    {
+      "key": "dependabotSecret",
+      "value": "",
+      "type": "secret",
+      "enabled": true
     }
   ]
 }
