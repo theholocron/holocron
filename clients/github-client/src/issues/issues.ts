@@ -21,6 +21,8 @@ export interface GitHubIssue {
 		name?: string | null;
 		email?: string | null;
 	} | null;
+	/** Everyone the issue is assigned to; absent where the response does not list them. */
+	assignees?: Array<{ login: string }>;
 	/** When the issue was last updated, as an ISO 8601 timestamp. */
 	updated_at: string;
 	/** The URL of the issue's page on GitHub. */
@@ -31,6 +33,8 @@ export interface GitHubIssue {
 	milestone?: { number: number; title: string } | null;
 	/** The issue's GraphQL node id. */
 	node_id?: string;
+	/** The issue's Type (Bug, Feature, Task), or `null` when it has none; absent where the organization has no types. */
+	type?: { name: string } | null;
 	/** Set when the item is a pull request; GitHub's issues API returns pull requests too. */
 	pull_request?: unknown;
 }
@@ -103,6 +107,47 @@ export function issues(rest: RestClient) {
 			rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}`, {
 				method: "PATCH",
 				body,
+			}),
+
+		/** Makes `subIssueId` (an issue's numeric `id`, not its number) a sub-issue of the issue `number`; `replaceParent` moves it from another parent. */
+		addSubIssue: (repo: string, number: number, subIssueId: number, replaceParent = false): Promise<GitHubIssue> =>
+			rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}/sub_issues`, {
+				method: "POST",
+				body: { sub_issue_id: subIssueId, ...(replaceParent ? { replace_parent: true } : {}) },
+			}),
+
+		/** Takes `subIssueId` (an issue's numeric `id`) off the issue `number`, its parent. */
+		removeSubIssue: (repo: string, number: number, subIssueId: number): Promise<GitHubIssue> =>
+			rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}/sub_issue`, {
+				method: "DELETE",
+				body: { sub_issue_id: subIssueId },
+			}),
+
+		/** The parent of the issue `number`, or `null` when it has none (GitHub answers 404). */
+		getParent: async (repo: string, number: number): Promise<GitHubIssue | null> => {
+			try {
+				return await rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}/parent`);
+			} catch (err) {
+				if ((err as { status?: number }).status === 404) return null;
+				throw err;
+			}
+		},
+
+		/** The issues that block the issue `number`. */
+		listBlockedBy: (repo: string, number: number): Promise<GitHubIssue[]> =>
+			rest.request<GitHubIssue[]>(`${repoBase(repo)}/issues/${number}/dependencies/blocked_by?per_page=100`),
+
+		/** Records that `blockerId` (an issue's numeric `id`) blocks the issue `number`. */
+		addBlockedBy: (repo: string, number: number, blockerId: number): Promise<GitHubIssue> =>
+			rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}/dependencies/blocked_by`, {
+				method: "POST",
+				body: { issue_id: blockerId },
+			}),
+
+		/** Removes the record that `blockerId` (an issue's numeric `id`) blocks the issue `number`. */
+		removeBlockedBy: (repo: string, number: number, blockerId: number): Promise<GitHubIssue> =>
+			rest.request<GitHubIssue>(`${repoBase(repo)}/issues/${number}/dependencies/blocked_by/${blockerId}`, {
+				method: "DELETE",
 			}),
 
 		addLabels: (repo: string, number: number, labels: string[]): Promise<void> =>

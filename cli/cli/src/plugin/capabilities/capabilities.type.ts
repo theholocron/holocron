@@ -737,6 +737,83 @@ export interface TrackerDoctorReport {
 /** How urgent an issue is, in words no tracker owns. Linear has all five natively; GitHub holds it in a project field. */
 export type IssuePriority = "none" | "urgent" | "high" | "medium" | "low";
 
+/** How much work an issue is, in words no tracker owns. GitHub holds it in the `Effort` issue field, Linear as an estimate. */
+export type IssueEffort = "high" | "medium" | "low";
+
+/** What kind of issue it is. GitHub holds it as the issue Type (Bug, Feature, Task); Linear has no Type, so the kind is a label. */
+export type IssueKind = "bug" | "feature" | "task";
+
+/** An issue field that `Issues.update` can clear: the value is removed, never replaced by a default. */
+export type IssueClearable =
+	"assignees" | "milestone" | "parent" | "kind" | "priority" | "effort" | "startDate" | "targetDate";
+
+/**
+ * The fields of an issue beyond its title, text, labels, assignees and milestone, shared by `Issues.create` and
+ * `Issues.update`. A field left out is left alone (on a new issue, unset).
+ */
+export interface IssueFields {
+	/** The kind of issue. */
+	kind?: IssueKind;
+	/** How urgent it is; `none` sets nothing. */
+	priority?: IssuePriority;
+	/** How much work it is. */
+	effort?: IssueEffort;
+	/** When work starts, `YYYY-MM-DD`. */
+	startDate?: string;
+	/** When it is due, `YYYY-MM-DD`. */
+	targetDate?: string;
+	/** The key of the issue it is a sub-issue of. */
+	parent?: string;
+	/** Keys of the issues that block it. */
+	blockedBy?: string[];
+}
+
+/** What {@link Issues.create} makes an issue from. */
+export interface IssueCreateInput extends IssueFields {
+	/** The title. */
+	summary: string;
+	/** The text. */
+	body?: string;
+	/** Label names; a label the tracker lacks is made where the tracker can. */
+	labels?: string[];
+	/** Numeric id or exact title (case-insensitive). */
+	milestone?: string;
+	/** People to assign, by login (or email or name on a tracker that has no logins); `me` is the token's user. */
+	assignees?: string[];
+}
+
+/** What {@link Issues.update} changes. Only what is set is touched; nothing is cleared unless `clear` names it. */
+export interface IssuePatch extends IssueFields {
+	/** The new title. */
+	title?: string;
+	/** The new text, replacing the old. */
+	body?: string;
+	/** Open or close the issue. */
+	state?: "open" | "closed";
+	/** Labels to add. */
+	addLabels?: string[];
+	/** Labels to remove; one the issue lacks is left. */
+	removeLabels?: string[];
+	/** The people it is assigned to, replacing the current ones. */
+	assignees?: string[];
+	/** The milestone (numeric id or exact title), replacing the current one. */
+	milestone?: string;
+	/** Keys of blockers to take off (`blockedBy` adds). */
+	unblock?: string[];
+	/** Fields to empty. A field named here and also set is refused by the caller, never by the provider. */
+	clear?: IssueClearable[];
+}
+
+/** What {@link Issues.update} did. */
+export interface IssueUpdateResult {
+	/** The issue's key in the tracker's syntax. */
+	key: string;
+	/** What was changed, one phrase each, e.g. `effort: high`; empty when the issue was already as asked. */
+	changed: string[];
+	/** What the tracker cannot hold of the patch and so left out, e.g. `startDate (Linear has no start date)`. */
+	dropped?: string[];
+}
+
 /** A comment on an issue, as a migration carries it. */
 export interface IssueComment {
 	/** Who wrote it, as a display name; the target cannot post as them, so it is named in the text. */
@@ -880,19 +957,18 @@ export interface Issues extends ProviderIdentity {
 	get(key: string): Promise<Issue>;
 
 	/** Open a new issue and return its key. */
-	create(input: {
-		summary: string;
-		body?: string;
-		labels?: string[];
-		/** Numeric id or exact title (case-insensitive). */
-		milestone?: string;
-		/** People to assign, by login (or email or name on a tracker that has no logins); `me` is the token's user. */
-		assignees?: string[];
-	}): Promise<{
+	create(input: IssueCreateInput): Promise<{
 		key: string;
 		/** What the tracker cannot hold of the input and so left out, e.g. `assignee (no matching user): bob`. */
 		dropped?: string[];
 	}>;
+
+	/**
+	 * Change an issue: title, text, state, labels, assignees, milestone and the {@link IssueFields}. Idempotent: what is
+	 * already as asked is not written again and is not in `changed`. A field the tracker cannot hold is in `dropped`,
+	 * never a failure. Optional: a provider without it is "not supported" to the caller.
+	 */
+	update?(key: string, patch: IssuePatch): Promise<IssueUpdateResult>;
 
 	/** Idempotent — `transitioned: false` if the issue is already at the target. */
 	transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult>;

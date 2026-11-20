@@ -4,26 +4,32 @@ import type { Argv, CommandModule } from "yargs";
 import { loadConfig } from "../../config/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../global-args/index.js";
+import {
+	addIssueFieldOptions,
+	type IssueFieldArgs,
+	readIssueFieldArgs,
+} from "../issue-fields/add-issue-field-options/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { readIssueBody } from "./read-issue-body/index.js";
 import { runIssueCreate } from "./run-issue-create/index.js";
 
-type Args = GlobalArgs & {
-	title: string;
-	body?: string;
-	bodyFile?: string;
-	label?: string[];
-	assignee?: string[];
-	milestone?: string;
-	yes?: boolean;
-};
+type Args = GlobalArgs &
+	IssueFieldArgs & {
+		title: string;
+		body?: string;
+		bodyFile?: string;
+		label?: string[];
+		assignee?: string[];
+		milestone?: string;
+		yes?: boolean;
+	};
 
 export const issueCreateCommand: CommandModule<GlobalArgs, Args> = {
 	command: "issue <title>",
 	describe: "File an issue in the repo's tracker",
 	builder: (y: Argv<GlobalArgs>) =>
-		y
+		addIssueFieldOptions(y)
 			.positional("title", { type: "string", demandOption: true, describe: "The issue's title" })
 			.option("body", { type: "string", describe: "The issue's text" })
 			.option("body-file", {
@@ -62,6 +68,7 @@ export const issueCreateCommand: CommandModule<GlobalArgs, Args> = {
 			...(argv.assignee ? { assignees: argv.assignee.map(String) } : {}),
 			...(argv.label ? { labels: argv.label.map(String) } : {}),
 			...(argv.milestone ? { milestone: String(argv.milestone) } : {}),
+			...readIssueFieldArgs(argv),
 			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;

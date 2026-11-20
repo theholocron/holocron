@@ -2,9 +2,10 @@ import type { CheckRow } from "@theholocron/kyber/ui";
 
 import type { LoadedConfig } from "../../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../../plugin/index.js";
+import type { IssueFieldInput } from "../../issue-fields/add-issue-field-options/index.js";
 
 /** What {@link runIssueCreate} needs. */
-export interface RunIssueCreateInput {
+export interface RunIssueCreateInput extends IssueFieldInput {
 	/** The issue's title (`Issues.create`'s `summary`). */
 	title: string;
 	/** The issue's text. */

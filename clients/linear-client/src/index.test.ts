@@ -230,6 +230,7 @@ describe("issues", () => {
 			data({ issue: { comments: page([{ id: "c", body: "hi" }]) } }),
 			data({ commentCreate: { comment: { id: "c2", body: "yo" } } }),
 			data({ issueRelationCreate: { success: true } }),
+			data({ issueRelationDelete: { success: true } }),
 			data({ attachmentLinkURL: { success: true } }),
 			data({
 				attachmentsForURL: page([{ id: "a", url: "u", title: "t", issue: { id: "i", identifier: "ENG-1" } }]),
@@ -239,12 +240,14 @@ describe("issues", () => {
 		expect(await c.issues.comments("i1")).toHaveLength(1);
 		await c.issues.comment("i1", "yo", "2024-01-01T00:00:00Z");
 		await c.issues.relate("i1", "i2", "blocks");
+		await c.issues.unrelate("rel1");
 		await c.issues.attach("i1", "https://github.com/a/b/issues/1", "GitHub");
 		expect((await c.issues.attachmentsForUrl("u"))[0]?.issue.identifier).toBe("ENG-1");
 		expect((calls[1]?.body as { variables: { input: { createdAt: string } } }).variables.input.createdAt).toBe(
 			"2024-01-01T00:00:00Z"
 		);
 		expect((calls[2]?.body as { variables: { input: { type: string } } }).variables.input.type).toBe("blocks");
+		expect((calls[3]?.body as { variables: { id: string } }).variables.id).toBe("rel1");
 	});
 });
 

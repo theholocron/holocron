@@ -31,6 +31,7 @@ import { githubAppCreateEntry } from "../../commands/github-app-create/github-ap
 import { ideasPromoteEntry } from "../../commands/ideas-promote/ideas-promote.entry.js";
 import { ideasSyncEntry } from "../../commands/ideas-sync/ideas-sync.entry.js";
 import { issueCreateEntry } from "../../commands/issue-create/issue-create.entry.js";
+import { issueUpdateEntry } from "../../commands/issue-update/issue-update.entry.js";
 import { migrateIssueEntry } from "../../commands/migrate/migrate-issue/migrate-issue.entry.js";
 import { migrateIssuesEntry } from "../../commands/migrate/migrate-issues/migrate-issues.entry.js";
 import { migrateProjectEntry } from "../../commands/migrate/migrate-project/migrate-project.entry.js";
@@ -146,6 +147,7 @@ const registry = createCommandRegistry(
 		syncRequestsEntry,
 		ideasPromoteEntry,
 		issueCreateEntry,
+		issueUpdateEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,

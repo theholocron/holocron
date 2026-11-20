@@ -114,6 +114,11 @@ export function issues(gql: LinearGraphQL) {
 			);
 		},
 
+		/** Deletes a relation by its id (read from an issue's `relations` or `inverseRelations`). */
+		async unrelate(relationId: string): Promise<void> {
+			await gql.query(`mutation($id: String!) { issueRelationDelete(id: $id) { success } }`, { id: relationId });
+		},
+
 		/** Attaches a link to the issue. Linear keeps one attachment per issue and url. */
 		async attach(issueId: string, url: string, title: string): Promise<void> {
 			await gql.query(

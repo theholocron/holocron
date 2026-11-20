@@ -140,4 +140,51 @@ describe("issues", () => {
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.body).toEqual({ title: "v2" });
 	});
+
+	it("POST sub_issues — adds a sub-issue, and replaces its parent when asked", async () => {
+		const { fetch, calls } = stubFetch([{ body: RAW_ISSUE }, { body: RAW_ISSUE }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.issues.addSubIssue(REPO, 7, 99);
+		await client.issues.addSubIssue(REPO, 7, 99, true);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/issues/7/sub_issues");
+		expect(calls[0]?.body).toEqual({ sub_issue_id: 99 });
+		expect(calls[1]?.body).toEqual({ sub_issue_id: 99, replace_parent: true });
+	});
+
+	it("DELETE sub_issue — removes a sub-issue", async () => {
+		const { fetch, calls } = stubFetch([{ body: RAW_ISSUE }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.issues.removeSubIssue(REPO, 7, 99);
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain("/issues/7/sub_issue");
+		expect(calls[0]?.body).toEqual({ sub_issue_id: 99 });
+	});
+
+	it("GET parent — the parent, or null on a 404", async () => {
+		const { fetch, calls } = stubFetch([{ body: RAW_ISSUE }, { status: 404, body: { message: "Not Found" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		expect(await client.issues.getParent(REPO, 42)).toEqual(RAW_ISSUE);
+		expect(calls[0]?.url).toContain("/issues/42/parent");
+		expect(await client.issues.getParent(REPO, 43)).toBeNull();
+	});
+
+	it("GET parent — any other failure is thrown", async () => {
+		const { fetch } = stubFetch([{ status: 500, body: { message: "boom" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await expect(client.issues.getParent(REPO, 42)).rejects.toThrow();
+	});
+
+	it("dependencies — lists, adds and removes a blocker", async () => {
+		const { fetch, calls } = stubFetch([{ body: [RAW_ISSUE] }, { body: RAW_ISSUE }, { body: RAW_ISSUE }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		expect(await client.issues.listBlockedBy(REPO, 42)).toEqual([RAW_ISSUE]);
+		await client.issues.addBlockedBy(REPO, 42, 5);
+		await client.issues.removeBlockedBy(REPO, 42, 5);
+		expect(calls[0]?.url).toContain("/issues/42/dependencies/blocked_by");
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.body).toEqual({ issue_id: 5 });
+		expect(calls[2]?.method).toBe("DELETE");
+		expect(calls[2]?.url).toContain("/issues/42/dependencies/blocked_by/5");
+	});
 });

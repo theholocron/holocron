@@ -751,9 +751,14 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
   kebab-case, or `--name` as the whole name) with `status: draft`, `issue:`, `blocked-by: []`, no `id`, and the issue's text
   under `## Problem` less the `Filed from idea:` line and the marker. It never overwrites a file, never edits the issue or
   touches the vault, and asks first unless `--dry-run` or `--yes`.
-- **`holocron new issue <title> [--body <text> | --body-file <path|->] [--label <name>]... [--assignee <login>]... [--milestone <value>] [--dry-run] [--yes]`** — files an
+- **`holocron new issue <title> [--body <text> | --body-file <path|->] [--label <name>]... [--assignee <login>]... [--milestone <value>] [--type <kind>] [--priority <level>] [--effort <size>] [--start-date <date>] [--target-date <date>] [--parent <key>] [--blocked-by <key>]... [--project <board>] [--area <name>]... [--dry-run] [--yes]`** — files an
   issue through the `issues` provider (`Issues.create`: GitHub or Linear) and prints its key; what the tracker cannot hold (a second Linear assignee, an unknown user) is listed as not carried across. It asks first unless
-  `--dry-run` or `--yes` (without a terminal it refuses instead) and does not look for a duplicate.
+  `--dry-run` or `--yes` (without a terminal it refuses instead) and does not look for a duplicate. The field flags (`Issues.create`'s
+  `IssueFields`: Type, Priority, Effort, the dates, parent, blockers) are checked first, a field the tracker refuses is listed and never loses the issue,
+  `--project` puts the issue on a board `providers.projects.boards` declares, and `--area` adds `area:<name>` from `repo.labels.areas` (`RepoLabels`).
+- **`holocron update issue <key> [--title <text>] [--body <text> | --body-file <path|->] [--state open|closed] [--add-label <name>]... [--remove-label <name>]... [--assignee <login>]... [--milestone <value>] [--unblock <key>]... [--clear <field>]...` plus the `new issue` field flags `[--dry-run] [--yes]`** — changes an issue through the
+  optional `Issues.update(key, IssuePatch)`: only what is named is touched, nothing is cleared unless `--clear` names it, what is already as asked is not written, and what the tracker cannot hold is listed as not carried across.
+  It edits the tracker's issue only (not a pull request or the board's status).
 
 ## Syncing tooling
 

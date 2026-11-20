@@ -15,10 +15,13 @@ import type {
 	ImportOptions,
 	ImportResult,
 	Issue,
+	IssueCreateInput,
+	IssuePatch,
 	IssueRecord,
 	Issues,
 	IssueSearchFilter,
 	IssueSelector,
+	IssueUpdateResult,
 	LifecycleResult,
 	LifecycleSlot,
 	SyncResult,
@@ -29,7 +32,8 @@ import type { LinearIssue, LinearUser, LinearWorkflowState } from "@theholocron/
 
 import { exportIssues, importIssues } from "./issues-migration.js";
 import { syncIssues } from "./issues-sync.js";
-import { normalizeKey, pickState, statusCategory } from "./mapping.js";
+import { applyNewIssueFields, KIND_LABELS, updateLinearIssue } from "./issues-update.js";
+import { normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
 /** Options of the Linear `issues` capability. */
@@ -81,42 +85,36 @@ export class LinearIssues implements Issues {
 		return mapIssue(await this.scope.client.issues.get(normalizeKey(key, this.scope.teamKey)));
 	}
 
-	/** Makes an issue; labels the team lacks are made, and `milestone` is a project's name or id. */
-	async create(input: {
-		summary: string;
-		body?: string;
-		labels?: string[];
-		milestone?: string;
-		assignees?: string[];
-	}): Promise<{ key: string; dropped?: string[] }> {
+	/**
+	 * Makes an issue; labels the team lacks are made, and `milestone` is a project's name or id. Priority, the target
+	 * date (Linear's due date) and the parent are set in the create call, the kind as its label, the estimate and the
+	 * blockers after it; what Linear cannot hold (a start date) or refuses comes back in `dropped`.
+	 */
+	async create(input: IssueCreateInput): Promise<{ key: string; dropped?: string[] }> {
 		const { client } = this.scope;
 		const dropped: string[] = [];
 		let assigneeId: string | undefined;
 		const [wanted, ...extra] = input.assignees ?? [];
 		if (wanted) {
-			if (/^@?me$/i.test(wanted)) assigneeId = (await client.teams.viewer()).user.id;
-			else {
-				const w = wanted.replace(/^@/, "").toLowerCase();
-				const match = (await client.teams.users()).find((u) =>
-					[u.id, u.email, u.displayName, u.name].some((v) => v?.toLowerCase() === w)
-				);
-				assigneeId = match?.id;
-				if (!match) dropped.push(`assignee (no Linear user matches): ${wanted}`);
-			}
+			const found = await this.findAssignee(wanted);
+			if ("problem" in found) dropped.push(`assignee (${found.problem}): ${wanted}`);
+			else assigneeId = found.id;
 			if (extra.length > 0) dropped.push(`assignee (Linear holds one): ${extra.join(", ")}`);
 		}
 		const team = await this.scope.team();
-		const labelIds = input.labels?.length ? await this.labelIds(team.id, input.labels) : [];
-		let projectId: string | undefined;
-		if (input.milestone) {
-			const projects = await client.projects.list();
-			const match = projects.find(
-				(p) => p.id === input.milestone || p.name.toLowerCase() === input.milestone!.toLowerCase()
-			);
-			if (!match)
-				throw new Error(`Project "${input.milestone}" not found in Linear. Use the id or an exact name.`);
-			projectId = match.id;
+		const names = [...(input.labels ?? []), ...(input.kind ? [KIND_LABELS[input.kind]] : [])];
+		const labelIds = names.length > 0 ? await this.labelIds(team.id, [...new Set(names)]) : [];
+		const projectId = input.milestone ? await this.projectId(input.milestone) : undefined;
+		let parentId: string | undefined;
+		if (input.parent) {
+			const parent = input.parent;
+			try {
+				parentId = (await client.issues.get(normalizeKey(parent, this.scope.teamKey))).id;
+			} catch (err) {
+				dropped.push(`parent ${parent} (${err instanceof Error ? err.message : String(err)})`);
+			}
 		}
+		const priority = input.priority && input.priority !== "none" ? toLinearPriority(input.priority) : undefined;
 		const issue = await client.issues.create({
 			teamId: team.id,
 			title: input.summary,
@@ -124,8 +122,21 @@ export class LinearIssues implements Issues {
 			...(labelIds.length > 0 ? { labelIds } : {}),
 			...(projectId ? { projectId } : {}),
 			...(assigneeId ? { assigneeId } : {}),
+			...(parentId ? { parentId } : {}),
+			...(priority ? { priority } : {}),
+			...(input.targetDate ? { dueDate: input.targetDate } : {}),
 		});
+		dropped.push(...(await applyNewIssueFields(this.scope, issue, input)));
 		return { key: issue.identifier, ...(dropped.length > 0 ? { dropped } : {}) };
+	}
+
+	/** Changes an issue; see {@link updateLinearIssue}. */
+	update(key: string, patch: IssuePatch): Promise<IssueUpdateResult> {
+		return updateLinearIssue(this.scope, key, patch, {
+			assignee: (who) => this.findAssignee(who),
+			labelIds: async (names) => this.labelIds((await this.scope.team()).id, names),
+			project: (ref) => this.projectId(ref),
+		});
 	}
 
 	/** Moves the issue to the state its slot names. Idempotent. */
@@ -196,6 +207,23 @@ export class LinearIssues implements Issues {
 			...(name ? { name } : {}),
 			category: slot === "inReview" ? "in-review" : "in-progress",
 		});
+	}
+
+	private async findAssignee(wanted: string): Promise<{ id: string } | { problem: string }> {
+		const { client } = this.scope;
+		if (/^@?me$/i.test(wanted)) return { id: (await client.teams.viewer()).user.id };
+		const w = wanted.replace(/^@/, "").toLowerCase();
+		const match = (await client.teams.users()).find((u) =>
+			[u.id, u.email, u.displayName, u.name].some((v) => v?.toLowerCase() === w)
+		);
+		return match ? { id: match.id } : { problem: "no Linear user matches" };
+	}
+
+	private async projectId(ref: string): Promise<string> {
+		const projects = await this.scope.client.projects.list();
+		const match = projects.find((p) => p.id === ref || p.name.toLowerCase() === ref.toLowerCase());
+		if (!match) throw new Error(`Project "${ref}" not found in Linear. Use the id or an exact name.`);
+		return match.id;
 	}
 
 	private async labelIds(teamId: string, names: string[]): Promise<string[]> {
