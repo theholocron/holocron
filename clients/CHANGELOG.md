@@ -1,3 +1,9 @@
+## [1.58.0-alpha.47](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.46...clients-v1.58.0-alpha.47) (2026-11-20)
+
+### Features
+
+* **doppler:** ✨ make the Doppler webhook for a Comlink relay source ([#2469](https://github.com/theholocron/holocron/issues/2469)) ([f284131](https://github.com/theholocron/holocron/commit/f2841319615330165e792c2f0cd51b59ecb109b0)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+
 ## [1.58.0-alpha.46](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.45...clients-v1.58.0-alpha.46) (2026-11-20)
 
 ### Features
