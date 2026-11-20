@@ -66,6 +66,9 @@ export async function runIssueUpdate(input: RunIssueUpdateInput): Promise<IssueU
 
 	if (input.title !== undefined && !title) problems.push("--title is empty");
 	if (input.milestone !== undefined && !milestone) problems.push("--milestone is empty");
+	if (input.stateReason && input.state !== "closed") {
+		problems.push("--state-reason needs --state closed; an issue that is open or left as it is has no reason");
+	}
 	const set: Record<string, boolean> = {
 		assignees: assignees.length > 0,
 		milestone: Boolean(milestone),
@@ -91,7 +94,7 @@ export async function runIssueUpdate(input: RunIssueUpdateInput): Promise<IssueU
 		...(title ? { title } : {}),
 		...(input.body !== undefined ? { body: input.body } : {}),
 		...(input.state ? { state: input.state } : {}),
-		...(input.state === "closed" && input.stateReason ? { stateReason: input.stateReason } : {}),
+		...(input.stateReason ? { stateReason: input.stateReason } : {}),
 		...(addLabels.length > 0 ? { addLabels } : {}),
 		...(removeLabels.length > 0 ? { removeLabels } : {}),
 		...(assignees.length > 0 ? { assignees } : {}),
@@ -102,7 +105,7 @@ export async function runIssueUpdate(input: RunIssueUpdateInput): Promise<IssueU
 	const details = [
 		...(title ? ["title"] : []),
 		...(input.body !== undefined ? ["body"] : []),
-		...(input.state ? [`state: ${input.state}`] : []),
+		...(input.state ? [`state: ${input.state}${input.stateReason ? ` (${input.stateReason})` : ""}`] : []),
 		...(addLabels.length > 0 ? [`add labels: ${addLabels.join(", ")}`] : []),
 		...(removeLabels.length > 0 ? [`remove labels: ${removeLabels.join(", ")}`] : []),
 		...(assignees.length > 0 ? [`assignee: ${assignees.join(", ")}`] : []),

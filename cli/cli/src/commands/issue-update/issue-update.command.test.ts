@@ -39,6 +39,8 @@ describe("update issue", () => {
 			"text",
 			"--state",
 			"closed",
+			"--state-reason",
+			"not_planned",
 			"--add-label",
 			"a",
 			"--add-label",
@@ -59,6 +61,7 @@ describe("update issue", () => {
 				title: "New",
 				body: "text",
 				state: "closed",
+				stateReason: "not_planned",
 				addLabels: ["a", "b"],
 				removeLabels: ["c"],
 				assignees: ["me"],
@@ -102,7 +105,7 @@ describe("update issue", () => {
 	it("leaves out what was not given, and passes dry-run", async () => {
 		await go("12", "--dry-run");
 		const input = runIssueUpdate.mock.calls[0]![0];
-		for (const key of ["title", "body", "state", "addLabels", "assignees", "clear", "kind", "yes"]) {
+		for (const key of ["title", "body", "state", "stateReason", "addLabels", "assignees", "clear", "kind", "yes"]) {
 			expect(input).not.toHaveProperty(key);
 		}
 		expect(input.context.dryRun).toBe(true);
@@ -127,6 +130,7 @@ describe("update issue", () => {
 	it("refuses a state, a clear word or a type it does not know", async () => {
 		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
 		await go("12", "--state", "pending").catch(() => undefined);
+		await go("12", "--state", "closed", "--state-reason", "done").catch(() => undefined);
 		await go("12", "--clear", "title").catch(() => undefined);
 		await go("12", "--type", "epic").catch(() => undefined);
 		expect(runIssueUpdate).not.toHaveBeenCalled();
