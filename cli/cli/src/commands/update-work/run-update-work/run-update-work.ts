@@ -26,6 +26,7 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
+import { areaLabelsForFiles } from "../../../area-labels/index.js";
 import {
 	assertPluginsResolvable,
 	PluginLoader,
@@ -36,7 +37,6 @@ import { resolveAreaLabels } from "../../issue-fields/resolve-area-labels/index.
 import { runIssueUpdate } from "../../issue-update/run-issue-update/index.js";
 import { runProjectStatus } from "../../project/project-status/index.js";
 import { runStartWork } from "../../start-work/run-start-work/index.js";
-import { areaLabelsForFiles } from "../area-labels-for-files/index.js";
 import { findWorkPullRequests } from "../find-work-pull-request/index.js";
 import { guardWorkStatus } from "../guard-work-status/index.js";
 import type { RunUpdateWorkInput, UpdateWorkReport } from "./run-update-work.type.js";

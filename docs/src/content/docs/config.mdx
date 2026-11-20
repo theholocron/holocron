@@ -99,6 +99,15 @@ export default defineConfig({
       deploy: [{ environment: "prd", prefix: "MYAPP_" }],
     },
 
+    // `area:<name>` labels (spec `tech-github-area-labels`). `areas` is a name to the folder patterns it covers: a glob
+    // (`cli/**`), a file or a folder; a pattern starting with `!` takes a path out of the area. `scopes` maps the scope of
+    // a title (`feat(sentinel): ...`) to an area, for issues, which have no changed files; every value must be a declared
+    // area. Names only. `holocron setup` makes the labels, `holocron doctor repo` checks them.
+    labels: {
+      areas: { cli: ["cli/**"], docs: ["docs/**", "!docs/wiki/**"] },
+      scopes: { astromech: "cli" },
+    },
+
     // GitHub org-level custom properties synced by `holocron setup`.
     properties: {
       lifecycle: "active", // "active" | "experimental" | "deprecated"
@@ -220,6 +229,30 @@ export default defineConfig({
   telemetry: { enabled: true, analytics: "posthog" },
 });
 ```
+
+### Area labels (`repo.labels`)
+
+`repo.labels.areas` names the places a change can be in (`cli`, `sentinel`, `docs`, ...) and the folder patterns that make a path part of each; the label is `area:<name>`, no space. `repo.labels.scopes` maps the scope of a Conventional Commit title (`feat(sentinel): ...`) to an area, because an issue has no changed files. A scope the map does not name earns no label, so a topic scope such as `deps` is left out on purpose.
+
+```ts
+labels: {
+  areas: {
+    cli: ["cli/**"],
+    docs: ["docs/**", "!docs/wiki/**", "fern/**"], // "!" takes a path out of the area
+    specs: ["docs/wiki/**", ".notes/**"],
+  },
+  scopes: { astromech: "cli", docs: "docs" },
+}
+```
+
+The config load refuses, with a `ConfigError` naming the path (`repo.labels.areas.<name>`), a name that cannot end a label (letters, digits, `.`, `_` and `-`, at most 45 characters), a name given twice whatever its case, an empty pattern list or an empty pattern, a list of only `!` patterns and a scope naming an area that is not declared.
+
+- [`holocron setup`](/holocron/commands/setup/) makes each missing `area:<name>` label (one colour, the description `Changes under <paths>`). It never changes an existing label's colour or description, never deletes one, and the labels are not in the canonical set, so another repo gets none. `--dry-run` writes nothing.
+- [`holocron doctor repo`](/holocron/commands/doctor-repo/) fails a declared area with no label, and notes an `area:` label nobody declared as `info`.
+- `--area <name>` on `new issue`, `new work` and `update issue` takes the declared names; `update work` adds the labels the pull request's changed folders earn.
+- `@theholocron/cli` exports the one mapping for other tools: `areaLabelsForFiles(files, areas)`, `areaLabelsForTitle(title, scopes)`, `areaForScope(scope, scopes)`, `titleScopes(title)`, `pathMatches(path, pattern)`, `areaLabelDefs(areas)` and `AREA_PREFIX`.
+
+This repo's list is in `.holocron/repo.ts`. Renaming an existing label (the old `cli` to `area:cli`) is a manual step (`gh label edit cli --name area:cli`), which keeps the issues that carry it.
 
 ## Task vocabulary
 

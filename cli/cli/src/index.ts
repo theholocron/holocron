@@ -19,6 +19,9 @@ export * from "./commands/project/project-options/index.js";
 export { BUILTIN_TEMPLATES } from "./commands/project/templates/builtin-templates/index.js";
 export * from "./commands/setup/derived-properties/index.js";
 export { CANONICAL_LABELS } from "./commands/setup/labels.js";
+// The one mapping from changed folders and title scopes to `area:<name>` labels (spec `tech-github-area-labels`, #2430),
+// for Sentinel's area labeling and the backfill probe.
+export * from "./area-labels/index.js";
 export type { EnvironmentLayer } from "./credentials-environments/index.js";
 // `tokenExpectations()` is the one reader of what a plugin's tokens declare (`PluginToken.expect`), for the token
 // probes, the doctor and the docs check (#2149).

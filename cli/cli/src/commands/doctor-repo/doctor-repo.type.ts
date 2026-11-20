@@ -26,7 +26,7 @@ export interface DoctorRepoReport {
 }
 
 /** Either why a group could not be read, or the problems found (none when it matches). */
-export type RepoCheckResult = { skip: string } | { problems: string[]; checked: number };
+export type RepoCheckResult = { skip: string } | { problems: string[]; checked: number; info?: string[] };
 
 /** One group of repository settings `setup` manages, compared with what the provider reports. */
 export interface RepoCheck {

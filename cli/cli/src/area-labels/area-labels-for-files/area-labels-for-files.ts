@@ -1,4 +1,4 @@
-import { AREA_PREFIX } from "../../issue-fields/resolve-area-labels/index.js";
+import { AREA_PREFIX } from "../area-prefix/index.js";
 import { pathMatches } from "../path-matches/index.js";
 
 /**

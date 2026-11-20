@@ -103,4 +103,53 @@ export default {
 			},
 		],
 	},
+	// The `area:<name>` labels (#2430, spec `tech-github-area-labels`): `holocron setup` makes them, `doctor repo` checks
+	// them, and `areaLabelsForFiles()` / `areaLabelsForTitle()` (from `@theholocron/cli`) are the one mapping Sentinel and
+	// the backfill probe read. `areas` is name to folder patterns (a `!` pattern takes a path out of the area, `docs/**`
+	// less `docs/wiki/**`); a path in no area earns none (the root `package.json`, the lockfile, `scripts/`). `scopes` is
+	// a title scope (`feat(sentinel)`) to an area, for issues, which have no changed files; a scope it does not name earns
+	// nothing, so a topic scope such as `deps` or `monitoring` is left out on purpose. Names only.
+	labels: {
+		areas: {
+			// One area for the five packages `cli`, `astromech`, `datapad`, `dagobah` and `kyber`.
+			cli: ["cli/**"],
+			sentinel: ["apps/sentinel/**"],
+			comlink: ["apps/comlink/**"],
+			council: ["apps/council/**"],
+			plugins: ["plugins/**"],
+			clients: ["clients/**"],
+			configs: ["configs/**"],
+			utils: ["utils/**"],
+			observability: ["observability/**"],
+			skills: ["skills/**", ".claude/skills/**"],
+			themes: ["themes/**"],
+			docs: ["docs/**", "!docs/wiki/**", "fern/**"],
+			specs: ["docs/wiki/**", ".notes/**"],
+			ci: ["ci/**", ".github/workflows/**"],
+			// The root's own config: this file and its siblings in `.holocron/`, and the files the workspace is built from.
+			tooling: [".holocron/**", "holocron.config.ts", "turbo.json", "pnpm-workspace.yaml", "eslint.config.ts"],
+		},
+		scopes: {
+			cli: "cli",
+			astromech: "cli",
+			datapad: "cli",
+			dagobah: "cli",
+			kyber: "cli",
+			sentinel: "sentinel",
+			comlink: "comlink",
+			council: "council",
+			plugin: "plugins",
+			plugins: "plugins",
+			clients: "clients",
+			configs: "configs",
+			utils: "utils",
+			observability: "observability",
+			skills: "skills",
+			themes: "themes",
+			docs: "docs",
+			specs: "specs",
+			ci: "ci",
+			tooling: "tooling",
+		},
+	},
 } satisfies RepoConfig;

@@ -2,6 +2,7 @@ import { createAstromech, isTask, type StatusContext } from "@theholocron/astrom
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { declaredVsActual } from "@theholocron/kyber/ui";
 
+import { AREA_PREFIX, areaLabelDefs } from "../../area-labels/index.js";
 import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
@@ -190,6 +191,30 @@ export function repoChecks(
 			return { problems, checked: CANONICAL_LABELS.length };
 		},
 	});
+
+	// The `area:<name>` labels the config declares (spec `tech-github-area-labels`). Only a declared area that is missing
+	// fails; an `area:` label nobody declared is an `info` note, since a person may have made it for a reason. The
+	// patterns were judged when the config loaded, so they are not compared again.
+	const areaLabels = areaLabelDefs(repo?.labels?.areas);
+	if (areaLabels.length > 0) {
+		checks.push({
+			id: "repo-area-labels",
+			title: "area labels exist",
+			needs: "listLabels",
+			async run(source) {
+				const found = await source.listLabels!();
+				const have = new Set(found.map((l) => l.name.toLowerCase()));
+				const declared = new Set(areaLabels.map((l) => l.name.toLowerCase()));
+				const problems = areaLabels
+					.filter((l) => !have.has(l.name.toLowerCase()))
+					.map((l) => `missing label ${l.name} (setup makes it)`);
+				const info = found
+					.filter((l) => l.name.toLowerCase().startsWith(AREA_PREFIX) && !declared.has(l.name.toLowerCase()))
+					.map((l) => `${l.name} is not declared in \`repo.labels.areas\``);
+				return { problems, checked: areaLabels.length, info };
+			},
+		});
+	}
 
 	if (repo?.teams && repo.teams.length > 0) {
 		const teams = repo.teams;

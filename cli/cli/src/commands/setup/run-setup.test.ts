@@ -4191,6 +4191,88 @@ describe("runSetup", () => {
 		expect(step?.status).toBe("ok");
 		expect(step?.message).toBe("17 synced");
 	});
+
+	describe("area labels", () => {
+		const declared = { repo: { labels: { areas: { cli: ["cli/**"], docs: ["docs/**", "!docs/wiki/**"] } } } };
+
+		function loaderFor(source: Record<string, unknown>, extra: Record<string, unknown>) {
+			const loaded = loadedFrom({ name: "demo", providers: { source: "github" }, ...extra });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: { writeRepoFile: async () => {}, ...source },
+				}),
+			});
+			return { loaded, loader };
+		}
+
+		it("makes the declared area labels apart from the canonical set", async () => {
+			const canonicalNames: string[][] = [];
+			const made: unknown[][] = [];
+			const { loaded, loader } = loaderFor(
+				{
+					syncLabels: async (canonical: Array<{ name: string }>) => {
+						canonicalNames.push(canonical.map((l) => l.name));
+						return "ok";
+					},
+					ensureLabels: async (labels: unknown[]) => {
+						made.push(labels);
+						return "2 created, 0 already there";
+					},
+				},
+				declared
+			);
+
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+			expect(made).toEqual([
+				[
+					{ name: "area:cli", color: "c5def5", description: "Changes under cli/**" },
+					{ name: "area:docs", color: "c5def5", description: "Changes under docs/**" },
+				],
+			]);
+			expect(canonicalNames[0]!.some((n) => n.startsWith("area:"))).toBe(false);
+			expect(report.steps.find((s) => s.step === "ensure area labels")).toMatchObject({
+				status: "ok",
+				message: "2 created, 0 already there",
+			});
+		});
+
+		it("writes nothing on a dry run", async () => {
+			let called = false;
+			const { loaded, loader } = loaderFor(
+				{
+					ensureLabels: async () => {
+						called = true;
+						return "";
+					},
+				},
+				declared
+			);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				print: () => {},
+			});
+			expect(called).toBe(false);
+			expect(report.steps.find((s) => s.step === "ensure area labels")?.status).toBe("dry-run");
+		});
+
+		it("skips with the reason when the provider cannot make labels one by one", async () => {
+			const { loaded, loader } = loaderFor({}, declared);
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.find((s) => s.step === "ensure area labels")).toMatchObject({
+				status: "skip",
+				message: expect.stringContaining("cannot make labels"),
+			});
+		});
+
+		it("adds no step for a repo that declares no areas", async () => {
+			const { loaded, loader } = loaderFor({ ensureLabels: async () => "x" }, {});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.some((s) => s.step === "ensure area labels")).toBe(false);
+		});
+	});
 });
 
 // ── 403 reason classification and hint ────────────────────────────────────────

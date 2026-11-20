@@ -279,6 +279,7 @@ coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `m
   deprecated aliases in `LEGACY_NAMES` (the `tasks:` notice applies; they generate the same files, and `isLegacySpelling()`
   treats them as the flat ids since their script spelling is the same); the legacy gate keeps the old caller names
   through `LEGACY_CALLERS`, now keyed by the colon ids.
+- **Area labels** (`repo.labels`, #2430, spec `tech-github-area-labels`, rollout item 2). `repo.labels.areas` (name to folder patterns, a `!` pattern excludes) and `repo.labels.scopes` (title scope to area) live in `.holocron/repo.ts` and are validated at load by `validateRepoLabels()` (a `ConfigError` naming the path). `cli/cli/src/area-labels/` is the one mapping, exported from `@theholocron/cli`: `areaLabelsForFiles()`, `areaLabelsForTitle()`, `areaForScope()`, `titleScopes()`, `pathMatches()`, `areaLabelDefs()`, `AREA_PREFIX`; Sentinel's labeling (item 3) and the backfill probe (item 5) import them, never a second copy. `holocron setup` makes the declared `area:<name>` labels through the optional `Source.ensureLabels()` (create only; never in `CANONICAL_LABELS`, never in `STALE_LABELS`), and `doctor repo` has a `repo-area-labels` row (missing fails, an undeclared `area:` label is `info`). The old `cli` label is renamed to `area:cli` by hand.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.

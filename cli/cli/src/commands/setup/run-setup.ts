@@ -29,6 +29,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { areaLabelDefs } from "../../area-labels/index.js";
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "../../plugin/index.js";
@@ -237,6 +238,25 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					return source.syncLabels!(CANONICAL_LABELS, STALE_LABELS);
 				})
 			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		// The `area:<name>` labels this repo declares: made when missing, never patched or deleted, and never part of
+		// the canonical set (an area names this repo's folders).
+		const areaLabels = areaLabelDefs(repo?.labels?.areas);
+		if (areaLabels.length > 0) {
+			if (source.ensureLabels) {
+				steps.push(
+					await runStep("source", "ensure area labels", dryRun, async () => source.ensureLabels!(areaLabels))
+				);
+			} else {
+				steps.push({
+					capability: "source",
+					step: "ensure area labels",
+					status: "skip",
+					message: `the \`${source.providerName}\` provider cannot make labels one by one`,
+				});
+			}
 			print(formatStep(steps[steps.length - 1]));
 		}
 
