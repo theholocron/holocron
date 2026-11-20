@@ -5,10 +5,10 @@ import { resultRow, skipRow } from "../notification-check-rows/index.js";
 import { layoutEmojis } from "../notifications-reaction/index.js";
 import type { EmojiChecksInput } from "./emoji-checks.type.js";
 
-const TITLE = "server emoji the forums' reactions name exist";
+const TITLE = "server emoji the forums' reactions and tags name exist";
 
 /**
- * The step of `doctor notifications` for server emoji: each one a forum's `defaultReaction` or `starterReactions` names
+ * The step of `doctor notifications` for server emoji: each one a forum's `defaultReaction`, `starterReactions` or tag `emoji` names
  * (`:git_merge:`) is on the server. A missing one fails by name, and says how to get it: `setup` makes it when the layout
  * gives it an `image`, otherwise it has to be added in the server's settings (or the reaction changed). A changed default
  * reaction is the `channels` step's. Read-only. No row when no reaction names a server emoji; a skip when the server or

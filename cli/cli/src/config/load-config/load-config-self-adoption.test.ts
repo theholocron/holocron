@@ -163,6 +163,18 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" },
 			],
 		});
+		// And (#2412): the `prs` forum's tags show the server's `git-*` emoji (the red cross, shared by two states, stays Unicode).
+		const tagEmoji: Record<string, string> = {
+			draft: ":git_pull_request_draft:",
+			conflicts: "❌",
+			failing: "❌",
+			"changes requested": ":git_compare:",
+			ready: ":git_branch_check:",
+			waiting: ":git_branch:",
+			merged: ":git_merge:",
+			closed: ":git_pull_request_closed:",
+		};
+		for (const tag of prs.tags ?? []) tag.emoji = tagEmoji[tag.name];
 		// And (#2412): the rest of the Octicons `git-*` set is declared on the layout, named by no reaction.
 		expect(options.layout?.emojis).toBeUndefined();
 		options.layout!.emojis = [

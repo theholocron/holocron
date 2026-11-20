@@ -421,7 +421,7 @@ export class DiscordNotifications implements Notifications {
 				...(c.type === ChannelType.Forum
 					? {
 							kind: "forum" as const,
-							tags: (c.available_tags ?? []).map(DiscordNotifications.tagOf),
+							tags: (c.available_tags ?? []).map((t) => DiscordNotifications.tagOf(t, emojiById)),
 							...(reactionText(c.default_reaction_emoji)
 								? { defaultReaction: reactionText(c.default_reaction_emoji)! }
 								: {}),
@@ -1989,45 +1989,85 @@ export class DiscordNotifications implements Notifications {
 		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
 	}
 
-	/** A forum tag in the layout's terms. */
-	private static tagOf(tag: DiscordForumTag): NotificationsForumTag {
-		return {
-			name: tag.name,
-			...(tag.emoji_name ? { emoji: tag.emoji_name } : {}),
-			moderated: tag.moderated,
-		};
+	/** A forum tag in the layout's terms; a server emoji is `:name:` by `names` (id to name), or `custom emoji <id>` when unknown. */
+	private static tagOf(tag: DiscordForumTag, names: ReadonlyMap<string, string>): NotificationsForumTag {
+		const text = tag.emoji_id
+			? names.has(tag.emoji_id)
+				? `:${names.get(tag.emoji_id)}:`
+				: `custom emoji ${tag.emoji_id}`
+			: tag.emoji_name;
+		return { name: tag.name, ...(text ? { emoji: text } : {}), moderated: tag.moderated };
+	}
+
+	/** A layout tag's emoji as Discord takes it: `emoji_id` for a server emoji (`ids`, name to id), `emoji_name` for Unicode; never both. */
+	private static tagEmoji(
+		emoji: string | undefined,
+		ids: ReadonlyMap<string, string>
+	): { emoji_id: string | null; emoji_name: string | null } {
+		if (emoji === undefined) return { emoji_id: null, emoji_name: null };
+		const parsed = parseReaction(emoji);
+		if (parsed.kind === "unicode") return { emoji_id: null, emoji_name: parsed.value };
+		return { emoji_id: ids.get(parsed.name) as string, emoji_name: null };
 	}
 
 	/** A layout tag as Discord takes it. */
-	private static tagInput(tag: NotificationsForumTag, id?: string): ForumTagInput {
+	private static tagInput(tag: NotificationsForumTag, ids: ReadonlyMap<string, string>, id?: string): ForumTagInput {
 		return {
 			...(id ? { id } : {}),
 			name: tag.name,
 			moderated: tag.moderated ?? false,
-			emoji_name: tag.emoji ?? null,
-			emoji_id: null,
+			...DiscordNotifications.tagEmoji(tag.emoji, ids),
 		};
+	}
+
+	/**
+	 * The ids of the server emoji the tags name, by name, read before anything is written: one the server lacks stops the
+	 * run naming it. Reads no emoji when every tag is Unicode.
+	 */
+	private async tagEmojiIds(tags: readonly NotificationsForumTag[]): Promise<Map<string, string>> {
+		const ids = new Map<string, string>();
+		for (const tag of tags) {
+			const parsed = tag.emoji === undefined ? undefined : parseReaction(tag.emoji);
+			if (parsed?.kind === "custom" && !ids.has(parsed.name))
+				ids.set(parsed.name, (await this.emojiNamed(parsed.name)).id);
+		}
+		return ids;
 	}
 
 	/**
 	 * The forum's tags once the layout's are in: every tag it has already (kept, with the emoji and `moderated` the layout
 	 * gives it) and each layout tag it lacks, added. A tag the layout does not list is never removed, since a post
-	 * carries it. Returns `undefined` when nothing differs.
+	 * carries it, and keeps its emoji as it is. A server emoji is compared by id. Returns `undefined` when nothing differs.
 	 */
 	private static mergeTags(
 		have: readonly DiscordForumTag[],
-		want: readonly NotificationsForumTag[]
+		want: readonly NotificationsForumTag[],
+		ids: ReadonlyMap<string, string>
 	): ForumTagInput[] | undefined {
 		let changed = false;
-		const merged = have.map((h) => {
+		const merged = have.map((h): ForumTagInput => {
 			const w = want.find((t) => DiscordNotifications.same(t.name, h.name));
-			if (!w) return DiscordNotifications.tagInput(DiscordNotifications.tagOf(h), h.id);
-			if ((w.emoji ?? null) !== h.emoji_name || (w.moderated ?? false) !== h.moderated) changed = true;
-			return DiscordNotifications.tagInput(w, h.id);
+			if (!w) {
+				// Discord may echo the name beside a server emoji's id; it takes exactly one of the two.
+				return {
+					id: h.id,
+					name: h.name,
+					moderated: h.moderated,
+					emoji_id: h.emoji_id,
+					emoji_name: h.emoji_id ? null : h.emoji_name,
+				};
+			}
+			const input = DiscordNotifications.tagInput(w, ids, h.id);
+			// A server emoji is the same by id alone (the echoed name is not compared); a Unicode one by its character.
+			const sameEmoji = input.emoji_id
+				? h.emoji_id === input.emoji_id
+				: !h.emoji_id && h.emoji_name === input.emoji_name;
+			if (!sameEmoji || (w.moderated ?? false) !== h.moderated) changed = true;
+			return input;
 		});
 		const added = want.filter((w) => !have.some((h) => DiscordNotifications.same(h.name, w.name)));
 		if (added.length > 0) changed = true;
-		return changed ? [...merged, ...added.map((w) => DiscordNotifications.tagInput(w))] : undefined;
+		return changed ? [...merged, ...added.map((w) => DiscordNotifications.tagInput(w, ids))] : undefined;
 	}
 
 	/**
@@ -2058,6 +2098,7 @@ export class DiscordNotifications implements Notifications {
 			forum && input.defaultReaction !== undefined
 				? await this.defaultReactionOf(input.defaultReaction)
 				: undefined;
+		const tagEmojiIds = forum && input.tags ? await this.tagEmojiIds(input.tags) : new Map<string, string>();
 		const overwrites = input.access ? await this.overwritesFor(input.access) : undefined;
 		if (existing) {
 			// Already there: reconcile what the layout asks for (category, topic, access, tags), leave the rest.
@@ -2065,7 +2106,7 @@ export class DiscordNotifications implements Notifications {
 			const patch: Parameters<DiscordBotClient["channels"]["modify"]>[1] = {};
 			const tags =
 				forum && input.tags
-					? DiscordNotifications.mergeTags(existing.available_tags ?? [], input.tags)
+					? DiscordNotifications.mergeTags(existing.available_tags ?? [], input.tags, tagEmojiIds)
 					: undefined;
 			if (tags) {
 				patch.available_tags = tags;
@@ -2093,7 +2134,9 @@ export class DiscordNotifications implements Notifications {
 		const made = await this.createChannel({
 			name: input.name,
 			type: forum ? ChannelType.Forum : ChannelType.Text,
-			...(forum && input.tags ? { available_tags: input.tags.map((t) => DiscordNotifications.tagInput(t)) } : {}),
+			...(forum && input.tags
+				? { available_tags: input.tags.map((t) => DiscordNotifications.tagInput(t, tagEmojiIds)) }
+				: {}),
 			...(reaction ? { default_reaction_emoji: reaction } : {}),
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),

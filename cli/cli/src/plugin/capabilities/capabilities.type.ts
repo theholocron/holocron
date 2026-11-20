@@ -2446,7 +2446,11 @@ export interface NotificationsAccess {
 export interface NotificationsForumTag {
 	/** The tag's name, up to 20 characters. */
 	name: string;
-	/** An emoji shown beside the name, such as `💬`. */
+	/**
+	 * An emoji shown beside the name: a Unicode emoji such as `💬`, or one of the server's own written `:name:`
+	 * (`":git_merge:"`). A server emoji needs a picture declared somewhere in the layout (a reaction's or an `emojis`
+	 * entry's `image`), so `setup` can make it before the channel; the tag itself carries only the name.
+	 */
 	emoji?: string;
 	/** Whether only members who can manage threads (and the provider's own bot) may apply the tag. Defaults to `false`. */
 	moderated?: boolean;

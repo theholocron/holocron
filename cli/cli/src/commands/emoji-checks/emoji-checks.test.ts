@@ -41,6 +41,31 @@ describe("emojiChecks", () => {
 		]);
 	});
 
+	it("expects the emoji a forum's tags name, and fails the one the server lacks", () => {
+		const tagged = {
+			categories: [
+				{
+					name: "BUILD",
+					channels: [
+						{
+							name: "prs",
+							kind: "forum",
+							tags: [
+								{ name: "merged", emoji: ":git_merge:" },
+								{ name: "x", emoji: "❌" },
+							],
+						},
+					],
+				},
+			],
+		} as NotificationsLayout;
+		expect(emojiChecks({ layout: tagged, found: found({ emojis: ["git_merge"] }) })[0]).toMatchObject({
+			status: "pass",
+			detail: "1 of 1 on the server",
+		});
+		expect(emojiChecks({ layout: tagged, found: found({ emojis: [] }) })[0]?.problems).toHaveLength(1);
+	});
+
 	it("treats no emoji list as an empty server", () => {
 		const [row] = emojiChecks({ layout: layout(":git_merge:"), found: found({}) });
 		expect(row?.status).toBe("fail");

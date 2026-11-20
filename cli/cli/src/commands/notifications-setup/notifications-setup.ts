@@ -50,6 +50,7 @@ import {
 	layoutEmojis,
 	loadEmojiImage,
 	reactionProblem,
+	tagEmojiProblem,
 } from "../notifications-reaction/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
@@ -170,11 +171,13 @@ export const PR_FEED_TAGS = [
  * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or webhook feed (its
  * conversations are posts, which a plain webhook post cannot start); `feeds.prs` is the one feed a forum takes, and only
  * a forum does, with a tag for every state a pull request can be in and no pinned message of its own (a pin lives in a
- * post); tags belong to a forum; and a tag needs a name no other tag of the channel has. Checked before anything is
+ * post); tags belong to a forum; a tag needs a name no other tag of the channel has; and a tag's `emoji` written `:name:`
+ * must be a valid server emoji name with a picture declared in the layout (`tagEmojiProblem()`). Checked before anything is
  * created, so a half-applied forum is never the result.
  */
 export function forumLayoutProblem(layout: NotificationsLayout): string | undefined {
 	const channels = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
+	const pictured = new Set(layoutEmojis(layout).flatMap((e) => (e.image ? [e.name] : [])));
 	for (const channel of channels) {
 		const where = `channel \`${channel.name}\``;
 		if (channel.kind !== "forum") {
@@ -204,6 +207,8 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			if (name === "") return `${where}: a tag has no name`;
 			if (seen.has(name)) return `${where}: two tags are named \`${tag.name}\``;
 			seen.add(name);
+			const emojiProblem = tagEmojiProblem(tag.name, tag.emoji, pictured);
+			if (emojiProblem) return `${where}: ${emojiProblem}`;
 		}
 		if (channel.feeds?.prs) {
 			const missing = PR_FEED_TAGS.filter((tag) => !seen.has(tag));
