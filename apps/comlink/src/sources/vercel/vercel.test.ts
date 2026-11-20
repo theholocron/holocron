@@ -106,6 +106,23 @@ describe("vercel.format", () => {
 		expect(embed.fields!.map((f) => f.name)).not.toContain("Branch");
 	});
 
+	it("keeps a deployment host that already has a scheme, and links nothing when no address is usable", () => {
+		const withScheme = delivery("deployment.error", {
+			links: {},
+			deployment: { name: "a", url: "http://x.test/d" },
+		});
+		expect(vercel.format(headers(), withScheme)!.embeds[0]!.url).toBe("http://x.test/d");
+		for (const url of [undefined, "", 7]) {
+			const none = delivery("deployment.error", { links: {}, deployment: { name: "a", url } });
+			expect(vercel.format(headers(), none)!.embeds[0]).not.toHaveProperty("url");
+		}
+	});
+
+	it("titles a deployment with no name anywhere 'deployment'", () => {
+		const m = vercel.format(headers(), delivery("deployment.error", { name: undefined, deployment: { id: "d" } }))!;
+		expect(m.embeds[0]!.title).toBe("Deployment failed: deployment");
+	});
+
 	it("drops a link that is not http(s) and a missing time", () => {
 		const { createdAt: _t, ...noTime } = delivery("deployment.error", {
 			links: { deployment: "javascript:alert(1)" },
