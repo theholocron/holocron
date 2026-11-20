@@ -1,3 +1,25 @@
+## [5.0.0-alpha.507](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.506...v5.0.0-alpha.507) (2026-11-20)
+
+### Features
+
+* **cli:** ✨ let update issue close as not planned ([#2508](https://github.com/theholocron/holocron/issues/2508)) ([f445e78](https://github.com/theholocron/holocron/commit/f445e781b95a355401d41995b3a7b1094240a0b0)), closes [#2504](https://github.com/theholocron/holocron/issues/2504)
+* **comlink:** 📡 add a Cloudflare notifications source ([#2462](https://github.com/theholocron/holocron/issues/2462)) ([fcad513](https://github.com/theholocron/holocron/commit/fcad51385116397880ec6b99bc4e2e037042e10a)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+* **doppler:** ✨ make the Doppler webhook for a Comlink relay source ([#2469](https://github.com/theholocron/holocron/issues/2469)) ([f284131](https://github.com/theholocron/holocron/commit/f2841319615330165e792c2f0cd51b59ecb109b0)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+* **notifications:** ✨ automate the vendor side of Comlink relay sources ([#2468](https://github.com/theholocron/holocron/issues/2468)) ([2d5706e](https://github.com/theholocron/holocron/commit/2d5706efbe8a1571d4bdde023a324d561a247f82)), closes [#2465](https://github.com/theholocron/holocron/issues/2465) [#1666](https://github.com/theholocron/holocron/issues/1666) [#2465](https://github.com/theholocron/holocron/issues/2465)
+
+### Bug Fixes
+
+* **cli:** 🏷️ map the github and linear title scopes to area:plugins ([#2513](https://github.com/theholocron/holocron/issues/2513)) ([4b5e763](https://github.com/theholocron/holocron/commit/4b5e763000fd232641a6374ae282acbfa998be6e)), closes [#2510](https://github.com/theholocron/holocron/issues/2510)
+* **cli:** 🐛 start work mirrors the issue's assignee and boards and links Refs with # ([#2509](https://github.com/theholocron/holocron/issues/2509)) ([25ca486](https://github.com/theholocron/holocron/commit/25ca486f490fd10c3ac0300d21f2a59cd90f8d0b)), closes [#N](https://github.com/theholocron/holocron/issues/N) [#2503](https://github.com/theholocron/holocron/issues/2503)
+
+### Documentation
+
+* **github:** 📚️ 📝 document the org permissions the issue-types backfill needs ([#2514](https://github.com/theholocron/holocron/issues/2514)) ([4aba474](https://github.com/theholocron/holocron/commit/4aba474aed01399dbd3e1158b7243f6eec47afb3)), closes [#2430](https://github.com/theholocron/holocron/issues/2430) [#2511](https://github.com/theholocron/holocron/issues/2511)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2516](https://github.com/theholocron/holocron/issues/2516)) ([a1c2827](https://github.com/theholocron/holocron/commit/a1c2827ce8e2ee3620b7b00e83db6d6d801aef3f))
+
 ## [5.0.0-alpha.506](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.505...v5.0.0-alpha.506) (2026-11-20)
 
 ### Features

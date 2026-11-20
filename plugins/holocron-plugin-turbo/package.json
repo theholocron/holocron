@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-turbo",
-  "version": "5.0.0-alpha.506",
+  "version": "5.0.0-alpha.507",
   "description": "Holocron plugin for Turborepo's Remote Cache. Implements the cache capability against Vercel's artifacts API.",
   "keywords": [
     "cache",
