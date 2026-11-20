@@ -1,3 +1,23 @@
+## [5.0.0-alpha.504](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.503...v5.0.0-alpha.504) (2026-11-20)
+
+### Features
+
+* **cli:** carry the issue kind on IssueRecord so migrate and sync keep it ([#2491](https://github.com/theholocron/holocron/issues/2491)) ([3a758db](https://github.com/theholocron/holocron/commit/3a758dbeacac95d58af49cc9f1ca07d39d53160c)), closes [#2485](https://github.com/theholocron/holocron/issues/2485) [#2485](https://github.com/theholocron/holocron/issues/2485)
+* **skills:** ✨ add work-effort skill for choosing --effort on new work and new issue ([#2488](https://github.com/theholocron/holocron/issues/2488)) ([0d48207](https://github.com/theholocron/holocron/commit/0d482070644860b76df3988e3931b9eca0420120)), closes [#2486](https://github.com/theholocron/holocron/issues/2486)
+
+### Bug Fixes
+
+* **github:** 🐛 make the issue-types report about items, and a refused field read a failure ([#2493](https://github.com/theholocron/holocron/issues/2493)) ([31614c8](https://github.com/theholocron/holocron/commit/31614c81f0e3d2894e9170398f5bf4e36aecd810)), closes [#2492](https://github.com/theholocron/holocron/issues/2492)
+
+### Documentation
+
+* **specs:** 📚️ record final answers to the area labels and work commands specs ([#2497](https://github.com/theholocron/holocron/issues/2497)) ([47b9fa8](https://github.com/theholocron/holocron/commit/47b9fa80c6d4218342069bbdea771f757a8256ca)), closes [#2429](https://github.com/theholocron/holocron/issues/2429) [#2430](https://github.com/theholocron/holocron/issues/2430)
+
+### Chores
+
+* **cli:** 🔧 add the epic label to the canonical labels setup syncs ([#2489](https://github.com/theholocron/holocron/issues/2489)) ([eba3526](https://github.com/theholocron/holocron/commit/eba3526c58c18c4ca9cfb6d638a87547c3338a44)), closes [#2484](https://github.com/theholocron/holocron/issues/2484)
+* **specs:** 🔧 🔄 sync spec discussions ([#2498](https://github.com/theholocron/holocron/issues/2498)) ([4d2145f](https://github.com/theholocron/holocron/commit/4d2145f77138f6f8a9c503858dcc6867f20c7dcb))
+
 ## [5.0.0-alpha.503](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.502...v5.0.0-alpha.503) (2026-11-20)
 
 ### Features
