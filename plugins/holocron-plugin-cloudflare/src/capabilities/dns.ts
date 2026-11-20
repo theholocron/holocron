@@ -1,7 +1,16 @@
-import type { Dns, DnsRecord, DnsRecordType } from "@theholocron/cli";
+import type {
+	Dns,
+	DnsRecord,
+	DnsRecordType,
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
+	InspectRelaySourceInput,
+	RelaySourceState,
+} from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import type { CloudflareClient } from "../rest.js";
+import { ensureRelaySource, inspectRelaySource } from "./relay-source.js";
 
 /** The Cloudflare implementation of the `dns` capability; finds a domain's zone by walking from the domain up to its apex. */
 export class CloudflareDns implements Dns {
@@ -13,7 +22,31 @@ export class CloudflareDns implements Dns {
 	// Zone id is cached per domain name for the plugin instance lifetime.
 	private readonly zoneCache = new Map<string, string>();
 
-	constructor(private readonly client: () => CloudflareClient) {}
+	constructor(
+		private readonly client: () => CloudflareClient,
+		private readonly accountId?: string
+	) {}
+
+	/** Makes the Cloudflare notification webhook and the policies that send to it for a relay source; needs the account id. */
+	async ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		return ensureRelaySource(this.client(), this.account(), input);
+	}
+
+	/** Reads the relay source's notification webhook and its policies back, changing nothing. */
+	async inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		return inspectRelaySource(this.client(), this.account(), input);
+	}
+
+	private account(): string {
+		if (!this.accountId) {
+			throw new ProviderApiError(
+				"Cloudflare accountId is required for notification webhooks: set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID",
+				0,
+				undefined
+			);
+		}
+		return this.accountId;
+	}
 
 	/** Lists the DNS records in the zone that holds the domain. */
 	async listRecords(domain: string): Promise<DnsRecord[]> {

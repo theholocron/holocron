@@ -1,7 +1,7 @@
 import type { PermissionRule, TokenExpectation } from "@theholocron/cli";
 
 /** A permission the probe tries, by the name its rows use. */
-export type Permission = "zone" | "dns" | "routes" | "scripts" | "pages" | "tunnels";
+export type Permission = "zone" | "dns" | "routes" | "scripts" | "pages" | "tunnels" | "notifications";
 
 /** What a layer's token must do about a permission: `required` it must have it, `absent` it must not. */
 export type Rule = PermissionRule;
@@ -13,6 +13,7 @@ const EVERYTHING: Record<Permission, Rule> = {
 	scripts: "required",
 	pages: "required",
 	tunnels: "required",
+	notifications: "required",
 };
 
 /**
@@ -34,6 +35,7 @@ export const EXPECTED: TokenExpectation = {
 			scripts: "absent",
 			pages: "required",
 			tunnels: "absent",
+			notifications: "absent",
 		},
 	},
 };
