@@ -36,6 +36,7 @@ import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "..
 import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
+import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
@@ -182,14 +183,15 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source");
 		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));
 
-		for (const entry of await generateRepoFiles({
+		const generatedEntries = await generateRepoFiles({
 			loaded: input.loaded,
 			repoRoot: input.context.repoRoot,
 			hooks: input.hooks,
 			...(statusContexts ? { statusContexts } : {}),
 			...(coverageFiles ? { coverageConfigFiles: coverageFiles } : {}),
 			logger,
-		})) {
+		});
+		for (const entry of generatedEntries) {
 			if (entry.kind === "skip") {
 				steps.push({ capability: "source", step: entry.step, status: "skip", message: entry.message });
 			} else if (entry.kind === "error") {
@@ -225,6 +227,57 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					})
 				);
 				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+
+		// A generated caller whose task left the config or a preset is removed, by the rule `sync` uses (#2466). With no
+		// tasks there is nothing to compare against, and a task with no template leaves its file unaccounted for, so
+		// neither removes anything.
+		if ((config.tasks ?? []).length > 0) {
+			const written = new Set<string>();
+			let unaccounted = false;
+			for (const entry of generatedEntries) {
+				if (entry.kind === "file" && entry.workflow) written.add(entry.workflow.filename);
+				// The skip `generateWorkflowFiles` makes for a task with no template.
+				else if (entry.kind === "skip" && entry.step.startsWith("write workflow ")) unaccounted = true;
+			}
+			if (unaccounted) {
+				steps.push({
+					capability: "source",
+					step: "remove obsolete workflows",
+					status: "skip",
+					message: "a task has no template, so no workflow is removed",
+				});
+				print(formatStep(steps[steps.length - 1]));
+			} else {
+				try {
+					const workflows = new Map<string, string>();
+					for (const name of await source.listWorkflowFiles()) {
+						const text = await source.readWorkflowFile(name);
+						if (text !== null) workflows.set(name, text);
+					}
+					const obsolete = findObsoleteWorkflows({
+						workflows,
+						written,
+						pkgRelPath: setupPkgRelPath,
+					});
+					for (const filename of obsolete) {
+						steps.push(
+							await runStep("source", `remove obsolete workflow ${filename}`, dryRun, async () => {
+								await source.removeWorkflowFile(filename);
+							})
+						);
+						print(formatStep(steps[steps.length - 1]));
+					}
+				} catch (err) {
+					steps.push({
+						capability: "source",
+						step: "remove obsolete workflows",
+						status: "fail",
+						message: errorMessage(err),
+					});
+					print(formatStep(steps[steps.length - 1]));
+				}
 			}
 		}
 	}
