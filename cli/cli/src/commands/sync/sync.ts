@@ -16,6 +16,7 @@ import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
 import {
 	generateAgentFiles,
 	generateClaudeFiles,
+	type GeneratedWorkflowFile,
 	generatePrivateDirFiles,
 	generateTurboFiles,
 	generateWorkflowFiles,
@@ -456,7 +457,8 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			// A generated caller whose task left the config or a preset is removed (#2338). With no tasks there is nothing
 			// to compare against, and a task with no template leaves its file unaccounted for, so neither removes anything.
 			if ((config.tasks ?? []).length > 0) {
-				if (entries.some((entry) => entry.kind === "skip")) {
+				const files = entries.filter((entry): entry is GeneratedWorkflowFile => entry.kind === "file");
+				if (files.length < entries.length) {
 					steps.push({
 						capability: "local",
 						step: "sync obsolete workflows",
@@ -465,20 +467,27 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					});
 					print(formatSyncStep(steps[steps.length - 1]));
 				} else {
-					const written = new Set(
-						entries.flatMap((entry) => (entry.kind === "file" ? [entry.workflow.filename] : []))
-					);
-					const obsolete = findObsoleteWorkflows({
-						workflows: await readWorkflowFiles(gitRoot),
-						written,
-						pkgRelPath,
-					});
-					for (const filename of obsolete) {
-						steps.push(
-							await runSyncStep("local", `remove obsolete workflow ${filename}`, dryRun, () =>
-								unlink(join(gitRoot, ".github", "workflows", filename))
-							)
-						);
+					try {
+						const obsolete = findObsoleteWorkflows({
+							workflows: await readWorkflowFiles(gitRoot),
+							written: new Set(files.map((entry) => entry.workflow.filename)),
+							pkgRelPath,
+						});
+						for (const filename of obsolete) {
+							steps.push(
+								await runSyncStep("local", `remove obsolete workflow ${filename}`, dryRun, () =>
+									unlink(join(gitRoot, ".github", "workflows", filename))
+								)
+							);
+							print(formatSyncStep(steps[steps.length - 1]));
+						}
+					} catch (err) {
+						steps.push({
+							capability: "local",
+							step: "sync obsolete workflows",
+							status: "fail",
+							message: errorMessage(err),
+						});
 						print(formatSyncStep(steps[steps.length - 1]));
 					}
 				}

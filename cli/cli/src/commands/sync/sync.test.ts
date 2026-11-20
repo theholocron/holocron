@@ -2531,6 +2531,10 @@ describe("runSync", () => {
 				await put("hand.yml", `# HAND-MAINTAINED\n${generated(".")}`);
 				await put("plain.yml", "name: plain\non: push\n");
 				await put("other-package.yml", generated("apps/other"));
+				// only `.yml` and `.yaml` files are read: not another extension, and not a folder with a `.yml` name
+				await put("notes.txt", generated("."));
+				await mkdir(join(workflowsDir(), "folder.yml"));
+				await put("old.yaml", generated("."));
 				const { loaded, loader } = configured();
 
 				const report = await runSync({
@@ -2547,8 +2551,11 @@ describe("runSync", () => {
 				expect(exists("hand.yml")).toBe(true);
 				expect(exists("plain.yml")).toBe(true);
 				expect(exists("other-package.yml")).toBe(true);
+				expect(exists("notes.txt")).toBe(true);
+				expect(exists("folder.yml")).toBe(true);
+				expect(exists("old.yaml")).toBe(false);
 				expect(exists("sourceQuality.staticAnalysis.yml")).toBe(true);
-				expect(report.steps.filter((s) => s.step.startsWith("remove obsolete workflow"))).toHaveLength(1);
+				expect(report.steps.filter((s) => s.step.startsWith("remove obsolete workflow"))).toHaveLength(2);
 			});
 
 			it("lists the removal but deletes nothing on --dry-run", async () => {
@@ -2605,6 +2612,24 @@ describe("runSync", () => {
 				expect(exists("delivery.previewDeploy.yml")).toBe(true);
 				const step = report.steps.find((s) => s.step === "sync obsolete workflows");
 				expect(step?.status).toBe("skip");
+			});
+
+			it("reports a failed step, and does not crash the run, when the workflows folder cannot be read", async () => {
+				const { loaded, loader } = configured();
+				// `.github/workflows` is a file, so every write fails and reading the folder is not "missing" but unreadable
+				await mkdir(join(tmpDir, ".github"));
+				await writeFile(workflowsDir(), "not a folder", "utf8");
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "sync obsolete workflows");
+				expect(step?.status).toBe("fail");
 			});
 
 			it("leaves the root's callers alone when a package's config is synced", async () => {
