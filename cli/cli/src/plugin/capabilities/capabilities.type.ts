@@ -269,6 +269,14 @@ export interface Source extends ProviderIdentity {
 	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
 
 	/**
+	 * Make the labels that are missing and leave every existing one exactly as it is (name case aside): no colour or
+	 * description is patched and nothing is deleted. For per-repo label families such as `area:<name>`, which are not
+	 * in the canonical set `syncLabels` owns.
+	 * Optional — providers that have no label concept omit this.
+	 */
+	ensureLabels?(labels: ReadonlyArray<LabelDef>): Promise<string>;
+
+	/**
 	 * Set org-level custom property values on the repo. `string[]` for
 	 * `multi_select` properties, plain `string` for everything else.
 	 * Optional — providers that don't support custom properties omit this.

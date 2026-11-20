@@ -523,6 +523,18 @@ describe("GitHubSource — REST methods", () => {
 	});
 });
 
+describe("GitHubSource — ensureLabels", () => {
+	it("makes the labels the repo lacks", async () => {
+		const { source, calls } = makeSource([
+			{ status: 200, body: [] },
+			{ status: 201, body: { id: 1, name: "area:cli", color: "c5def5", description: "" } },
+		]);
+		const result = await source.ensureLabels([{ name: "area:cli", color: "c5def5", description: "" }]);
+		expect(result).toBe("1 created, 0 already there");
+		expect(calls[1]?.method).toBe("POST");
+	});
+});
+
 describe("GitHubSource — configurePages", () => {
 	const PAGES_URL = `https://api.github.com/repos/${REPO}/pages`;
 

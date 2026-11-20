@@ -33,7 +33,7 @@ import {
 } from "@theholocron/github-client";
 
 import { readRepoFile, writeRepoFile } from "./files.js";
-import { syncLabels } from "./labels.js";
+import { ensureLabels, syncLabels } from "./labels.js";
 import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
 import { readPullRequestChecks } from "./pull-request-checks.js";
 import { createPullRequest, markReady, toPullRequest, updatePullRequest } from "./pull-requests.js";
@@ -216,6 +216,10 @@ export class GitHubSource implements Source {
 
 	async syncLabels(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string> {
 		return syncLabels(this.client, this.repo, canonical, stale);
+	}
+
+	async ensureLabels(labels: ReadonlyArray<LabelDef>): Promise<string> {
+		return ensureLabels(this.client, this.repo, labels);
 	}
 
 	async syncProperties(values: Record<string, string | string[]>): Promise<string> {

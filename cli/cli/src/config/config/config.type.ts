@@ -307,14 +307,18 @@ export interface OrgConfig {
 }
 
 /**
- * The label map of the `repo` block (spec `tech-github-area-labels`, #2430). Names only. This change reads `areas` to
- * resolve `--area` on `new issue` and `update issue`; the labels themselves, `setup`, the doctor row and Sentinel's
- * labeling are later parts of that spec.
+ * The label map of the `repo` block (spec `tech-github-area-labels`, #2430). Names only, checked when the config loads
+ * (`validateRepoLabels()`). `holocron setup` makes the `area:<name>` labels, `doctor repo` checks them, `--area` on
+ * `new issue` and `update issue` takes the names, and `areaLabelsForFiles()` / `areaLabelsForTitle()` (exported from
+ * `@theholocron/cli`) are the one mapping Sentinel and the backfill probe use.
  */
 export interface RepoLabels {
-	/** Area name to the folder patterns it covers; the label is `area:<name>`. */
+	/**
+	 * Area name to the folder patterns it covers; the label is `area:<name>`. A pattern is a glob (`cli/**`), a file or a
+	 * folder; one starting with `!` takes a path out of the area. At least one pattern must include a path.
+	 */
 	areas?: Record<string, string[]>;
-	/** A title scope (`feat(sentinel)`) to the area it means. */
+	/** A title scope (`feat(sentinel)`) to the area it means; every value must be a declared area. */
 	scopes?: Record<string, string>;
 }
 

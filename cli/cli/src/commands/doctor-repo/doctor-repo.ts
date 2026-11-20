@@ -81,8 +81,16 @@ export async function runDoctorRepo(input: RunDoctorRepoInput): Promise<DoctorRe
 function row(check: RepoCheck, result: RepoCheckResult): CheckRow {
 	const { id, title } = check;
 	if ("skip" in result) return { id, title, status: "skip", detail: result.skip, problems: [] };
+	// What is there and not declared is only said, never a failure: `info` notes ride on the detail.
+	const note = result.info && result.info.length > 0 ? `; info: ${result.info.join("; ")}` : "";
 	if (result.problems.length > 0) {
-		return { id, title, status: "fail", detail: `${result.problems.length} problem(s)`, problems: result.problems };
+		return {
+			id,
+			title,
+			status: "fail",
+			detail: `${result.problems.length} problem(s)${note}`,
+			problems: result.problems,
+		};
 	}
-	return { id, title, status: "ok", detail: `${result.checked} of ${result.checked} match`, problems: [] };
+	return { id, title, status: "ok", detail: `${result.checked} of ${result.checked} match${note}`, problems: [] };
 }

@@ -167,6 +167,7 @@ One pull request is one focused change; the spec is this PR. In order, each afte
 
 1. **This spec** (design only).
 2. **Area declaration and labels**: the `repo.labels.areas` shape (`RepoConfig`), `setup` makes the labels, `doctor repo` row, tests, docs (`cli/cli/README.md`), `.holocron/repo.ts` declares this repo's areas; rename `cli` to `area:cli` by hand after merge.
+   **Built** (#2430 part 2): `repo.labels.areas` and `scopes` are validated at config load; `setup` makes the labels through the new optional `Source.ensureLabels()` (create only); `doctor repo` has a `repo-area-labels` row; `.holocron/repo.ts` declares the fifteen areas. The mapping moved to `cli/cli/src/area-labels/` and is exported from `@theholocron/cli` (`areaLabelsForFiles`, `areaLabelsForTitle`, `areaForScope`, `titleScopes`, `pathMatches`, `areaLabelDefs`, `AREA_PREFIX`); items 3 and 5 import those, so there is one mapping.
 3. **Area labeling on PRs**: the Sentinel `area-labels` action (or the `actions/labeler` workflow), with the pure planner and its tests; deploy on the dev instance first and check a real PR.
 4. **Type on `new issue`** (its own spec, `--type`), and the Linear `kind` follow-up.
 5. **Backfill probe** and its docs; then the maintainer's dry run and real run.

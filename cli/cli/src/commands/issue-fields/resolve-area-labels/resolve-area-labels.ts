@@ -1,7 +1,5 @@
+import { AREA_PREFIX } from "../../../area-labels/area-prefix/index.js";
 import type { AreaLabelsResult } from "./resolve-area-labels.type.js";
-
-/** The prefix of an area label (spec `tech-github-area-labels`): `area:cli`. */
-export const AREA_PREFIX = "area:";
 
 /**
  * Turns area names into their labels, checking each against the areas the repo declares in `repo.labels.areas`. A name

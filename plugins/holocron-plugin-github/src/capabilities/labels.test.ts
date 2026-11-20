@@ -2,7 +2,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { type CanonicalLabel, syncLabels } from "./labels.js";
+import { type CanonicalLabel, ensureLabels, syncLabels } from "./labels.js";
 
 const REPO = "theholocron/holocron";
 
@@ -168,6 +168,41 @@ describe("syncLabels — no-op", () => {
 		const result = await syncLabels(rest, REPO, CANONICAL, STALE);
 
 		expect(result).toBe("0 created, 0 updated, 0 deleted");
+		expect(calls).toHaveLength(1);
+	});
+});
+
+describe("ensureLabels", () => {
+	const AREAS: CanonicalLabel[] = [
+		{ name: "area:cli", color: "c5def5", description: "Changes under cli/**" },
+		{ name: "area:docs", color: "c5def5", description: "Changes under docs/**" },
+	];
+
+	it("creates only the missing labels and never patches or deletes", async () => {
+		const { rest, calls } = makeRest([
+			{
+				status: 200,
+				body: [
+					{ name: "Area:CLI", color: "000000", description: "mine" },
+					{ name: "javascript", color: "ffffff", description: "" },
+				],
+			},
+			{ status: 201, body: {} },
+		]);
+
+		const result = await ensureLabels(rest, REPO, AREAS);
+
+		expect(result).toBe("1 created, 1 already there");
+		expect(calls).toHaveLength(2);
+		expect(calls[1]).toMatchObject({
+			method: "POST",
+			body: { name: "area:docs", color: "c5def5", description: "Changes under docs/**" },
+		});
+	});
+
+	it("makes nothing when every label is there", async () => {
+		const { rest, calls } = makeRest([{ status: 200, body: [{ name: "area:cli" }, { name: "area:docs" }] }]);
+		expect(await ensureLabels(rest, REPO, AREAS)).toBe("0 created, 2 already there");
 		expect(calls).toHaveLength(1);
 	});
 });

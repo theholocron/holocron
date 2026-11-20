@@ -334,6 +334,60 @@ describe("doctor repo — labels and teams", () => {
 		]);
 	});
 
+	describe("area labels", () => {
+		const declared = { repo: { labels: { areas: { cli: ["cli/**"], docs: ["docs/**"] } } } };
+		const area = (name: string): LabelDef => ({ name, color: "c5def5", description: "x" });
+
+		it("adds no row for a repo that declares no areas", async () => {
+			const { report } = await run(loadedWith(), {
+				listLabels: async () => labels(),
+				getSecurity: async () => ALL_ON,
+			});
+			expect(report.rows.map((r) => r.id)).not.toContain("repo-area-labels");
+		});
+
+		it("passes when every declared area has its label, whatever the case", async () => {
+			const { report } = await run(loadedWith(declared), {
+				listLabels: async () => [...labels(), area("area:cli"), area("Area:Docs")],
+			});
+			expect(byId(report.rows, "repo-area-labels")).toMatchObject({ status: "ok", detail: "2 of 2 match" });
+		});
+
+		it("fails a declared area with no label, naming setup", async () => {
+			const { report } = await run(loadedWith(declared), {
+				listLabels: async () => [...labels(), area("area:cli")],
+			});
+			expect(byId(report.rows, "repo-area-labels")).toMatchObject({
+				status: "fail",
+				detail: "1 problem(s)",
+				problems: ["missing label area:docs (setup makes it)"],
+			});
+		});
+
+		it("only notes an area label nobody declared, and still fails on a missing one", async () => {
+			const ok = await run(loadedWith(declared), {
+				listLabels: async () => [...labels(), area("area:cli"), area("area:docs"), area("area:old")],
+			});
+			expect(byId(ok.report.rows, "repo-area-labels")).toMatchObject({
+				status: "ok",
+				detail: "2 of 2 match; info: area:old is not declared in `repo.labels.areas`",
+				problems: [],
+			});
+			const fail = await run(loadedWith(declared), { listLabels: async () => [...labels(), area("area:old")] });
+			expect(byId(fail.report.rows, "repo-area-labels")).toMatchObject({
+				status: "fail",
+				detail: "2 problem(s); info: area:old is not declared in `repo.labels.areas`",
+			});
+		});
+
+		it("never reports an area label as a canonical-label problem", async () => {
+			const { report } = await run(loadedWith(declared), {
+				listLabels: async () => [...labels(), area("area:cli"), area("area:docs")],
+			});
+			expect(byId(report.rows, "repo-labels").status).toBe("ok");
+		});
+	});
+
 	it("compares team permissions, with a bare slug meaning push", async () => {
 		const { report } = await run(
 			loadedWith({ repo: { teams: ["maintainers", { slug: "owners", permission: "admin" }, "ghosts"] } }),

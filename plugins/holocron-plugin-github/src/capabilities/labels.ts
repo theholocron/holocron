@@ -58,3 +58,27 @@ export async function syncLabels(
 
 	return `${created} created, ${updated} updated, ${deleted} deleted`;
 }
+
+/**
+ * Make the labels a repo lacks and change nothing else: an existing label (found without regard to case) keeps its
+ * colour and description, and nothing is deleted. Used for the `area:<name>` family, which is not in the canonical set.
+ */
+export async function ensureLabels(
+	client: GitHubClient,
+	repo: string,
+	labels: ReadonlyArray<CanonicalLabel>
+): Promise<string> {
+	const existing: GitHubLabel[] = await client.labels.listLabels(repo);
+	const have = new Set(existing.map((l) => l.name.toLowerCase()));
+	let created = 0;
+	for (const label of labels) {
+		if (have.has(label.name.toLowerCase())) continue;
+		await client.labels.createLabel(repo, {
+			name: label.name,
+			color: label.color,
+			description: label.description,
+		});
+		created++;
+	}
+	return `${created} created, ${labels.length - created} already there`;
+}

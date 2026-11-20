@@ -12,6 +12,7 @@ import {
 } from "../../plugin/capabilities/index.js";
 import { splitAgent } from "../split-agent/index.js";
 import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
+import { validateRepoLabels } from "../validate-repo-labels/index.js";
 import { validateSecretsDeploy } from "../validate-secrets-deploy/index.js";
 import { validateSecretsSync } from "../validate-secrets-sync/index.js";
 import { validateVariablesSync } from "../validate-variables-sync/index.js";
@@ -254,6 +255,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (raw.dev !== undefined) validateDev(raw.dev);
 	if (raw.githubApps !== undefined) validateGitHubApps(raw.githubApps);
 	if (raw.ideas !== undefined) validateIdeas(raw.ideas);
+	validateRepoLabels(raw.repo?.labels);
 	validateVariablesSync(raw.repo?.variables);
 	validateSecretsDeploy(raw.repo?.secrets);
 	validateSecretsSync(raw.repo?.secrets);

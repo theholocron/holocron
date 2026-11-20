@@ -99,6 +99,18 @@ describe("resolveConfig", () => {
 		},
 	};
 
+	it("validates repo.labels with a ConfigError naming the path", () => {
+		expect(() =>
+			resolveConfig({
+				...minimal,
+				repo: { labels: { areas: { cli: ["cli/**"] }, scopes: { sentinel: "sentinel" } } },
+			})
+		).toThrow(/`repo.labels.scopes.sentinel` names the unknown area/);
+		expect(() =>
+			resolveConfig({ ...minimal, repo: { labels: { areas: { cli: ["cli/**"] }, scopes: { sentinel: "cli" } } } })
+		).not.toThrow();
+	});
+
 	it("requires name", () => {
 		expect(() => resolveConfig({ ...minimal, name: "" })).toThrow(ConfigError);
 	});
