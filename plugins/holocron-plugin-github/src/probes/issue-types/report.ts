@@ -20,6 +20,10 @@ export interface Tally {
 	/** The issues still without each of the four, once the planned changes are made. */
 	lacking: Record<"project" | "milestone" | "priority" | "effort", BackfillItem[]>;
 	failed: number;
+	/** The items with at least one change made (or, on a dry run, planned). */
+	changed: number;
+	/** The pull requests among the items read. */
+	pullRequestsRead: number;
 	/** The number of the last issue the run finished, the cursor. */
 	last: number | undefined;
 	/** Why the organization's issue fields could not be listed, when they could not. */
@@ -65,15 +69,19 @@ export function reportBackfill(ctx: ProbeContext, input: ReportInput): void {
 	const verb = dryRun ? "would be set" : "set";
 
 	ctx.say({ status: "heading", label: "Backfill" });
+	const passed = tally.pullRequestsSkipped;
 	ctx.say({
 		status: "info",
-		label: "read",
+		label: "summary",
 		detail:
-			`${plural(tally.examined, "item")} finished` +
-			(tally.pullRequestsSkipped > 0
-				? `, ${plural(tally.pullRequestsSkipped, "pull request")} passed over`
-				: "") +
-			(tally.failed > 0 ? `, ${plural(tally.failed, "failure")}` : ""),
+			`read ${plural(tally.examined, "item")}` +
+			(tally.pullRequestsRead > 0 ? ` (${plural(tally.pullRequestsRead, "pull request")})` : "") +
+			`; ${dryRun ? "would change" : "changed"} ${tally.changed}` +
+			`; passed over ${plural(passed, "pull request")}${passed > 0 ? " (give --pull-requests to include them)" : ""}` +
+			`; ${plural(tally.failed, "failure")}` +
+			(more
+				? `; ${rateLimited ? "stopped by GitHub's rate limit" : `stopped at the limit of ${options.limit}`}, more remain`
+				: "; the window is finished"),
 	});
 	const types = Object.entries(tally.typeSet)
 		.map(([name, n]) => `${name} ${n}`)
@@ -115,16 +123,20 @@ export function reportBackfill(ctx: ProbeContext, input: ReportInput): void {
 	});
 	if (tally.skippedFields !== undefined) {
 		ctx.say({
-			status: "info",
+			status: "fail",
 			label: "Priority, Effort",
-			detail: `not listed: the issue fields could not be read (${tally.skippedFields})`,
+			detail: `NOT checked, so the lists below are incomplete: the token (github.issues) was refused reading the organization issue fields (${tally.skippedFields})`,
 		});
 	}
 	for (const [group, noun] of GROUPS) {
 		const listed = group === "project" || group === "milestone" || fields.includes(group);
 		if (!listed) continue;
 		const items = tally.lacking[group];
-		ctx.say({ status: items.length === 0 ? "ok" : "info", label: `without ${noun}`, detail: String(items.length) });
+		ctx.say({
+			status: "info",
+			label: `without ${noun}`,
+			detail: `${items.length} of ${plural(tally.examined, "item")} read`,
+		});
 		for (const item of items) {
 			ctx.say({ status: "info", label: `#${item.number}`, detail: `${item.state}: ${item.title}` });
 		}

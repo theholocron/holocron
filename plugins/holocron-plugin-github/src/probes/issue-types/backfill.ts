@@ -39,9 +39,19 @@ const emptyTally = (): Tally => ({
 	projectSet: 0,
 	lacking: { project: [], milestone: [], priority: [], effort: [] },
 	failed: 0,
+	changed: 0,
+	pullRequestsRead: 0,
 	last: undefined,
 	skippedFields: undefined,
 });
+
+/** How many changes the tally holds, to tell whether one item added any. */
+const changes = (t: Tally) =>
+	Object.values(t.typeSet).reduce((a, b) => a + b, 0) +
+	t.areaLabelsAdded +
+	t.milestoneSet.parent +
+	t.milestoneSet.explicit +
+	t.projectSet;
 
 /** How an issue is named in a row. */
 const labelOf = (item: BackfillItem) => `#${item.number}`;
@@ -186,8 +196,10 @@ export async function runBackfill(run: BackfillRun): Promise<void> {
 
 	let stopped = read.rateLimited;
 	for (const item of read.items) {
+		const before = changes(tally);
 		try {
 			await handle(run, setup, tally, item, projects.get(item.nodeId) ?? []);
+			if (changes(tally) > before) tally.changed++;
 		} catch (err) {
 			if (run.isRateLimited(err)) {
 				stopped = true;
@@ -197,6 +209,7 @@ export async function runBackfill(run: BackfillRun): Promise<void> {
 			tally.failed++;
 		}
 		tally.examined++;
+		if (item.isPullRequest) tally.pullRequestsRead++;
 		tally.last = item.number;
 	}
 	reportBackfill(ctx, {

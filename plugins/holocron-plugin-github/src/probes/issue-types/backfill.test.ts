@@ -103,8 +103,8 @@ describe("runBackfill", () => {
 			{ parent: async () => ({ number: 9, milestone: null }), projectsOf: async () => new Map([["N2", ["P9"]]]) }
 		);
 		expect(writes).toEqual([]);
-		expect(text).toContain("info without a project: 1");
-		expect(text).toContain("info without a milestone: 1");
+		expect(text).toContain("info without a project: 1 of 2 items read");
+		expect(text).toContain("info without a milestone: 1 of 2 items read");
 		expect(text).toContain("info #1: open: orphan");
 	});
 
@@ -121,9 +121,9 @@ describe("runBackfill", () => {
 			},
 			{ since: "2026-01-01", milestone: "v5.0" }
 		);
-		expect(text).toContain("ok without a Priority: 0");
-		expect(text).toContain("info without an Effort: 1");
-		expect(text).toContain("ok without a project: 0");
+		expect(text).toContain("info without a Priority: 0 of 2 items read");
+		expect(text).toContain("info without an Effort: 1 of 2 items read");
+		expect(text).toContain("info without a project: 0 of 2 items read");
 	});
 
 	it("covers only the issue fields the organization has, and says when it cannot read them", async () => {
@@ -132,10 +132,10 @@ describe("runBackfill", () => {
 			fieldValues: async () => new Set(),
 		});
 		expect(only.text.some((l) => l.includes("without an Effort"))).toBe(false);
-		expect(only.text).toContain("info without a Priority: 1");
+		expect(only.text).toContain("info without a Priority: 1 of 1 item read");
 		const unreadable = await run([item(1)], { fieldNames: async () => "GitHub refused: 403" });
 		expect(unreadable.text).toContain(
-			"info Priority, Effort: not listed: the issue fields could not be read (GitHub refused: 403)"
+			"fail Priority, Effort: NOT checked, so the lists below are incomplete: the token (github.issues) was refused reading the organization issue fields (GitHub refused: 403)"
 		);
 		expect(unreadable.text.some((l) => l.includes("without a Priority"))).toBe(false);
 	});
@@ -190,7 +190,9 @@ describe("runBackfill", () => {
 		});
 		expect(text).toContain("fail #1: Validation Failed");
 		expect(typed).toEqual([2]);
-		expect(text.find((l) => l.startsWith("info read"))).toBe("info read: 2 items finished, 1 failure");
+		expect(text.find((l) => l.startsWith("info summary"))).toBe(
+			"info summary: read 2 items; changed 1; passed over 0 pull requests; 1 failure; the window is finished"
+		);
 	});
 
 	it("stops cleanly on a rate limit and prints the cursor to resume from", async () => {
@@ -265,13 +267,41 @@ describe("runBackfill", () => {
 	it("says the window is finished, and the pull requests it passed over", async () => {
 		const { text } = await run([item(1), item(2, { isPullRequest: true })]);
 		expect(text).toContain("info resume: the window is finished");
-		expect(text).toContain("info read: 1 item finished, 1 pull request passed over");
+		expect(text).toContain(
+			"info summary: read 1 item; changed 0; passed over 1 pull request (give --pull-requests to include them); 0 failures; the window is finished"
+		);
 	});
 
 	it("says the limit was reached with the cursor, naming --issues when it was used", async () => {
 		const { text } = await run([item(1), item(2), item(3)], {}, { limit: 2, issues: [1, 2, 3] });
 		expect(text.find((l) => l.startsWith("info resume"))).toBe(
 			"info resume: the limit was reached; to continue: holocron probe github issue-types -- --after 2 --issues 1,2,3 --limit 2"
+		);
+	});
+
+	it("counts the pull requests it read, and the items it changed, in the summary", async () => {
+		const { text } = await run(
+			[item(1, { labels: ["bug"] }), item(2, { isPullRequest: true })],
+			{},
+			{ pullRequests: true }
+		);
+		expect(text).toContain(
+			"info summary: read 2 items (1 pull request); changed 1; passed over 0 pull requests; 0 failures; the window is finished"
+		);
+	});
+
+	it("says in the summary that the limit stopped it, and that the rate limit did", async () => {
+		const limit = await run([item(1), item(2)], {}, { limit: 1 });
+		expect(limit.text).toContain(
+			"info summary: read 1 item; changed 0; passed over 0 pull requests; 0 failures; stopped at the limit of 1, more remain"
+		);
+		const rate = await run([item(1, { labels: ["bug"] }), item(2, { labels: ["bug"] })], {
+			setType: async (n) => {
+				if (n === 2) throw rateLimit();
+			},
+		});
+		expect(rate.text.find((l) => l.startsWith("info summary"))).toContain(
+			"stopped by GitHub's rate limit, more remain"
 		);
 	});
 });
