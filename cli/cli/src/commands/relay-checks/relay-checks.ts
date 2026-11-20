@@ -10,8 +10,12 @@ import {
 	errorsFeedWebhook,
 	relaySecretBinding,
 	relayWebhookBinding,
+	wantsAnyRelay,
 	wantsRelay,
+	wantsRelaySources,
 } from "../notifications-setup/relay.js";
+import { genericRelayFeeds } from "../relay-sources/generic-relay-feeds.js";
+import type { GenericRelayFeed } from "../relay-sources/index.js";
 import type { RelayChecksInput } from "./relay-checks.type.js";
 
 /** How long to wait for the Worker before calling it unreachable. */
@@ -59,8 +63,9 @@ async function answers(url: string, doFetch: typeof fetch): Promise<string[]> {
 export async function relayChecks(input: RelayChecksInput): Promise<NotificationsCheck[]> {
 	const { layout } = input;
 	const relay = layout.relay;
-	if (!relay?.host || !wantsRelay(layout)) return [];
-	if (!input.errors) {
+	if (!relay?.host || !wantsAnyRelay(layout)) return [];
+	const generic = genericRelayFeeds(layout);
+	if (!input.errors && wantsRelay(layout) && !wantsRelaySources(layout)) {
 		return [
 			skipRow(ANSWERS_ID, ANSWERS_TITLE, input.errorsMissingReason),
 			skipRow(WORKER_ID, WORKER_TITLE, input.errorsMissingReason),
@@ -68,18 +73,36 @@ export async function relayChecks(input: RelayChecksInput): Promise<Notification
 			skipRow(WEBHOOK_ID, WEBHOOK_TITLE, input.errorsMissingReason),
 		];
 	}
-	const source = input.errors.providerName;
+	// The error tracker's source (named by its provider) first, then each `feeds.relay` one. A tracker with no provider
+	// is skipped here and its source has no binding to look for.
+	const source = input.errors?.providerName;
+	const ids = [...(source ? [source] : []), ...generic.map((f) => f.source)];
+	const doFetch = input.fetch ?? fetch;
 	const rows: NotificationsCheck[] = [];
 
-	// 1. the Worker answers
-	rows.push(
-		resultRow(
-			ANSWERS_ID,
-			ANSWERS_TITLE,
-			await answers(`https://${relay.host}/${source}`, input.fetch ?? fetch),
-			`https://${shown(relay.host)}/${shown(source)} answered 401`
-		)
-	);
+	// 1. the Worker answers, for each source
+	if (wantsRelay(layout)) {
+		rows.push(
+			source
+				? resultRow(
+						ANSWERS_ID,
+						ANSWERS_TITLE,
+						await answers(`https://${relay.host}/${source}`, doFetch),
+						`https://${shown(relay.host)}/${shown(source)} answered 401`
+					)
+				: skipRow(ANSWERS_ID, ANSWERS_TITLE, input.errorsMissingReason)
+		);
+	}
+	for (const { source: id } of generic) {
+		rows.push(
+			resultRow(
+				`${ANSWERS_ID}:${id}`,
+				ANSWERS_TITLE,
+				await answers(`https://${relay.host}/${id}`, doFetch),
+				`https://${shown(relay.host)}/${shown(id)} answered 401`
+			)
+		);
+	}
 
 	// 2 and 3. the script, its route and its bindings come from one read
 	const script = relay.script ?? DEFAULT_RELAY_SCRIPT;
@@ -102,7 +125,7 @@ export async function relayChecks(input: RelayChecksInput): Promise<Notification
 				);
 			} else {
 				const bound = new Set(state.bindingNames.map((n) => n.toUpperCase()));
-				const wanted = [relayWebhookBinding(source), relaySecretBinding(source)];
+				const wanted = ids.flatMap((id) => [relayWebhookBinding(id), relaySecretBinding(id)]);
 				rows.push(
 					resultRow(
 						WORKER_ID,
@@ -133,9 +156,20 @@ export async function relayChecks(input: RelayChecksInput): Promise<Notification
 		}
 	}
 
-	// 4. the webhook the relay posts through
-	rows.push(webhookRow(input, source));
+	// 4. the webhook the relay posts through, for each source
+	if (wantsRelay(layout)) {
+		rows.push(source ? webhookRow(input, source) : skipRow(WEBHOOK_ID, WEBHOOK_TITLE, input.errorsMissingReason));
+	}
+	for (const feed of generic) rows.push(genericWebhookRow(input, feed));
 	return rows;
+}
+
+/** A relay source's webhook is on its channel, with a picture when the layout or the provider gives one. */
+function genericWebhookRow(input: RelayChecksInput, feed: GenericRelayFeed): NotificationsCheck {
+	const id = `${WEBHOOK_ID}:${feed.source}`;
+	const title = `${shown(feed.source)} feed webhook exists and has a picture`;
+	if (!input.found) return skipRow(id, title, "not checked: could not read the server");
+	return webhookProblems(input, id, title, feed.channel.name, feed.webhook, feedAvatarOf(input.layout, feed.feed));
 }
 
 /** The error feed's webhook is on its channel, with a picture when the layout or the provider gives one. */
@@ -145,8 +179,20 @@ function webhookRow(input: RelayChecksInput, source: string): NotificationsCheck
 	const channel = input.layout.categories!.flatMap((cat) => cat.channels ?? []).find((c) => c.feeds?.errors)!;
 	const feed = channel.feeds!.errors as Exclude<NonNullable<NonNullable<typeof channel.feeds>["errors"]>, false>;
 	const name = errorsFeedWebhook(feed, { providerName: source });
-	const where = input.found.channels.find((c) => same(c.name, channel.name));
-	const label = `#${shown(channel.name)}`;
+	return webhookProblems(input, WEBHOOK_ID, WEBHOOK_TITLE, channel.name, name, feedAvatarOf(input.layout, feed));
+}
+
+/** The one rule both feeds follow: the channel exists, lists the webhook and, when a picture is wanted, the picture is on it. */
+function webhookProblems(
+	input: RelayChecksInput,
+	id: string,
+	title: string,
+	channelName: string,
+	name: string,
+	avatar: string[]
+): NotificationsCheck {
+	const where = input.found!.channels.find((c) => same(c.name, channelName));
+	const label = `#${shown(channelName)}`;
 	const problems: string[] = [];
 	if (!where) {
 		problems.push(`${label}: no channel to hold the feed webhook`);
@@ -154,8 +200,8 @@ function webhookRow(input: RelayChecksInput, source: string): NotificationsCheck
 		problems.push(`${label}: could not list its webhooks (${shown(where.webhooksError)})`);
 	} else if (!where.webhooks.some((w) => same(w, name))) {
 		problems.push(`${label}: no webhook named ${shown(name)}`);
-	} else if (feedAvatarOf(input.layout, feed).length > 0 && !where.webhookAvatars?.some((w) => same(w, name))) {
+	} else if (avatar.length > 0 && !where.webhookAvatars?.some((w) => same(w, name))) {
 		problems.push(`${label}: webhook ${shown(name)} has no picture`);
 	}
-	return resultRow(WEBHOOK_ID, WEBHOOK_TITLE, problems, `${label}: ${shown(name)}`);
+	return resultRow(id, title, problems, `${label}: ${shown(name)}`);
 }

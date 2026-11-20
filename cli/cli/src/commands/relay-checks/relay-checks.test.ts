@@ -230,3 +230,112 @@ describe("relayChecks", () => {
 		expect(JSON.stringify(rows)).not.toContain(SENTINEL);
 	});
 });
+
+describe("relayChecks — relay sources", () => {
+	const generic = (over: Partial<NotificationsLayout> = {}): NotificationsLayout => ({
+		relay: { host: "comlink.example.com", sources: { vercel: { capability: "deployment" } } },
+		categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { vercel: true } } }] }],
+		...over,
+	});
+	const found = (over: Partial<ServerInspection["channels"][number]> = {}): ServerInspection => ({
+		categories: ["ALERTS"],
+		channels: [{ name: "deploys", category: "ALERTS", webhooks: ["Vercel"], webhookAvatars: [], ...over }],
+		roles: [],
+	});
+	const bound = (names: string[]): WorkerScriptState => ({
+		exists: true,
+		routes: ["comlink.example.com/*"],
+		bindingNames: names,
+	});
+
+	it("checks a source with no error tracker: its own answer, its bindings and its webhook", async () => {
+		const fetchStub = reply(401);
+		const rows = await run({
+			layout: generic(),
+			errors: undefined,
+			workers: workers(bound(["COMLINK_VERCEL_WEBHOOK", "COMLINK_VERCEL_SECRET"])),
+			found: found(),
+			fetch: fetchStub as unknown as typeof fetch,
+		});
+		expect(rows.map((r) => [r.id, r.status])).toEqual([
+			["relay-answers:vercel", "pass"],
+			["relay-worker", "pass"],
+			["relay-bindings", "pass"],
+			["relay-feed-webhook:vercel", "pass"],
+		]);
+		expect(fetchStub).toHaveBeenCalledWith("https://comlink.example.com/vercel", expect.anything());
+	});
+
+	it("fails a source whose secret is not bound or whose channel has no webhook for it", async () => {
+		const rows = await run({
+			layout: generic(),
+			errors: undefined,
+			workers: workers(bound(["COMLINK_VERCEL_WEBHOOK"])),
+			found: found({ webhooks: [] }),
+		});
+		expect(row(rows, "relay-bindings").problems).toEqual(["COMLINK_VERCEL_SECRET: not bound"]);
+		expect(row(rows, "relay-feed-webhook:vercel").problems).toEqual(["#deploys: no webhook named Vercel"]);
+	});
+
+	it("checks the tracker's rows and a source's side by side, with the tracker's ids unchanged", async () => {
+		const both = generic({
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "errors", feeds: { errors: true } },
+						{ name: "deploys", feeds: { relay: { vercel: { avatar: "https://x.test/a.png" } } } },
+					],
+				},
+			],
+		});
+		const rows = await run({
+			layout: both,
+			workers: workers(
+				bound([
+					"COMLINK_SENTRY_WEBHOOK",
+					"COMLINK_SENTRY_SECRET",
+					"COMLINK_VERCEL_WEBHOOK",
+					"COMLINK_VERCEL_SECRET",
+				])
+			),
+			found: {
+				categories: ["ALERTS"],
+				channels: [
+					{ name: "errors", category: "ALERTS", webhooks: ["Sentry"], webhookAvatars: ["Sentry"] },
+					{ name: "deploys", category: "ALERTS", webhooks: ["Vercel"], webhookAvatars: [] },
+				],
+				roles: [],
+			},
+		});
+		expect(rows.map((r) => r.id)).toEqual([
+			"relay-answers",
+			"relay-answers:vercel",
+			"relay-worker",
+			"relay-bindings",
+			"relay-feed-webhook",
+			"relay-feed-webhook:vercel",
+		]);
+		expect(row(rows, "relay-feed-webhook").status).toBe("pass");
+		expect(row(rows, "relay-feed-webhook:vercel").problems).toEqual(["#deploys: webhook Vercel has no picture"]);
+	});
+
+	it("skips the tracker's rows when its provider is missing but still checks the sources", async () => {
+		const both = generic({
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "errors", feeds: { errors: true } },
+						{ name: "deploys", feeds: { relay: { vercel: true } } },
+					],
+				},
+			],
+		});
+		const rows = await run({ layout: both, errors: undefined, found: undefined });
+		expect(row(rows, "relay-answers").status).toBe("skip");
+		expect(row(rows, "relay-feed-webhook").status).toBe("skip");
+		expect(row(rows, "relay-answers:vercel").status).toBe("pass");
+		expect(row(rows, "relay-feed-webhook:vercel").status).toBe("skip");
+	});
+});

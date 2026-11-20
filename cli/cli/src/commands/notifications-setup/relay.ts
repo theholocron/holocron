@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Errors, Monitoring, NotificationsLayout } from "../../plugin/index.js";
+import { genericRelayFeeds } from "../relay-sources/generic-relay-feeds.js";
 import { avatarProblem } from "./avatar-problem.js";
 import type { DeployRelayInput } from "./relay.type.js";
 
@@ -32,6 +33,16 @@ export const DEFAULT_RELAY_RULE = "Errors to Discord (Comlink)";
 /** Whether any channel in the layout is fed by the error tracker. */
 export function wantsRelay(layout: NotificationsLayout): boolean {
 	return (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.feeds?.errors));
+}
+
+/** Whether any channel in the layout carries a relay source other than the error tracker's (`feeds.relay`). */
+export function wantsRelaySources(layout: NotificationsLayout): boolean {
+	return genericRelayFeeds(layout).length > 0;
+}
+
+/** Whether the Worker has anything to carry: the error tracker's alerts or another relay source. */
+export function wantsAnyRelay(layout: NotificationsLayout): boolean {
+	return wantsRelay(layout) || wantsRelaySources(layout);
 }
 
 /**
@@ -101,10 +112,12 @@ export async function deployRelay(input: DeployRelayInput): Promise<{ host: stri
 	const script = relay.script ?? DEFAULT_RELAY_SCRIPT;
 	await workers.deployScript(script, {
 		code,
-		secrets: {
-			[relayWebhookBinding(input.source)]: input.webhook,
-			...(input.signingSecret ? { [relaySecretBinding(input.source)]: input.signingSecret } : {}),
-		},
+		secrets: Object.fromEntries(
+			input.sources.flatMap((s): Array<[string, string]> => [
+				[relayWebhookBinding(s.source), s.webhook],
+				...(s.signingSecret ? [[relaySecretBinding(s.source), s.signingSecret] as [string, string]] : []),
+			])
+		),
 		routes: [`${relay.host}/*`],
 	});
 	await dns.upsertRecord(relayZone(relay), {

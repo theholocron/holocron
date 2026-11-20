@@ -34,6 +34,8 @@ The embed's Project field is the Sentry project's slug, taken from the event's A
 
 ## Adding a source
 
+The vendor's webhook and the two bindings are set up by `holocron setup notifications`, not by hand: declare the source in the layout (`relay.sources`, carried by a channel with `feeds.relay.<id>`) and implement `ensureRelaySource` in the vendor's plugin (spec `tech-relay-sources`). What follows is the Worker's side.
+
 A source is one file under `src/sources/<id>/` that implements `Source` (`verify` and `format`) and one entry in the list
 in `src/worker.ts`. Nothing else changes.
 

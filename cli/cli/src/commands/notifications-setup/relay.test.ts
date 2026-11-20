@@ -5,7 +5,16 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Dns, NotificationsLayout, Workers } from "../../plugin/index.js";
-import { deployRelay, errorsFeedWebhook, relayProblem, relayWebhookBinding, relayZone, wantsRelay } from "./relay.js";
+import {
+	deployRelay,
+	errorsFeedWebhook,
+	relayProblem,
+	relayWebhookBinding,
+	relayZone,
+	wantsAnyRelay,
+	wantsRelay,
+	wantsRelaySources,
+} from "./relay.js";
 
 describe("relay helpers", () => {
 	it("names the feed's webhook for the tracker, capitalised, unless the feed says otherwise", () => {
@@ -84,8 +93,7 @@ describe("deployRelay", () => {
 		const c = collaborators();
 		const out = await deployRelay({
 			relay: { host: "comlink.example.dev" },
-			source: "sentry",
-			webhook: "https://hook",
+			sources: [{ source: "sentry", webhook: "https://hook" }],
 			repoRoot: root,
 			...c,
 		});
@@ -102,8 +110,7 @@ describe("deployRelay", () => {
 		await expect(
 			deployRelay({
 				relay: { host: "comlink.example.dev" },
-				source: "sentry",
-				webhook: "https://hook",
+				sources: [{ source: "sentry", webhook: "https://hook" }],
 				repoRoot: "/r",
 				readCode: async () => "export default {}",
 				...c,
@@ -120,8 +127,7 @@ describe("deployRelay", () => {
 		const dns = { upsertRecord: vi.fn(async () => void order.push("dns")) } as unknown as Dns;
 		await deployRelay({
 			relay: { host: "comlink.example.dev" },
-			source: "sentry",
-			webhook: "https://hook",
+			sources: [{ source: "sentry", webhook: "https://hook" }],
 			repoRoot: "/r",
 			readCode: async () => "x",
 			workers,
@@ -135,12 +141,52 @@ describe("deployRelay", () => {
 		await expect(
 			deployRelay({
 				relay: { host: "comlink.example.dev" },
-				source: "sentry",
-				webhook: "https://hook",
+				sources: [{ source: "sentry", webhook: "https://hook" }],
 				repoRoot: join(tmpdir(), "no-such-repo"),
 				...c,
 			})
 		).rejects.toThrow(/not built/);
 		expect(c.dns.upsertRecord).not.toHaveBeenCalled();
+	});
+});
+
+describe("relay sources in the Worker deploy", () => {
+	it("tells the tracker's feed from a relay source's feed", () => {
+		const sourceFed: NotificationsLayout = {
+			relay: { host: "h.example.dev", sources: { vercel: { capability: "deployment" } } },
+			categories: [{ name: "A", channels: [{ name: "x", feeds: { relay: { vercel: true } } }] }],
+		};
+		expect(wantsRelay(sourceFed)).toBe(false);
+		expect(wantsRelaySources(sourceFed)).toBe(true);
+		expect(wantsAnyRelay(sourceFed)).toBe(true);
+		expect(wantsAnyRelay({})).toBe(false);
+		expect(wantsAnyRelay({ categories: [{ name: "A", channels: [{ name: "x", feeds: { errors: true } }] }] })).toBe(
+			true
+		);
+	});
+
+	it("gives the Worker every source's webhook and the secrets it has, in one deploy", async () => {
+		const workers = { deployScript: vi.fn(async (n: string) => ({ scriptName: n })) } as unknown as Workers;
+		const dns = { upsertRecord: vi.fn() } as unknown as Dns;
+		await deployRelay({
+			relay: { host: "comlink.example.dev" },
+			sources: [
+				{ source: "sentry", webhook: "https://hook/s", signingSecret: "S1" },
+				{ source: "vercel", webhook: "https://hook/v" },
+			],
+			repoRoot: "/r",
+			readCode: async () => "x",
+			workers,
+			dns,
+		});
+		expect(workers.deployScript).toHaveBeenCalledWith("comlink", {
+			code: "x",
+			secrets: {
+				COMLINK_SENTRY_WEBHOOK: "https://hook/s",
+				COMLINK_SENTRY_SECRET: "S1",
+				COMLINK_VERCEL_WEBHOOK: "https://hook/v",
+			},
+			routes: ["comlink.example.dev/*"],
+		});
 	});
 });

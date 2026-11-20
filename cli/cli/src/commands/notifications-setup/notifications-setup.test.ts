@@ -85,6 +85,8 @@ function setup(
 			dns?: unknown;
 			readCode?: (path: string) => Promise<string>;
 		};
+		/** A vendor's provider for a relay source: the capability it holds and what it implements. */
+		vendor?: { capability: "deployment" | "auth"; provider: string; impl: object };
 		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
 		loadEmojiImage?: (source: string) => Promise<string>;
@@ -103,6 +105,7 @@ function setup(
 			...(opts.relay?.errors ? { errors: "sentry" } : {}),
 			...(opts.relay?.workers ? { workers: "cloudflare" } : {}),
 			...(opts.relay?.dns ? { dns: "cloudflare" } : {}),
+			...(opts.vendor ? { [opts.vendor.capability]: opts.vendor.provider } : {}),
 		},
 	});
 	const stored: Array<{ name: string; value: string }> = [];
@@ -132,6 +135,17 @@ function setup(
 					"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", {
 						...(opts.relay.workers ? { workers: opts.relay.workers } : {}),
 						...(opts.relay.dns ? { dns: opts.relay.dns } : {}),
+					}),
+				}
+			: {}),
+		...(opts.vendor
+			? {
+					[`@theholocron/holocron-plugin-${opts.vendor.provider}`]: makePlugin(opts.vendor.provider, {
+						[opts.vendor.capability]: {
+							key: opts.vendor.capability,
+							providerName: opts.vendor.provider,
+							...opts.vendor.impl,
+						},
 					}),
 				}
 			: {}),
@@ -3295,5 +3309,188 @@ describe("forum channels", () => {
 			);
 			expect(forumLayoutProblem({ ...layout, ...pinned("dev") })).toBeUndefined();
 		});
+	});
+});
+
+describe("relay sources (relay.sources, feeds.relay)", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/vercel-feed-token";
+	const layout = (over: Partial<NotificationsLayout> = {}): NotificationsLayout => ({
+		relay: {
+			host: "comlink.example.dev",
+			sources: { vercel: { capability: "deployment", events: ["deployment.error"], scope: ["prj_1"] } },
+		},
+		categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { vercel: true } } }] }],
+		...over,
+	});
+	const hooked = (l: NotificationsLayout = layout()) =>
+		fakeNotifications({
+			layout: l,
+			ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })),
+		});
+	const collaborators = () => ({
+		workers: {
+			key: "workers",
+			providerName: "cloudflare",
+			deployScript: vi.fn(async (name: string) => ({ scriptName: name })),
+		},
+		dns: { key: "dns", providerName: "cloudflare", upsertRecord: vi.fn(async (_z: string, r: unknown) => r) },
+		readCode: vi.fn(async () => "export default {}"),
+	});
+	const vendor = (impl: object = {}) => ({
+		capability: "deployment" as const,
+		provider: "vercel",
+		impl: {
+			ensureRelaySource: vi.fn(async (input: { secret?: string }) => ({
+				created: true,
+				updated: [] as string[],
+				secret: input.secret,
+			})),
+			...impl,
+		},
+	});
+
+	it("makes the vendor's webhook and the channel webhook, then gives the Worker both as secrets without printing them", async () => {
+		const relay = collaborators();
+		const v = vendor();
+		const n = hooked();
+		const { run, lines } = setup(n, { relay, vendor: v });
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "deploys", name: "Vercel", category: "ALERTS" });
+		const asked = (v.impl.ensureRelaySource as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+			secret: string;
+			[key: string]: unknown;
+		};
+		expect(asked).toMatchObject({
+			source: "vercel",
+			url: "https://comlink.example.dev/vercel",
+			name: "Vercel",
+			events: ["deployment.error"],
+			scope: ["prj_1"],
+		});
+		expect(asked.secret).toMatch(/^[0-9a-f]{64}$/);
+		expect(relay.workers.deployScript).toHaveBeenCalledWith("comlink", {
+			code: "export default {}",
+			secrets: { COMLINK_VERCEL_WEBHOOK: HOOK, COMLINK_VERCEL_SECRET: asked.secret },
+			routes: ["comlink.example.dev/*"],
+		});
+		const out = lines.join("\n") + JSON.stringify(report);
+		expect(out).toContain("created vercel webhook Vercel");
+		expect(out).not.toContain(HOOK);
+		expect(out).not.toContain(asked.secret);
+	});
+
+	it("leaves the Worker's secret alone when the vendor's webhook already exists and returns none", async () => {
+		const relay = collaborators();
+		const v = vendor({ ensureRelaySource: vi.fn(async () => ({ created: false, updated: [] as string[] })) });
+		const { run, lines } = setup(hooked(), { relay, vendor: v });
+		expect((await run()).status).toBe("ok");
+		expect(relay.workers.deployScript).toHaveBeenCalledWith(
+			"comlink",
+			expect.objectContaining({ secrets: { COMLINK_VERCEL_WEBHOOK: HOOK } })
+		);
+		expect(lines.join("\n")).toContain("the Worker keeps the one it has");
+	});
+
+	it("deploys the tracker's source and a vendor's together", async () => {
+		const relay = { ...collaborators(), errors: { ensureRelay: undefined } };
+		const l = layout({
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "errors", feeds: { errors: true } },
+						{ name: "deploys", feeds: { relay: { vercel: true } } },
+					],
+				},
+			],
+		});
+		const n = fakeNotifications({
+			layout: l,
+			ensureWebhook: vi.fn(async (w: { name: string }) => ({
+				created: true,
+				url: `https://discord.com/api/webhooks/9/${w.name}`,
+			})),
+		});
+		const { run } = setup(n, { relay, vendor: vendor() });
+		expect((await run()).status).toBe("ok");
+		const secrets = (relay.workers.deployScript.mock.calls[0] as unknown as [string, { secrets: object }])[1]
+			.secrets;
+		expect(Object.keys(secrets).sort()).toEqual([
+			"COMLINK_SENTRY_WEBHOOK",
+			"COMLINK_VERCEL_SECRET",
+			"COMLINK_VERCEL_WEBHOOK",
+		]);
+	});
+
+	it("reports what the vendor's API cannot do as a failure, and still deploys", async () => {
+		const relay = collaborators();
+		const v = vendor({
+			ensureRelaySource: vi.fn(async () => ({
+				created: true,
+				updated: [] as string[],
+				todo: ["add the endpoint in the dashboard"],
+			})),
+		});
+		const report = await setup(hooked(), { relay, vendor: v }).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures).toEqual([
+			{ step: "vercel relay source vercel", message: "add the endpoint in the dashboard" },
+		]);
+		expect(relay.workers.deployScript).toHaveBeenCalled();
+	});
+
+	it("reports a vendor that throws and still deploys the webhooks it has", async () => {
+		const relay = collaborators();
+		const v = vendor({
+			ensureRelaySource: vi.fn(async () => {
+				throw new Error("403 forbidden");
+			}),
+		});
+		const report = await setup(hooked(), { relay, vendor: v }).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures[0]!.message).toMatch(/403 forbidden/);
+		expect(relay.workers.deployScript).toHaveBeenCalled();
+	});
+
+	it("fails the source whose provider cannot make a webhook", async () => {
+		const report = await setup(hooked(), {
+			relay: collaborators(),
+			vendor: vendor({ ensureRelaySource: undefined }),
+		}).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures[0]!.message).toMatch(/cannot make a webhook for relay source vercel/);
+	});
+
+	it("previews without asking the vendor for anything", async () => {
+		const relay = collaborators();
+		const v = vendor();
+		const n = hooked();
+		const { run, lines } = setup(n, { relay, vendor: v, dryRun: true });
+		await run();
+		expect(v.impl.ensureRelaySource).not.toHaveBeenCalled();
+		expect(relay.workers.deployScript).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain(
+			"would ensure the vercel webhook Vercel for https://comlink.example.dev/vercel"
+		);
+		expect(lines.join("\n")).toContain("would ensure webhook Vercel for the relay Worker (vercel)");
+	});
+
+	it("refuses a layout whose source is carried by no channel, or whose capability has no provider", async () => {
+		const noFeed = await setup(hooked(layout({ categories: [{ name: "A", channels: [{ name: "x" }] }] })), {
+			relay: collaborators(),
+			vendor: vendor(),
+		}).run();
+		expect(noFeed.message).toMatch(/carried by no channel/);
+		const noProvider = await setup(hooked(), { relay: collaborators() }).run();
+		expect(noProvider.status).toBe("fail");
+		expect(noProvider.message).toMatch(/`deployment` provider/);
+	});
+
+	it("refuses a forum that takes a relay feed", async () => {
+		const l = layout({
+			categories: [{ name: "A", channels: [{ name: "f", kind: "forum", feeds: { relay: { vercel: true } } }] }],
+		});
+		expect(forumLayoutProblem(l)).toMatch(/nor `relay` ones/);
 	});
 });

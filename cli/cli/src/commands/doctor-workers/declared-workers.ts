@@ -3,8 +3,10 @@ import {
 	DEFAULT_RELAY_SCRIPT,
 	relaySecretBinding,
 	relayWebhookBinding,
+	wantsAnyRelay,
 	wantsRelay,
 } from "../notifications-setup/relay.js";
+import { genericRelayFeeds } from "../relay-sources/generic-relay-feeds.js";
 import type { DeclaredWorker } from "./doctor-workers.type.js";
 
 /**
@@ -22,14 +24,15 @@ export function declaredWorkers(input: {
 	const declared: DeclaredWorker[] = [];
 	for (const layout of input.layouts) {
 		const relay = layout.relay;
-		if (!relay?.host || !wantsRelay(layout)) continue;
+		if (!relay?.host || !wantsAnyRelay(layout)) continue;
 		declared.push({
 			label: "relay",
 			script: relay.script ?? DEFAULT_RELAY_SCRIPT,
 			host: relay.host,
-			bindings: input.errors
-				? [relayWebhookBinding(input.errors.providerName), relaySecretBinding(input.errors.providerName)]
-				: [],
+			bindings: [
+				...(input.errors && wantsRelay(layout) ? [input.errors.providerName] : []),
+				...genericRelayFeeds(layout).map((f) => f.source),
+			].flatMap((source) => [relayWebhookBinding(source), relaySecretBinding(source)]),
 		});
 	}
 	const proxied = input.wiki?.proxyConfig?.() ? input.wiki.dnsRecord?.() : null;

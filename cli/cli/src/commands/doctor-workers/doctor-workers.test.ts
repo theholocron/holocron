@@ -198,3 +198,26 @@ describe("declaredProjects without a preview domain", () => {
 		expect(declaredProjects(config, {})).toEqual([{ project: "demo-pages" }]);
 	});
 });
+
+describe("declaredWorkers — relay sources", () => {
+	const sourceLayout = (feeds: object): NotificationsLayout =>
+		({
+			categories: [{ name: "c", channels: [{ name: "deploys", feeds }] }],
+			relay: { host: "comlink.example.dev", sources: { vercel: { capability: "deployment" } } },
+		}) as unknown as NotificationsLayout;
+
+	it("declares the bindings of each source, with or without a tracker", () => {
+		const [only] = declaredWorkers({ layouts: [sourceLayout({ relay: { vercel: true } })] });
+		expect(only!.bindings).toEqual(["COMLINK_VERCEL_WEBHOOK", "COMLINK_VERCEL_SECRET"]);
+		const [both] = declaredWorkers({
+			layouts: [sourceLayout({ errors: true, relay: { vercel: true } })],
+			errors: { providerName: "sentry" },
+		});
+		expect(both!.bindings).toEqual([
+			"COMLINK_SENTRY_WEBHOOK",
+			"COMLINK_SENTRY_SECRET",
+			"COMLINK_VERCEL_WEBHOOK",
+			"COMLINK_VERCEL_SECRET",
+		]);
+	});
+});
