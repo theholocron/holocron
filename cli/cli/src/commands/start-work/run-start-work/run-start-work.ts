@@ -63,6 +63,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 	const print = input.print ?? ((line: string) => console.log(line));
 	const dryRun = Boolean(input.context.dryRun);
 	const root = input.context.repoRoot;
+	/* v8 ignore next -- the real file system is only used outside tests, which inject `io` */
 	const io = input.io ?? createRealStartWorkIo();
 	const rows: CheckRow[] = [];
 	let report: Partial<StartWorkReport> = {};

@@ -17,7 +17,7 @@ const BRANCH = "feat/12-do-the-thing";
 function fakeIo(
 	over: {
 		branchExists?: boolean;
-		ahead?: number;
+		ahead?: number | "";
 		worktrees?: string;
 		head?: string;
 		fail?: string;
@@ -372,5 +372,62 @@ describe("runStartWork", () => {
 		expect(source.createPullRequest).toHaveBeenCalledWith(
 			expect.not.objectContaining({ labels: expect.anything() })
 		);
+	});
+
+	it("covers the preview of every variant: effort, an existing branch, a spec, no worktree and no pull request", async () => {
+		const io = fakeIo({ branchExists: true, files: { "/r/s.md": "x" } });
+		const { text, report } = await run({
+			context: { repoRoot: "/r", dryRun: true },
+			io,
+			effort: "high",
+			kind: "task",
+			spec: "/r/s.md",
+			worktree: false,
+			noPr: true,
+		});
+		expect(report.branch).toBe("docs/12-do-the-thing");
+		expect(text).toContain("and Effort high (not again: the branch exists)");
+		expect(text).toContain("would reuse docs/12-do-the-thing");
+		const confirm = vi.fn(async (_message: string) => false);
+		await run({ yes: false, interactive: true, confirm, worktree: false, noPr: true });
+		expect(confirm.mock.calls[0]![0]).toContain("no worktree; first commit: empty; no pull request");
+		await run({ yes: false, interactive: true, confirm, worktreePath: "/r" });
+		expect(confirm.mock.calls[1]![0]).toContain("worktree /r;");
+		expect(text).not.toContain("would use");
+		expect(text).not.toContain("would open a draft");
+		expect(text).toContain("would commit s.md");
+	});
+
+	it("commits a spec in the repo itself with no copy when there is no worktree, and reads an empty count as none", async () => {
+		const io = fakeIo({ ahead: "", files: { "/r/s.md": "status: draft" } });
+		const { report } = await run({ io, spec: "s.md", worktree: false });
+		expect(report.status).toBe("ok");
+		expect(io.files.size).toBe(1);
+		expect(io.calls).toContain("/r: add -- s.md");
+	});
+
+	it("names a provider that is not loaded and has no failure recorded, and omits a missing issue address", async () => {
+		const loader = fakeLoader({ issues: issuesFake() });
+		const missing = await runStartWork({
+			issue: "#1",
+			loaded: loadedWith({ issues: "github", source: "github" }),
+			context: { repoRoot: "/r" },
+			yes: true,
+			loader,
+			io: fakeIo().io,
+			print: () => {},
+		});
+		expect(missing.rows[0]!.detail).toBe("the `source` provider is not available");
+		const noUrl = issuesFake({
+			get: vi.fn(async () => ({ summary: "Do it", status: "open", assignee: null })),
+		});
+		const { source } = await run({ issues: noUrl });
+		expect(source.createPullRequest).toHaveBeenCalledWith(
+			expect.objectContaining({ body: expect.stringContaining("Issue: #12 Do it") })
+		);
+	});
+
+	it("asks the terminal by default, which is not one under test", async () => {
+		await expect(run({ yes: false })).rejects.toBeInstanceOf(NonInteractiveError);
 	});
 });

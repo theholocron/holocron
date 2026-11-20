@@ -20,6 +20,10 @@ describe("workSlug", () => {
 		expect(workSlug(`${"a".repeat(39)} bbbb`)).toBe("a".repeat(39));
 	});
 
+	it("keeps the whole 40 characters when the cut falls on a hyphen", () => {
+		expect(workSlug(`${"a".repeat(40)} bbb`)).toBe("a".repeat(40));
+	});
+
 	it("uses --name whole when it is kebab-case, and refuses one that is not", () => {
 		expect(workSlug("anything", "my-name")).toBe("my-name");
 		expect(workSlug("anything", "My Name")).toBeUndefined();
