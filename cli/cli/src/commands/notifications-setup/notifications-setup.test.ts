@@ -3392,6 +3392,115 @@ describe("relay sources (relay.sources, feeds.relay)", () => {
 		expect(lines.join("\n")).toContain("the Worker keeps the one it has");
 	});
 
+	describe("a vendor that tests the webhook it is given", () => {
+		const made = (secret: string | undefined) =>
+			vi.fn(async (input: { secret?: string }) => ({
+				created: true,
+				updated: [] as string[],
+				secret: secret ?? input.secret,
+			}));
+
+		it("deploys the Worker with the secret before the vendor's webhook is made, then makes it with that secret", async () => {
+			const relay = collaborators();
+			const v = vendor({
+				inspectRelaySource: vi.fn(async () => ({ exists: false })),
+				ensureRelaySource: made(undefined),
+			});
+			const { run, lines } = setup(hooked(), { relay, vendor: v });
+			const report = await run();
+			expect(report.status).toBe("ok");
+			const asked = (v.impl.ensureRelaySource as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+				secret: string;
+			};
+			expect(asked.secret).toMatch(/^[0-9a-f]{64}$/);
+			const deploys = relay.workers.deployScript.mock.calls as unknown as Array<[string, object]>;
+			expect(deploys).toHaveLength(2);
+			expect(deploys[0]![1]).toMatchObject({
+				secrets: { COMLINK_VERCEL_WEBHOOK: HOOK, COMLINK_VERCEL_SECRET: asked.secret },
+			});
+			expect(relay.workers.deployScript.mock.invocationCallOrder[0]).toBeLessThan(
+				(v.impl.ensureRelaySource as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0]!
+			);
+			expect(deploys[1]![1]).toMatchObject({ secrets: { COMLINK_VERCEL_SECRET: asked.secret } });
+			expect(lines.join("\n") + JSON.stringify(report)).not.toContain(asked.secret);
+		});
+
+		it("gives the Worker the secret the vendor chose when it is not the one offered", async () => {
+			const relay = collaborators();
+			const v = vendor({
+				inspectRelaySource: vi.fn(async () => ({ exists: false })),
+				ensureRelaySource: made("vendor-chose-this"),
+			});
+			const { run } = setup(hooked(), { relay, vendor: v });
+			expect((await run()).status).toBe("ok");
+			expect(
+				(relay.workers.deployScript.mock.calls as unknown as Array<[string, object]>).at(-1)![1]
+			).toMatchObject({
+				secrets: { COMLINK_VERCEL_SECRET: "vendor-chose-this" },
+			});
+		});
+
+		it("deploys once and offers no new secret for a webhook that exists", async () => {
+			const relay = collaborators();
+			const v = vendor({
+				inspectRelaySource: vi.fn(async () => ({ exists: true })),
+				ensureRelaySource: vi.fn(async () => ({ created: false, updated: [] as string[] })),
+			});
+			const { run } = setup(hooked(), { relay, vendor: v });
+			expect((await run()).status).toBe("ok");
+			expect(relay.workers.deployScript).toHaveBeenCalledTimes(1);
+			expect(relay.workers.deployScript).toHaveBeenCalledWith(
+				"comlink",
+				expect.objectContaining({ secrets: { COMLINK_VERCEL_WEBHOOK: HOOK } })
+			);
+		});
+
+		it("makes the webhook after the one deploy when the vendor cannot be read first", async () => {
+			const relay = collaborators();
+			const v = vendor({
+				inspectRelaySource: vi.fn(async () => {
+					throw new Error("401");
+				}),
+			});
+			const { run } = setup(hooked(), { relay, vendor: v });
+			expect((await run()).status).toBe("ok");
+			expect(relay.workers.deployScript).toHaveBeenCalledTimes(1);
+		});
+
+		it("reads the webhook back with what the layout says about it, and only that", async () => {
+			const relay = collaborators();
+			const inspect = vi.fn(async () => ({ exists: true }));
+			const v = vendor({
+				inspectRelaySource: inspect,
+				ensureRelaySource: vi.fn(async () => ({ created: false, updated: [] as string[] })),
+			});
+			const l = layout({
+				relay: {
+					host: "comlink.example.dev",
+					sources: { vercel: { capability: "deployment", name: "Deploys", options: { team: "t" } } },
+				},
+			});
+			const { run } = setup(hooked(l), { relay, vendor: v });
+			expect((await run()).status).toBe("ok");
+			expect(inspect).toHaveBeenCalledWith({
+				source: "vercel",
+				url: "https://comlink.example.dev/vercel",
+				name: "Deploys",
+				options: { team: "t" },
+			});
+		});
+
+		it("does not read or deploy anything on a dry run", async () => {
+			const relay = collaborators();
+			const inspect = vi.fn(async () => ({ exists: false }));
+			const v = vendor({ inspectRelaySource: inspect });
+			const { run } = setup(hooked(), { relay, vendor: v, dryRun: true });
+			await run();
+			expect(inspect).not.toHaveBeenCalled();
+			expect(relay.workers.deployScript).not.toHaveBeenCalled();
+		});
+	});
+
 	it("deploys the tracker's source and a vendor's together", async () => {
 		const relay = { ...collaborators(), errors: { ensureRelay: undefined } };
 		const l = layout({
