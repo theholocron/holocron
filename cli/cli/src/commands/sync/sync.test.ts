@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthError } from "../../auth/index.js";
 import { runSyncReadme, type RunSyncReadmeInput, type SyncReadmeReport } from "../sync-readme/index.js";
 import * as syncWikiModule from "../sync-wiki/index.js";
+import { thinCallerFile } from "../thin-caller-file/index.js";
 import { runSync } from "./sync.js";
 
 // `sync-wiki` falls back to the OS keyring for its token; a test must never read the machine's real one.
@@ -2507,6 +2508,127 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
+		});
+
+		describe("obsolete callers (#2338)", () => {
+			const workflowsDir = () => join(tmpDir, ".github", "workflows");
+			const put = async (name: string, text: string) => {
+				await mkdir(workflowsDir(), { recursive: true });
+				await writeFile(join(workflowsDir(), name), text, "utf8");
+			};
+			const exists = (name: string) => existsSync(join(workflowsDir(), name));
+			const generated = (pkg: string) => thinCallerFile(pkg, "name: gone\n");
+			const configured = () => {
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+				return { loaded, loader: makeLoaderWith(loaded, {}) };
+			};
+
+			it("removes a generated caller whose task is no longer configured, and leaves every other file alone", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				await put("hand.yml", `# HAND-MAINTAINED\n${generated(".")}`);
+				await put("plain.yml", "name: plain\non: push\n");
+				await put("other-package.yml", generated("apps/other"));
+				const { loaded, loader } = configured();
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "remove obsolete workflow delivery.previewDeploy.yml");
+				expect(step?.status).toBe("ok");
+				expect(exists("delivery.previewDeploy.yml")).toBe(false);
+				expect(exists("hand.yml")).toBe(true);
+				expect(exists("plain.yml")).toBe(true);
+				expect(exists("other-package.yml")).toBe(true);
+				expect(exists("sourceQuality.staticAnalysis.yml")).toBe(true);
+				expect(report.steps.filter((s) => s.step.startsWith("remove obsolete workflow"))).toHaveLength(1);
+			});
+
+			it("lists the removal but deletes nothing on --dry-run", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const { loaded, loader } = configured();
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir, dryRun: true },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "remove obsolete workflow delivery.previewDeploy.yml");
+				expect(step?.status).toBe("dry-run");
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+			});
+
+			it("removes nothing when no tasks are configured", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const loaded = {
+					...loadedFrom({ name: "demo", providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+				expect(report.steps.some((s) => s.step.startsWith("remove obsolete workflow"))).toBe(false);
+			});
+
+			it("removes nothing when a task has no template, because its file cannot be told from an obsolete one", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["no.such.task"], providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+				const step = report.steps.find((s) => s.step === "sync obsolete workflows");
+				expect(step?.status).toBe("skip");
+			});
+
+			it("leaves the root's callers alone when a package's config is synced", async () => {
+				await mkdir(join(tmpDir, ".git"));
+				const subpackage = join(tmpDir, "packages", "sentinel");
+				await mkdir(subpackage, { recursive: true });
+				await put("root-task.yml", generated("."));
+				await put("sentinel-gone.yml", generated("packages/sentinel"));
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+					filepath: join(subpackage, "holocron.config.json"),
+				};
+
+				await runSync({
+					loaded,
+					context: { repoRoot: subpackage },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("root-task.yml")).toBe(true);
+				expect(exists("sentinel-gone.yml")).toBe(false);
+			});
 		});
 	});
 

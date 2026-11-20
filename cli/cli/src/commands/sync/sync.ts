@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import { createAstromech, mergeScripts, readWorkspacePackages } from "@theholocron/astromech";
@@ -12,6 +12,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader } from "../../plugin/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
+import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
 import {
 	generateAgentFiles,
 	generateClaudeFiles,
@@ -452,6 +453,36 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				}
 				print(formatSyncStep(steps[steps.length - 1]));
 			}
+			// A generated caller whose task left the config or a preset is removed (#2338). With no tasks there is nothing
+			// to compare against, and a task with no template leaves its file unaccounted for, so neither removes anything.
+			if ((config.tasks ?? []).length > 0) {
+				if (entries.some((entry) => entry.kind === "skip")) {
+					steps.push({
+						capability: "local",
+						step: "sync obsolete workflows",
+						status: "skip",
+						message: "a task has no template, so no workflow is removed",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else {
+					const written = new Set(
+						entries.flatMap((entry) => (entry.kind === "file" ? [entry.workflow.filename] : []))
+					);
+					const obsolete = findObsoleteWorkflows({
+						workflows: await readWorkflowFiles(gitRoot),
+						written,
+						pkgRelPath,
+					});
+					for (const filename of obsolete) {
+						steps.push(
+							await runSyncStep("local", `remove obsolete workflow ${filename}`, dryRun, () =>
+								unlink(join(gitRoot, ".github", "workflows", filename))
+							)
+						);
+						print(formatSyncStep(steps[steps.length - 1]));
+					}
+				}
+			}
 		}
 
 		if (stepName === "scripts") {
@@ -783,6 +814,23 @@ async function writeWorkflowFile(repoRoot: string, filename: string, content: st
 	const tmpPath = join(dir, `.${filename}.${randomUUID()}.tmp`);
 	await writeFile(tmpPath, content, "utf8");
 	await rename(tmpPath, join(dir, filename));
+}
+
+/** Every `.yml` and `.yaml` file in `.github/workflows`, by file name, with its text; none when the folder is missing. */
+async function readWorkflowFiles(repoRoot: string): Promise<Map<string, string>> {
+	const dir = join(repoRoot, ".github", "workflows");
+	let names: string[];
+	try {
+		names = (await readdir(dir, { withFileTypes: true }))
+			.filter((entry) => entry.isFile() && /\.ya?ml$/.test(entry.name))
+			.map((entry) => entry.name);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "ENOENT") return new Map();
+		throw err;
+	}
+	return new Map(
+		await Promise.all(names.map(async (name) => [name, await readFile(join(dir, name), "utf8")] as const))
+	);
 }
 
 /** `assertNoPackageCollision`'s local-disk read, with ENOENT mapped to "nothing there." */
