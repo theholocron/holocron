@@ -130,6 +130,8 @@ describe("runIssueCreate", () => {
 	it("previews an issue with no text, labels or milestone", async () => {
 		const { text } = await run({ context: { repoRoot: "/r", dryRun: true } });
 		expect(text).toContain("would file the issue\n");
+		// No body means no preview line under the title, not an empty bullet.
+		expect(text.split("\n").filter((l) => l.trim() === "·")).toEqual([]);
 	});
 
 	it("asks with the inquirer prompt by default, and reads whether stdin is a terminal", async () => {

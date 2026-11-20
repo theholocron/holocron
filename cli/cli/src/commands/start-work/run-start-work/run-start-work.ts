@@ -28,9 +28,12 @@ import {
 
 import { assertPluginsResolvable, type IssueRecord, PluginLoader } from "../../../plugin/index.js";
 import { findWorktree } from "../find-worktree/index.js";
+import { readIssueBoards } from "../issue-boards/index.js";
 import { createRealStartWorkIo } from "../real-start-work-io/index.js";
+import { workAssignee } from "../work-assignee/index.js";
 import { buildWorkBody } from "../work-body/index.js";
 import { workBranchName } from "../work-branch/index.js";
+import { workReference } from "../work-reference/index.js";
 import { workSlug } from "../work-slug/index.js";
 import { workTitle } from "../work-title/index.js";
 import type { RunStartWorkInput, StartWorkReport } from "./run-start-work.type.js";
@@ -104,6 +107,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 	const sourceEntry = input.noPr ? undefined : input.loaded.resolved.providers.source;
 	if (!input.noPr && !sourceEntry)
 		return fail(key, "the config has no `source` provider to open the pull request with");
+	const projectsEntry = input.noPr ? undefined : input.loaded.resolved.providers.projects;
 	const credentials = input.loaded.resolved.providers.credentials;
 	/* v8 ignore start -- the real loader is only built outside tests, which always inject one */
 	const loader =
@@ -114,6 +118,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 				providers: {
 					issues: issuesEntry,
 					...(sourceEntry ? { source: sourceEntry } : {}),
+					...(projectsEntry ? { projects: projectsEntry } : {}),
 					...(credentials ? { credentials } : {}),
 				},
 			},
@@ -281,7 +286,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 		if (ahead > 0) {
 			rows.push(row("first commit", "skip", `${branch} already has ${ahead} commit${ahead === 1 ? "" : "s"}`));
 		} else {
-			const trailer = `Refs ${key}`;
+			const trailer = `Refs ${workReference(key)}`;
 			if (spec) {
 				if (dir !== root) io.write(join(dir, spec.rel), io.read(spec.abs));
 				io.git(["add", "--", spec.rel], dir);
@@ -303,14 +308,35 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 	// Step 6: the draft pull request.
 	if (source) {
 		try {
-			const assignees = [
-				...new Set([...(record?.assignee?.login ? [record.assignee.login] : []), ...(input.assignees ?? [])]),
-			];
+			const issueAssignee = workAssignee(
+				record?.assignee ?? issue.assignee,
+				issues.providerName,
+				source.providerName
+			);
+			const assignees = [...new Set([...(issueAssignee ? [issueAssignee] : []), ...(input.assignees ?? [])])];
+			// The boards the issue is on, so the pull request joins them; a board that cannot be read is a row.
+			let issueBoards: string[] = [];
+			if (projectsEntry) {
+				const read = await readIssueBoards({
+					loaded: input.loaded,
+					context: input.context,
+					loader,
+					keys: [key, issue.key],
+					...(input.templatesIo ? { templatesIo: input.templatesIo } : {}),
+				});
+				issueBoards = read.boards;
+				if (read.problem) {
+					rows.push(
+						row("boards", "skip", `the pull request is not put on the issue's boards: ${read.problem}`)
+					);
+				}
+			}
+			const projects = [...new Set([...issueBoards, ...(input.project ? [input.project] : [])])];
 			const mirrored = {
 				...(record?.labels.length ? { labels: record.labels } : {}),
 				...(record?.milestone ? { milestone: record.milestone } : {}),
 				...(assignees.length > 0 ? { assignees } : {}),
-				...(input.project ? { projects: [input.project] } : {}),
+				...(projects.length > 0 ? { projects } : {}),
 			};
 			const result = await source.createPullRequest!({
 				title,
@@ -318,7 +344,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 				base,
 				draft: true,
 				body: buildWorkBody({
-					issue: key,
+					issue: workReference(key),
 					issueTitle: issue.summary,
 					...(issue.url ? { issueUrl: issue.url } : {}),
 					...(spec ? { spec: spec.rel } : {}),

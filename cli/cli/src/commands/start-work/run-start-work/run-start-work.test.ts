@@ -8,6 +8,7 @@ vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 
 import { fakeLoader, loadedWith } from "../../migrate/migrate.testing.js";
+import { board, fakeProjects, memoryIo } from "../../project/testing/fake-projects.js";
 import { runStartWork } from "./run-start-work.js";
 import type { RunStartWorkInput, StartWorkIo } from "./run-start-work.type.js";
 
@@ -429,5 +430,108 @@ describe("runStartWork", () => {
 
 	it("asks the terminal by default, which is not one under test", async () => {
 		await expect(run({ yes: false })).rejects.toBeInstanceOf(NonInteractiveError);
+	});
+});
+
+describe("runStartWork mirrors the issue onto the pull request", () => {
+	const withBoards = (projects: ReturnType<typeof fakeProjects>, over: Record<string, unknown> = {}) => {
+		const issues = issuesFake(over);
+		const source = sourceFake();
+		return {
+			issues,
+			source,
+			loaded: loadedWith({
+				issues: "github",
+				source: "github",
+				projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
+			}),
+			loader: fakeLoader({ issues, source, projects }),
+			templatesIo: memoryIo(),
+		};
+	};
+
+	it("names a bare number the way GitHub links it, in the commit and the pull request", async () => {
+		const { io, source } = await run({ issue: "12" });
+		expect(io.calls).toContain(
+			"/r/.claude/worktrees/do-the-thing: commit -s --allow-empty -m feat(cli): Do the thing -m Refs #12"
+		);
+		expect(source.createPullRequest).toHaveBeenCalledWith(
+			expect.objectContaining({
+				body: expect.stringContaining("Issue: [#12](https://x/12) feat(cli): Do the thing"),
+			})
+		);
+	});
+
+	it("keeps a tracker's own key in the trailer", async () => {
+		const { io } = await run({ issue: "ENG-42", name: "thing", title: "fix: it" });
+		expect(io.calls.some((c) => c.endsWith("-m fix: it -m Refs ENG-42"))).toBe(true);
+	});
+
+	it("assigns the pull request to a GitHub issue's assignee, whose id is the login", async () => {
+		const { source } = await run({
+			issues: issuesFake({
+				export: vi.fn(async () => [
+					{ key: "#12", labels: [], assignee: { id: "iamnewton", displayName: "Newton" } },
+				]),
+			}),
+		});
+		expect(source.createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ assignees: ["iamnewton"] }));
+	});
+
+	it("falls back to the issue's own assignee when the export fails", async () => {
+		const { source } = await run({
+			issues: issuesFake({
+				export: vi.fn(async () => {
+					throw new Error("no export");
+				}),
+				get: vi.fn(async () => ({
+					key: "#12",
+					summary: "feat(cli): Do the thing",
+					status: "open",
+					assignee: { id: "iamnewton", displayName: "Newton" },
+				})),
+			}),
+		});
+		expect(source.createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ assignees: ["iamnewton"] }));
+	});
+
+	it("puts the pull request on the boards the issue is on, with --project", async () => {
+		const projects = fakeProjects({
+			find: vi.fn(async (_o, name) => board(name)),
+			items: vi.fn(async () => [{ key: "#12", title: "x", open: true, blockedBy: [] }]),
+		});
+		const set = withBoards(projects);
+		const { source, text } = await run(set);
+		expect(source.createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ projects: ["v5"] }));
+		expect(text).not.toContain("boards");
+		const again = withBoards(projects);
+		await run({ ...again, project: "v5" });
+		expect(again.source.createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ projects: ["v5"] }));
+	});
+
+	it("reads the board templates from the real file system when no io is given", async () => {
+		const projects = fakeProjects({
+			find: vi.fn(async (_o, name) => board(name)),
+			items: vi.fn(async () => [{ key: "#12", title: "x", open: true, blockedBy: [] }]),
+		});
+		const { templatesIo: _unused, ...set } = withBoards(projects);
+		const { source } = await run(set);
+		expect(source.createPullRequest).toHaveBeenCalledWith(expect.objectContaining({ projects: ["v5"] }));
+	});
+
+	it("shows a board it cannot read as a row and still opens the pull request", async () => {
+		const projects = fakeProjects({
+			find: vi.fn(async () => {
+				throw new Error("token refused");
+			}),
+			items: vi.fn(async () => []),
+		});
+		const set = withBoards(projects);
+		const { report, source, text } = await run(set);
+		expect(report.status).toBe("ok");
+		expect(text).toContain("board v5: token refused");
+		expect(source.createPullRequest).toHaveBeenCalledWith(
+			expect.not.objectContaining({ projects: expect.anything() })
+		);
 	});
 });
