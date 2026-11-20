@@ -1,10 +1,13 @@
 ---
+id: SPEC-0104
 status: draft
 issue: theholocron/holocron#2495
 blocked-by: []
 related:
   - theholocron/holocron#2430
   - theholocron/holocron#2494
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573225371640402020
 ---
 
 # Backfill mapping and repositories as configuration
