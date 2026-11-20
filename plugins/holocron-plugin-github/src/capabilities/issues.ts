@@ -16,10 +16,13 @@ import type {
 	ImportOptions,
 	ImportResult,
 	Issue,
+	IssueCreateInput,
+	IssuePatch,
 	IssueRecord,
 	Issues,
 	IssueSearchFilter,
 	IssueSelector,
+	IssueUpdateResult,
 	LifecycleResult,
 	LifecycleSlot,
 	StatusCategory,
@@ -29,8 +32,10 @@ import type {
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { createFieldSetter, type FieldSetter } from "./issue-field-setter.js";
 import { exportIssues, importIssues } from "./issues-migration.js";
 import { syncIssues } from "./issues-sync.js";
+import { applyIssueFields, updateGitHubIssue } from "./issues-update.js";
 
 export interface IssuesOptions {
 	repo: string;
@@ -152,14 +157,12 @@ export class GitHubIssues implements Issues {
 
 	// ── create / transition / comment ────────────────────────────────────
 
-	/** Creates an issue and returns its key as `#<number>`; the milestone is resolved from its title. */
-	async create(input: {
-		summary: string;
-		body?: string;
-		labels?: string[];
-		milestone?: string;
-		assignees?: string[];
-	}): Promise<{ key: string; dropped?: string[] }> {
+	/**
+	 * Creates an issue and returns its key as `#<number>`; the milestone is resolved from its title. Type, Priority,
+	 * Effort, the dates, the parent and the blockers are set after the issue exists; what GitHub refuses of them comes
+	 * back in `dropped`, never as a failure, because the issue is made by then and its key must not be lost.
+	 */
+	async create(input: IssueCreateInput): Promise<{ key: string; dropped?: string[] }> {
 		const body: Record<string, unknown> = { title: input.summary };
 		if (input.assignees?.length) {
 			const isMe = (a: string) => /^@?me$/i.test(a);
@@ -170,7 +173,25 @@ export class GitHubIssues implements Issues {
 		if (input.labels?.length) body.labels = input.labels;
 		if (input.milestone) body.milestone = await this.resolveMilestone(input.milestone);
 		const raw = await this.client.issues.createIssue(this.repo, body);
-		return { key: `#${raw.number}` };
+		const key = `#${raw.number}`;
+		const fields = await applyIssueFields(this.fieldContext(), raw, input, true).catch((err: unknown) => ({
+			changed: [] as string[],
+			dropped: [`fields (not set: ${(err as Error).message})`],
+		}));
+		return { key, ...(fields.dropped.length > 0 ? { dropped: fields.dropped } : {}) };
+	}
+
+	/** Changes an issue; see {@link updateGitHubIssue}. */
+	update(key: string, patch: IssuePatch): Promise<IssueUpdateResult> {
+		return updateGitHubIssue(
+			{
+				...this.fieldContext(),
+				myLogin: async () => (await this.getMyself()).id,
+				resolveMilestone: (ref) => this.resolveMilestone(ref),
+			},
+			key,
+			patch
+		);
 	}
 
 	async transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult> {
@@ -309,6 +330,19 @@ export class GitHubIssues implements Issues {
 	}
 
 	// ── internals ────────────────────────────────────────────────────────
+
+	private fieldSetter: FieldSetter | undefined;
+
+	/** What the field writers need; the setter is shared so the organization's field list is read once. */
+	private fieldContext() {
+		this.fieldSetter ??= createFieldSetter(this.client, this.repo);
+		return {
+			client: this.client,
+			repo: this.repo,
+			parseKey: (k: string) => parseIssueNumber(k, this.owner, this.repoName),
+			fields: this.fieldSetter,
+		};
+	}
 
 	private async resolveMilestone(ref: string): Promise<number> {
 		if (/^\d+$/.test(ref)) return parseInt(ref, 10);

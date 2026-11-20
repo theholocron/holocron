@@ -47,7 +47,20 @@ describe("new issue", () => {
 	it("leaves out what was not given, and passes dry-run", async () => {
 		await go("Fix it", "--dry-run");
 		const input = runIssueCreate.mock.calls[0]![0];
-		for (const key of ["body", "assignees", "labels", "milestone", "yes"]) expect(input).not.toHaveProperty(key);
+		for (const key of [
+			"body",
+			"assignees",
+			"labels",
+			"milestone",
+			"yes",
+			"kind",
+			"priority",
+			"effort",
+			"parent",
+			"project",
+			"areas",
+		])
+			expect(input).not.toHaveProperty(key);
 		expect(input.context.dryRun).toBe(true);
 	});
 
@@ -68,6 +81,53 @@ describe("new issue", () => {
 		await go("Fix it", "--body-file", "/nonexistent/none.md");
 		expect(runIssueCreate).not.toHaveBeenCalled();
 		expect(process.exitCode).toBe(1);
+		err.mockRestore();
+	});
+
+	it("passes the issue-field flags in the capability's words", async () => {
+		await go(
+			"Fix it",
+			"--type",
+			"bug",
+			"--priority",
+			"high",
+			"--effort",
+			"low",
+			"--start-date",
+			"2026-12-01",
+			"--target-date",
+			"2026-12-31",
+			"--parent",
+			"#3",
+			"--blocked-by",
+			"#4",
+			"--blocked-by",
+			"#5",
+			"--project",
+			"Roadmap",
+			"--area",
+			"cli"
+		);
+		expect(runIssueCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				kind: "bug",
+				priority: "high",
+				effort: "low",
+				startDate: "2026-12-01",
+				targetDate: "2026-12-31",
+				parent: "#3",
+				blockedBy: ["#4", "#5"],
+				project: "Roadmap",
+				areas: ["cli"],
+			})
+		);
+	});
+
+	it("refuses a type, priority or effort it does not know", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await go("Fix it", "--type", "epic").catch(() => undefined);
+		await go("Fix it", "--effort", "huge").catch(() => undefined);
+		expect(runIssueCreate).not.toHaveBeenCalled();
 		err.mockRestore();
 	});
 

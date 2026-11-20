@@ -306,6 +306,18 @@ export interface OrgConfig {
 	};
 }
 
+/**
+ * The label map of the `repo` block (spec `tech-github-area-labels`, #2430). Names only. This change reads `areas` to
+ * resolve `--area` on `new issue` and `update issue`; the labels themselves, `setup`, the doctor row and Sentinel's
+ * labeling are later parts of that spec.
+ */
+export interface RepoLabels {
+	/** Area name to the folder patterns it covers; the label is `area:<name>`. */
+	areas?: Record<string, string[]>;
+	/** A title scope (`feat(sentinel)`) to the area it means. */
+	scopes?: Record<string, string>;
+}
+
 /** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron setup`. */
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
@@ -347,6 +359,8 @@ export interface RepoConfig {
 	variables?: RepoVariables;
 	/** The secrets that must exist, checked by `holocron doctor secrets`. Names only; nothing writes them. */
 	secrets?: RepoSecrets;
+	/** The area labels of this repository, from folders and title scopes. */
+	labels?: RepoLabels;
 }
 
 /** An application in the repo. */

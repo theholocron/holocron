@@ -1,0 +1,58 @@
+---
+title: "update issue"
+description: Change an issue in the repo's tracker, field by field.
+---
+
+```bash
+holocron update issue <key> [--title <text>] [--body <text> | --body-file <path|->] [--state open|closed] [--add-label <name>]... [--remove-label <name>]... [--assignee <login>]... [--milestone <number|title>] [--type <kind>] [--priority <level>] [--effort <size>] [--start-date <date>] [--target-date <date>] [--parent <key>] [--blocked-by <key>]... [--unblock <key>]... [--project <board>] [--area <name>]... [--clear <field>]... [--dry-run] [--yes]
+```
+
+Changes an issue through the repo's `issues` provider (`Issues.update`), so it works on GitHub or Linear, whichever the config names. It edits only the tracker's issue; it does not touch a pull request or the board's status (`holocron project status` does that).
+
+```bash
+holocron update issue "#2429" --effort medium --target-date 2026-12-31 --add-label area:cli
+holocron update issue ENG-42 --clear target-date --unblock ENG-40
+```
+
+## Behavior
+
+- **A field not named is left alone**, and nothing is cleared unless `--clear` names it. A value the issue already has is not written again; the row says `already as asked; nothing changed` when nothing differed.
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them. `--dry-run` prints the fields it would change and writes nothing (it does not ask the tracker which of them it would drop).
+- **Contradictions are refused before any call**: a field both set and cleared, a label both added and removed, a key both added and removed as a blocker, a bad date, an unknown area, or no field named at all.
+- **A field the tracker refuses is listed**, not fatal: the row says `not carried across` with the reason. A rate limit stops the command with its error.
+- `--assignee` replaces the current assignees. `--body` replaces the text.
+- A provider with no `update` method gets a failing row naming the provider.
+
+## What a tracker holds
+
+The same as [`new issue`](/holocron/commands/new-issue/): GitHub holds Type, Priority, Effort and the dates as issue fields and links parent and blockers as sub-issue and dependency records; Linear holds priority, the due date (target date), the parent and `blocks` relations, writes effort as the estimate and the kind as a label, and has no start date. Clearing works for what the tracker can empty: on Linear `--clear start-date` is reported as not carried across.
+
+## Options
+
+| Option                  | Description                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `--title <text>`        | A new title                                                                                                           |
+| `--body <text>`         | A new text, replacing the old                                                                                         |
+| `--body-file <path>`    | Read the new text from a file, or standard input with `-`; not with `--body`                                          |
+| `--state <state>`       | `open` or `closed` (closed as completed)                                                                              |
+| `--add-label <name>`    | A label to add; repeat for more                                                                                       |
+| `--remove-label <name>` | A label to remove; one the issue lacks is skipped                                                                     |
+| `--assignee <login>`    | Who it is assigned to (`me` is you); replaces the current ones                                                        |
+| `--milestone <value>`   | The milestone by number or exact title                                                                                |
+| `--type <kind>`         | `bug`, `feature` or `task`                                                                                            |
+| `--priority <level>`    | `urgent`, `high`, `medium` or `low`                                                                                   |
+| `--effort <size>`       | `high`, `medium` or `low`                                                                                             |
+| `--start-date <date>`   | When work starts, `YYYY-MM-DD`                                                                                        |
+| `--target-date <date>`  | When it is due, `YYYY-MM-DD`                                                                                          |
+| `--parent <key>`        | The issue it is a sub-issue of                                                                                        |
+| `--blocked-by <key>`    | Add a blocker; repeat for more                                                                                        |
+| `--unblock <key>`       | Take a blocker off; repeat for more                                                                                   |
+| `--project <board>`     | Put the issue on a declared board, with its priority where the board has an option                                    |
+| `--area <name>`         | Add the label `area:<name>`, checked against `repo.labels.areas`                                                      |
+| `--clear <field>`       | Empty `assignee`, `milestone`, `parent`, `type`, `priority`, `effort`, `start-date` or `target-date`; repeat for more |
+| `--dry-run`             | Show what would change, without changing it                                                                           |
+| `--yes`                 | Change without asking (required without a terminal)                                                                   |
+
+## Tokens
+
+The `issues` provider reads its token through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs the `issues` provider's plugin package to resolve.

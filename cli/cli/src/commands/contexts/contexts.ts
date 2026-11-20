@@ -148,6 +148,8 @@ export const COMMAND_CONTEXTS = {
 	"new spec": "workspace",
 	// Files the issue through the `issues` provider, so its package must be resolvable.
 	"new issue": "workspace",
+	// Changes the issue through the `issues` provider (and `projects` for `--project`), so their packages must be resolvable.
+	"update issue": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**

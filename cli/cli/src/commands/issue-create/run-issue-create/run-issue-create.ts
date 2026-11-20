@@ -18,6 +18,9 @@ import {
 } from "@theholocron/kyber/ui";
 
 import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
+import { addIssueToBoard } from "../../issue-fields/add-issue-to-board/index.js";
+import { describeIssueFields } from "../../issue-fields/describe-issue-fields/index.js";
+import { prepareIssueFields } from "../../issue-fields/prepare-issue-fields/index.js";
 import type { IssueCreateReport, RunIssueCreateInput } from "./run-issue-create.type.js";
 
 /** How many lines of the body a dry run shows. */
@@ -47,14 +50,25 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 	const title = input.title.trim();
 	if (!title) return finish([row("title", "fail", "the title is empty")]);
 
+	const prepared = prepareIssueFields(input, input.loaded.resolved.repo?.labels?.areas);
+	if (!prepared.ok) return finish(prepared.problems.map((p) => row(title, "fail", p)));
+
 	const entry = input.loaded.resolved.providers.issues;
 	if (!entry) return finish([row(title, "fail", "the config has no `issues` provider to file the issue with")]);
 	const credentials = input.loaded.resolved.providers.credentials;
+	const projects = prepared.project ? input.loaded.resolved.providers.projects : undefined;
 	/* v8 ignore start -- the real loader is only built outside tests, which always inject one */
 	const loader =
 		input.loader ??
 		new PluginLoader(
-			{ ...input.loaded.resolved, providers: { issues: entry, ...(credentials ? { credentials } : {}) } },
+			{
+				...input.loaded.resolved,
+				providers: {
+					issues: entry,
+					...(projects ? { projects } : {}),
+					...(credentials ? { credentials } : {}),
+				},
+			},
 			input.context
 		);
 	/* v8 ignore stop */
@@ -71,7 +85,7 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 		]);
 	}
 
-	const labels = [...new Set((input.labels ?? []).map((l) => l.trim()).filter(Boolean))];
+	const labels = [...new Set([...(input.labels ?? []).map((l) => l.trim()).filter(Boolean), ...prepared.areaLabels])];
 	const body = input.body?.trim() ? input.body : undefined;
 	const milestone = input.milestone?.trim() ? input.milestone.trim() : undefined;
 	const assignees = [...new Set((input.assignees ?? []).map((a) => a.trim()).filter(Boolean))];
@@ -79,6 +93,7 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 		labels.length > 0 ? `labels: ${labels.join(", ")}` : undefined,
 		assignees.length > 0 ? `assignee: ${assignees.join(", ")}` : undefined,
 		milestone ? `milestone: ${milestone}` : undefined,
+		...describeIssueFields(prepared.fields, prepared.project),
 	].filter(Boolean);
 	const summary = details.length > 0 ? ` (${details.join("; ")})` : "";
 
@@ -112,11 +127,23 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 			...(labels.length > 0 ? { labels } : {}),
 			...(milestone ? { milestone } : {}),
 			...(assignees.length > 0 ? { assignees } : {}),
+			...prepared.fields,
 		});
+		const board = prepared.project
+			? await addIssueToBoard({
+					loaded: input.loaded,
+					context: input.context,
+					loader,
+					board: prepared.project,
+					key,
+					...(prepared.fields.priority ? { priority: prepared.fields.priority } : {}),
+				})
+			: undefined;
 		return finish(
 			[
 				row(title, "ok", `filed ${key}`),
 				...(dropped ?? []).map((line) => row("not carried across", "skip", line)),
+				...(board ? [board] : []),
 			],
 			key
 		);

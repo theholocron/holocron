@@ -237,8 +237,21 @@ export interface LinearIssueCreate {
 	createdAt?: string;
 }
 
-/** What `issues.update` accepts; a field left out is left alone. */
-export type LinearIssueUpdate = Partial<Omit<LinearIssueCreate, "teamId" | "createdAt">>;
+/** What `issues.update` accepts; a field left out is left alone, and `null` empties the fields that can be emptied. */
+export type LinearIssueUpdate = Partial<
+	Omit<LinearIssueCreate, "teamId" | "createdAt" | "assigneeId" | "projectId" | "parentId" | "estimate" | "dueDate">
+> & {
+	/** Who it is assigned to; `null` unassigns. */
+	assigneeId?: string | null;
+	/** The project it is in; `null` takes it out. */
+	projectId?: string | null;
+	/** The parent issue; `null` makes it a top-level issue. */
+	parentId?: string | null;
+	/** The estimate, in the team's scale; `null` clears it. */
+	estimate?: number | null;
+	/** The due date, `YYYY-MM-DD`; `null` clears it. */
+	dueDate?: string | null;
+};
 
 /** What `issues.list` narrows by. */
 export interface LinearIssueFilter {

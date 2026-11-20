@@ -95,6 +95,7 @@ const EVERY_COMMAND = [
 	"sync requests",
 	"new spec",
 	"new issue",
+	"update issue",
 ];
 
 /**

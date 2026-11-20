@@ -144,6 +144,10 @@ HOLOCRON_LINEAR_TOKEN=<ADMIN_KEY> holocron provider linear setup --with $F
 
 The config file is not touched. See [provider](/holocron/commands/provider/) for how `--with` combines with a config entry.
 
+## Creating and updating issues
+
+`create` and `update` (`holocron new issue`, `holocron update issue`) map the neutral fields like this: priority is Linear's priority, the target date is the due date, the parent is the parent issue, a blocker is a `blocks` relation (`unblock` deletes it), effort is the estimate on a 1-3-5 scale (low, medium, high) and the kind is the label `bug`, `enhancement` or `chore`. Linear has no issue Type, and the client reads and writes a due date only, so a start date is a `dropped` line, never a label or a comment. A team with estimates off may refuse the estimate: it is written on its own, after the rest, and a refusal is a `dropped` line (how Linear answers is not verified). `--clear` empties priority, due date, estimate, assignee, project and parent; `--state open` picks the team's first open state and `closed` its first completed one.
+
 ## Migrating
 
 `holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.
