@@ -1,3 +1,9 @@
+## [5.0.0-alpha.505](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.504...v5.0.0-alpha.505) (2026-11-20)
+
+### Features
+
+* **setup:** ✨ remove generated callers whose task is no longer configured ([#2490](https://github.com/theholocron/holocron/issues/2490)) ([4c87065](https://github.com/theholocron/holocron/commit/4c870652abfff877182c042ce1ccc04279669be6)), closes [#2466](https://github.com/theholocron/holocron/issues/2466)
+
 ## [5.0.0-alpha.504](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.503...v5.0.0-alpha.504) (2026-11-20)
 
 ### Features
