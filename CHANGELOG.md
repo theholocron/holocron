@@ -1,3 +1,17 @@
+## [5.0.0-alpha.506](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.505...v5.0.0-alpha.506) (2026-11-20)
+
+### Features
+
+* **github:** ✨ configure the backfill kind labels and repositories ([#2505](https://github.com/theholocron/holocron/issues/2505)) ([d8cf820](https://github.com/theholocron/holocron/commit/d8cf8208286cec9160d56ec3196dfadb901ff017))
+
+### Bug Fixes
+
+* **github:** 🐛 map the other kind labels to Task in the type backfill ([#2501](https://github.com/theholocron/holocron/issues/2501)) ([6f59d3e](https://github.com/theholocron/holocron/commit/6f59d3ee692d108646a1e37cbcd60a88a5dc2969)), closes [#2494](https://github.com/theholocron/holocron/issues/2494)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2507](https://github.com/theholocron/holocron/issues/2507)) ([a548f9c](https://github.com/theholocron/holocron/commit/a548f9c77820d2ca02cba55bd2c96c9d4491c986))
+
 ## [5.0.0-alpha.505](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.504...v5.0.0-alpha.505) (2026-11-20)
 
 ### Features
