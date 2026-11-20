@@ -68,6 +68,17 @@ describe("doppler.format", () => {
 		expect(m.embeds[0]!.fields![2]!.value).toBe("A, B");
 	});
 
+	it("names the config by its environment when it has no name or slug, and by a plain word when it has nothing", () => {
+		const byEnvironment = doppler.format(
+			headers(),
+			delivery({ project: {}, config: { environment: "prd" }, diff: {} })
+		)!;
+		expect(byEnvironment.embeds[0]!.title).toBe("Secrets changed: project / prd");
+		const bare = doppler.format(headers(), delivery({ project: undefined, config: {}, diff: undefined }))!;
+		expect(bare.embeds[0]!.title).toBe("Secrets changed: project / config");
+		expect(bare.embeds[0]!.fields!.map((f) => f.name)).toEqual(["Project", "Config"]);
+	});
+
 	it("returns null for a type it does not carry", () => {
 		expect(doppler.format(headers(), delivery({ type: "config.created" }))).toBeNull();
 	});
