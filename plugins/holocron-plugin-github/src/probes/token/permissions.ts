@@ -31,6 +31,12 @@ export const PERMISSIONS = {
 	"org-members": { label: "Organization: Members", path: "/orgs/{o}/members?per_page=1" },
 	"org-variables": { label: "Organization: Variables", path: "/orgs/{o}/actions/variables?per_page=1" },
 	"org-secrets": { label: "Organization: Secrets", path: "/orgs/{o}/actions/secrets?per_page=1" },
+	// Read only by the backfill (`probe github issue-types`), so no token declares them (a declaration cannot say
+	// "optional"): with no layer the probe describes them (`info` when missing), under a layer it does not try them.
+	// The fields list is the issues token's, the types list the org token's. `issue-types` is the REST read of what the
+	// backfill reads over GraphQL (`organization.issueTypes`); it is not proven against the live service.
+	"issue-fields": { label: "Organization: Issue fields", path: "/orgs/{o}/issue-fields" },
+	"issue-types": { label: "Organization: Issue types", path: "/orgs/{o}/issue-types" },
 	"user-sync-contents": { label: "Contents (.github-private)", path: "/repos/{o}/.github-private/contents" },
 } as const satisfies Record<string, PermissionRead>;
 
