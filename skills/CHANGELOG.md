@@ -1,3 +1,9 @@
+## [1.13.0-alpha.1](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.5...skills-v1.13.0-alpha.1) (2026-11-20)
+
+### Features
+
+* **skills:** ✨ add work-effort skill for choosing --effort on new work and new issue ([#2488](https://github.com/theholocron/holocron/issues/2488)) ([0d48207](https://github.com/theholocron/holocron/commit/0d482070644860b76df3988e3931b9eca0420120)), closes [#2486](https://github.com/theholocron/holocron/issues/2486)
+
 ## [1.12.1-alpha.5](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.4...skills-v1.12.1-alpha.5) (2026-11-16)
 
 ### Refactoring
