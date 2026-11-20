@@ -206,4 +206,35 @@ describe("createBackfillApi", () => {
 			["POST", "/graphql", expect.objectContaining({ variables: { project: "P1", content: "N5" } })],
 		]);
 	});
+
+	it("lists the names of the organization's issue Types, and none when it has none", async () => {
+		const { api, calls } = fake({
+			"GRAPHQL query": {
+				body: { data: { organization: { issueTypes: { nodes: [{ name: "Bug" }, { name: "Task" }] } } } },
+			},
+		});
+		expect(await api.typeNames()).toEqual(new Set(["Bug", "Task"]));
+		expect(calls[0].body).toMatchObject({ variables: { org: "acme" } });
+		for (const data of [{ organization: { issueTypes: null } }, { organization: null }]) {
+			const none = fake({ "GRAPHQL query": { body: { data } } });
+			expect(await none.api.typeNames()).toEqual(new Set());
+		}
+	});
+
+	it("reads a file of the repository as text, and `null` for one it does not have", async () => {
+		const { api } = fake({
+			"GET /repos/acme/widgets/contents/.holocron/repo.json": {
+				body: {
+					content: Buffer.from('{"a":1}').toString("base64"),
+					encoding: "base64",
+					sha: "s",
+					name: "repo.json",
+					path: "x",
+				},
+			},
+			"GET /repos/acme/widgets/contents/.holocron/repo.ts": { status: 404, body: { message: "Not Found" } },
+		});
+		expect(await api.readFile(".holocron/repo.json")).toBe('{"a":1}');
+		expect(await api.readFile(".holocron/repo.ts")).toBeNull();
+	});
 });

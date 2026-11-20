@@ -3,13 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import { runBackfill } from "./backfill.js";
 import { fakeApi, fakeCtx, item, lines } from "./backfill.testing.js";
-import type { AreaConfig, BackfillApi, BackfillItem, BackfillOptions } from "./issue-types.type.js";
+import type { BackfillApi, BackfillItem, BackfillOptions, LabelsConfig } from "./issue-types.type.js";
+import { resolveKinds } from "./kinds.js";
 
-const AREAS: AreaConfig = {
+const AREAS: LabelsConfig = {
 	areas: { cli: ["cli/**"], plugins: ["plugins/**"], sentinel: ["apps/sentinel/**"] },
 	scopes: { cli: "cli", sentinel: "sentinel" },
 };
-const OPTIONS: BackfillOptions = { after: 0, limit: 100, pullRequests: false };
+const OPTIONS: BackfillOptions = { after: 0, limit: 100, pullRequests: false, repos: [] };
+const KINDS = resolveKinds({});
 const rateLimit = () => new ProviderApiError("API rate limit exceeded", 429);
 const isRateLimited = (e: unknown) => e instanceof ProviderApiError && e.status === 429;
 
@@ -21,7 +23,7 @@ async function run(
 ) {
 	const { api, writes } = fakeApi(over, { items });
 	const { ctx, rows, wrote } = fakeCtx(dryRun);
-	await runBackfill({ ctx, api, options: { ...OPTIONS, ...options }, areas: AREAS, isRateLimited });
+	await runBackfill({ ctx, api, options: { ...OPTIONS, ...options }, areas: AREAS, kinds: KINDS, isRateLimited });
 	return { writes, rows, wrote, text: lines(rows) };
 }
 
@@ -90,6 +92,26 @@ describe("runBackfill", () => {
 		expect(text).toContain(
 			"info Type: Task 1 set; 0 already typed, 0 with no label that maps to a Type, 0 with two kind labels"
 		);
+	});
+
+	it("fails naming a Type the organization lacks, with its labels, and writes nothing", async () => {
+		const { writes, text } = await run([item(1, { labels: ["bug"] })], { typeNames: async () => new Set(["Bug"]) });
+		expect(writes).toEqual([]);
+		expect(text).toEqual([
+			"fail Type: Feature (for enhancement) is not an issue Type of this organization; its Types are Bug",
+			"fail Type: Task (for chore, ci, documentation, refactor, test, performance, dependencies) is not an issue Type of this organization; its Types are Bug",
+		]);
+	});
+
+	it("says the organization has no Types when it lists none", async () => {
+		const { text } = await run([], { typeNames: async () => new Set() });
+		expect(text[0]).toMatch(/its Types are none$/);
+	});
+
+	it("names the repository in the resume command when the run is for one", async () => {
+		const many = Array.from({ length: 3 }, (_, i) => item(i + 1));
+		const { text } = await run(many, {}, { limit: 2, repo: "acme/other" });
+		expect(text.join("\n")).toContain("--after 2 --limit 2 --repo acme/other");
 	});
 
 	it("takes the milestone of the parent first, then --milestone, and the project only from --project", async () => {
@@ -256,7 +278,9 @@ describe("runBackfill", () => {
 			{ items: [item(1)] }
 		);
 		const { ctx } = fakeCtx();
-		await expect(runBackfill({ ctx, api, options: OPTIONS, areas: AREAS, isRateLimited })).rejects.toThrow("boom");
+		await expect(
+			runBackfill({ ctx, api, options: OPTIONS, areas: AREAS, kinds: KINDS, isRateLimited })
+		).rejects.toThrow("boom");
 	});
 
 	it("reads the projects of a long list 100 at a time", async () => {

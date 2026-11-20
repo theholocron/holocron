@@ -106,6 +106,7 @@ holocron probe github issue-types -- --since 2026-09-01 --milestone v5.0 --proje
 | `--limit <n>`        | `100`   | The most issues one run reads.                                                                                                                                        |
 | `--milestone <title>` | none   | The milestone for an issue in the window that has none and whose parent has none. Needs `--issues` or `--since`.                                                      |
 | `--project <title>`  | none    | The organization project for an issue in the window that is on no project. Needs `--issues` or `--since`.                                                             |
+| `--repo <owner/name>` | `repo.labels.repos`, else this repository | A repository to run on; repeat it for several. A repository other than this one reads its own area labels from `.holocron/repo.json` (a `.holocron/repo.ts` cannot be read, so it gets no area step and a row says so). Not with `--issues` or `--after` when there is more than one. |
 | `--pull-requests`    | off     | Also give pull requests their area labels, from their changed files. Skipped otherwise, as the spec says.                                                             |
 
 `--limit` caps each run, not the job: the last rows print the `--after` resume command until nothing is left. The `N ok, M fail` footer is not the number of changes; read the `summary` row. See [Backfilling issues](/holocron/plugins/github/#backfilling-issues) for the output and the rules it follows.

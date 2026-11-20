@@ -110,6 +110,8 @@ found. Without `text`, `search` makes one request as before.
 What it sets, for each issue it reads, and never over a value that is already there:
 
 - **Type**: `bug` gives Bug, `enhancement` gives Feature and `chore` gives Task. An issue that already has a Type keeps it. An issue with none of those three but with `ci`, `documentation`, `refactor`, `test`, `performance` or `dependencies` gets Task (issue #2494); the three always win. An issue with two of the three labels is listed and left for a person, and one with no label that maps to a Type has no source.
+- **The kind labels are configuration** (spec `tech-backfill-config-mapping`, #2495): `repo.labels.kinds` (label to Type, the main table) and `repo.labels.fallbackKinds` (used only when none of the main labels is there) replace the defaults above, table by table. A Type the organization lacks is a failing row naming it, and that repository's run writes nothing.
+- **Repositories**: `--repo owner/name` (repeatable) or `repo.labels.repos`, else this repository. Each is printed under a heading and a failure in one does not stop the next. A repository other than this one has its area labels read from its own `.holocron/repo.json`; one whose areas are in `.holocron/repo.ts` gets a skipped row and no area step, because evaluating TypeScript is what Sentinel's config reader does and the plugin cannot reach it. Its Type step still runs.
 - **Area labels**: from the scope of the title through `repo.labels.scopes`; with `--pull-requests`, a pull request gets them from its changed files through `repo.labels.areas`. Labels are only added, never removed (the kind labels stay), and one the repository does not have is reported and not added.
 - **Milestone**: from the issue's parent when the parent has one; otherwise `--milestone` for an issue in the window named by `--issues` or `--since`. No other source is used: it does not guess from a sibling or a linked pull request.
 - **Project**: `--project` adds an issue in the window that is on no project. An issue on any other project is left alone.
@@ -126,7 +128,7 @@ info without a project: 87 of 100 items read
 info resume: the limit was reached; to continue: holocron probe github issue-types -- --after 802 --limit 100 ...
 ```
 
-Not verified against the live API: writing an issue's Type, adding an issue to a project (`addProjectV2ItemById`), and the sub-issue parent and issue-field value reads. The kind labels, the Type names and the project and milestone titles used here (`v5.0`, `v5`) are the maintainer's, not read.
+Not verified against the live API: reading the organization's issue Types, reading another repository's `.holocron/repo.json`, writing an issue's Type, adding an issue to a project (`addProjectV2ItemById`), and the sub-issue parent and issue-field value reads. The kind labels, the Type names and the project and milestone titles used here (`v5.0`, `v5`) are the maintainer's, not read.
 
 ## What `projects` provides
 

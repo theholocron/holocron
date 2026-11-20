@@ -320,6 +320,20 @@ export interface RepoLabels {
 	areas?: Record<string, string[]>;
 	/** A title scope (`feat(sentinel)`) to the area it means; every value must be a declared area. */
 	scopes?: Record<string, string>;
+	/**
+	 * Kind label name to the issue Type it means (`bug: "Bug"`), for `holocron probe github issue-types` (spec
+	 * `tech-backfill-config-mapping`, #2495). These always win over `fallbackKinds`. Left out, it is `bug` Bug,
+	 * `enhancement` Feature, `chore` Task; setting it replaces the table. Type names are checked against the organization
+	 * when the probe runs.
+	 */
+	kinds?: Record<string, string>;
+	/**
+	 * Kind labels used only when an issue has none of `kinds` (default: `ci`, `documentation`, `refactor`, `test`,
+	 * `performance`, `dependencies`, each to Task; #2494). Setting it replaces the table; `{}` turns it off.
+	 */
+	fallbackKinds?: Record<string, string>;
+	/** The repositories (`owner/name`) the backfill probe works on when `--repo` is not given; default, this repository. */
+	repos?: string[];
 }
 
 /** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron setup`. */
