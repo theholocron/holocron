@@ -35,6 +35,12 @@ describe("VercelDeployment.ensureRelaySource", () => {
 		expect(calls[1]?.body).toEqual({ url: URL_, events: ["deployment.error"] });
 	});
 
+	it("reports a made webhook with no secret when Vercel returns none", async () => {
+		const { deployment } = make([{ body: [] }, { body: { id: "h1", url: URL_, events: ["deployment.error"] } }]);
+		const out = await deployment.ensureRelaySource(input);
+		expect(out).toEqual({ created: true, updated: [] });
+	});
+
 	it("adopts a webhook found by URL, writes nothing and returns no secret", async () => {
 		const { deployment, calls } = make([{ body: [{ id: "h1", url: URL_, events: ["deployment.created"] }] }]);
 		const out = await deployment.ensureRelaySource(input);
