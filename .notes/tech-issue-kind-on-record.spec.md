@@ -1,10 +1,13 @@
 ---
+id: SPEC-0103
 status: draft
 issue: theholocron/holocron#2485
 blocked-by: []
 related:
   - theholocron/holocron#2430
   - theholocron/holocron#2429
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573207729051271168
 ---
 
 # Issue kind on `IssueRecord`
