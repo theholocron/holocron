@@ -1,3 +1,9 @@
+## [5.0.0-alpha.512](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.511...v5.0.0-alpha.512) (2026-11-20)
+
+### Features
+
+* **notifications:** ✨ carry Cloudflare's alerts into [#alerts](https://github.com/theholocron/holocron/issues/alerts) through the Comlink relay ([#2518](https://github.com/theholocron/holocron/issues/2518)) ([9db220a](https://github.com/theholocron/holocron/commit/9db220a313604be36d65cfd791fa3b5b2f8f6f5f)), closes [#2465](https://github.com/theholocron/holocron/issues/2465)
+
 ## [5.0.0-alpha.511](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.510...v5.0.0-alpha.511) (2026-11-20)
 
 ### Features
