@@ -50,6 +50,23 @@ Generate a token at [vercel.com/account/tokens](https://vercel.com/account/token
 - List and set environment variables per target (`development`, `preview`, `production`)
 - Trigger deployments from a branch (preview or named environment)
 - Poll deployment status
+- Make the team webhook for a [Comlink relay source](/holocron/comlink/#the-vercel-source) (`ensureRelaySource`, `inspectRelaySource`)
+
+## Relay source (Comlink)
+
+`relay.sources.vercel` in the notifications layout, with `capability: "deployment"`, makes Vercel post deployment events to the relay, with no dashboard step:
+
+```ts
+relay: {
+  host: "comlink.theholocron.dev",
+  sources: {
+    vercel: { capability: "deployment", events: ["deployment.error"], scope: ["prj_abc"] },
+  },
+},
+// and on a channel: feeds: { relay: { vercel: true } }
+```
+
+`events` are Vercel's event names and `scope` is a list of project ids (left out, the webhook covers every project). `setup notifications` lists the team's webhooks (`GET /v1/webhooks`), finds the one whose URL is `https://<relay.host>/vercel` and, when there is none, makes it (`POST /v1/webhooks`). Vercel returns the signing secret only in that response, so the secret goes to the Worker as `COMLINK_VERCEL_SECRET` in the same deploy and is never printed. A second run adopts the webhook and changes nothing; the plugin never updates or deletes one (the API reference has no update call), so `doctor notifications` reports a webhook whose events or projects differ and a person fixes it in Team Settings, Webhooks. If the secret is lost (the webhook was made and the Worker deploy then failed), delete the webhook in the dashboard and run `setup notifications` again. Team webhooks need a Pro or Enterprise team: a 402 or 403 is reported as a failing `todo`. The same `HOLOCRON_VERCEL_TOKEN` is used; Vercel tokens have no per-endpoint scopes, so no permission is added and the token probe is unchanged. Not checked against a live Vercel account.
 
 ## Example: deploy to production
 
