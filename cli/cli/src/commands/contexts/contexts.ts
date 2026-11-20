@@ -148,6 +148,8 @@ export const COMMAND_CONTEXTS = {
 	"new spec": "workspace",
 	// Files the issue through the `issues` provider, so its package must be resolvable.
 	"new issue": "workspace",
+	// Files the issue through `issues` (and reads it back for the spec), so that package must be resolvable.
+	"new work": "workspace",
 	// Changes the issue through the `issues` provider (and `projects` for `--project`), so their packages must be resolvable.
 	"update issue": "workspace",
 	// Reads the issue through `issues`, opens the pull request through `source` and runs git, so those packages must resolve.
