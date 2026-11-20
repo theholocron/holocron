@@ -3494,3 +3494,61 @@ describe("relay sources (relay.sources, feeds.relay)", () => {
 		expect(forumLayoutProblem(l)).toMatch(/nor `relay` ones/);
 	});
 });
+
+describe("relay sources — partial and pictured runs", () => {
+	const two: NotificationsLayout = {
+		relay: {
+			host: "comlink.example.dev",
+			sources: { vercel: { capability: "deployment" }, doppler: { capability: "deployment" } },
+		},
+		categories: [
+			{
+				name: "ALERTS",
+				channels: [
+					{ name: "deploys", feeds: { relay: { vercel: { avatar: "https://x.test/v.png" } } } },
+					{ name: "secrets", feeds: { relay: { doppler: true } } },
+				],
+			},
+		],
+	};
+	const relay = () => ({
+		workers: {
+			key: "workers",
+			providerName: "cloudflare",
+			deployScript: vi.fn(async (name: string) => ({ scriptName: name })),
+		},
+		dns: { key: "dns", providerName: "cloudflare", upsertRecord: vi.fn(async (_z: string, r: unknown) => r) },
+		readCode: vi.fn(async () => "x"),
+	});
+	const vendor = {
+		capability: "deployment" as const,
+		provider: "vercel",
+		impl: { ensureRelaySource: vi.fn(async () => ({ created: false, updated: [] as string[] })) },
+	};
+
+	it("gives a source's webhook the layout's picture, and deploys the other source when one channel fails", async () => {
+		const c = relay();
+		const n = fakeNotifications({
+			layout: two,
+			ensureWebhook: vi.fn(async (w: { channel: string }) => {
+				if (w.channel === "secrets") throw new Error("discord said no");
+				return { created: true, url: "https://discord.com/api/webhooks/1/tok" };
+			}),
+		});
+		const report = await setup(n, {
+			relay: c,
+			vendor,
+			loadAvatar: async () => "data:image/png;base64,AAAA",
+		}).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith({
+			channel: "deploys",
+			name: "Vercel",
+			category: "ALERTS",
+			avatar: "data:image/png;base64,AAAA",
+		});
+		expect(report.status).toBe("fail");
+		expect(report.failures.map((f) => f.message).join("\n")).toMatch(/no relay webhook for doppler/);
+		const secrets = (c.workers.deployScript.mock.calls[0] as unknown as [string, { secrets: object }])[1].secrets;
+		expect(Object.keys(secrets)).toEqual(["COMLINK_VERCEL_WEBHOOK"]);
+	});
+});

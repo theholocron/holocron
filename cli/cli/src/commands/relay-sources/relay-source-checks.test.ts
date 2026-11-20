@@ -91,3 +91,18 @@ describe("relaySourceChecks", () => {
 		expect(row!.problems[0]).toContain("500 oops");
 	});
 });
+
+describe("relaySourceChecks — what is asked", () => {
+	it("passes the layout's name and options, and leaves out events and scope it does not state", async () => {
+		const inspect = vi.fn(async () => ({ exists: true }));
+		await run(provider(inspect), {
+			relay: { host: "h.dev", sources: { doppler: { capability: "vault", name: "Secrets", options: { x: 1 } } } },
+		});
+		expect(inspect).toHaveBeenCalledWith({
+			source: "doppler",
+			url: "https://h.dev/doppler",
+			name: "Secrets",
+			options: { x: 1 },
+		});
+	});
+});

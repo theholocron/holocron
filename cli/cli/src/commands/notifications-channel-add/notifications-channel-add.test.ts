@@ -1221,3 +1221,20 @@ describe("provisionChannel — relay source feeds", () => {
 		).rejects.toThrow(/cannot create webhooks/);
 	});
 });
+
+describe("provisionChannel — relay source preview without a tally", () => {
+	it("prints what it would do and counts nothing", async () => {
+		const lines: string[] = [];
+		const n = fakeNotifications({ ensureWebhook: vi.fn() });
+		await provisionChannel(
+			{
+				notifications: n,
+				scope: { kind: "repo" as const },
+				dryRun: true,
+				print: (l: string) => void lines.push(l),
+			},
+			{ name: "deploys", feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] } }
+		);
+		expect(lines.join("\n")).toContain("(vercel)");
+	});
+});
