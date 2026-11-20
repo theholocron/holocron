@@ -71,6 +71,7 @@ import { skillsListEntry } from "../../commands/skills/skills-list.entry.js";
 import { skillsRemoveEntry } from "../../commands/skills/skills-remove.entry.js";
 import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js";
 import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
+import { startWorkEntry } from "../../commands/start-work/start-work.entry.js";
 import { syncEntry } from "../../commands/sync/sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
 import { syncIssuesEntry } from "../../commands/sync-issues/sync-issues.entry.js";
@@ -148,6 +149,7 @@ const registry = createCommandRegistry(
 		ideasPromoteEntry,
 		issueCreateEntry,
 		issueUpdateEntry,
+		startWorkEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,

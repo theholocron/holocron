@@ -96,6 +96,7 @@ const EVERY_COMMAND = [
 	"new spec",
 	"new issue",
 	"update issue",
+	"start work",
 ];
 
 /**
@@ -131,6 +132,7 @@ const VERBS = [
 	"run",
 	"setup",
 	"show",
+	"start",
 	"sync",
 	"update",
 	"upgrade",

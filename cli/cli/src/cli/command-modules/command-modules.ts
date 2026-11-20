@@ -26,6 +26,7 @@ import { resolveCommand } from "../../commands/resolve/index.js";
 import { runCommand } from "../../commands/run/run.command.js";
 import { setupCommand } from "../../commands/setup/setup.command.js";
 import { showCommand } from "../../commands/show/index.js";
+import { startCommand } from "../../commands/start/index.js";
 import { syncCommand } from "../../commands/sync/sync.command.js";
 import { updateCommand } from "../../commands/update/index.js";
 import { upgradeCommand } from "../../commands/upgrade/index.js";
@@ -41,6 +42,7 @@ export const COMMAND_MODULES = [
 	doctorCommand,
 	installCommand,
 	updateCommand,
+	startCommand,
 	runCommand,
 	showCommand,
 	checkCommand,
