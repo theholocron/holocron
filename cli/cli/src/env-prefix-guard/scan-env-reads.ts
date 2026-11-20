@@ -1,5 +1,6 @@
 import ts from "typescript";
 
+import { isCallTo, literalName, looksLikeEnv } from "./env-read-nodes.js";
 import type { UnprefixedEnvRead } from "./scan-env-reads.type.js";
 
 const NAME = /^[A-Z][A-Z0-9_]*$/;
@@ -7,21 +8,6 @@ const NAME = /^[A-Z][A-Z0-9_]*$/;
 const OWNED_PREFIXES = ["HOLOCRON_", "SENTINEL_", "COMLINK_"];
 /** Calls that build a lookup reading `HOLOCRON_<NAME>` before `<NAME>`. */
 const PREFIXING_CALLS = new Set(["holocronEnv", "withEnvPrefix"]);
-
-function isCallTo(node: ts.Node | undefined, names: ReadonlySet<string>): boolean {
-	return (
-		node !== undefined &&
-		ts.isCallExpression(node) &&
-		ts.isIdentifier(node.expression) &&
-		names.has(node.expression.text)
-	);
-}
-
-function literalName(node: ts.Node | undefined): string | undefined {
-	if (node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && NAME.test(node.text))
-		return node.text;
-	return undefined;
-}
 
 /** Identifiers declared (or given as a parameter default) as a prefixing lookup, e.g. `const env = holocronEnv()`. */
 function prefixedLookups(file: ts.SourceFile): Set<string> {
@@ -42,13 +28,6 @@ function prefixedLookups(file: ts.SourceFile): Set<string> {
 
 function isPrefixed(node: ts.Node, lookups: ReadonlySet<string>): boolean {
 	return isCallTo(node, PREFIXING_CALLS) || (ts.isIdentifier(node) && lookups.has(node.text));
-}
-
-/** Whether `node` is something that holds the environment: `env`, `process.env`, `deps.env`, a `lookup`. */
-function looksLikeEnv(node: ts.Node): boolean {
-	if (isCallTo(node, new Set(["createEnvLookup"]))) return true;
-	if (ts.isIdentifier(node)) return /env|lookup/i.test(node.text);
-	return ts.isPropertyAccessExpression(node) && /env|lookup/i.test(node.name.text);
 }
 
 /**

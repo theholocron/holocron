@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { DEFERRED_ENV_NAMES, THIRD_PARTY_ENV_NAMES } from "./env-allowlist.js";
+import { DEFERRED_ENV_NAMES, GROUP_ONE_ENV_NAMES, THIRD_PARTY_ENV_NAMES } from "./env-allowlist.js";
 import { scanEnvReads } from "./scan-env-reads.js";
+import { scanPrefixedOnlyReads } from "./scan-prefixed-only-reads.js";
 
 const none = new Set<string>();
 const names = (source: string, allowed: ReadonlySet<string> = none) => scanEnvReads(source, allowed).map((r) => r.name);
@@ -123,4 +124,48 @@ describe("the workspace", () => {
 		expect(offenders).toEqual([]);
 		// It parses every source file in the workspace, which took over 5 s (vitest's default) on a loaded CI runner.
 	}, 60_000);
+
+	it("keeps the bare fallback of every group 1 variable (no HOLOCRON_ spelling read alone)", () => {
+		const root = fileURLToPath(new URL("../../../..", import.meta.url));
+		const offenders = sources(root).flatMap((file) =>
+			scanPrefixedOnlyReads(readFileSync(file, "utf8"), GROUP_ONE_ENV_NAMES).map(
+				(read) => `${relative(root, file)}:${read.line} ${read.name}`
+			)
+		);
+		// Read it through holocronEnv() (`get("NAME")` tries HOLOCRON_NAME, then NAME), or list both spellings together.
+		expect(offenders).toEqual([]);
+	}, 60_000);
+});
+
+describe("scanPrefixedOnlyReads", () => {
+	const groupOne = new Set(["AXIOM_DATASET", "PORT"]);
+	const scan = (source: string) => scanPrefixedOnlyReads(source, groupOne);
+
+	it("flags a group 1 name read only as HOLOCRON_<NAME>, with its line", () => {
+		expect(scan(`\nenv.get("HOLOCRON_AXIOM_DATASET");`)).toEqual([{ name: "AXIOM_DATASET", line: 2 }]);
+		expect(scan(`const a = env.HOLOCRON_PORT; const b = env["HOLOCRON_PORT"];`).map((r) => r.name)).toEqual([
+			"PORT",
+			"PORT",
+		]);
+		expect(scan(`firstEnv(env, ["HOLOCRON_PORT"]); resolveValue("HOLOCRON_PORT");`)).toHaveLength(2);
+	});
+
+	it("passes when the file reads the bare name too", () => {
+		expect(scan(`firstEnv(env, ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);`)).toEqual([]);
+		expect(scan(`l.get("HOLOCRON_PORT") ?? l.get("PORT");`)).toEqual([]);
+	});
+
+	it("passes a read through the helper, which names only the bare name", () => {
+		expect(scan(`holocronEnv().get("AXIOM_DATASET");`)).toEqual([]);
+		expect(scan(`resolveValue(["PORT"], env, { prefix: PREFIX });`)).toEqual([]);
+	});
+
+	it("ignores names outside group 1, other prefixes, comments, non-reads and run-time names", () => {
+		expect(scan(`env.get("HOLOCRON_OTP"); env.get("SENTINEL_PORT"); env.get("HOLOCRON_axiom");`)).toEqual([]);
+		expect(
+			scan(`// env.get("HOLOCRON_PORT")\nconst keys = ["HOLOCRON_PORT"]; files.get("HOLOCRON_PORT");`)
+		).toEqual([]);
+		expect(scan("env.get(`${PREFIX}_PORT`); env.get(name); env.get();")).toEqual([]);
+		expect(scan(`env.get("PORT");`)).toEqual([]);
+	});
 });
