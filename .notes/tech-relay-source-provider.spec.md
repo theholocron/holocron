@@ -1,10 +1,13 @@
 ---
+id: SPEC-0107
 status: draft
 issue: theholocron/holocron#2519
 blocked-by: []
 related:
   - theholocron/holocron#1666
   - theholocron/holocron#2465
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573449239227273346
 ---
 
 # A relay source can name its own provider
