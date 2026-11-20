@@ -111,6 +111,72 @@ describe("GitHubSource.listPullRequestFiles", () => {
 	});
 });
 
+describe("GitHubSource.getPullRequestChecks", () => {
+	const run = (id: number, name: string, status: string, conclusion: string | null, started: string) => ({
+		id,
+		name,
+		status,
+		conclusion,
+		started_at: started,
+		html_url: `https://x/runs/${id}`,
+	});
+	const prBody = {
+		number: 5,
+		head: { ref: "feat/5-x", sha: "abc" },
+		state: "open",
+		merged_at: null,
+		title: "t",
+		html_url: "u",
+	};
+
+	it("reads the head commit's runs and takes the newest aggregate", async () => {
+		const { source, calls } = makeSource([
+			{ status: 200, body: prBody },
+			{
+				status: 200,
+				body: {
+					check_runs: [
+						run(1, "ci / Required checks", "completed", "failure", "2026-01-01T00:00:00Z"),
+						run(2, "ci / Required checks", "completed", "success", "2026-01-01T01:00:00Z"),
+						run(3, "test:unit / Conclusion", "completed", "failure", "2026-01-01T00:30:00Z"),
+						run(4, "typecheck / Conclusion", "completed", "success", "2026-01-01T00:30:00Z"),
+					],
+				},
+			},
+		]);
+		expect(await source.getPullRequestChecks(5)).toEqual({
+			state: "success",
+			sha: "abc",
+			failing: [{ name: "test:unit / Conclusion", url: "https://x/runs/3" }],
+		});
+		expect(calls[1]?.url).toContain("/commits/abc/check-runs");
+	});
+
+	it("is failure, pending (running or cancelled) or none", async () => {
+		const states = async (runs: ReturnType<typeof run>[]) => {
+			const { source } = makeSource([
+				{ status: 200, body: prBody },
+				{ status: 200, body: { check_runs: runs } },
+			]);
+			return (await source.getPullRequestChecks(5)).state;
+		};
+		expect(await states([run(1, "ci / Required checks", "completed", "failure", "a")])).toBe("failure");
+		expect(await states([run(1, "ci / Required checks", "in_progress", null, "a")])).toBe("pending");
+		expect(await states([run(1, "ci / Required checks", "completed", "cancelled", "a")])).toBe("pending");
+		expect(await states([run(1, "ci / Required checks", "completed", "neutral", "a")])).toBe("none");
+		expect(await states([run(1, "other", "completed", "success", "a")])).toBe("none");
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([
+			{ status: 200, body: prBody },
+			{ status: 200, body: { check_runs: [] } },
+		]);
+		await source.getPullRequestChecks(5, "theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/5");
+	});
+});
+
 describe("GitHubSource.listBranches", () => {
 	it("maps each branch to its name and sha", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: [{ name: "alpha", commit: { sha: "abc" } }] }]);

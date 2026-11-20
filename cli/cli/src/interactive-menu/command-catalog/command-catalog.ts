@@ -7,6 +7,7 @@ import { authUnsetEntry } from "../../commands/auth/auth-unset.entry.js";
 import { authExportEntry } from "../../commands/auth-export/auth-export.entry.js";
 import { cleanupPreviewEntry } from "../../commands/cleanup-preview/cleanup-preview.entry.js";
 import { cloneEntry } from "../../commands/clone/clone.entry.js";
+import { closeWorkEntry } from "../../commands/close-work/close-work.entry.js";
 import { configShowEntry } from "../../commands/config-show/config-show.entry.js";
 import { deployEntry } from "../../commands/deploy/deploy.entry.js";
 import { deployOnReleaseEntry } from "../../commands/deploy/deploy-on-release.entry.js";
@@ -154,6 +155,7 @@ const registry = createCommandRegistry(
 		issueUpdateEntry,
 		startWorkEntry,
 		updateWorkEntry,
+		closeWorkEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,

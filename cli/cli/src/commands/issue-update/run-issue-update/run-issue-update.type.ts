@@ -14,6 +14,8 @@ export interface RunIssueUpdateInput extends IssueFieldInput {
 	body?: string;
 	/** Open or close the issue. */
 	state?: "open" | "closed";
+	/** With `state: "closed"`: why, for a provider that records it (default `completed`). */
+	stateReason?: "completed" | "not_planned";
 	/** Labels to add. */
 	addLabels?: string[];
 	/** Labels to remove. */

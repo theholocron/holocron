@@ -199,7 +199,7 @@ export async function updateGitHubIssue(
 	}
 	if (patch.state && patch.state !== issue.state) {
 		body.state = patch.state;
-		if (patch.state === "closed") body.state_reason = "completed";
+		if (patch.state === "closed") body.state_reason = patch.stateReason ?? "completed";
 		changed.push(`state: ${patch.state}`);
 	}
 	const have = (issue.assignees ?? (issue.assignee ? [issue.assignee] : [])).map((a) => a.login);

@@ -7,6 +7,7 @@ import {
 	type PagesConfig,
 	ProviderApiError,
 	type PullRequest,
+	type PullRequestChecks,
 	type PullRequestInput,
 	type PullRequestPatch,
 	type PullRequestResult,
@@ -34,6 +35,7 @@ import {
 import { readRepoFile, writeRepoFile } from "./files.js";
 import { syncLabels } from "./labels.js";
 import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
+import { readPullRequestChecks } from "./pull-request-checks.js";
 import { createPullRequest, markReady, toPullRequest, updatePullRequest } from "./pull-requests.js";
 import { readRepoInfo, readSecurity, toRulesetDetail } from "./read-repo.js";
 import { syncTeams } from "./teams.js";
@@ -391,6 +393,10 @@ export class GitHubSource implements Source {
 
 	async markReady(number: number, repo?: string): Promise<boolean> {
 		return markReady(this.client, repo ?? this.repo, number);
+	}
+
+	async getPullRequestChecks(number: number, repo?: string): Promise<PullRequestChecks> {
+		return readPullRequestChecks(this.client, repo ?? this.repo, number);
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {

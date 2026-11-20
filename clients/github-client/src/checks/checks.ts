@@ -89,6 +89,8 @@ export interface GitHubCheckRun {
 	html_url: string;
 	/** The check's own "Details" link, when it set one. */
 	details_url?: string | null;
+	/** When the run started, an ISO time; absent while it is queued. */
+	started_at?: string | null;
 }
 
 /** The body of an `updateCheckRun()` request; every field is optional. */
