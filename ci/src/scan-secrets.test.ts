@@ -20,6 +20,27 @@ describe("scan:secrets workflow", () => {
 		expect(job("secret-detection")).not.toContain("continue-on-error");
 	});
 
+	it("installs one pinned gitleaks release and checks its SHA-256 (#2452)", () => {
+		const text = job("secret-detection");
+		expect(text).toMatch(/GITLEAKS_VERSION: \d+\.\d+\.\d+\n/);
+		expect(text).toMatch(/GITLEAKS_SHA256: [0-9a-f]{64}\n/);
+		expect(text).toContain("sha256sum --check --strict");
+	});
+
+	it("never pipes a download into a shell, which hid a 404 and left gitleaks uninstalled (#2452)", () => {
+		expect(job("secret-detection")).not.toMatch(/curl[^\n]*\|\s*(ba)?sh/);
+	});
+
+	it("fails the job when gitleaks is not installed, because `holocron run scan:secrets` passes without it (#2452)", () => {
+		const text = job("secret-detection");
+		const install = text.indexOf("- name: Install gitleaks");
+		const check = text.indexOf("gitleaks version");
+		const scan = text.indexOf("task: scan:secrets");
+		expect(install).toBeGreaterThan(-1);
+		expect(check).toBeGreaterThan(install);
+		expect(scan).toBeGreaterThan(check);
+	});
+
 	it("runs betterleaks as an advisory job (#1573): every step that can fail is allowed to", () => {
 		const text = job("betterleaks");
 		expect(text).not.toMatch(/^ {4}continue-on-error/m);
