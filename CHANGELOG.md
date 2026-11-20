@@ -1,3 +1,9 @@
+## [5.0.0-alpha.510](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.509...v5.0.0-alpha.510) (2026-11-20)
+
+### Features
+
+* **vercel:** ✨ make the Vercel webhook for a relay source ([#2470](https://github.com/theholocron/holocron/issues/2470)) ([9bcee98](https://github.com/theholocron/holocron/commit/9bcee98757049726f6cd75842e0aa2bfb795d894))
+
 ## [5.0.0-alpha.509](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.508...v5.0.0-alpha.509) (2026-11-20)
 
 ### Features
