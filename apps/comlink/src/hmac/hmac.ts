@@ -2,15 +2,11 @@
 const toHex = (buffer: ArrayBuffer): string =>
 	Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, "0")).join("");
 
-/** The hex HMAC-SHA256 of `text` under `secret`: the signature scheme Sentry (and many other services) use. */
-export async function signHex(secret: string, text: string): Promise<string> {
-	const key = await crypto.subtle.importKey(
-		"raw",
-		new TextEncoder().encode(secret),
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"]
-	);
+/** The hex HMAC of `text` under `secret`: SHA-256 by default (Sentry and many other services), SHA-1 for Vercel. */
+export async function signHex(secret: string, text: string, hash: "SHA-256" | "SHA-1" = "SHA-256"): Promise<string> {
+	const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash }, false, [
+		"sign",
+	]);
 	return toHex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text)));
 }
 
