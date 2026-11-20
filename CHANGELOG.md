@@ -1,3 +1,11 @@
+## [5.0.0-alpha.503](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.502...v5.0.0-alpha.503) (2026-11-20)
+
+### Features
+
+* **cli:** ✨ declare area labels, make them in setup and check them in doctor repo ([#2473](https://github.com/theholocron/holocron/issues/2473)) ([54c9998](https://github.com/theholocron/holocron/commit/54c99984a0bc815a19ceda4cd6adf823aebf7f8b)), closes [#2430](https://github.com/theholocron/holocron/issues/2430)
+* **github:** ✨ add probe github issue-types, the dry-run-first backfill of Type and area labels ([#2475](https://github.com/theholocron/holocron/issues/2475)) ([e321003](https://github.com/theholocron/holocron/commit/e32100354104f2be5b119e0bbd7ecd4ab4d257a6)), closes [#2430](https://github.com/theholocron/holocron/issues/2430)
+* **sentinel:** ✨ add area-labels action for pull requests and issues ([#2474](https://github.com/theholocron/holocron/issues/2474)) ([ebd1e2e](https://github.com/theholocron/holocron/commit/ebd1e2e24e92f30c9222a6111c6213fb1bc9db47)), closes [#2430](https://github.com/theholocron/holocron/issues/2430)
+
 ## [5.0.0-alpha.502](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.501...v5.0.0-alpha.502) (2026-11-20)
 
 ### Features
