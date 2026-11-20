@@ -1,3 +1,9 @@
+## [5.0.0-alpha.499](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.498...v5.0.0-alpha.499) (2026-11-20)
+
+### Features
+
+* **notifications:** ✨ 😀 replace a server emoji whose picture changed in setup notifications ([#2443](https://github.com/theholocron/holocron/issues/2443)) ([f1d1b3d](https://github.com/theholocron/holocron/commit/f1d1b3df3398c06f033fb443bb91a8bb8bcf3395)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
 ## [5.0.0-alpha.498](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.497...v5.0.0-alpha.498) (2026-11-19)
 
 ### Features
