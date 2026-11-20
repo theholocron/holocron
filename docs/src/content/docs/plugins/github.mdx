@@ -70,6 +70,11 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
 - Workflow file read/write (`.github/workflows/`)
 - Arbitrary repo file write (`.github/dependabot.yml`, etc.)
 - Labels, custom properties, topics, teams, description, homepage sync
+- Pull requests (the optional `Source` methods the `work` commands use, #2429):
+  - `createPullRequest(input)` opens a draft (set `draft: false` for a ready one) from `head` into `base`, adds a `Closes` or `Refs` line for `link.issue` to the body unless the body already names it, then puts `labels`, `assignees`, `milestone` and `projects` on it. It is safe to run twice: an open pull request for the same head is returned with `created: false`.
+  - `updatePullRequest(number, patch)` changes `title`, `body`, `base` or `state`, adds `labels` and `assignees` (it never removes an assignee), takes off `removeLabels`, sets a milestone by title and puts the pull request on boards by title. A field not in the patch is left alone.
+  - `markReady(number)` takes a draft out of draft and answers `true`; a pull request that is not a draft, or is closed, answers `false` and is left alone.
+  - A milestone or board that does not exist, or that GitHub refuses, comes back in `dropped` by name and is never created. GitHub opens no pull request whose head has no commit beyond the base (it answers 422).
 
 ## What `issues` provides
 

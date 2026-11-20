@@ -76,6 +76,7 @@ export type {
 } from "./pages/pages.js";
 export type { OrgProperty, RepoPropertyValue } from "./properties/properties.js";
 export type {
+	CreatePullRequestInput,
 	CreateReviewComment,
 	CreateReviewInput,
 	GitHubPullRequest,
@@ -83,6 +84,7 @@ export type {
 	GitHubPullRequestFile,
 	GitHubPullRequestReview,
 	ReviewThread,
+	UpdatePullRequestInput,
 } from "./pulls/pulls.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset, GitHubRulesetDetail } from "./rulesets/rulesets.js";

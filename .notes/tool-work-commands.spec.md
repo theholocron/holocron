@@ -195,7 +195,7 @@ Outward actions ask first (`--yes` skips; no terminal and no `--yes` is `NonInte
 One pull request per focused change, in this order (accepted by the maintainer), each with tests and docs. The area-label parts (`--area`, and the label update in `update work` and `close work`) depend on `tech-github-area-labels` (#2430) landing first or in step:
 
 1. `Issues.create` and `Issues.update` with every field, the GitHub and Linear implementations, `new issue` flags and `update issue`. Built (#2429, part 1): see `AGENTS.md`, "Issue fields and `update issue`". GitHub parent and blocked-by are written through the REST sub-issue and dependency endpoints, not GraphQL; `--area` reads `repo.labels.areas`, whose labels and Sentinel action are not built yet.
-2. `Source` pull request methods and the github-client calls (create, update, mark ready).
+2. `Source` pull request methods and the github-client calls (create, update, mark ready). Built in #2429 part 2: `Source.createPullRequest(input, repo?)`, `updatePullRequest(number, patch, repo?)` and `markReady(number, repo?)`, with `PullRequestInput`, `PullRequestPatch`, `PullRequestResult` (`pullRequest`, `created`, `draft`, `dropped`) in `capabilities.type.ts`; the link to the issue is the body's `Closes`/`Refs` line (`PullRequestInput.link`), and labels, assignees, milestone and projects mirror from the issue through the same input and patch.
 3. `start work` (with the first-commit and branch helpers).
 4. `new work`.
 5. `update work` (`--status` last, a wrapper over `project status`).
