@@ -1,3 +1,9 @@
+## [5.0.0-alpha.500](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.499...v5.0.0-alpha.500) (2026-11-20)
+
+### Features
+
+* **notifications:** ✨ use server emoji on the prs forum tags ([#2450](https://github.com/theholocron/holocron/issues/2450)) ([da33372](https://github.com/theholocron/holocron/commit/da33372ae1829bbec6481c6156c11aa2b2b86dfd)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
 ## [5.0.0-alpha.499](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.498...v5.0.0-alpha.499) (2026-11-20)
 
 ### Features
