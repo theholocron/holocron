@@ -1,3 +1,15 @@
+## [5.0.0-alpha.509](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.508...v5.0.0-alpha.509) (2026-11-20)
+
+### Features
+
+* **clerk:** ✨ report the manual Comlink relay source step as a todo ([#2471](https://github.com/theholocron/holocron/issues/2471)) ([a91be52](https://github.com/theholocron/holocron/commit/a91be52128249a6672fcd990a2cb9d4a25be3720)), closes [#1666](https://github.com/theholocron/holocron/issues/1666) [#2465](https://github.com/theholocron/holocron/issues/2465)
+* **comlink:** ✨ add a Vercel deployment webhook source ([#2461](https://github.com/theholocron/holocron/issues/2461)) ([8496e94](https://github.com/theholocron/holocron/commit/8496e94da712f4ef28345461a010ca0670146bb1)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+* **comlink:** 📡 add the Doppler webhook source ([#2463](https://github.com/theholocron/holocron/issues/2463)) ([1cf6940](https://github.com/theholocron/holocron/commit/1cf694090283d854899ca11ef1d523520025c553)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2517](https://github.com/theholocron/holocron/issues/2517)) ([9e4e7e3](https://github.com/theholocron/holocron/commit/9e4e7e3756f538f499ab49a8bf828937cc5a9fb3))
+
 ## [5.0.0-alpha.508](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.507...v5.0.0-alpha.508) (2026-11-20)
 
 ### Features

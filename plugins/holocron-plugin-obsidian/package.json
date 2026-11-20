@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-obsidian",
-  "version": "5.0.0-alpha.508",
+  "version": "5.0.0-alpha.509",
   "description": "Holocron plugin for Obsidian. Implements the ideas capability over a vault of Markdown notes.",
   "keywords": [
     "holocron",
