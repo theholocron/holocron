@@ -1,9 +1,12 @@
 ---
+id: SPEC-0105
 status: draft
 issue: theholocron/holocron#2465
 blocked-by: []
 related:
   - theholocron/holocron#1666
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1573175931336532048
 ---
 
 # Relay sources: automating the vendor's side of a Comlink webhook
