@@ -85,7 +85,12 @@ describe("runIssueUpdate", () => {
 		const closed = await run({ state: "closed", stateReason: "not_planned", title: undefined });
 		expect(closed.issues!.update).toHaveBeenCalledWith("#12", { state: "closed", stateReason: "not_planned" });
 		const open = await run({ state: "open", stateReason: "not_planned", title: undefined });
-		expect(open.issues!.update).toHaveBeenCalledWith("#12", { state: "open" });
+		expect(open.report.status).toBe("fail");
+		expect(open.text).toContain("--state-reason needs --state closed");
+		expect(open.issues!.update).not.toHaveBeenCalled();
+		const bare = await run({ stateReason: "completed" });
+		expect(bare.report.status).toBe("fail");
+		expect(bare.issues!.update).not.toHaveBeenCalled();
 	});
 
 	it("says so when the issue was already as asked, and lists what was dropped", async () => {

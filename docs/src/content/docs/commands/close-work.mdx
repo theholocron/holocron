@@ -47,7 +47,7 @@ Gives the work up. It **always asks first** (`--yes` answers for you):
 2. Closes the pull request.
 3. Withdraws the spec's discussion post: the specs and ADRs among the pull request's files go to `holocron sync specs --withdraw --files`, which tags each post `withdrawn` and closes it (a spec already on the base branch keeps its post).
 4. Removes the worktree and the local branch, as above.
-5. Asks whether to close the issue as **not planned**. `--yes` does not close it; the row names `holocron update issue <issue> --state closed`.
+5. Asks whether to close the issue as **not planned**. `--yes` does not close it; the row names `holocron update issue <issue> --state closed --state-reason not_planned`.
 
 The remote branch is left, and a row says so.
 

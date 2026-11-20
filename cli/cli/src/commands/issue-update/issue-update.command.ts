@@ -34,6 +34,7 @@ type Args = GlobalArgs &
 		body?: string;
 		bodyFile?: string;
 		state?: "open" | "closed";
+		stateReason?: "completed" | "not_planned";
 		addLabel?: string[];
 		removeLabel?: string[];
 		assignee?: string[];
@@ -64,6 +65,11 @@ export const issueUpdateCommand: CommandModule<GlobalArgs, Args> = {
 				type: "string",
 				choices: ["open", "closed"] as const,
 				describe: "Open or close the issue",
+			})
+			.option("state-reason", {
+				type: "string",
+				choices: ["completed", "not_planned"] as const,
+				describe: "Why it was closed, with --state closed (GitHub; other trackers ignore it)",
 			})
 			.option("add-label", { type: "string", array: true, describe: "A label to add (repeatable)" })
 			.option("remove-label", { type: "string", array: true, describe: "A label to remove (repeatable)" })
@@ -107,6 +113,7 @@ export const issueUpdateCommand: CommandModule<GlobalArgs, Args> = {
 			...(argv.title !== undefined ? { title: String(argv.title) } : {}),
 			...(body !== undefined ? { body } : {}),
 			...(argv.state ? { state: argv.state } : {}),
+			...(argv.stateReason ? { stateReason: argv.stateReason } : {}),
 			...(argv.addLabel ? { addLabels: argv.addLabel.map(String) } : {}),
 			...(argv.removeLabel ? { removeLabels: argv.removeLabel.map(String) } : {}),
 			...(argv.assignee ? { assignees: argv.assignee.map(String) } : {}),

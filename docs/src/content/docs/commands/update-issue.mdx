@@ -4,7 +4,7 @@ description: Change an issue in the repo's tracker, field by field.
 ---
 
 ```bash
-holocron update issue <key> [--title <text>] [--body <text> | --body-file <path|->] [--state open|closed] [--add-label <name>]... [--remove-label <name>]... [--assignee <login>]... [--milestone <number|title>] [--type <kind>] [--priority <level>] [--effort <size>] [--start-date <date>] [--target-date <date>] [--parent <key>] [--blocked-by <key>]... [--unblock <key>]... [--project <board>] [--area <name>]... [--clear <field>]... [--dry-run] [--yes]
+holocron update issue <key> [--title <text>] [--body <text> | --body-file <path|->] [--state open|closed [--state-reason completed|not_planned]] [--add-label <name>]... [--remove-label <name>]... [--assignee <login>]... [--milestone <number|title>] [--type <kind>] [--priority <level>] [--effort <size>] [--start-date <date>] [--target-date <date>] [--parent <key>] [--blocked-by <key>]... [--unblock <key>]... [--project <board>] [--area <name>]... [--clear <field>]... [--dry-run] [--yes]
 ```
 
 Changes an issue through the repo's `issues` provider (`Issues.update`), so it works on GitHub or Linear, whichever the config names. It edits only the tracker's issue; it does not touch a pull request or the board's status (`holocron project status` does that).
@@ -29,29 +29,30 @@ The same as [`new issue`](/holocron/commands/new-issue/): GitHub holds Type, Pri
 
 ## Options
 
-| Option                  | Description                                                                                                           |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `--title <text>`        | A new title                                                                                                           |
-| `--body <text>`         | A new text, replacing the old                                                                                         |
-| `--body-file <path>`    | Read the new text from a file, or standard input with `-`; not with `--body`                                          |
-| `--state <state>`       | `open` or `closed` (closed as completed)                                                                              |
-| `--add-label <name>`    | A label to add; repeat for more                                                                                       |
-| `--remove-label <name>` | A label to remove; one the issue lacks is skipped                                                                     |
-| `--assignee <login>`    | Who it is assigned to (`me` is you); replaces the current ones                                                        |
-| `--milestone <value>`   | The milestone by number or exact title                                                                                |
-| `--type <kind>`         | `bug`, `feature` or `task`                                                                                            |
-| `--priority <level>`    | `urgent`, `high`, `medium` or `low`                                                                                   |
-| `--effort <size>`       | `high`, `medium` or `low`                                                                                             |
-| `--start-date <date>`   | When work starts, `YYYY-MM-DD`                                                                                        |
-| `--target-date <date>`  | When it is due, `YYYY-MM-DD`                                                                                          |
-| `--parent <key>`        | The issue it is a sub-issue of                                                                                        |
-| `--blocked-by <key>`    | Add a blocker; repeat for more                                                                                        |
-| `--unblock <key>`       | Take a blocker off; repeat for more                                                                                   |
-| `--project <board>`     | Put the issue on a declared board, with its priority where the board has an option                                    |
-| `--area <name>`         | Add the label `area:<name>`, checked against `repo.labels.areas`                                                      |
-| `--clear <field>`       | Empty `assignee`, `milestone`, `parent`, `type`, `priority`, `effort`, `start-date` or `target-date`; repeat for more |
-| `--dry-run`             | Show what would change, without changing it                                                                           |
-| `--yes`                 | Change without asking (required without a terminal)                                                                   |
+| Option                  | Description                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--title <text>`        | A new title                                                                                                                   |
+| `--body <text>`         | A new text, replacing the old                                                                                                 |
+| `--body-file <path>`    | Read the new text from a file, or standard input with `-`; not with `--body`                                                  |
+| `--state <state>`       | `open` or `closed` (closed as completed unless `--state-reason` says otherwise)                                               |
+| `--state-reason <why>`  | `completed` or `not_planned`, only with `--state closed` (refused otherwise, nothing written); GitHub only, Linear ignores it |
+| `--add-label <name>`    | A label to add; repeat for more                                                                                               |
+| `--remove-label <name>` | A label to remove; one the issue lacks is skipped                                                                             |
+| `--assignee <login>`    | Who it is assigned to (`me` is you); replaces the current ones                                                                |
+| `--milestone <value>`   | The milestone by number or exact title                                                                                        |
+| `--type <kind>`         | `bug`, `feature` or `task`                                                                                                    |
+| `--priority <level>`    | `urgent`, `high`, `medium` or `low`                                                                                           |
+| `--effort <size>`       | `high`, `medium` or `low`                                                                                                     |
+| `--start-date <date>`   | When work starts, `YYYY-MM-DD`                                                                                                |
+| `--target-date <date>`  | When it is due, `YYYY-MM-DD`                                                                                                  |
+| `--parent <key>`        | The issue it is a sub-issue of                                                                                                |
+| `--blocked-by <key>`    | Add a blocker; repeat for more                                                                                                |
+| `--unblock <key>`       | Take a blocker off; repeat for more                                                                                           |
+| `--project <board>`     | Put the issue on a declared board, with its priority where the board has an option                                            |
+| `--area <name>`         | Add the label `area:<name>`, checked against `repo.labels.areas`                                                              |
+| `--clear <field>`       | Empty `assignee`, `milestone`, `parent`, `type`, `priority`, `effort`, `start-date` or `target-date`; repeat for more         |
+| `--dry-run`             | Show what would change, without changing it                                                                                   |
+| `--yes`                 | Change without asking (required without a terminal)                                                                           |
 
 ## Tokens
 

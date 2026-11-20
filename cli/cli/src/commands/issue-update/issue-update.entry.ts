@@ -11,6 +11,13 @@ export const issueUpdateEntry: MenuEntry = {
 		{ key: "body", flag: "--body", type: "input", message: "New text:" },
 		{ key: "bodyFile", flag: "--body-file", type: "input", message: "File with the new text (- for stdin):" },
 		{ key: "state", flag: "--state", type: "select", choices: ["open", "closed"], message: "State:" },
+		{
+			key: "stateReason",
+			flag: "--state-reason",
+			type: "select",
+			choices: ["completed", "not_planned"],
+			message: "Closed as (with --state closed):",
+		},
 		{ key: "addLabel", flag: "--add-label", type: "input", message: "Label to add:" },
 		{ key: "removeLabel", flag: "--remove-label", type: "input", message: "Label to remove:" },
 		{ key: "assignee", flag: "--assignee", type: "input", message: "Assignee (login, or me):" },

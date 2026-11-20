@@ -150,7 +150,7 @@ export async function abandonWork(a: AbandonWorkInput): Promise<AbandonWorkResul
 			row(
 				"issue",
 				"skip",
-				`${key} left open: --yes does not close an issue; run \`holocron update issue ${key} --state closed\` to close it`
+				`${key} left open: --yes does not close an issue; run \`holocron update issue ${key} --state closed --state-reason not_planned\` to close it as not planned`
 			)
 		);
 	} else if (await a.ask(`Close ${key} as not planned?`)) {

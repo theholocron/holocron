@@ -319,6 +319,7 @@ describe("runCloseWork --abandon", () => {
 		expect(report.status).toBe("ok");
 		// --yes does not close the issue.
 		expect(text).toContain("left open: --yes does not close an issue");
+		expect(text).toContain("holocron update issue #12 --state closed --state-reason not_planned");
 	});
 
 	it("always asks first, and a no changes nothing", async () => {
