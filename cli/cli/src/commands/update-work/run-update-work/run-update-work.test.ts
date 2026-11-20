@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 const inquirerConfirm = vi.hoisted(() => vi.fn());
 vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
+const defaults = vi.hoisted(() => ({ updateIssue: vi.fn(), setStatus: vi.fn(), startWork: vi.fn() }));
+vi.mock("../../issue-update/run-issue-update/index.js", () => ({ runIssueUpdate: defaults.updateIssue }));
+vi.mock("../../project/project-status/index.js", () => ({ runProjectStatus: defaults.setStatus }));
+vi.mock("../../start-work/run-start-work/index.js", () => ({ runStartWork: defaults.startWork }));
 
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 
@@ -65,27 +69,27 @@ async function run(
 ) {
 	const { issues = issuesFake(), source = sourceFake(), noAreas, declared, ...rest } = options;
 	const lines: string[] = [];
-	const updateIssue = updateIssueOk();
-	const setStatus = vi.fn(async () => ({
+	const { updateIssue, setStatus, startWork } = defaults;
+	updateIssue.mockReset().mockImplementation(updateIssueOk());
+	setStatus.mockReset().mockResolvedValue({
 		status: "ok" as const,
 		summary: { ok: 1, fail: 0, skip: 0 },
 		key: "#12",
 		from: "Planned",
 		to: "In Progress",
-	}));
+	});
+	startWork.mockReset().mockResolvedValue({ status: "ok" as const, rows: [] });
 	const input = {
 		issue: "#12",
 		loaded: config(noAreas ? null : (declared ?? AREAS)),
 		context: { repoRoot: "/r" },
 		yes: true,
 		loader: fakeLoader({ issues, source }),
-		updateIssue,
-		setStatus,
 		print: (l: string) => void lines.push(stripVTControlCharacters(l)),
 		...rest,
 	} as RunUpdateWorkInput;
 	const report = await runUpdateWork(input);
-	return { report, text: lines.join("\n"), issues, source, updateIssue, setStatus };
+	return { report, text: lines.join("\n"), issues, source, updateIssue, setStatus, startWork };
 }
 
 describe("runUpdateWork area labels", () => {
@@ -403,5 +407,95 @@ describe("runUpdateWork providers", () => {
 		});
 		expect(report.status).toBe("fail");
 		expect(text).toContain("`source` provider is not available (missing package)");
+	});
+});
+
+describe("runUpdateWork defaults and every field", () => {
+	it("passes every issue field to update issue, and start work gets the shared loader", async () => {
+		const { updateIssue, startWork } = await run({
+			start: true,
+			kind: "bug",
+			priority: "low",
+			effort: "high",
+			startDate: "2026-11-19",
+			targetDate: "2026-12-01",
+			parent: "#1",
+			blockedBy: ["#2"],
+			unblock: ["#3"],
+		});
+		expect(updateIssue).toHaveBeenCalledWith(
+			expect.objectContaining({
+				kind: "bug",
+				priority: "low",
+				effort: "high",
+				startDate: "2026-11-19",
+				targetDate: "2026-12-01",
+				parent: "#1",
+				blockedBy: ["#2"],
+				unblock: ["#3"],
+			})
+		);
+		expect(startWork).toHaveBeenCalledWith(expect.objectContaining({ loader: expect.anything() }));
+	});
+
+	it("fails --pr when the provider cannot read a pull request", async () => {
+		const { report, text } = await run({ pullRequest: 5, source: sourceFake({ getPullRequest: undefined }) });
+		expect(report.status).toBe("fail");
+		expect(text).toContain("cannot read a pull request");
+	});
+
+	it("skips the pull request lookup when the provider cannot list them", async () => {
+		const { text } = await run({ source: sourceFake({ listPullRequests: undefined }) });
+		expect(text).toContain("no open pull request for #12");
+	});
+
+	it("asks with the default prompt when a terminal is there", async () => {
+		inquirerConfirm.mockResolvedValueOnce(true);
+		const { report } = await run({ yes: false, interactive: true });
+		expect(report.status).toBe("ok");
+		expect(inquirerConfirm).toHaveBeenCalled();
+	});
+
+	it("reads whether stdin is a terminal when not told", async () => {
+		await expect(run({ yes: false })).rejects.toBeInstanceOf(NonInteractiveError);
+	});
+
+	it("names the milestone, board and assignees in the pull request row", async () => {
+		const { text } = await run({ milestone: "v5", project: "v5", assignees: ["octo"], removeLabels: ["x"] });
+		expect(text).toContain("board v5");
+	});
+
+	it("updates the issue with no labels when only another field changed", async () => {
+		const { updateIssue } = await run({ noAreas: true, effort: "low" });
+		expect(updateIssue.mock.calls[0]![0]).not.toHaveProperty("addLabels");
+	});
+
+	it("sends every area label when the issue is not found by export", async () => {
+		const { updateIssue } = await run({ issues: issuesFake({ export: vi.fn(async () => []) }) });
+		expect(updateIssue).toHaveBeenCalledWith(expect.objectContaining({ addLabels: ["area:cli", "area:docs"] }));
+	});
+
+	it("words the status row from what the board reported", async () => {
+		const bare = await run({
+			status: "Planned",
+			setStatus: vi.fn(async () => ({ status: "ok" as const, summary: { ok: 1, fail: 0, skip: 0 } })),
+		});
+		expect(bare.text).toContain("#12 → Planned");
+		const noFrom = await run({
+			status: "Planned",
+			setStatus: vi.fn(async () => ({
+				status: "ok" as const,
+				summary: { ok: 1, fail: 0, skip: 0 },
+				key: "#12",
+				to: "Planned",
+			})),
+		});
+		expect(noFrom.text).toContain("#12 no status → Planned");
+	});
+
+	it("fails a provider that is missing with no load failure recorded", async () => {
+		const { text } = await run({ loader: fakeLoader({ source: sourceFake() }) });
+		expect(text).toContain("`issues` provider is not available");
+		expect(text).not.toContain("(");
 	});
 });

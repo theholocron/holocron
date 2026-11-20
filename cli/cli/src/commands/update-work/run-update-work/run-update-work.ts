@@ -182,7 +182,7 @@ export async function runUpdateWork(input: RunUpdateWorkInput): Promise<UpdateWo
 			context: input.context,
 			yes: true,
 			print: sub.print,
-			...(input.loader ? { loader: input.loader } : {}),
+			loader,
 			...(title ? { title } : {}),
 			...(input.name ? { name: input.name } : {}),
 			...(input.base ? { base: input.base } : {}),
