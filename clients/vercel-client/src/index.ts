@@ -4,6 +4,7 @@ import { env } from "./env/env.js";
 import { projects } from "./projects/projects.js";
 import { user } from "./user/user.js";
 import { createVercelRestClient, type VercelClientOptions } from "./utils.js";
+import { webhooks } from "./webhooks/webhooks.js";
 
 export type {
 	VercelCreateDeploymentInput,
@@ -31,8 +32,9 @@ export type {
 } from "./projects/projects.js";
 export type { VercelUser, VercelUserResponse } from "./user/user.js";
 export type { VercelClientOptions } from "./utils.js";
+export type { VercelCreatedWebhook, VercelCreateWebhookInput, VercelWebhook } from "./webhooks/webhooks.js";
 
-/** Create a Vercel client with `deployments`, `domains`, `env`, `projects` and `user` groups, all sharing one REST client built from `opts`. */
+/** Create a Vercel client with `deployments`, `domains`, `env`, `projects`, `user` and `webhooks` groups, all sharing one REST client built from `opts`. */
 export function createVercelClient(opts: VercelClientOptions) {
 	const rest = createVercelRestClient(opts);
 	return {
@@ -41,6 +43,7 @@ export function createVercelClient(opts: VercelClientOptions) {
 		env: env(rest),
 		projects: projects(rest),
 		user: user(rest),
+		webhooks: webhooks(rest),
 	};
 }
 

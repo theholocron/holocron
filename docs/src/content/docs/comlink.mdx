@@ -66,6 +66,10 @@ Each source has two bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLI
 
 See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications`](/holocron/commands/setup-notifications/). `holocron probe comlink deliver` reads the signing secret from the config's vault (or from `COMLINK_SENTRY_SECRET` in the environment) to exercise delivery.
 
+## The Vercel source
+
+The Vercel plugin implements `ensureRelaySource` and `inspectRelaySource` for `relay.sources.vercel` (`capability: "deployment"`; `events` such as `deployment.error`, `scope` the project ids). `setup notifications` makes the team webhook for `https://<relay.host>/vercel` and binds `COMLINK_VERCEL_SECRET` (the secret Vercel returns once) and `COMLINK_VERCEL_WEBHOOK`; see [the Vercel plugin](/holocron/plugins/vercel/#relay-source-comlink). The source that verifies and formats the delivery is `src/sources/vercel/`.
+
 ## Adding a source
 
 The vendor's side is set up the same way for every source, so nobody opens a vendor's dashboard: declare it in the layout (`relay.sources`, `feeds.relay`; see [`setup notifications`](/holocron/commands/setup-notifications/)), implement the optional `ensureRelaySource` and `inspectRelaySource` in the vendor's plugin, and `setup notifications` makes the webhook, hands its signing secret to the Worker as `COMLINK_<ID>_SECRET` in the same deploy and makes the channel webhook `COMLINK_<ID>_WEBHOOK`; `doctor notifications` checks both. Where a vendor's API cannot do a step, `setup` reports it as a failing `todo`.

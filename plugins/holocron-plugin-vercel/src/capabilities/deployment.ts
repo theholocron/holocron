@@ -27,9 +27,15 @@ import type {
 	DeploymentTarget,
 	DeploymentTrigger,
 	DnsRecordRequest,
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
+	InspectRelaySourceInput,
+	RelaySourceState,
 } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
+
+import { ensureVercelRelaySource, inspectVercelRelaySource } from "./relay-source.js";
 
 /** The `meta` key a file deploy tags a preview with: the pull request it belongs to, as `<repo>-pr-<number>`. */
 const PREVIEW_META_KEY = "holocronPreview";
@@ -99,6 +105,18 @@ export class VercelDeployment implements Deployment {
 					: undefined,
 		});
 		return mapProject(result);
+	}
+
+	// ── relay source ────────────────────────────────────────────────────
+
+	/** Makes (or adopts) the team webhook for a Comlink relay source, found by its URL; returns the secret only when made now. */
+	ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		return ensureVercelRelaySource(this.client(), input);
+	}
+
+	/** Reads the relay source's webhook back without changing it. */
+	inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		return inspectVercelRelaySource(this.client(), input);
 	}
 
 	// ── env vars ────────────────────────────────────────────────────────

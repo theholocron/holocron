@@ -423,6 +423,43 @@ describe("domains.config", () => {
 	});
 });
 
+describe("webhooks", () => {
+	it("list: GET /v1/webhooks returns the bare array", async () => {
+		const { client, calls } = makeClient([
+			{ body: [{ id: "account_hook_1", url: "https://r.example/vercel", events: ["deployment.error"] }] },
+		]);
+		const result = await client.webhooks.list();
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/v1/webhooks");
+		expect(result[0]?.id).toBe("account_hook_1");
+	});
+
+	it("create: POST /v1/webhooks with url, events and projectIds, returns the secret", async () => {
+		const { client, calls } = makeClient([
+			{
+				body: {
+					id: "account_hook_2",
+					url: "https://r.example/vercel",
+					events: ["deployment.error"],
+					secret: "s3",
+				},
+			},
+		]);
+		const result = await client.webhooks.create({
+			url: "https://r.example/vercel",
+			events: ["deployment.error"],
+			projectIds: ["prj_1"],
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toMatchObject({
+			url: "https://r.example/vercel",
+			events: ["deployment.error"],
+			projectIds: ["prj_1"],
+		});
+		expect(result.secret).toBe("s3");
+	});
+});
+
 describe("projects.create rootDirectory", () => {
 	it("includes rootDirectory when provided", async () => {
 		const { client, calls } = makeClient([{ body: { id: "p2", name: "new-app" } }]);

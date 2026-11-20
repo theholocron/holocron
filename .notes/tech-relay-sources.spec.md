@@ -108,7 +108,7 @@ Read from each vendor's API reference on 2026-11-19; nothing was called against 
 Findings that bear on each follow-up:
 
 - **Vercel.** The create response is the only time the secret is available, so a failed Worker deploy after creation
-  loses it. The list response carries no `secret`; `GET /v1/webhooks/{id}` exists but was not read. No update call was
+  loses it. The list response (re-read 2026-11-19) is a bare array with no `secret`, `GET /v1/webhooks` takes an optional `projectId` and the create body is `url`, `events` (required) and `projectIds`; `GET /v1/webhooks/{id}` exists but was not read. No update call was
   found in the reference, so a webhook whose `events` or `projectIds` differ is reported by `doctor` and fixed by a
   person deleting it (setup never deletes). Signature: `x-vercel-signature`, hex HMAC-SHA1 of the raw body. Unverified:
   whether the single token `HOLOCRON_VERCEL_TOKEN` already holds is enough (it is a team-scoped token; Vercel reports no
