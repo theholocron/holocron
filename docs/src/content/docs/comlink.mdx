@@ -68,7 +68,7 @@ See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications
 
 ## Adding a source
 
-The vendor's side is set up the same way for every source, so nobody opens a vendor's dashboard: declare it in the layout (`relay.sources`, `feeds.relay`; see [`setup notifications`](/holocron/commands/setup-notifications/)), implement the optional `ensureRelaySource` and `inspectRelaySource` in the vendor's plugin, and `setup notifications` makes the webhook, hands its signing secret to the Worker as `COMLINK_<ID>_SECRET` in the same deploy and makes the channel webhook `COMLINK_<ID>_WEBHOOK`; `doctor notifications` checks both. Where a vendor's API cannot do a step, `setup` reports it as a failing `todo`.
+The vendor's side is set up the same way for every source, so nobody opens a vendor's dashboard: declare it in the layout (`relay.sources`, `feeds.relay`; see [`setup notifications`](/holocron/commands/setup-notifications/)), implement the optional `ensureRelaySource` and `inspectRelaySource` in the vendor's plugin, and `setup notifications` makes the webhook, hands its signing secret to the Worker as `COMLINK_<ID>_SECRET` in the same deploy and makes the channel webhook `COMLINK_<ID>_WEBHOOK`; `doctor notifications` checks both. Where a vendor's API cannot do a step, `setup` reports it as a failing `todo`. **Clerk is the one source with a manual step**: it delivers through Svix, and Clerk has no API that makes an endpoint or returns its `whsec_` signing secret, so a person adds the endpoint in the Clerk dashboard and puts the secret in `COMLINK_CLERK_SECRET` (see the [Clerk plugin](/holocron/plugins/clerk/)).
 
 ### Doppler
 
