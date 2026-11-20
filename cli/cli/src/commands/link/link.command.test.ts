@@ -105,6 +105,14 @@ describe("notifications options", () => {
 		});
 	});
 
+	it("setup notifications passes --yes only when given", async () => {
+		await goSetup(["notifications"]);
+		const bare = runSetup.mock.calls[0]![0];
+		expect("yes" in bare).toBe(false);
+		await goSetup(["notifications", "--yes"]);
+		expect(runSetup.mock.calls[1]![0]).toMatchObject({ yes: true });
+	});
+
 	it("new server passes the owner, and the name, provider, --force and --resume when given", async () => {
 		await goNew(["server", "--owner", "someone"]);
 		const bare = runCreateServer.mock.calls[0]![0];

@@ -491,6 +491,20 @@ describe("server settings", () => {
 		);
 	});
 
+	it("guilds.renameEmoji patches the name, and guilds.deleteEmoji deletes by id", async () => {
+		const { client, calls } = makeClient([{ body: { id: "9", name: "git_merge" } }, { status: 204 }]);
+		expect((await client.guilds.renameEmoji("777", "9", "git_merge")).name).toBe("git_merge");
+		await client.guilds.deleteEmoji("777", "9");
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/guilds/777/emojis/9`,
+			method: "PATCH",
+			body: { name: "git_merge" },
+		});
+		expect(calls[1]).toMatchObject({ url: `${BASE}/guilds/777/emojis/9`, method: "DELETE" });
+		expect(() => client.guilds.deleteEmoji("777", "../x")).toThrow(/invalid Discord id/);
+		expect(() => client.guilds.renameEmoji("777", "../x", "ab")).toThrow(/invalid Discord id/);
+	});
+
 	it("guilds.delete: another failure comes through", async () => {
 		const { client } = makeClient([{ status: 403, body: {} }]);
 		await expect(client.guilds.delete("777")).rejects.toMatchObject({ status: 403 });

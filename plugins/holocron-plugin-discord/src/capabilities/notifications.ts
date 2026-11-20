@@ -3,6 +3,7 @@ import {
 	type DiscussionPost,
 	type DuplicateDiscussion,
 	ElevationRequiredError,
+	type EmojiCheck,
 	type EnsuredDiscussion,
 	type EnsureDiscussionInput,
 	type EnsuredResource,
@@ -28,7 +29,8 @@ import {
 } from "@theholocron/cli";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { BOT_NEEDS, botNeeds } from "../bot-needs.js";
+import { BOT_NEEDS, botNeeds, replaceNeeds } from "../bot-needs.js";
+import { decodePng, readDataUri, samePixels } from "../emoji-picture.js";
 import {
 	ApplicationFlag,
 	ChannelType,
@@ -149,6 +151,17 @@ function colorToHex(color: number): string {
 	return `#${color.toString(16).padStart(6, "0")}`;
 }
 
+const EMOJI_CDN = "https://cdn.discordapp.com/emojis";
+
+/** Reads a public image: no credentials are sent, the answer must be a success and small. */
+async function fetchPublicImage(url: string): Promise<Uint8Array> {
+	const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+	if (!res.ok) throw new Error(`the CDN answered ${res.status}`);
+	const bytes = new Uint8Array(await res.arrayBuffer());
+	if (bytes.length > 1024 * 1024) throw new Error("the CDN image is larger than 1 MiB");
+	return bytes;
+}
+
 /** An error as one line: the message, plus Discord's own response body when there is one. */
 function reason(err: unknown): string {
 	return err instanceof ProviderApiError && err.details
@@ -259,7 +272,9 @@ export class DiscordNotifications implements Notifications {
 		/** Builds the OAuth client for one redirect URI; needs the application's client secret. */
 		private readonly oauth: (redirectUri: string) => Promise<DiscordOAuthClient> = () => {
 			throw new Error("no Discord OAuth client configured");
-		}
+		},
+		/** Reads the bytes at a public URL (an emoji on Discord's CDN). Tests pass their own. */
+		private readonly fetchImage: (url: string) => Promise<Uint8Array> = fetchPublicImage
 	) {}
 
 	/**
@@ -2089,25 +2104,101 @@ export class DiscordNotifications implements Notifications {
 
 	/**
 	 * Finds the server emoji with this name or makes it from `image` (a `data:` URI). One that exists is left exactly as it
-	 * is: never replaced, renamed or deleted, and the image is not compared with it. Making one needs Create Guild
-	 * Expressions; without it the error says so and carries the link that invites the bot again asking for it.
+	 * is (not replaced, renamed or deleted, and the image is not compared with it) unless `replace` is set, which `setup`
+	 * does only for an emoji {@link DiscordNotifications.checkEmoji} found different. Making one
+	 * needs Create Guild Expressions; without it the error says so and carries the link that invites the bot again asking
+	 * for it.
+	 *
+	 * With `replace`, Discord has no way to change an emoji's image, so a new one is made. Names are unique per server, so
+	 * the new emoji is made first under a temporary name (`<name>_new`), the old one deleted, and the new one renamed: a
+	 * failure before the delete leaves the old emoji as it was (the new one is removed again), and one after it leaves the
+	 * new emoji under the temporary name, which the error gives. The new emoji has a new id, so the caller must read ids
+	 * again (forum default reactions and starter reactions are looked up by name each time, so `setup`'s channel step
+	 * does). Reactions made with the old emoji disappear with it. Deleting an emoji the bot did not make needs Manage
+	 * Guild Expressions; a 403 says so with the invite link.
 	 */
-	async ensureEmoji(input: { name: string; image: string }): Promise<EnsuredResource> {
+	async ensureEmoji(input: { name: string; image: string; replace?: boolean }): Promise<EnsuredResource> {
 		const bot = this.bot();
-		const have = (await bot.guilds.emojis(this.guild())).find((e) => e.id && e.name === input.name);
-		if (have?.id) return { id: have.id, created: false };
-		try {
-			const made = await bot.guilds.createEmoji(this.guild(), { name: input.name, image: input.image });
-			return { id: made.id!, created: true };
-		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 403) {
-				throw new Error(
-					`Discord refused: the bot lacks Create Guild Expressions, which making emoji \`:${input.name}:\` needs. Invite it again with it (updates its role in place): ${await this.inviteUrl()}`,
-					{ cause: err }
-				);
+		const guild = this.guild();
+		const all = await bot.guilds.emojis(guild);
+		const have = all.find((e) => e.id && e.name === input.name);
+		if (have?.id && !input.replace) return { id: have.id, created: false };
+		if (!have?.id) {
+			try {
+				const made = await bot.guilds.createEmoji(guild, { name: input.name, image: input.image });
+				return { id: made.id!, created: true };
+			} catch (err) {
+				throw await this.emojiRefused(err, `making emoji \`:${input.name}:\``, "Create Guild Expressions");
 			}
-			throw err;
 		}
+		const temporary = `${input.name.slice(0, 28)}_new`;
+		const leftover = all.find((e) => e.id && e.name === temporary);
+		if (leftover) {
+			throw new Error(
+				`the server already has an emoji \`:${temporary}:\` (left by an earlier replace that did not finish?); delete or rename it, then run setup again. \`:${input.name}:\` was not touched`
+			);
+		}
+		let made: DiscordEmoji;
+		try {
+			made = await bot.guilds.createEmoji(guild, { name: temporary, image: input.image });
+		} catch (err) {
+			throw await this.emojiRefused(err, `replacing emoji \`:${input.name}:\``, "Create Guild Expressions");
+		}
+		try {
+			await bot.guilds.deleteEmoji(guild, have.id);
+		} catch (err) {
+			await bot.guilds.deleteEmoji(guild, made.id!).catch(() => undefined); // put back what it was; the old emoji is untouched
+			throw await this.emojiRefused(
+				err,
+				`deleting the old emoji \`:${input.name}:\` (the new one was removed again, nothing changed)`,
+				"Manage Guild Expressions",
+				replaceNeeds(this.opts.layout)
+			);
+		}
+		try {
+			await bot.guilds.renameEmoji(guild, made.id!, input.name);
+		} catch (err) {
+			throw new Error(
+				`the old emoji \`:${input.name}:\` was deleted and the new one made, but renaming it failed (${reason(err)}); it is now \`:${temporary}:\` (id ${made.id}) -- rename it to \`${input.name}\` in the server's settings`,
+				{ cause: err }
+			);
+		}
+		return { id: made.id!, created: false, updated: ["image"] };
+	}
+
+	/**
+	 * Whether the server emoji with this name shows `image`. Discord returns no hash of an emoji's picture, so the copy
+	 * on its CDN (`cdn.discordapp.com/emojis/<id>.png`, the lossless size of the upload) is read and both pictures are
+	 * decoded and compared pixel by pixel with a small tolerance, which also absorbs Discord re-encoding the upload.
+	 * Read-only. Anything that stops the comparison (the layout's image is not a PNG, the CDN does not answer, a
+	 * picture that cannot be decoded) is `unknown` with the reason, never `different`.
+	 */
+	async checkEmoji(input: { name: string; image: string }): Promise<EmojiCheck> {
+		const have = (await this.bot().guilds.emojis(this.guild())).find((e) => e.id && e.name === input.name);
+		if (!have?.id) return { state: "missing" };
+		try {
+			const want = readDataUri(input.image);
+			if (want.mime !== "image/png")
+				return { state: "unknown", note: `the layout's image is ${want.mime}, not a PNG` };
+			const served = await this.fetchImage(`${EMOJI_CDN}/${have.id}.png?size=128&quality=lossless`);
+			return { state: samePixels(decodePng(want.bytes), decodePng(served)) ? "same" : "different" };
+		} catch (err) {
+			return { state: "unknown", note: reason(err) };
+		}
+	}
+
+	/** A 403 on an emoji write becomes an error naming the permission with the link that asks for it; anything else passes through. */
+	private async emojiRefused(
+		err: unknown,
+		doing: string,
+		permission: string,
+		invite: PermissionName[] = this.needs()
+	): Promise<unknown> {
+		if (!(err instanceof ProviderApiError && err.status === 403)) return err;
+		return new Error(
+			`Discord refused: the bot lacks ${permission}, which ${doing} needs. Invite it again with it (updates its role in place): ${await this.inviteUrl(invite)}`,
+			{ cause: err }
+		);
 	}
 
 	/** The server emoji with this name, or an error naming it and the two ways to get one. */

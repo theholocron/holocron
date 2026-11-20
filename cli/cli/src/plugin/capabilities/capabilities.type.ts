@@ -2293,6 +2293,14 @@ export interface ToolingExportResult {
 	issues: ToolingExportIssue[];
 }
 
+/** What {@link Notifications.checkEmoji} found out about one server emoji. */
+export interface EmojiCheck {
+	/** Whether the server lacks the emoji, holds the same picture, holds a different one, or could not be compared. */
+	state: "missing" | "same" | "different" | "unknown";
+	/** Why the pictures could not be compared, for `unknown`. */
+	note?: string;
+}
+
 /** What an `ensure*` call found or made. `created: false` means it already existed. */
 export interface EnsuredResource {
 	/** The provider's id for the resource. */
@@ -2455,7 +2463,7 @@ export type NotificationsPicture = string | { url?: string; image?: string };
  * with its name between colons (`":git_merge:"`, the name Discord shows; 2 to 32 letters, digits and underscores).
  * The object form, `{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }`, also says where `setup`
  * finds a picture to make the emoji from when the server has none (a file under `.holocron/media/`: PNG, JPEG, GIF,
- * WebP or AVIF, at most 256 KiB). `setup` never changes or deletes an emoji the server already has.
+ * WebP or AVIF, at most 256 KiB). `setup` leaves an emoji the server already has alone, unless its picture differs from `image`, when it makes it again (new id; reactions made with the old one are lost).
  */
 export type NotificationsReaction = string | { emoji: string; image?: string };
 
@@ -3004,9 +3012,19 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<EnsuredResource>;
 	/**
 	 * Find the server emoji named `name` (without colons) or make it from `image`, a `data:` URI. An emoji that
-	 * exists is left exactly as it is: never replaced, renamed or deleted, and `image` is not compared with it.
+	 * exists is left exactly as it is, never renamed or deleted, unless `replace` is true: then it is made again from
+	 * `image` (it gets a new id, and what was reacted with the old one is gone), the new one made before the old one is
+	 * removed so a failure never leaves the server without it. The result then has `created: false` and
+	 * `updated: ["image"]`, with the new id. `setup` passes `replace` only for an emoji {@link checkEmoji} found
+	 * different, and has asked first.
 	 */
-	ensureEmoji?(input: { name: string; image: string }): Promise<EnsuredResource>;
+	ensureEmoji?(input: { name: string; image: string; replace?: boolean }): Promise<EnsuredResource>;
+	/**
+	 * Read-only: whether the server emoji named `name` shows `image` (a `data:` URI). `missing` when the server has no
+	 * such emoji, `same` or `different` when the provider compared the pictures, `unknown` (with a `note`) when it could
+	 * not, in which case `setup` leaves the emoji alone: a picture that cannot be read is never taken for a changed one.
+	 */
+	checkEmoji?(input: { name: string; image: string }): Promise<EmojiCheck>;
 	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {
 		channel: string;

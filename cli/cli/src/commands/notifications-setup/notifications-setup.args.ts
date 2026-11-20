@@ -12,6 +12,11 @@ export const notificationsSetupArgs = (y: Argv<GlobalArgs>) =>
 		.option("provider", {
 			type: "string",
 			describe: "Which notifications provider, when several can provision",
+		})
+		.option("yes", {
+			type: "boolean",
+			describe:
+				"Replace server emoji whose picture changed without asking (required without a terminal when one is)",
 		});
 
 export type NotificationsSetupArgs = InferArgs<typeof notificationsSetupArgs>;

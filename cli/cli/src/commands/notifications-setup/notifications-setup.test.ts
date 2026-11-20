@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,6 +11,12 @@ import type { Monitoring, Notifications, NotificationsLayout } from "../../plugi
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
 import { feedProblem, forumLayoutProblem, PR_FEED_TAGS, runNotificationsSetup } from "./notifications-setup.js";
+
+const confirmPrompt = vi.hoisted(() => vi.fn());
+vi.mock("@inquirer/prompts", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@inquirer/prompts")>()),
+	confirm: confirmPrompt,
+}));
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -82,6 +89,9 @@ function setup(
 		loadAvatar?: (source: string) => Promise<string>;
 		loadEmojiImage?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
+		yes?: boolean;
+		interactive?: boolean;
+		confirm?: (message: string) => Promise<boolean>;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -157,6 +167,9 @@ function setup(
 				...(opts.loadEmojiImage ? { loadEmojiImage: opts.loadEmojiImage } : {}),
 				...(opts.relay?.readCode ? { readRelayCode: opts.relay.readCode } : {}),
 				...(opts.pause ? { pause: opts.pause } : {}),
+				...(opts.yes ? { yes: true } : {}),
+				...(opts.interactive !== undefined ? { interactive: opts.interactive } : {}),
+				...(opts.confirm ? { confirm: opts.confirm } : {}),
 				print: (l) => lines.push(l),
 				logger: log,
 			}),
@@ -2769,6 +2782,293 @@ describe("forum channels", () => {
 			expect(report.status).toBe("fail");
 			expect(report.failures).toEqual([{ step: "emoji :git_merge:", message: "Discord refused" }]);
 			expect(report.channels).toHaveLength(1);
+		});
+
+		describe("an emoji whose picture changed", () => {
+			type Input = { name: string; image: string; replace?: boolean };
+			type Check = { state: "missing" | "same" | "different" | "unknown"; note?: string };
+			const replacing = () => vi.fn(async (_input: Input) => ({ id: "901", created: false, updated: ["image"] }));
+			const staying = () => vi.fn(async (_input: Input) => ({ id: "900", created: false }));
+			const checking = (states: Record<string, Check>) =>
+				vi.fn(
+					async (input: { name: string; image: string }) => states[input.name] ?? { state: "same" as const }
+				);
+			const two = forumLayout({
+				defaultReaction: withImage,
+				starterReactions: [{ emoji: ":git_branch:", image: ".holocron/media/emoji/git_branch.png" }],
+			});
+			const asked = (confirm: ReturnType<typeof vi.fn>) => (confirm.mock.calls as unknown as string[][])[0]![0]!;
+
+			it("is replaced, before the channels, and the channel step is handed the same layout to look the new id up", async () => {
+				const order: string[] = [];
+				const ensureEmoji = vi.fn(async (_input: Input) => {
+					order.push("emoji");
+					return { id: "901", created: false, updated: ["image"] };
+				});
+				const ensureChannel = vi.fn(async (_input: { name: string }) => {
+					order.push("channel");
+					return { id: "1", created: true };
+				});
+				const checkEmoji = checking({ git_merge: { state: "different" } });
+				const layout = forumLayout({ defaultReaction: withImage, starterReactions: [":git_merge:"] });
+				const { run, lines } = setup(fakeNotifications({ layout, ensureEmoji, ensureChannel, checkEmoji }), {
+					loadEmojiImage: readImage,
+					yes: true,
+				});
+				const report = await run();
+				expect(report.status).toBe("ok");
+				expect(ensureEmoji).toHaveBeenCalledWith(expect.objectContaining({ name: "git_merge", replace: true }));
+				expect(report.emojis).toEqual([{ name: "git_merge", created: false, replaced: true }]);
+				expect(lines.join("\n")).toContain("replaced emoji :git_merge: (id 901)");
+				expect(order).toEqual(["emoji", "channel"]);
+				expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ defaultReaction: withImage }));
+			});
+
+			it("leaves a matching emoji alone and asks nothing, so a second run changes nothing", async () => {
+				const ensureEmoji = staying();
+				const confirm = vi.fn(async () => true);
+				const checkEmoji = checking({});
+				const { run, lines } = setup(fakeNotifications({ layout: two, ensureEmoji, checkEmoji }), {
+					loadEmojiImage: readImage,
+					interactive: false,
+					confirm,
+				});
+				const report = await run();
+				expect(report.status).toBe("ok");
+				expect(checkEmoji).toHaveBeenCalledTimes(2);
+				expect(confirm).not.toHaveBeenCalled();
+				for (const call of ensureEmoji.mock.calls) expect(call[0]).not.toHaveProperty("replace");
+				expect(report.emojis).toEqual([
+					{ name: "git_merge", created: false },
+					{ name: "git_branch", created: false },
+				]);
+				expect(lines.join("\n")).toContain("exists  emoji :git_merge: (id 900)");
+			});
+
+			it("only replaces the ones that differ, and makes one the server lacks", async () => {
+				const ensureEmoji = vi.fn(async (input: Input) => ({
+					id: "9",
+					created: input.name === "git_branch",
+					...(input.replace ? { updated: ["image"] } : {}),
+				}));
+				const checkEmoji = checking({ git_merge: { state: "different" }, git_branch: { state: "missing" } });
+				const report = await setup(fakeNotifications({ layout: two, ensureEmoji, checkEmoji }), {
+					loadEmojiImage: readImage,
+					yes: true,
+				}).run();
+				expect(ensureEmoji.mock.calls.map((c) => [c[0].name, c[0].replace])).toEqual([
+					["git_merge", true],
+					["git_branch", undefined],
+				]);
+				expect(report.emojis).toEqual([
+					{ name: "git_merge", created: false, replaced: true },
+					{ name: "git_branch", created: true },
+				]);
+			});
+
+			it("leaves an emoji alone, saying why, when its picture could not be compared", async () => {
+				const ensureEmoji = staying();
+				const checkEmoji = checking({
+					git_merge: { state: "unknown", note: "the CDN answered 404" },
+					git_branch: { state: "unknown" },
+				});
+				const confirm = vi.fn(async () => true);
+				const { run, lines } = setup(fakeNotifications({ layout: two, ensureEmoji, checkEmoji }), {
+					loadEmojiImage: readImage,
+					interactive: false,
+					confirm,
+				});
+				const report = await run();
+				expect(report.status).toBe("ok");
+				expect(confirm).not.toHaveBeenCalled();
+				for (const call of ensureEmoji.mock.calls) expect(call[0]).not.toHaveProperty("replace");
+				expect(lines.join("\n")).toContain(
+					"exists  emoji :git_merge: (id 900) (picture not compared: the CDN answered 404)"
+				);
+				expect(lines.join("\n")).toContain("(picture not compared: unknown)");
+			});
+
+			it("treats a check that throws as not compared, never as changed", async () => {
+				const ensureEmoji = staying();
+				const checkEmoji = vi.fn(async (_input: { name: string; image: string }): Promise<Check> => {
+					throw new Error("no bot token");
+				});
+				const { run, lines } = setup(
+					fakeNotifications({ layout: forumLayout({ defaultReaction: withImage }), ensureEmoji, checkEmoji }),
+					{ loadEmojiImage: readImage, interactive: false }
+				);
+				const report = await run();
+				expect(report.status).toBe("ok");
+				expect(ensureEmoji.mock.calls[0]![0]).not.toHaveProperty("replace");
+				expect(lines.join("\n")).toContain("picture not compared: no bot token");
+			});
+
+			it("asks first, naming only the emoji that differ and the loss of reactions, and goes on when told yes", async () => {
+				const ensureEmoji = replacing();
+				const confirm = vi.fn(async () => true);
+				const checkEmoji = checking({ git_merge: { state: "different" } });
+				const report = await setup(fakeNotifications({ layout: two, ensureEmoji, checkEmoji }), {
+					loadEmojiImage: readImage,
+					interactive: true,
+					confirm,
+				}).run();
+				expect(report.status).toBe("ok");
+				expect(confirm).toHaveBeenCalledOnce();
+				const question = asked(confirm);
+				expect(question).toContain("The picture of :git_merge: differs");
+				expect(question).not.toContain("git_branch");
+				expect(question).toContain("Replace it?");
+				expect(question).toContain("reactions made with the old one disappear");
+			});
+
+			it("names several in the plural", async () => {
+				const confirm = vi.fn(async () => true);
+				const checkEmoji = checking({ git_merge: { state: "different" }, git_branch: { state: "different" } });
+				await setup(fakeNotifications({ layout: two, ensureEmoji: replacing(), checkEmoji }), {
+					loadEmojiImage: readImage,
+					interactive: true,
+					confirm,
+				}).run();
+				expect(asked(confirm)).toContain("The picture of :git_merge:, :git_branch: differs");
+				expect(asked(confirm)).toContain("Replace them?");
+			});
+
+			it("writes nothing when the answer is no", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+					checkEmoji: checking({ git_merge: { state: "different" } }),
+				});
+				const { run, lines } = setup(n, {
+					loadEmojiImage: readImage,
+					interactive: true,
+					confirm: async () => false,
+				});
+				const report = await run();
+				expect(report.status).toBe("cancelled");
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+				expect(n.ensureCategory).not.toHaveBeenCalled();
+				expect(lines.join("\n")).toContain("cancelled; nothing was written");
+			});
+
+			it("asks through a prompt when no confirm is injected", async () => {
+				confirmPrompt.mockResolvedValueOnce(true);
+				const report = await setup(
+					fakeNotifications({
+						layout: forumLayout({ defaultReaction: withImage }),
+						ensureEmoji: replacing(),
+						checkEmoji: checking({ git_merge: { state: "different" } }),
+					}),
+					{ loadEmojiImage: readImage, interactive: true }
+				).run();
+				expect(report.status).toBe("ok");
+				expect(confirmPrompt).toHaveBeenCalledWith(expect.objectContaining({ default: false }));
+			});
+
+			it("takes the terminal from stdin when it is not said, and refuses without one", async () => {
+				const tty = process.stdin.isTTY;
+				process.stdin.isTTY = false;
+				try {
+					const n = fakeNotifications({
+						layout: forumLayout({ defaultReaction: withImage }),
+						ensureEmoji: replacing(),
+						checkEmoji: checking({ git_merge: { state: "different" } }),
+					});
+					const err = await setup(n, { loadEmojiImage: readImage })
+						.run()
+						.catch((e: unknown) => e);
+					expect(err).toBeInstanceOf(NonInteractiveError);
+					expect((err as Error).message).toMatch(/:git_merge: differs from the layout's/);
+					expect((err as Error).message).toMatch(/pass --yes to run it without asking, or --dry-run/);
+					expect(n.ensureEmoji).not.toHaveBeenCalled();
+					expect(n.ensureCategory).not.toHaveBeenCalled();
+				} finally {
+					process.stdin.isTTY = tty;
+				}
+			});
+
+			it("says them in the plural when several differ and there is no terminal", async () => {
+				const checkEmoji = checking({ git_merge: { state: "different" }, git_branch: { state: "different" } });
+				const err = await setup(fakeNotifications({ layout: two, ensureEmoji: replacing(), checkEmoji }), {
+					loadEmojiImage: readImage,
+					interactive: false,
+				})
+					.run()
+					.catch((e: unknown) => e);
+				expect((err as Error).message).toMatch(/would make them again/);
+			});
+
+			it("lists each emoji it would replace on --dry-run, with no question and no write", async () => {
+				const n = fakeNotifications({
+					layout: two,
+					ensureEmoji: replacing(),
+					checkEmoji: checking({
+						git_merge: { state: "different" },
+						git_branch: { state: "unknown", note: "x" },
+					}),
+				});
+				const confirm = vi.fn(async () => true);
+				const { run, lines } = setup(n, {
+					loadEmojiImage: readImage,
+					dryRun: true,
+					interactive: false,
+					confirm,
+				});
+				const report = await run();
+				expect(report.status).toBe("dry-run");
+				expect(confirm).not.toHaveBeenCalled();
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+				expect(lines.join("\n")).toContain("would replace emoji :git_merge:");
+				expect(lines.join("\n")).toContain("would ensure emoji :git_branch:");
+				expect(lines.join("\n")).toContain("(picture not compared: x)");
+			});
+
+			it("fails closed on an unusable image before comparing, asking or writing", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: withImage }),
+					ensureEmoji: replacing(),
+					checkEmoji: checking({ git_merge: { state: "different" } }),
+				});
+				const confirm = vi.fn(async () => true);
+				const report = await setup(n, {
+					loadEmojiImage: async () => {
+						throw new Error("it is 300 KiB");
+					},
+					interactive: true,
+					confirm,
+				}).run();
+				expect(report.status).toBe("fail");
+				expect(n.checkEmoji).not.toHaveBeenCalled();
+				expect(confirm).not.toHaveBeenCalled();
+				expect(n.ensureEmoji).not.toHaveBeenCalled();
+			});
+
+			it("compares nothing when the layout gives no emoji an image", async () => {
+				const n = fakeNotifications({
+					layout: forumLayout({ defaultReaction: ":git_merge:" }),
+					checkEmoji: checking({}),
+				});
+				const report = await setup(n, { interactive: false }).run();
+				expect(report.status).toBe("ok");
+				expect(n.checkEmoji).not.toHaveBeenCalled();
+			});
+
+			it("reports a replacement that failed and goes on", async () => {
+				const ensureEmoji = vi.fn(async (_input: Input) => {
+					throw new Error("Discord refused: the bot lacks Manage Guild Expressions");
+				});
+				const report = await setup(
+					fakeNotifications({
+						layout: forumLayout({ defaultReaction: withImage }),
+						ensureEmoji,
+						checkEmoji: checking({ git_merge: { state: "different" } }),
+					}),
+					{ loadEmojiImage: readImage, yes: true }
+				).run();
+				expect(report.status).toBe("fail");
+				expect(report.failures[0]?.step).toBe("emoji :git_merge:");
+				expect(report.channels).toHaveLength(1);
+			});
 		});
 
 		it("refuses, before anything is written, an image that cannot be used", async () => {

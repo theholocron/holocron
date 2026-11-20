@@ -1,7 +1,7 @@
 import type { NotificationsLayout } from "@theholocron/cli";
 import { describe, expect, it } from "vitest";
 
-import { BOT_NEEDS, botNeeds } from "./bot-needs.js";
+import { BOT_NEEDS, botNeeds, replaceNeeds } from "./bot-needs.js";
 
 const layoutOf = (value: unknown) => value as NotificationsLayout;
 
@@ -34,5 +34,10 @@ describe("botNeeds", () => {
 		for (const reaction of [":git_merge:", { emoji: ":git_merge:" }, "🔀"]) {
 			expect(botNeeds(layout(reaction))).toEqual([...BOT_NEEDS, "ManageThreads"]);
 		}
+	});
+
+	it("asks for Manage Guild Expressions on top only when emoji are replaced", () => {
+		expect(botNeeds(undefined)).not.toContain("ManageGuildExpressions");
+		expect(replaceNeeds(undefined)).toEqual([...BOT_NEEDS, "ManageGuildExpressions"]);
 	});
 });

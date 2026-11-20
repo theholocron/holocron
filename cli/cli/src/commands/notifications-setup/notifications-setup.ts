@@ -11,14 +11,15 @@
  * shared preset would apply it from every repo.
  */
 
-import { input as prompt } from "@inquirer/prompts";
-import { createProgress, describeError, logReason, style } from "@theholocron/kyber/ui";
+import { confirm, input as prompt } from "@inquirer/prompts";
+import { createProgress, describeError, logReason, NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
 	type Dns,
+	type EmojiCheck,
 	type Errors,
 	type Monitoring,
 	type MonitoringAlertSettings,
@@ -586,6 +587,36 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
+	// An emoji whose picture differs from the layout's is made again (a new id; the old one and the reactions made with it
+	// are lost), and only that one: a matching emoji is left alone, so a second run changes nothing. Find out which, read-only,
+	// before anything is written, and ask first. A picture the provider cannot read counts as unchanged, never as different.
+	const emojiStates = new Map<string, EmojiCheck>();
+	if (notifications.checkEmoji) {
+		for (const [name, image] of emojiImages) {
+			try {
+				emojiStates.set(name, await notifications.checkEmoji({ name, image }));
+			} catch (err) {
+				emojiStates.set(name, { state: "unknown", note: describeError(err) });
+			}
+		}
+	}
+	const changedEmoji = [...emojiStates].filter(([, check]) => check.state === "different").map(([name]) => name);
+	if (changedEmoji.length > 0 && !dryRun && !input.yes) {
+		const names = changedEmoji.map((name) => `:${name}:`).join(", ");
+		if (!(input.interactive ?? Boolean(process.stdin.isTTY))) {
+			throw new NonInteractiveError(
+				`the picture of ${names} differs from the layout's, so setup would make ${changedEmoji.length === 1 ? "it" : "them"} again and delete the old one; pass --yes to run it without asking, or --dry-run to preview`
+			);
+		}
+		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
+			`The picture of ${names} differs from the layout's. Replace ${changedEmoji.length === 1 ? "it" : "them"}? Each is made again from its image with a new id and the old one deleted, so reactions made with the old one disappear from existing posts.`
+		);
+		if (!proceed) {
+			print(`  ${style.skip("cancelled; nothing was written")}`);
+			return { ...report, status: "cancelled" };
+		}
+	}
+
 	// The relay webhook's URL, kept here between creating it and handing it to the Worker; never reported or printed.
 	let relayWebhook: string | undefined;
 
@@ -649,23 +680,36 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		});
 	}
 
-	// Server emoji next, made only where the server lacks one: a channel's reactions name them.
+	// Server emoji next, made where the server lacks one and made again where its picture differs: a channel's reactions
+	// name them, and are looked up by name once the channels are reached, so a replaced emoji's new id is the one they get.
 	if (emojiImages.size > 0) print(`\n${style.header("Emoji")}`);
 	for (const [name, image] of emojiImages) {
 		await attempt(`emoji :${name}:`, async () => {
+			const check = emojiStates.get(name);
+			const replace = check?.state === "different";
+			const note = check?.state === "unknown" ? ` (picture not compared: ${check.note ?? "unknown"})` : "";
 			if (dryRun) {
 				print(
-					`  ${style.skip(`would ensure emoji :${name}: (made from its image only when the server has none)`)}`
+					`  ${style.skip(
+						replace
+							? `would replace emoji :${name}: (its picture differs; made again, a new id)`
+							: `would ensure emoji :${name}: (made from its image only when the server has none)${note}`
+					)}`
 				);
 				tally.skip++;
 				return;
 			}
-			const result = await notifications.ensureEmoji!({ name, image }); // checked above, before anything was written
-			report.emojis = [...(report.emojis ?? []), { name, created: result.created }];
+			const result = await notifications.ensureEmoji!({ name, image, ...(replace ? { replace: true } : {}) }); // checked above, before anything was written
+			const replaced = !result.created && (result.updated?.length ?? 0) > 0;
+			report.emojis = [
+				...(report.emojis ?? []),
+				{ name, created: result.created, ...(replaced ? { replaced: true } : {}) },
+			];
+			const verb = result.created ? "created" : replaced ? "replaced" : "exists ";
 			print(
-				`  ${(result.created ? style.success : style.skip)(`${result.created ? "created" : "exists "} emoji :${name}: (id ${result.id})`)}`
+				`  ${(result.created || replaced ? style.success : style.skip)(`${verb} emoji :${name}: (id ${result.id})${result.created || replaced ? "" : note}`)}`
 			);
-			made(result.created);
+			made(result.created || replaced);
 		});
 	}
 

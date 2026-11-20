@@ -28,6 +28,7 @@ export const notificationsSetupCommand: CommandModule<GlobalArgs, NotificationsS
 			},
 			...(argv.scope ? { scope: parseScope(argv.scope) } : {}),
 			...(argv.provider ? { provider: argv.provider } : {}),
+			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},
