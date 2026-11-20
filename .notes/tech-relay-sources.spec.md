@@ -138,6 +138,11 @@ Findings that bear on each follow-up:
   nothing to read and is left out, so `doctor` skips that row; the Worker's `relay-bindings` row still proves the
   secret is bound.
 
+Clerk as built (#1666): `ClerkAuth.ensureRelaySource` calls `POST /webhooks/svix` (tolerating "already") and returns two
+`todo` sentences (dashboard endpoint step; secret to `COMLINK_CLERK_SECRET`), no secret, `created: false`. Since nothing can be
+read back to tell the person is done, `options: { confirmed: true }` on the source clears the `todo`. No `inspectRelaySource`.
+Re-checked 2026-11-19: `npx clerk@latest api ls webhook` still lists only the three Svix routes.
+
 ## Plan
 
 1. This change: the layout keys, the two optional methods, the generic orchestration and checks, Sentry's secret and

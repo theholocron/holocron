@@ -43,6 +43,20 @@ export HOLOCRON_CLERK_SECRET_KEY=sk_live_xxx
 - `describe()` — returns the provider name and required env var keys (`CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`)
 - `whoami()` — verifies the secret key by calling the Clerk API
 - `ensureWebhookApp()` — provisions a Svix webhook app (idempotent)
+- `ensureRelaySource()` — the Comlink relay source for Clerk, which is the one source with a manual step (below)
+
+## Comlink relay source: a manual step
+
+Clerk delivers webhooks through Svix. Clerk's Backend API and Platform API have no route that makes a webhook endpoint, lists endpoints or returns an endpoint's `whsec_` signing secret; the only webhook routes are `POST` and `DELETE /webhooks/svix` (the instance's Svix app) and `POST /webhooks/svix_url` (a temporary link to Svix's dashboard), as `npx clerk@latest api ls webhook` shows. Svix's own API could, but Clerk gives an application no Svix API key. So, unlike Vercel, Cloudflare and Doppler, Clerk cannot be set up by `holocron setup notifications`.
+
+With `relay.sources.clerk: { capability: "auth", events: [...] }` in the layout, `ensureRelaySource()` makes sure the Svix app exists and returns a `todo`, which fails the run until it is done:
+
+1. In the Clerk Dashboard open **Configure, Webhooks, Add Endpoint**, set the URL to `https://<relay.host>/clerk`, tick the events and save.
+2. Copy the endpoint's **Signing Secret** (`whsec_...`) into the `prod` 1Password Environment as `COMLINK_CLERK_SECRET` and run `holocron sync secrets --env prod --cwd apps/comlink --worker comlink`.
+3. Set `options: { confirmed: true }` on the `clerk` source so the step stops being reported (the plugin cannot read an endpoint, so it cannot tell for itself).
+
+There is no `inspectRelaySource` for Clerk, so `doctor notifications` skips the `relay-source:clerk` row; the `relay-bindings` row still proves the Worker holds `COMLINK_CLERK_SECRET`. The secret is never printed or logged.
+
 - `getWebhookDashboardUrl()` — returns the deep-link to the Svix dashboard
 - `createUser(input)` — creates a Clerk user (email + password, optional name)
 - `syncWebhook(input)` — wires the Clerk webhook endpoint into the project's repo

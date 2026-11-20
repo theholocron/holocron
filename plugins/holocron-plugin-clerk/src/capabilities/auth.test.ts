@@ -91,6 +91,57 @@ describe("ClerkAuth.getWebhookDashboardUrl", () => {
 	});
 });
 
+describe("ClerkAuth.ensureRelaySource", () => {
+	const input = {
+		source: "clerk",
+		url: "https://comlink.example.dev/clerk",
+		name: "Clerk",
+		events: ["user.created", "user.deleted"],
+		secret: "a".repeat(64),
+	};
+
+	it("makes sure the Svix app exists, creates no endpoint and returns the dashboard steps as a todo", async () => {
+		const { auth, calls } = makeAuth([{ status: 200, body: {} }]);
+		const result = await auth.ensureRelaySource!(input);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.url).toBe("https://api.clerk.com/v1/webhooks/svix");
+		expect(result.created).toBe(false);
+		expect(result.updated).toEqual([]);
+		expect(result.secret).toBeUndefined();
+		const todo = (result.todo ?? []).join(" ");
+		expect(todo).toContain("https://comlink.example.dev/clerk");
+		expect(todo).toContain("user.created, user.deleted");
+		expect(todo).toContain("COMLINK_CLERK_SECRET");
+		expect(todo).toContain("whsec_");
+		expect(todo).not.toContain(input.secret);
+	});
+
+	it("tolerates an existing Svix app and lists the default events when none are declared", async () => {
+		const { auth } = makeAuth([{ status: 400, text: "you_already_have_a_svix_app" }]);
+		const { events: _e, ...rest } = input;
+		const result = await auth.ensureRelaySource!(rest);
+		expect((result.todo ?? []).join(" ")).toContain("the events the Comlink clerk source carries");
+	});
+
+	it("returns no todo once the layout says the endpoint is made", async () => {
+		const { auth } = makeAuth([{ status: 400, text: "you_already_have_a_svix_app" }]);
+		expect(await auth.ensureRelaySource!({ ...input, options: { confirmed: true } })).toEqual({
+			created: false,
+			updated: [],
+		});
+	});
+
+	it("propagates a Clerk failure", async () => {
+		const { auth } = makeAuth([{ status: 401, text: "invalid secret key" }]);
+		await expect(auth.ensureRelaySource!(input)).rejects.toBeInstanceOf(ProviderApiError);
+	});
+
+	it("has no inspectRelaySource, because nothing about an endpoint can be read", () => {
+		const { auth } = makeAuth([]);
+		expect("inspectRelaySource" in auth).toBe(false);
+	});
+});
+
 describe("ClerkAuth.createUser", () => {
 	it("POSTs /users with email + password + names, maps response", async () => {
 		const { auth, calls } = makeAuth([

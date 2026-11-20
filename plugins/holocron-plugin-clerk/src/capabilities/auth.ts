@@ -30,6 +30,8 @@ import type {
 	AuthIdentity,
 	AuthUser,
 	CreateAuthUserInput,
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
 	WebhookDashboardInfo,
 } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
@@ -90,6 +92,31 @@ export class ClerkAuth implements Auth {
 			throw new ProviderApiError("Clerk POST /webhooks/svix_url returned 200 but no `url` field", 500, undefined);
 		}
 		return { url };
+	}
+
+	// ── relay source ────────────────────────────────────────────────────
+
+	/**
+	 * Clerk is the one relay source with a manual step (spec `tech-relay-sources`). Clerk delivers through Svix and
+	 * neither the Backend API nor the Platform API has a route that makes an endpoint, lists them or returns a `whsec_`
+	 * signing secret (checked 2026-11-19: `POST`/`DELETE /webhooks/svix` and `POST /webhooks/svix_url` are the only
+	 * webhook routes). So this makes sure the instance's Svix app exists (idempotent) and returns a `todo` naming the
+	 * dashboard steps; it never returns a secret and never creates an endpoint. Once the endpoint is made and
+	 * `COMLINK_CLERK_SECRET` is synced, set `options.confirmed: true` on the source in the layout to stop the `todo`.
+	 */
+	async ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		await this.ensureWebhookApp();
+		if (input.options?.["confirmed"] === true) return { created: false, updated: [] };
+		const events = input.events?.length ? input.events.join(", ") : "the events the Comlink clerk source carries";
+		const binding = `COMLINK_${input.source.toUpperCase()}_SECRET`;
+		return {
+			created: false,
+			updated: [],
+			todo: [
+				`Clerk has no API to make a webhook endpoint: in the Clerk Dashboard open Configure, Webhooks, Add Endpoint, set the URL to ${input.url}, tick ${events}, and save.`,
+				`Copy the endpoint's Signing Secret (whsec_...) from its page into the prod 1Password Environment as ${binding}, run \`holocron sync secrets --env prod --cwd apps/comlink --worker comlink\`, then set \`options: { confirmed: true }\` on the \`${input.source}\` relay source to clear this step.`,
+			],
+		};
 	}
 
 	// ── users ───────────────────────────────────────────────────────────
