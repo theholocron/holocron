@@ -779,7 +779,8 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
 
 - **`holocron sync issues --from <a> --to <b> [--since <time>] [--yes]`** — one direction of an issue sync between two
   trackers (`github`, `linear:team=ENG`); swap the ends for the other direction. Unlike `holocron migrate` it updates what
-  it made: it creates a missing issue, sets title, description, state, priority, labels and assignee when they differ, and
+  it made: it creates a missing issue, sets title, description, state, priority, labels, kind (the GitHub Type, the kind
+  label on Linear; `IssueRecord.kind`) and assignee when they differ, and
   adds the comments the target lacks (oldest first, never edited or deleted). It writes nothing to the source, and changes
   a target issue only when a migrate or sync made it (the recorded `holocron:migrated-from` marker or attachment). A source
   issue that itself carries such an address is skipped, which stops the two directions echoing each other. The report

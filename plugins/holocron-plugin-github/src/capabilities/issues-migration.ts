@@ -28,6 +28,7 @@ import {
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { kindOfIssue, writeKind } from "./issue-kind.js";
 import { createPrioritySetter } from "./issue-priority.js";
 
 export const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
@@ -168,6 +169,7 @@ async function readIssues(
 		const { labels, priority } = splitLabels(issue.labels.map((l) => l.name));
 		const body = issue.body?.replace(MARKER, "").trimEnd();
 		const migratedFrom = issue.body ? MARKER.exec(issue.body)?.[1] : undefined;
+		const kind = kindOfIssue(issue);
 		records.push({
 			key: `#${issue.number}`,
 			url: issue.html_url,
@@ -177,6 +179,7 @@ async function readIssues(
 			closed: issue.state === "closed",
 			...(priority ? { priority } : {}),
 			labels: labels.filter((l) => !l.toLowerCase().startsWith("status:")),
+			...(kind ? { kind } : {}),
 			...(issue.assignee
 				? {
 						assignee: {
@@ -235,6 +238,8 @@ export async function importIssues(
 		const number = await createFromRecord(client, repo, record, options);
 		const field = await priority.set(number, record.priority, { isNew: true });
 		if (field.note) dropped.push(field.note);
+		const kindNote = record.kind ? await writeKind(client, repo, number, record.kind) : undefined;
+		if (kindNote) dropped.push(kindNote);
 		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
 		tick();
 	}
