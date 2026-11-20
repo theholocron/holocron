@@ -17,7 +17,7 @@ const row = (id: string, status: CheckRow["status"], detail: string): CheckRow =
 /** The first worktree `git worktree list` names, the repository's own checkout, which is never removed. */
 function mainWorktree(input: CleanUpWorkInput): string | undefined {
 	const first = input.git(["worktree", "list", "--porcelain"], input.repoRoot).split("\n")[0];
-	return first?.startsWith("worktree ") ? first.slice("worktree ".length) : undefined;
+	return first?.startsWith("worktree ") ? resolve(first.slice("worktree ".length)) : undefined;
 }
 
 /**
@@ -41,7 +41,7 @@ export function cleanUpWork(input: CleanUpWorkInput): CheckRow[] {
 		} else if (input.keepWorktree) {
 			rows.push(row("worktree", "skip", `kept at ${path} (--keep-worktree)`));
 			keepBranch = "its worktree is kept";
-		} else if (resolve(path) === resolve(mainWorktree(input) ?? "")) {
+		} else if (resolve(path) === mainWorktree(input)) {
 			rows.push(
 				row(
 					"worktree",

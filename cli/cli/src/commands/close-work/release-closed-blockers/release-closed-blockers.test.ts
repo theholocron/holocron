@@ -29,6 +29,33 @@ describe("releaseClosedBlockers", () => {
 		]);
 	});
 
+	it("treats an issue the provider does not return as having no blockers, and pluralises", async () => {
+		const unblock = vi.fn(async () => ok);
+		const gone = await releaseClosedBlockers({ issues: issuesWith({}), key: "#12", unblock });
+		expect(gone[0]?.detail).toBe("#12 has no blockers");
+		const two = await releaseClosedBlockers({
+			issues: issuesWith({
+				"#12": record("#12", { blockedBy: ["#3", "#4", "#5"] }),
+				"#3": record("#3", { closed: true }),
+				"#4": record("#4", { closed: true }),
+				"#5": record("#5"),
+			}),
+			key: "#12",
+			unblock,
+		});
+		expect(two[0]?.detail).toBe("closed blockers #3, #4 taken off #12");
+		const open = await releaseClosedBlockers({
+			issues: issuesWith({
+				"#12": record("#12", { blockedBy: ["#4", "#5"] }),
+				"#4": record("#4"),
+				"#5": record("#5"),
+			}),
+			key: "#12",
+			unblock,
+		});
+		expect(open[0]?.detail).toBe("2 blockers still open: #4, #5");
+	});
+
 	it("changes nothing when no blocker is closed or the issue has none", async () => {
 		const unblock = vi.fn(async () => ok);
 		const open = await releaseClosedBlockers({

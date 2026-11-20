@@ -167,6 +167,21 @@ describe("GitHubSource.getPullRequestChecks", () => {
 		expect(await states([run(1, "other", "completed", "success", "a")])).toBe("none");
 	});
 
+	it("breaks a tie between runs with no start time by the newer id", async () => {
+		const bare = (id: number, conclusion: string) => ({
+			id,
+			name: "ci / Required checks",
+			status: "completed",
+			conclusion,
+			html_url: `https://x/runs/${id}`,
+		});
+		const { source } = makeSource([
+			{ status: 200, body: prBody },
+			{ status: 200, body: { check_runs: [bare(1, "failure"), bare(2, "success")] } },
+		]);
+		expect((await source.getPullRequestChecks(5)).state).toBe("success");
+	});
+
 	it("accepts a repo override", async () => {
 		const { source, calls } = makeSource([
 			{ status: 200, body: prBody },

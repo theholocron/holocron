@@ -128,6 +128,13 @@ describe("runCloseWork on an open pull request", () => {
 		expect(asked.updateWork).not.toHaveBeenCalled();
 	});
 
+	it("goes on to mark it ready when the person says yes", async () => {
+		const { report, source, confirm } = await run({ answers: [true] });
+		expect(confirm).toHaveBeenCalledWith(expect.stringContaining("#12 is green. Mark #7 ready"));
+		expect(source.markReady).toHaveBeenCalledWith(7);
+		expect(report.status).toBe("ok");
+	});
+
 	it("stops, naming the failing checks, when the aggregate is red", async () => {
 		const source = sourceFake({
 			getPullRequestChecks: vi.fn(async () => ({
@@ -482,5 +489,68 @@ describe("runCloseWork checks", () => {
 		});
 		const { text } = await run({ source, yes: true });
 		expect(text).toContain("2 open pull requests match #12; using #9");
+	});
+});
+
+describe("runCloseWork wording and defaults", () => {
+	it("names no cause when the provider failed to load without saying why", async () => {
+		const { text } = await run({ yes: true, loader: fakeLoader({ issues: issuesFake() }) });
+		expect(text).toContain("the `source` provider is not available");
+		expect(text).not.toContain("not available (");
+	});
+
+	it("reads whether a terminal is there when none is told", async () => {
+		const { report } = await run({ yes: true, interactive: undefined });
+		expect(report.status).toBe("ok");
+	});
+
+	it("cleans up a merged pull request that has no head commit recorded", async () => {
+		const source = sourceFake({
+			listPullRequests: vi.fn(async (state: string) =>
+				state === "open" ? [] : [pr(7, "feat/12-do-it", { state: "closed", merged: true, headSha: undefined })]
+			),
+		});
+		const git = gitFake({ unpushed: 0 });
+		await run({ source, git, yes: true });
+		expect(git.writes()).toContain("branch -D feat/12-do-it");
+	});
+
+	it("names at most eight failing checks, with a link only when there is one", async () => {
+		const failing = Array.from({ length: 10 }, (_, i) => ({ name: `check-${i}` }));
+		const source = sourceFake({ getPullRequestChecks: vi.fn(async () => ({ state: "failure", failing })) });
+		const { text } = await run({ source, yes: true });
+		expect(text).toContain("check-0, check-1");
+		expect(text).toContain("and 2 more");
+		expect(text).not.toContain("check-9");
+	});
+
+	it("says it is red even when no check can be named", async () => {
+		const source = sourceFake({ getPullRequestChecks: vi.fn(async () => ({ state: "failure", failing: [] })) });
+		const { text } = await run({ source, yes: true });
+		expect(text).toContain("is red. #7 was not marked ready");
+	});
+
+	it("says when the aggregate was never posted and pluralises the minutes it waited", async () => {
+		let t = 0;
+		const source = sourceFake({ getPullRequestChecks: vi.fn(async () => ({ state: "none", failing: [] })) });
+		const waited = await run({
+			source,
+			yes: true,
+			wait: true,
+			timeoutMinutes: 2,
+			intervalMs: 60_000,
+			now: () => t,
+			sleep: async (ms) => void (t += ms),
+		});
+		expect(waited.text).toContain("is still none after 2 minutes");
+		const once = await run({ source, yes: true });
+		expect(once.text).toContain("is not posted yet; --wait polls");
+	});
+
+	it("marks nothing ready without a green aggregate sha, and words the green row without one", async () => {
+		const source = sourceFake({ getPullRequestChecks: vi.fn(async () => ({ state: "success", failing: [] })) });
+		const { text } = await run({ source, yes: true });
+		expect(text).toContain("green");
+		expect(text).not.toContain("green on");
 	});
 });

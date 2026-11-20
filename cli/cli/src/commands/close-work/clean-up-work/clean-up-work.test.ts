@@ -12,6 +12,9 @@ interface World {
 	remote?: string;
 	remoteThrows?: boolean;
 	removeThrows?: boolean;
+	deleteThrows?: boolean;
+	/** The second `worktree list` (the main checkout's) answers nothing. */
+	blankSecondList?: boolean;
 }
 
 function fakeGit(world: World = {}) {
@@ -20,10 +23,13 @@ function fakeGit(world: World = {}) {
 		["/wt/work", "feat/1-x"],
 	];
 	const calls: string[][] = [];
+	let lists = 0;
 	const git = (args: readonly string[], cwd: string): string => {
 		calls.push([...args, `@${cwd}`]);
 		const [a, b] = args;
 		if (a === "worktree" && b === "list") {
+			lists += 1;
+			if (world.blankSecondList && lists > 1) return "";
 			return worktrees
 				.map(([path, branch]) => `worktree ${path}\nHEAD 000\nbranch refs/heads/${branch}\n`)
 				.join("\n");
@@ -39,7 +45,10 @@ function fakeGit(world: World = {}) {
 		}
 		if (a === "rev-parse") return world.tip ?? "aaaaaaa1111";
 		if (a === "rev-list") return String(world.unpushed ?? 0);
-		if (a === "branch") return "";
+		if (a === "branch") {
+			if (world.deleteThrows) throw new Error("cannot delete");
+			return "";
+		}
 		if (a === "ls-remote") {
 			if (world.remoteThrows) throw new Error("offline");
 			return world.remote ?? "";
@@ -136,6 +145,17 @@ describe("cleanUpWork", () => {
 		expect(detail(there, "remote branch")?.detail).toContain("git push origin --delete feat/1-x");
 		const offline = cleanUpWork({ ...base, git: fakeGit({ remoteThrows: true }).git });
 		expect(detail(offline, "remote branch")).toMatchObject({ status: "skip" });
+	});
+
+	it("reports a branch that cannot be deleted", () => {
+		const rows = cleanUpWork({ ...base, git: fakeGit({ deleteThrows: true }).git });
+		expect(detail(rows, "local branch")).toMatchObject({ status: "fail" });
+	});
+
+	it("removes the worktree when the main checkout cannot be told", () => {
+		const { git, calls } = fakeGit({ blankSecondList: true });
+		cleanUpWork({ ...base, git });
+		expect(wrote(calls)).toContain("worktree remove /wt/work");
 	});
 
 	it("reports a git failure while listing worktrees", () => {

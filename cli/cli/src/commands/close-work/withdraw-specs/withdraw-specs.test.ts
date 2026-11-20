@@ -40,6 +40,14 @@ describe("withdrawSpecs", () => {
 			files: [{ path: "a", did: [], problem: "rate limited", text: "" }],
 		});
 		expect(await withdrawSpecs(loaded, context, ["a"])).toEqual({ ok: false, detail: "a: rate limited" });
+		runSpecsSync.mockResolvedValueOnce({
+			status: "fail",
+			files: [
+				{ path: "a", did: [], problem: "rate limited", text: "" },
+				{ path: "b", did: [], text: "" },
+			],
+		});
+		expect((await withdrawSpecs(loaded, context, ["a", "b"])).detail).toBe("a: rate limited");
 		runSpecsSync.mockResolvedValueOnce({ status: "fail", files: [] });
 		expect((await withdrawSpecs(loaded, context, ["a"])).detail).toBe("the sync failed");
 	});

@@ -234,7 +234,6 @@ export async function runCloseWork(input: RunCloseWorkInput): Promise<CloseWorkR
 			wait: Boolean(input.wait),
 			timeoutMs: minutes * 60_000,
 			intervalMs: input.intervalMs ?? DEFAULT_INTERVAL_MS,
-			/* v8 ignore next 2 -- the real clock and timer are only used outside tests, which inject both */
 			now: input.now ?? Date.now,
 			sleep: input.sleep ?? ((ms) => new Promise((done) => setTimeout(done, ms))),
 			onPoll: (state, polls) =>
@@ -263,8 +262,8 @@ export async function runCloseWork(input: RunCloseWorkInput): Promise<CloseWorkR
 
 	// Green: ask once, then the steps that write.
 	if (!dryRun && !input.yes) {
-		const plan = `mark #${number} ready, update the area labels and take closed blockers off ${key}`;
-		if (!(await ask(`${key} is green. ${plan[0].toUpperCase()}${plan.slice(1)}?`))) {
+		const plan = `Mark #${number} ready, update the area labels and take closed blockers off ${key}`;
+		if (!(await ask(`${key} is green. ${plan}?`))) {
 			print(`  ${style.skip("cancelled; nothing was changed")}`);
 			return { status: "cancelled", rows: [] };
 		}
