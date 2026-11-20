@@ -916,10 +916,60 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				}
 				if (!result.clientSecret) {
 					print(
-						`  ${style.warn(`${errors.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
+						`  ${style.warn(`${errors.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to the vault as COMLINK_${errors.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
 					);
 				}
 			});
+		}
+		const wanted = [...(errors ? [errors.providerName] : []), ...declaredSources.map((d) => d.id)];
+		const bindingsFor = (): RelayBinding[] =>
+			wanted.flatMap((source) => {
+				const webhook = relayWebhooks.get(source);
+				const signingSecret = signingSecrets.get(source);
+				return webhook ? [{ source, webhook, ...(signingSecret ? { signingSecret } : {}) }] : [];
+			});
+		const deployWorker = (bindings: RelayBinding[]) =>
+			deployRelay({
+				relay: layout.relay!,
+				sources: bindings,
+				repoRoot: input.context.repoRoot,
+				workers: workers,
+				dns: dns,
+				...(input.readRelayCode ? { readCode: input.readRelayCode } : {}),
+			});
+		// A vendor may test the webhook it is given by posting to it (Cloudflare does, and refuses one that answers 404 or
+		// 401), so a webhook that does not exist yet needs the Worker deployed with its route and its secret first. The
+		// secret is ours to choose for those, so it is made here, deployed, then handed to the vendor. A webhook that
+		// exists keeps the secret the Worker has.
+		const chosen = new Map<string, string>();
+		if (!dryRun) {
+			for (const source of declaredSources) {
+				const provider = sourceProviders.get(source.id)!;
+				if (!provider.inspectRelaySource || !relayWebhooks.has(source.id)) continue;
+				try {
+					const state = await provider.inspectRelaySource({
+						source: source.id,
+						url: `https://${layout.relay!.host}/${source.id}`,
+						name: source.spec.name ?? source.id.charAt(0).toUpperCase() + source.id.slice(1),
+						...(source.spec.events ? { events: source.spec.events } : {}),
+						...(source.spec.scope ? { scope: source.spec.scope } : {}),
+						...(source.spec.options ? { options: source.spec.options } : {}),
+					});
+					if (!state.exists) chosen.set(source.id, newRelaySecret());
+				} catch {
+					// An unreadable webhook is made the old way, after the Worker: the step below reports what fails.
+				}
+			}
+			if (chosen.size > 0) {
+				for (const [id, secret] of chosen) signingSecrets.set(id, secret);
+				await attempt(`relay ${layout.relay!.host} (before its webhooks)`, async () => {
+					const deployed = await deployWorker(bindingsFor());
+					print(
+						`  ${style.success(`deployed ${deployed.script} at ${deployed.host} for ${[...chosen.keys()].join(", ")}`)}`
+					);
+					tally.ok++;
+				});
+			}
 		}
 		for (const source of declaredSources) {
 			const provider = sourceProviders.get(source.id)!;
@@ -927,7 +977,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				const ensured = await ensureRelaySource(
 					source,
 					provider,
-					{ host: layout.relay!.host, newSecret: newRelaySecret },
+					{ host: layout.relay!.host, newSecret: () => chosen.get(source.id) ?? newRelaySecret() },
 					{ print, made, dryRun }
 				);
 				if (ensured.secret) signingSecrets.set(source.id, ensured.secret);
@@ -943,24 +993,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				tally.skip++;
 				return;
 			}
-			const wanted = [...(errors ? [errors.providerName] : []), ...declaredSources.map((d) => d.id)];
-			const bindings: RelayBinding[] = wanted.flatMap((source) => {
-				const webhook = relayWebhooks.get(source);
-				const signingSecret = signingSecrets.get(source);
-				return webhook ? [{ source, webhook, ...(signingSecret ? { signingSecret } : {}) }] : [];
-			});
+			const bindings = bindingsFor();
 			const missing = wanted.filter((source) => !relayWebhooks.has(source));
 			if (bindings.length === 0) {
 				throw new Error("no relay webhook to give the Worker (its channel failed above)");
 			}
-			const deployed = await deployRelay({
-				relay: layout.relay!,
-				sources: bindings,
-				repoRoot: input.context.repoRoot,
-				workers: workers,
-				dns: dns,
-				...(input.readRelayCode ? { readCode: input.readRelayCode } : {}),
-			});
+			const deployed = await deployWorker(bindings);
 			print(`  ${style.success(`deployed ${deployed.script} at ${deployed.host}`)}`);
 			tally.ok++;
 			if (missing.length > 0) {
