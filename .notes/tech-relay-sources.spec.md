@@ -118,7 +118,7 @@ Findings that bear on each follow-up:
   create) and the policy is the second object `ensureRelaySource` makes and finds by name. Webhooks are available on all
   plans (100 destinations without a paid zone). The token permission is new to the plugin: **when it is added, update the
   three places together** (`docs/src/content/docs/tokens.mdx`, the Environment layer that holds the token, and the
-  `cloudflare token` probe), per `AGENTS.md`. Unverified: the exact list-policies path and response shape.
+  `cloudflare token` probe), per `AGENTS.md`. Re-read on 2026-11-19 for the implementation: list policies is `GET /accounts/{id}/alerting/v3/policies`, `result` is an array of `{ id, name, alert_type, enabled, mechanisms, filters, description, alert_interval, created, modified }` (not unverified any more). The create call takes `name`, `alert_type`, `enabled`, `mechanisms` (`filters`, `description` and `alert_interval` optional; there is no `conditions` field and `filters` is not required, as the table above says) and returns `{ id }`; the webhook create returns only `{ id }`. A policy has one `alert_type`, so `events` makes one policy per alert type, named `<name>: <alert_type>`. Update is `PUT .../policies/{id}` (replaces the whole policy); its path and body were not on the pages read and are unverified.
 - **Doppler.** Everything but the token type is documented. `hasSecret` lets `inspectRelaySource` report a webhook made
   without a secret. The reference page's response schema is empty (`{}`), so what the create call returns, including
   the webhook's slug, was not seen; the list call finds it by URL. The `X-Doppler-Signature` example in the docs hashes
@@ -154,5 +154,5 @@ Re-checked 2026-11-19: `npx clerk@latest api ls webhook` still lists only the th
 ## Unverified
 
 Nothing here was run against a vendor. Open: Vercel's update call and whether `GET /v1/webhooks/{id}` returns the
-secret; Cloudflare's list-policies call; Doppler's create response and which token types may manage webhooks; whether
+secret; Cloudflare's policy `PUT` (path and body not read); Doppler's create response and which token types may manage webhooks; whether
 Svix's app-portal token can create an endpoint for Clerk.

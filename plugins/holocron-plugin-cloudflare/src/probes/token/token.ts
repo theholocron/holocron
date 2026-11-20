@@ -179,6 +179,15 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 						permission: "tunnels",
 						outcome: await reach(() => client.tunnels.list(account), "tunnels"),
 					});
+					// A read proves visibility (Notifications Read or Write both pass it), not that the token can write.
+					tried.push({
+						label: "Notifications: Edit",
+						permission: "notifications",
+						outcome: await reach(
+							async () => (await client.alerting.webhooks.list(account)).map((w) => ({ name: w.name })),
+							"notification webhooks"
+						),
+					});
 				} else {
 					probe.say({
 						status: rules ? "fail" : "info",

@@ -59,7 +59,7 @@ export function createContext(options: CloudflarePluginOptions = {}): PluginCont
 
 /** Builds the `dns` capability for a context. */
 export function dns(ctx: PluginContext): Dns {
-	return new CloudflareDns(ctx.client);
+	return new CloudflareDns(ctx.client, ctx.options.accountId);
 }
 
 /** Builds the `deployment` capability for a context; throws when no account id is set. */
@@ -127,7 +127,7 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 export const AUTH_HINT =
 	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
 	"with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account-level), " +
-	"Workers Routes:Edit (zone-level) and, for tunnels, Cloudflare Tunnel:Edit (account-level) permissions, " +
+	"Workers Routes:Edit (zone-level) and, for tunnels, Cloudflare Tunnel:Edit and, for relay sources, Notifications:Edit (account-level) permissions, " +
 	"then run: holocron new token cloudflare <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────

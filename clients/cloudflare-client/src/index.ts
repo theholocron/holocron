@@ -1,3 +1,4 @@
+import { alerting } from "./alerting/alerting.js";
 import { dns } from "./dns/dns.js";
 import { pages } from "./pages/pages.js";
 import { tokens } from "./tokens/tokens.js";
@@ -6,6 +7,13 @@ import { type CloudflareClientOptions, createCloudflareRestClient } from "./util
 import { workers } from "./workers/workers.js";
 import { zones } from "./zones/zones.js";
 
+export type {
+	CfNotificationPolicy,
+	CfNotificationPolicyInput,
+	CfPolicyMechanisms,
+	CfWebhookDestination,
+	CfWebhookDestinationInput,
+} from "./alerting/alerting.js";
 export type { CfDnsRecord, CfDnsRecordInput, CfDnsRecordType } from "./dns/dns.js";
 export type {
 	CfPagesDeployment,
@@ -23,10 +31,11 @@ export type { CfEnvelope, CloudflareClientOptions } from "./utils.js";
 export type { CfWorkerDeployment, CfWorkerRoute, CfWorkerScript, CfWorkerSecret } from "./workers/workers.js";
 export type { CfZone } from "./zones/zones.js";
 
-/** Creates a Cloudflare API client with `dns`, `pages`, `zones`, `tunnels`, `tokens` and `workers` groups. */
+/** Creates a Cloudflare API client with `alerting`, `dns`, `pages`, `zones`, `tunnels`, `tokens` and `workers` groups. */
 export function createCloudflareClient(opts: CloudflareClientOptions) {
 	const rest = createCloudflareRestClient(opts);
 	return {
+		alerting: alerting(rest),
 		dns: dns(rest),
 		pages: pages(rest),
 		zones: zones(rest),

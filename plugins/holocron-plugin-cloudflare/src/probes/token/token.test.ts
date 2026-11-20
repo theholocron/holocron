@@ -15,7 +15,8 @@ async function check(
 	responses: Parameters<typeof stubFetch>[0],
 	over: { accountId?: string; args?: string[]; zone?: string } = {}
 ) {
-	const { fetch, calls } = stubFetch(responses);
+	// The Notifications read is the last call; a test that does not queue it gets an empty list (no access).
+	const { fetch, calls } = stubFetch([...responses, cfOk([])]);
 	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch, retryDelayMs: 0 });
 	const rows: ProbeRow[] = [];
 	const secrets: Array<string | undefined> = [];
@@ -58,7 +59,13 @@ describe("token probe", () => {
 			cfOk([{ id: "s1" }]),
 			cfOk([{ name: "site" }]),
 			cfOk([{ id: "tun", name: "dev" }]),
+			cfOk([{ id: "hook", name: "Cloudflare" }]),
 		]);
+		expect(row(rows, "Notifications: Edit")).toMatchObject({
+			status: "ok",
+			detail: "1 notification webhooks: Cloudflare",
+		});
+		expect(calls.some((c) => c.url.includes("/accounts/acct-1/alerting/v3/destinations/webhooks"))).toBe(true);
 		expect(row(rows, "token")).toMatchObject({ status: "ok", detail: "t1 (active)" });
 		expect(row(rows, "Zone: Read")).toMatchObject({ status: "ok", detail: "1 zones: example.dev" });
 		for (const label of [
@@ -220,6 +227,32 @@ describe("token probe", () => {
 			expect(row(rows, "Pages: Edit")?.status).toBe("ok");
 		});
 
+		it("fails a ci token that can read notification webhooks, and a dev token that is refused them", async () => {
+			const reachable = await check(
+				[
+					denied,
+					cfOk([]),
+					cfOk([]),
+					cfOk([{ name: "site" }]),
+					cfOk([]),
+					cfOk([{ id: "h", name: "Cloudflare" }]),
+				],
+				ci
+			);
+			expect(row(reachable.rows, "Notifications: Edit")).toMatchObject({
+				status: "fail",
+				detail: "1 notification webhooks: Cloudflare",
+			});
+			const refused = await check(
+				[denied, cfOk([zone]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), denied],
+				{ args: ["--layer", "dev"] }
+			);
+			expect(row(refused.rows, "Notifications: Edit")).toMatchObject({
+				status: "fail",
+				detail: "no access (403)",
+			});
+		});
+
 		it("fails a ci token that cannot reach Pages", async () => {
 			const { rows } = await check([denied, cfOk([]), cfOk([]), denied, cfOk([])], ci);
 			expect(row(rows, "Pages: Edit")).toMatchObject({ status: "fail", detail: "no access (403)" });
@@ -234,6 +267,7 @@ describe("token probe", () => {
 				"ok:Zone: Read",
 				"ok:Workers Scripts: Edit",
 				"ok:Cloudflare Tunnel: Edit",
+				"ok:Notifications: Edit",
 				"heading:Rotation",
 				"info:rotation",
 			]);
@@ -247,7 +281,7 @@ describe("token probe", () => {
 			expect(rows[0]).toMatchObject({ status: "heading" });
 		});
 
-		it("fails a dev token that lacks any of the six, and passes one that has them", async () => {
+		it("fails a dev token that lacks any of the seven, and passes one that has them", async () => {
 			const dev = { args: ["--layer", "dev"] };
 			const missing = await check(
 				[
@@ -272,6 +306,7 @@ describe("token probe", () => {
 					cfOk([{ id: "s1" }]),
 					cfOk([{ name: "site" }]),
 					cfOk([{ id: "t", name: "d" }]),
+					cfOk([{ id: "hook", name: "Cloudflare" }]),
 				],
 				dev
 			);

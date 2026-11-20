@@ -75,7 +75,7 @@ Or keep it in the 1Password Environment a `providers.credentials` entry names, a
 
 ## Checking a token
 
-`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Without a zone on the command line it reads the plugin's `zone` option, the organization's own zone (`.holocron/org.ts` fills it into every Cloudflare entry); with neither it reads the first few zones of the account, which a token scoped to one zone rightly cannot edit. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
+`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit, Cloudflare Tunnel: Edit and Notifications: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Without a zone on the command line it reads the plugin's `zone` option, the organization's own zone (`.holocron/org.ts` fills it into every Cloudflare entry); with neither it reads the first few zones of the account, which a token scoped to one zone rightly cannot edit. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
 
 ## What `dns` provides
 
@@ -98,6 +98,22 @@ Named Cloudflare Tunnels, for a stable public hostname that reaches a port on th
 - `ensureTunnel({ name, hostname, service })`: finds the tunnel by name or makes it, and makes it serve `hostname` at `service`. Routes for other hostnames are kept and the `http_status:404` catch-all stays last. A tunnel that already serves the hostname is left alone. It returns the tunnel id and the `CNAME` target (`<id>.cfargotunnel.com`); the DNS record is the `dns` provider's.
 - `tunnelToken(id)`: the token `cloudflared` runs the tunnel with. A credential: it is never printed or stored.
 - `whoami()`: how many tunnels the token can see, for `holocron doctor`.
+
+## Relay sources on `dns`
+
+`dns` also implements the optional `ensureRelaySource` and `inspectRelaySource` (spec `tech-relay-sources`), so a `relay.sources` entry with `capability: "dns"` gets its Cloudflare notification webhook with no dashboard step. It needs the account id and a token with **Notifications: Edit** (account; Notifications Write or Account Settings Write).
+
+```ts
+relay: {
+  host: "comlink.theholocron.dev",
+  sources: { cloudflare: { capability: "dns", events: ["incident_alert", "dos_attack_l7"] } },
+},
+```
+
+- `events` is the list of Cloudflare alert types (`alert_type`; `GET /accounts/<id>/alerting/v3/available_alerts` says which an account may create). A destination alone sends nothing, so each alert type gets a policy of its own, named `<name>: <alert_type>`, that names the destination. A source with no `events` is reported as a failing `todo`.
+- The destination (`POST /accounts/<id>/alerting/v3/destinations/webhooks`) is found again by its URL and each policy by name, so a second run changes nothing. A policy that is off, or does not name the destination, is turned on and given it with a `PUT` that sends back everything else it held. Nothing is deleted.
+- The secret is chosen by the caller, sent as is in the `cf-webhook-auth` header and never returned by Cloudflare. It is handed back only when the destination was made now, so the Worker's `COMLINK_CLOUDFLARE_SECRET` is set in that deploy; an adopted destination keeps the secret the Worker has. A destination made and then lost with its secret is fixed by deleting it in the dashboard and running `setup` again.
+- `inspectRelaySource` reports whether the destination exists, the alert types of the policies that send to it and whether they are all on. Cloudflare never says whether a destination has a secret, so that is not reported.
 
 ## What `deployment` provides
 
