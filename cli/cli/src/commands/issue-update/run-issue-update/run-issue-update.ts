@@ -84,8 +84,7 @@ export async function runIssueUpdate(input: RunIssueUpdateInput): Promise<IssueU
 	}
 	const blockers = prepared.ok ? (prepared.fields.blockedBy ?? []) : [];
 	for (const k of unblock) if (blockers.includes(k)) problems.push(`${k} is both added and removed as a blocker`);
-	if (problems.length > 0) return finish(problems.map((p) => row(key, "fail", p)));
-	if (!prepared.ok) return finish([row(key, "fail", "the options are not valid")]);
+	if (problems.length > 0 || !prepared.ok) return finish(problems.map((p) => row(key, "fail", p)));
 
 	const patch: IssuePatch = {
 		...prepared.fields,

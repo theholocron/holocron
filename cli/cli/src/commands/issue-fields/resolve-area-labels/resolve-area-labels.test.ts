@@ -23,6 +23,10 @@ describe("resolveAreaLabels", () => {
 		});
 	});
 
+	it("refuses when the config has no label map at all", () => {
+		expect(resolveAreaLabels(["cli"], undefined)).toMatchObject({ ok: false });
+	});
+
 	it("refuses when the repo declares no areas", () => {
 		const result = resolveAreaLabels(["cli"], {});
 		expect(result.ok).toBe(false);

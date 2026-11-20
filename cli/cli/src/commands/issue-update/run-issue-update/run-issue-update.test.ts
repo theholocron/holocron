@@ -180,6 +180,22 @@ describe("runIssueUpdate", () => {
 		expect(text).toContain("403 Forbidden");
 	});
 
+	it("adds to the board without a priority when none was named, and reads whether stdin is a terminal", async () => {
+		const addItems = vi.fn(async () => [{ key: "#12", added: false, dropped: [] }]);
+		const projects = fakeProjects({ find: vi.fn(async () => board("v5")), addItems });
+		await run({ projects, project: "v5" });
+		expect(addItems).toHaveBeenCalledWith("acme", expect.anything(), [{ key: "#12" }], expect.anything());
+		const tty = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+		Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
+		try {
+			const err = await run({ yes: false }).catch((e: unknown) => e);
+			expect(err).toBeInstanceOf(NonInteractiveError);
+		} finally {
+			if (tty) Object.defineProperty(process.stdin, "isTTY", tty);
+			else delete (process.stdin as { isTTY?: boolean }).isTTY;
+		}
+	});
+
 	it("puts the issue on the board after the update, and previews it on a dry run", async () => {
 		const addItems = vi.fn(async () => [{ key: "#12", added: true, dropped: [] }]);
 		const projects = fakeProjects({ find: vi.fn(async () => board("v5")), addItems });

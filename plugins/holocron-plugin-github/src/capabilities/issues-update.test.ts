@@ -327,3 +327,37 @@ describe("GitHubIssues.update", () => {
 		await expect(limited.issues.update("7", { parent: "#9" })).rejects.toMatchObject({ status: 403 });
 	});
 });
+
+describe("GitHubIssues.update, edges", () => {
+	it("reports a cleared field the organization lacks, and a text that is not named stays alone", async () => {
+		const { issues, calls } = fake({
+			[`GET ${base}/issues/7`]: { body: issue(7) },
+			"GET /orgs/theholocron/issue-fields": { body: [] },
+		});
+		const result = await issues.update("7", { title: "Renamed", clear: ["effort"] });
+		expect(result.dropped).toEqual(["effort field (theholocron has no Effort issue field)"]);
+		expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({ title: "Renamed" });
+	});
+
+	it("treats an issue with no text as empty when comparing the body", async () => {
+		const { issues, calls } = fake({ [`GET ${base}/issues/7`]: { body: issue(7, { body: null }) } });
+		expect((await issues.update("7", { body: "" })).changed).toEqual([]);
+		expect((await issues.update("7", { body: "new" })).changed).toEqual(["body"]);
+		expect(calls.filter((c) => c.method === "PATCH")).toHaveLength(1);
+	});
+
+	it("reopens a closed issue without a close reason", async () => {
+		const { issues, calls } = fake({ [`GET ${base}/issues/7`]: { body: issue(7, { state: "closed" }) } });
+		const result = await issues.update("7", { state: "open" });
+		expect(result.changed).toEqual(["state: open"]);
+		expect(calls.find((c) => c.method === "PATCH")?.body).toEqual({ state: "open" });
+	});
+
+	it("reads the assignees from the list GitHub gives and does not rewrite the same people", async () => {
+		const { issues, calls } = fake({
+			[`GET ${base}/issues/7`]: { body: issue(7, { assignees: [{ login: "a" }, { login: "b" }] }) },
+		});
+		expect((await issues.update("7", { assignees: ["b", "a"] })).changed).toEqual([]);
+		expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+	});
+});

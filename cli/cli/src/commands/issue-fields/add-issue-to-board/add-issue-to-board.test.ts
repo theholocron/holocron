@@ -94,6 +94,33 @@ describe("addIssueToBoard", () => {
 		expect(none.status).toBe("skip");
 	});
 
+	it("fails for a template that is not available, and names no boards when none are declared", async () => {
+		const ghost = await run({
+			declared: { projects: ["github", { boards: [{ template: "ghost", name: "v5" }] }] },
+		});
+		expect(ghost.result.status).toBe("fail");
+		expect(ghost.result.detail).toContain('the template "ghost"');
+		const none = await run({ declared: { projects: "github" } });
+		expect(none.result.status).toBe("fail");
+		expect(none.result.detail).toBe('no board named "V5" is declared in providers.projects');
+	});
+
+	it("fails when the provider's options are not valid", async () => {
+		const bad = await run({ declared: { projects: ["github", { boards: "nope" }] } });
+		expect(bad.result.status).toBe("fail");
+	});
+
+	it("sends no priority when the issue has none, and reports an empty answer as already there", async () => {
+		const addItems = vi.fn(async () => []);
+		const loaded = loadedWith(DECLARED);
+		const projects = fakeProjects({ find: vi.fn(async () => board("v5")), addItems });
+		const loader = loaderWith(loaded, { projects });
+		await loader.load();
+		const result = await addIssueToBoard({ loaded, context, loader, board: "v5", key: "#12", io: memoryIo() });
+		expect(result.detail).toBe('already on "v5"');
+		expect(addItems).toHaveBeenCalledWith("acme", expect.anything(), [{ key: "#12" }], expect.anything());
+	});
+
 	it("turns a provider error into a failing row", async () => {
 		const { result } = await run({ projects: { find: vi.fn(async () => Promise.reject(new Error("boom"))) } });
 		expect(result).toMatchObject({ status: "fail" });

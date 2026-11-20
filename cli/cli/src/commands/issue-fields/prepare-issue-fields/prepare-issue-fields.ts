@@ -37,6 +37,7 @@ export function prepareIssueFields(
 	if (input.project !== undefined && !project) problems.push("--project is empty");
 	const resolved = resolveAreaLabels(input.areas ?? [], areas);
 	if (!resolved.ok) problems.push(resolved.problem);
+	const areaLabels = resolved.ok ? resolved.labels : [];
 	if (problems.length > 0) return { ok: false, problems };
 
 	return {
@@ -50,7 +51,7 @@ export function prepareIssueFields(
 			...(parent ? { parent } : {}),
 			...(blockedBy.length > 0 ? { blockedBy } : {}),
 		},
-		areaLabels: resolved.ok ? resolved.labels : [],
+		areaLabels,
 		...(project ? { project } : {}),
 	};
 }
