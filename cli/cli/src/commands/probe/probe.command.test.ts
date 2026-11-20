@@ -120,6 +120,26 @@ describe("probe command", () => {
 		});
 	});
 
+	it("passes what follows a bare -- on among the arguments, for the probe's own options", async () => {
+		await run({ provider: "github", probe: "issue-types", "--": ["--since", "2026-09-01", 5] });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["--since", "2026-09-01", "5"] });
+	});
+
+	it("reads the words after -- as the probe's own, not as options of holocron", async () => {
+		await yargs(["probe", "github", "issue-types", "--dry-run", "--", "--since", "2026-09-01", "--limit", "5"])
+			.option("cwd", { type: "string", default: "/repo" })
+			.option("dry-run", { type: "boolean", default: false })
+			.parserConfiguration({ "populate--": true })
+			.command(probeCommand as never)
+			.parseAsync();
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({
+			provider: "github",
+			probe: "issue-types",
+			dryRun: true,
+			args: ["--since", "2026-09-01", "--limit", "5"],
+		});
+	});
+
 	it("passes --warn and --files on among the arguments", async () => {
 		await run({ provider: "tasks", probe: "names", warn: true, files: true });
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["--warn", "--files"] });

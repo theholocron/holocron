@@ -209,3 +209,57 @@ describe("the plugin's tokens export", () => {
 		]);
 	});
 });
+
+describe("the issue-types probe", () => {
+	const run = async (options: Record<string, unknown>) => {
+		const rows: string[] = [];
+		const plugin = createPlugin({ repo: "acme/widgets", ...options } as never);
+		await plugin.probes["issue-types"].run({
+			args: ["--issues", "1"],
+			dryRun: true,
+			say: (r) => void rows.push(`${r.status} ${r.label}`),
+			secret: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+		});
+		return rows;
+	};
+
+	it("is a writer probe of the plugin", () => {
+		const plugin = createPlugin({ repo: "acme/widgets" });
+		expect(plugin.probes["issue-types"].writes).toBe(true);
+	});
+
+	it("reads with the issues and org tokens and the area map the loader hands it", async () => {
+		const seen: string[] = [];
+		const fetchFn: typeof fetch = async (input, init) => {
+			const url = new URL(String(input));
+			seen.push(`${init?.method ?? "GET"} ${url.pathname}`);
+			const issue = {
+				id: 1,
+				number: 1,
+				title: "fix(cli): x",
+				state: "open",
+				labels: [{ name: "bug" }],
+				assignee: null,
+			};
+			const body: Record<string, unknown> = {
+				"/repos/acme/widgets/issues/1": issue,
+				"/repos/acme/widgets/labels": [{ name: "area:cli" }],
+				"/graphql": { data: { nodes: [] } },
+			};
+			return new Response(JSON.stringify(body[url.pathname] ?? []), { status: 200 });
+		};
+		const rows = await run({
+			cliToken: "t",
+			fetch: fetchFn,
+			areaLabels: { areas: { cli: ["cli/**"] }, scopes: { cli: "cli" } },
+		});
+		expect(seen).toContain("GET /repos/acme/widgets/issues/1");
+		expect(rows).toContain("info area labels");
+	});
+
+	it("fails with the token's name when it is not configured", async () => {
+		expect(await run({ env: {}, keyring: () => null })).toEqual(["fail issue-types"]);
+	});
+});

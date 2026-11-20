@@ -28,6 +28,9 @@ import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubProjects } from "./capabilities/projects.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
+import { createBackfillApi } from "./probes/issue-types/github-api.js";
+import { issueTypesProbe } from "./probes/issue-types/issue-types.js";
+import type { AreaConfig } from "./probes/issue-types/issue-types.type.js";
 import { tokenProbe } from "./probes/token/token.js";
 import { TOKEN_RESOLVERS } from "./token-resolvers.js";
 import { verifyToken } from "./verify-token.js";
@@ -46,6 +49,8 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 		/** Label that marks an issue as in review. */
 		inReview: string;
 	};
+	/** `repo.labels` (the area map), handed in by the loader for the `issue-types` probe. */
+	areaLabels?: AreaConfig;
 	/** Override base URL for tests. Defaults to https://api.github.com. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. Defaults to global `fetch`. */
@@ -179,6 +184,15 @@ export function createPlugin(options: GitHubPluginOptions) {
 				fetch: options.fetch ?? fetch,
 				resolve: (envName) => TOKEN_RESOLVERS[envName]?.(options),
 				tokenNames: Object.keys(TOKEN_RESOLVERS),
+			}),
+			"issue-types": issueTypesProbe({
+				makeApi: () =>
+					createBackfillApi(
+						makeCtx(resolveIssuesToken).client,
+						makeCtx(resolveOrgToken).client,
+						options.repo
+					),
+				areas: options.areaLabels ?? {},
 			}),
 			connection: connectionProbe({
 				provider: "GitHub",
