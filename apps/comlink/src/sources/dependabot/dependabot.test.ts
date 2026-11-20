@@ -6,8 +6,7 @@ import { MalformedDelivery } from "../source.type.js";
 import { dependabot } from "./dependabot.js";
 
 const SECRET = "webhook-secret";
-const sign = (body: string, secret = SECRET) =>
-	`sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
+const sign = (body: string, secret = SECRET) => `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
 const headers = (over: Record<string, string> = {}) => new Headers(over);
 const eventHeaders = () => headers({ "x-github-event": "dependabot_alert" });
 
