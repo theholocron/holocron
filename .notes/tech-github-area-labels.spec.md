@@ -50,6 +50,16 @@ Non-goals: new kind labels; labels on pull requests that replace the Conventiona
 5. **Kind labels** (`bug`, `enhancement`, `chore`) stay on old issues; nothing is stripped.
 6. **The backfill** is a dry-run-first writer probe the maintainer runs. It covers more than the issue Type: it sets Type and area where derivable, fills project and milestone where a source exists, and prints a list of every issue still lacking project, milestone, Priority or Effort, grouped by field, so the maintainer can hand it to someone to decide. The agent never runs it against the live service. The number of issues missing a project or milestone has not been counted.
 
+### Final answers (maintainer, after the build)
+
+These settle the four questions that were still open (Q1 to Q4 of the old list).
+
+7. **Other kind labels on issues** (`ci`, `documentation`, `refactor`, `test`, `performance`, `dependencies`) map to the Type Task, only when the issue has none of `bug`, `enhancement` and `chore`. Those three always win, and a Type already set is never changed. Tracked in issue #2494.
+8. **Backfill scope is holocron only for now.** A config mapping (kind label to Type, and a list of repositories) in `.holocron/repo.ts` is the follow-up, issue #2495.
+9. **Stock labels are all kept.** `question` and `invalid` are not retired, and `good first issue`, `help wanted`, `triage`, `duplicate` and `wontfix` stay too. `epic` is synced with the colour `5319e7` and the description "A body of work made of several issues" (issue #2484, PR #2489).
+10. **Linear `kind` on `IssueRecord` is built** (issue #2485, PR #2491, spec `tech-issue-kind-on-record`).
+11. **`ci` and `documentation` stay separate from `area:ci` and `area:docs`.** They answer a different question: what kind of change versus where it lives. `documentation` covers 203 pull requests and 19 issues across specs and READMEs, while `area:docs` is only the documentation site. And `ci` and `documentation` are synced org-wide, while area labels are per repo.
+
 ## Area labels
 
 ### Which areas
@@ -84,7 +94,7 @@ Decided: `area:<name>`, no space (Answer 2). There is no existing standard to ma
 
 ### `docs` against `documentation`
 
-With the prefix the two no longer collide: `documentation` stays the **kind** (a `docs:` PR), `area:docs` is the **place** (the site). They routinely differ: a `docs(specs):` PR is kind `documentation` and area `area:specs`; a `feat(docs):` PR is kind `enhancement` and area `area:docs`. Keep both names and make the descriptions say it (`documentation`: `Documentation only (kind)`; `area:docs`: `The documentation site and its config`), renaming nothing. The same argument covers `ci` the kind against `area:ci`.
+With the prefix the two no longer collide: `documentation` stays the **kind** (a `docs:` PR), `area:docs` is the **place** (the site). They routinely differ: a `docs(specs):` PR is kind `documentation` and area `area:specs`; a `feat(docs):` PR is kind `enhancement` and area `area:docs`. Keep both names and make the descriptions say it (`documentation`: `Documentation only (kind)`; `area:docs`: `The documentation site and its config`), renaming nothing. The same argument covers `ci` the kind against `area:ci`. Decided (Final answers, 11): the two pairs stay separate labels, for the reasons given there.
 
 ### Who applies them
 
@@ -105,7 +115,7 @@ Open for the implementing change: the dev Sentinel App's installed permissions (
 - `labeler.yml` is unchanged: it keeps labeling PRs (and only PRs, as today).
 - On an issue, kind is Type. Types exist only on issues, never PRs, which is why both mechanisms stay.
 - `bug`, `enhancement`, `chore` on an issue are no longer set by anything once `new issue` sets Type. Existing ones are left in place (see Backfill).
-- The mapping `bug` to Bug, `enhancement` to Feature, `chore` to Task is the only one decided. The other kind labels that appear on issues (`refactor` 17, `documentation` 19, `ci` 44, `test` 4, `performance` 1, `dependencies` 2) have no Type of their own; Q1 below.
+- The mapping `bug` to Bug, `enhancement` to Feature, `chore` to Task is the only one decided. The other kind labels that appear on issues (`refactor` 17, `documentation` 19, `ci` 44, `test` 4, `performance` 1, `dependencies` 2) have no Type of their own. Decided (Final answers, 7): they map to Task, only when the issue has none of `bug`, `enhancement` and `chore` (issue #2494).
 
 ## Retiring a label without losing it
 
@@ -117,29 +127,31 @@ Deleting a label strips it from every issue and pull request that had it, and `s
 | **Retired (no deletion)** | Out of `CANONICAL_LABELS`, **not** in `STALE_LABELS` | `setup` and `doctor` ignore it (`flagExtra: false`); existing items keep it; nothing applies it |
 | Deleted                   | In `STALE_LABELS`                                    | Removed from every item that had it, everywhere `setup` runs                                    |
 
-Recommendation: retire by removing from `CANONICAL_LABELS` and stay out of `STALE_LABELS` unless the label has no use in any org repo (count first with `gh label list` and `gh issue list --label` per repo; the figures given are for holocron only, Not verified for the others). A retired label has no marker in the code; an inline comment next to the list is enough, and a `RETIRED_LABELS` constant would be a third list to keep with no consumer. A rename (`gh label edit --name`) also keeps every attachment, which is how `cli` (2 issues) becomes `area:cli`.
+Decided (Final answers, 9): no stock label is retired, so nothing below moves down a state now. The mechanism is kept for a later retirement. Recommendation when one is wanted: retire by removing from `CANONICAL_LABELS` and stay out of `STALE_LABELS` unless the label has no use in any org repo (count first with `gh label list` and `gh issue list --label` per repo; the figures given are for holocron only, Not verified for the others). A retired label has no marker in the code; an inline comment next to the list is enough, and a `RETIRED_LABELS` constant would be a third list to keep with no consumer. A rename (`gh label edit --name`) also keeps every attachment, which is how `cli` (2 issues) becomes `area:cli`.
 
 ### Stock labels, one by one (holocron counts: issues / PRs)
 
-| Label                           | Use    | Recommendation                                                                                                                                     |
-| ------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `question`                      | 0/0    | Retire (out of the canonical set, not deleted). Questions go to Discord; GitHub Discussions are not used here (Not verified).                      |
-| `invalid`                       | 0/0    | Retire. `wontfix` and `duplicate` cover the closing reasons in use.                                                                                |
-| `good first issue`              | 0/0    | Keep. GitHub's contributor surfaces key off this exact name; it costs nothing, and removing it would be the one change a public repo could regret. |
-| `help wanted`                   | 0/0    | Keep, for the same reason.                                                                                                                         |
-| `triage`                        | 2/0    | Keep for now. A lifecycle label, not a kind; if the project board's status replaces it, retire it in that work, not here.                          |
-| `performance`                   | 1/0    | Keep. It is the `perf:` PR label the labeler sets; zero PRs so far means no `perf:` commit yet, not an unused rule.                                |
-| `epic`                          | 1/0    | Leave alone. Not canonical; no Type for it exists (the org's Types are Task, Bug, Feature). Revisit if an `Epic` Type is added.                    |
-| `cli`                           | 2/0    | Rename to `area:cli` when area labels land; keeps both issues.                                                                                     |
-| `wontfix` 6/28, `duplicate` 1/0 | in use | Keep.                                                                                                                                              |
-| `released` 230/802              | in use | Keep (set by the release workflow, not a kind).                                                                                                    |
+The Recommendation column is the original proposal. The maintainer decided to keep every stock label (Final answers, 9), so where it says Retire, read Keep.
+
+| Label                           | Use    | Recommendation                                                                                                                                        |
+| ------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `question`                      | 0/0    | Keep (decided; first proposed to retire).                                                                                                             |
+| `invalid`                       | 0/0    | Keep (decided; first proposed to retire).                                                                                                             |
+| `good first issue`              | 0/0    | Keep. GitHub's contributor surfaces key off this exact name; it costs nothing, and removing it would be the one change a public repo could regret.    |
+| `help wanted`                   | 0/0    | Keep, for the same reason.                                                                                                                            |
+| `triage`                        | 2/0    | Keep for now. A lifecycle label, not a kind; if the project board's status replaces it, retire it in that work, not here.                             |
+| `performance`                   | 1/0    | Keep. It is the `perf:` PR label the labeler sets; zero PRs so far means no `perf:` commit yet, not an unused rule.                                   |
+| `epic`                          | 1/0    | Synced (decided): colour `5319e7`, description "A body of work made of several issues" (#2484, PR #2489). No Type for it exists (Task, Bug, Feature). |
+| `cli`                           | 2/0    | Rename to `area:cli` when area labels land; keeps both issues.                                                                                        |
+| `wontfix` 6/28, `duplicate` 1/0 | in use | Keep.                                                                                                                                                 |
+| `released` 230/802              | in use | Keep (set by the release workflow, not a kind).                                                                                                       |
 
 ## What changes for Linear
 
 Read in `plugins/holocron-plugin-linear/src/provider/setup.ts`, `provider-config.ts` and `plugins/holocron-plugin-github/src/capabilities/issues-migration.ts`.
 
 - `provider linear setup` makes the labels the `labels` option lists, taking a colour from `CANONICAL_LABELS` by name (`colorOf()`). Linear has **no issue Type**, so kind there stays a label (`bug`, `enhancement`, `chore`): the canonical list must keep those three, which this spec does not touch. An `area:cli` label would get no canonical colour (it is not in `CANONICAL_LABELS`) and is made with Linear's default unless `colorOf()` learns the area family; a small follow-up, not a blocker.
-- `IssueRecord` carries `labels: string[]` and no type or kind. So today a GitHub issue migrated to Linear keeps its `bug` label, and one with a Type but no label arrives with **no kind at all**. Once issues rely on Type this becomes a loss. Recommended follow-up, separate from this spec's implementation: add an optional `kind` (`bug`, `feature`, `task`) to `IssueRecord`; the GitHub export fills it from Type, falling back to the label map; the Linear import writes the kind label; the GitHub import and `sync` set Type from `kind` and do not write the kind label. Until then, the backfill must happen _before_ any migration that depends on Type, and the labels left on old issues (below) keep those migrations whole.
+- `IssueRecord` carries `labels: string[]` and no type or kind. So today a GitHub issue migrated to Linear keeps its `bug` label, and one with a Type but no label arrives with **no kind at all**. Once issues rely on Type this becomes a loss. Built (Final answers, 10: issue #2485, PR #2491, spec `tech-issue-kind-on-record`); the design that was recommended here: add an optional `kind` (`bug`, `feature`, `task`) to `IssueRecord`; the GitHub export fills it from Type, falling back to the label map; the Linear import writes the kind label; the GitHub import and `sync` set Type from `kind` and do not write the kind label. Until then, the backfill must happen _before_ any migration that depends on Type, and the labels left on old issues (below) keep those migrations whole.
 - `splitLabels()` already turns a `priority: <level>` label into the Priority field; `area:x` is not matched by it and travels as an ordinary label both ways. Whether Linear treats `area:cli` as plain text or as a group, and whether the `:` is accepted, is Not verified.
 
 ## What `holocron new issue` does
@@ -150,7 +162,7 @@ Today it sets labels and no Type (`run-issue-create.ts` passes `labels`). A `--t
 
 Writes to live issues. Described here; **not run by this spec's author, and the agent never runs it against the live service** (Answer 6).
 
-- **What it sets.** For each issue in `theholocron/holocron` (Q2 below for other repos) it fills what it can derive:
+- **What it sets.** For each issue in `theholocron/holocron` (holocron only for now; a config mapping and a list of repositories is issue #2495, Final answers, 8) it fills what it can derive:
   - **Type**: where there is none, `bug` gives Bug, `enhancement` gives Feature, `chore` gives Task. An issue that already has a Type is never changed (the 184 that do). An issue with more than one of the three labels is listed and left for a person.
   - **Area**: where derivable, from the title's scope through `repo.labels.scopes`, or from the changed folders of a pull request that closed the issue. Added only.
   - **Project and milestone**: filled where a source exists (the board or milestone of a linked pull request or a sibling, as the implementing change defines it); an issue with no source is left and listed.
@@ -163,35 +175,31 @@ Writes to live issues. Described here; **not run by this spec's author, and the 
 
 ## Rollout
 
-One pull request is one focused change; the spec is this PR. In order, each after the previous is merged:
+One pull request is one focused change. In order, each after the previous is merged. Items 2, 3 and 5 are built (PRs #2473, #2474 and #2475; summary fix #2493 for issue #2492) and item 4's Linear part is built (#2491). The live behaviour is not verified: the maintainer's manual steps remain (rename `cli` to `area:cli` before `setup`, subscribe the dev App to the Issues event, deploy to dev, run the backfill).
 
 1. **This spec** (design only).
 2. **Area declaration and labels**: the `repo.labels.areas` shape (`RepoConfig`), `setup` makes the labels, `doctor repo` row, tests, docs (`cli/cli/README.md`), `.holocron/repo.ts` declares this repo's areas; rename `cli` to `area:cli` by hand after merge.
    **Built** (#2430 part 2): `repo.labels.areas` and `scopes` are validated at config load; `setup` makes the labels through the new optional `Source.ensureLabels()` (create only); `doctor repo` has a `repo-area-labels` row; `.holocron/repo.ts` declares the fifteen areas. The mapping moved to `cli/cli/src/area-labels/` and is exported from `@theholocron/cli` (`areaLabelsForFiles`, `areaLabelsForTitle`, `areaForScope`, `titleScopes`, `pathMatches`, `areaLabelDefs`, `AREA_PREFIX`); items 3 and 5 import those, so there is one mapping.
 3. **Area labeling on PRs**: the Sentinel `area-labels` action (or the `actions/labeler` workflow), with the pure planner and its tests; deploy on the dev instance first and check a real PR.
    **Built** (#2430 part 3): the Sentinel action, for pull requests and for issues (the `issues` event is new in the router). Rules decided here: a pull request's file areas come first (most-changed folder first) and its title's scopes add; at most four `area:` labels on an item, counting a person's; add-only; a label the repo lacks is reported, never made; a closed item or a bot's delivery does nothing. Deploying to the dev instance, subscribing the App to the `issues` event and checking a real pull request and issue are the maintainer's steps and are Not verified.
-4. **Type on `new issue`** (its own spec, `--type`), and the Linear `kind` follow-up.
+4. **Type on `new issue`** (its own spec, `--type`), and the Linear `kind` follow-up. The Linear part is **built** (#2485, PR #2491, spec `tech-issue-kind-on-record`).
 5. **Backfill probe** and its docs; then the maintainer's dry run and real run.
    **Built** (#2430 part 5): `holocron probe github issue-types` (`plugins/holocron-plugin-github/src/probes/issue-types/`). Sources: Type from the kind labels (two kind labels are listed and left, a Type is never overwritten); area from the title scope, and for pull requests, with `--pull-requests`, from the changed files (the spec said pull requests are skipped, so they stay skipped by default); milestone from the issue's parent, else `--milestone`; project from `--project`, the last two only for an issue in an explicit `--issues` or `--since` window. A linked closing pull request and siblings are not used as a source. It lists what still lacks a project, milestone, Priority or Effort, by field. The probe's options follow a bare `--` (`holocron probe github issue-types --dry-run -- --since ...`). The dry run and the real run are the maintainer's; the number of issues missing a project or milestone is still not counted.
-6. **Retire the stock labels** (`question`, `invalid`) by editing `CANONICAL_LABELS` and its test; no deletion.
+6. ~~Retire the stock labels~~ (`question`, `invalid`): dropped. The maintainer keeps every stock label (Final answers, 9); `epic` is synced instead (#2484, PR #2489).
 7. Optional: copy a PR's areas to the issues it closes.
 
 Step 5 should wait for step 4 so that no new unlabeled, untyped issue appears behind it.
 
 ## Open questions for the maintainer
 
-Resolved: where area labels are applied (Answer 1), the label format (2), the set of areas (3), the config key (4), what happens to kind labels on old issues (5) and what the backfill covers and who runs it (6). Still open:
-
-1. **Other kind labels on issues** (`refactor`, `documentation`, `ci`, `test`, `performance`, `dependencies`): map to Task, leave unmapped, or put a new Type in the org?
-2. **Backfill scope:** holocron only (assumed), or every org repo?
-3. **Retiring:** `question` and `invalid` are retired without deletion (recommended). Is that count zero in the other org repos too? Keep `good first issue` and `help wanted`, and `triage`, as recommended?
-4. **Linear `kind` on `IssueRecord`:** do the follow-up now, or accept losing the kind of a Type-only issue on migrate until it is needed?
+None. Resolved: where area labels are applied (Answer 1), the label format (2), the set of areas (3), the config key (4), what happens to kind labels on old issues (5) and what the backfill covers and who runs it (6). The four that were left are resolved in "Final answers": other kind labels (7, issue #2494), backfill scope (8, issue #2495), stock labels (9) and Linear `kind` (10, built).
 
 ## Not verified
 
 - No write was made, so the following were not tried: setting a Type through the REST or GraphQL API, the Sentinel App's installed permissions, and whether a label named `area:cli` is accepted unchanged by Linear (colon, space, and the slash in option B) or turned into a group.
 - Label counts and Type counts are the maintainer's; I re-read only the org's Type names (`Task`, `Bug`, `Feature`) and the repo's label list (19 labels on holocron, including `epic` and `cli`, which are not canonical).
-- Whether `question`, `invalid` and the other stock labels are used in the other org repos, and whether GitHub Discussions are enabled anywhere.
+- Whether the stock labels are used in the other org repos, and whether GitHub Discussions are enabled anywhere (no longer decisive: all stock labels are kept).
+- That any of the built parts (#2473, #2474, #2475, #2491, #2493) works against live GitHub, Linear or the dev Sentinel App: nothing was run live, and the maintainer's manual steps (rename `cli` to `area:cli` before `setup`, subscribe the dev App to the Issues event, deploy to dev, run the backfill) are still to do.
 - That `actions/labeler` can be run for fork PRs safely; every PR in this repo is same-repo, so I did not look.
 - Whether `github/issue-labeler` `sync-labels: 1` would remove an `area:` label if both tools managed the same name; the area labels are not in `labeler.yml`, so it should not, but I did not run it.
 - The plugin count (22) was read from `ls plugins`; `AGENTS.md` says 21. Client, config and util counts were not recounted.

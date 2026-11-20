@@ -50,6 +50,11 @@ The maintainer answered the open questions; each is recorded here and the matchi
    - The default assignee comes from the git config user, not the token's identity (under an agent's token, `me` is the bot). `--assignee` overrides it.
 5. **Area labels follow the work.** `update work` and `close work` update the linked issue's area labels from the folders the pull request changes. The label format (`area:<name>`), the list of areas (`repo.labels.areas` in `.holocron/repo.ts`) and the rule that the root config files are `area:tooling` are defined in spec `tech-github-area-labels` (issue #2430, draft PR #2432); this spec does not redefine them. `new issue` also takes `--area`, resolved from the same list.
 
+6. **One pull request or two.** Two by default (spec first, then implementation); `--one-pr` is the opt-in, as built. (Was Q1.)
+7. **Linear start date.** Dropped with a visible row, `start date (not carried: Linear has none)`; no comment and no label. Not checked against Linear's own API, only the repo's client. (Was Q8.)
+8. **Carrying the new fields through `export`, `import` and `sync`** is out of this spec. The kind travels through (#2485); Effort and the dates are a follow-up after the maintainer has run the commands for real, issue #2496. (Was Q9.)
+9. **An issue with no Type** gets `chore`, plus a row saying where the type came from. The pull request body says `Closes` when the pull request finishes the work (no spec, the implementation pull request, `--one-pr`) and `Refs` for a spec-only pull request, as built. (Was Q10.)
+
 The two-pull-request default (spec first, then implementation) and the verb names are unchanged.
 
 ## Commands
@@ -149,7 +154,7 @@ Options:
 2. **One pull request, spec first.** As proposed in conversation. The first commit is the spec; later commits move it to `accepted` and add the code; the title is rewritten with `update work --title` before the merge. Fewer pull requests; breaks one focused change and the review order.
 3. **One pull request only for work with no separate spec** (small work). The first commit is the empty one; a spec, when needed, is its own pull request (option 1).
 
-Recommendation: default to option 1 when the work has a spec and option 3 when it does not, and offer option 2 as an opt-in (`start work --one-pr`) until the maintainer decides (Q1). This keeps the rule and the spec review, and still gives the one-pull-request flow where it is wanted.
+Decided (Decisions, 6): default to option 1 when the work has a spec and option 3 when it does not, and option 2 is an opt-in (`start work --one-pr`). This keeps the rule and the spec review, and still gives the one-pull-request flow where it is wanted.
 
 ## Capabilities and interfaces
 
@@ -157,7 +162,7 @@ All new methods are optional, like `export`, `import` and `sync`, so a provider 
 
 - `Issues.update?(key, patch: IssuePatch): Promise<IssueUpdateResult>`. `IssuePatch`: title, body, state, labels to add or remove, assignees, milestone, priority, effort, kind, start date, target date, parent, blocked-by to add or remove. `IssueUpdateResult` has `dropped?: string[]` like `create`. `transition` stays.
 - `Issues.create` gains the same fields (a wider input, not a new method), and returns `dropped`.
-- New neutral types in `capabilities.type.ts`: `IssueEffort` (`high | medium | low`) and `IssueKind` (`bug | feature | task`). `IssueRecord` could gain the same optional fields so `export` and `sync` carry them later (Q9).
+- New neutral types in `capabilities.type.ts`: `IssueEffort` (`high | medium | low`) and `IssueKind` (`bug | feature | task`). `IssueRecord` could gain the same optional fields so `export` and `sync` carry them later: the kind already travels (#2485); Effort and the dates are issue #2496 (Decisions, 8).
 - `Source.createPullRequest?`, `Source.updatePullRequest?` (title, body, draft) and `Source.markReady?`. The link is the body's `Refs` or `Closes` line (GitHub's own closing reference does it), so there is no separate link call. `@theholocron/github-client`'s `pulls` group gains create, update and the GraphQL `markPullRequestReadyForReview`.
 - `Projects.setStatus` is unchanged.
 - GitHub: `plugins/holocron-plugin-github/src/capabilities/issues-update.ts` over `githubClient.issueFields` (Priority's pattern: list once, add with `POST`, replace by `DELETE` then `POST`, never `PUT`), the issue's Type through the issues API, parent and blocked-by through GraphQL (the node ids `issues-migration.ts` already reads).
@@ -200,7 +205,9 @@ One pull request per focused change, in this order (accepted by the maintainer),
 4. `new work`. Built in #2429 part 4: `holocron new work <title>` and `runNewWork()` (`commands/new-work/`), which is `runIssueCreate()` plus, with `--spec [name]`, `runIdeasPromote()`. It follows the spec: no branch, no commit, the last line names `start work <key> --spec <path>`. The assignee comes from git config (`github.user`, else a noreply email's login; a `user.name` is not a login, so with neither the issue is unassigned and a row says so), and Effort is asked only on a terminal.
 5. `update work` (`--status` last, a wrapper over `project status`). Built in #2429 part 5: `holocron update work <issue>` and `runUpdateWork()` (`commands/update-work/`). It adds the optional `Source.listPullRequestFiles(number, repo?)` (GitHub: `pulls.listFiles`) and one mapping from changed paths to labels, `areaLabelsForFiles()`, over `repo.labels.areas` (a `!` pattern excludes a path), which `close work` is to reuse. Area labels are only added, never removed, per `tech-github-area-labels`. `--status` refuses In Review, Blocked and Done without `--force`, and says every hand-set status is temporary. `--start` runs `runStartWork()`. `update issue`'s `--body`, `--state` and `--clear` are not offered. `.holocron/org.md`'s "Keeping the project board true" step 1 now names `start work` and `update work --status`.
 6. `close work`, then `--abandon`. Built in #2429 part 6: `holocron close work <issue>` and `runCloseWork()` (`commands/close-work/`). It never merges; it reads the aggregate through the new optional `Source.getPullRequestChecks()` (`--wait`, `--timeout` minutes, default 30), asks, marks the pull request ready, adds the area labels through `runUpdateWork()` (add-only) and takes closed blockers off the issue. Run again after the merge it removes the worktree and local branch (never forced, `--keep-worktree` leaves them) and only checks the remote branch. `--abandon` stops when the branch holds unpushed commits, always asks, closes the pull request, withdraws the spec's post, removes the worktree and branch and asks whether to close the issue as not planned (`IssuePatch.stateReason`, GitHub only; `--yes` never closes the issue). With this the whole rollout (parts 1 to 6) is built; part 7's agent instructions are `org.md` step 3 and the docs page.
-7. Agent instructions for the finished set, if not already done with each step.
+7. Agent instructions for the finished set, if not already done with each step. The effort skill, which tells an agent how to choose `--effort`, exists (#2488).
+
+The whole rollout is built (PRs #2446, #2445, #2448, #2451, #2454 and #2457). Nothing here has been run against live GitHub or Linear; see "Not verified".
 
 ## Docs and agent instructions
 
@@ -212,23 +219,26 @@ One pull request per focused change, in this order (accepted by the maintainer),
 
 ## Open questions
 
-1. **One pull request or two** for work that has a spec (the tension above). Recommendation: two by default, `--one-pr` opt-in.
+1. **One pull request or two** for work that has a spec (the tension above). Resolved: two by default, `--one-pr` opt-in (Decisions, 6).
 2. **The phase template.** Resolved: replaced by the definition-of-done checklist (Decisions, 4).
 3. **Branch naming.** Resolved: `<type>/<issue>-<slug>` (Decisions, 4).
 4. **Default assignee.** Resolved: the git config user, `--assignee` overrides (Decisions, 4).
 5. **Does `close work` merge?** Resolved: it never merges (Decisions, 2).
 6. **What `--status` accepts:** Resolved: refuses In Review, Blocked and Done without `--force` (Decisions, 3).
 7. **Worktree location:** Resolved: `.claude/worktrees/<name>` (Decisions, 4).
-8. **Linear start date:** does an issue have one? The client has `dueDate` only. If not, `start work` drops it with a row, or writes it as a label or a comment.
-9. **Carrying the new fields through `export`, `import` and `sync`** (so `sync issues` copies effort and type): in or out of this spec?
-10. **Issue with no Type:** `chore` plus a note, or ask. And `Closes` or `Refs` by default in the pull request body (work that does not fully close the issue)?
+8. **Linear start date:** Resolved: dropped with the row `start date (not carried: Linear has none)`, no comment or label (Decisions, 7).
+9. **Carrying the new fields through `export`, `import` and `sync`:** Resolved: out of this spec; the kind travels (#2485), Effort and the dates are issue #2496 (Decisions, 8).
+10. **Issue with no Type, and `Closes` or `Refs`:** Resolved: `chore` plus a row naming the source of the type; `Closes` when the pull request finishes the work, `Refs` for a spec-only one (Decisions, 9).
+
+None is open.
 
 ## Not verified
 
+- Nothing built under this spec (the six rollout pull requests above) has been run against live GitHub or Linear; every test uses fakes, and the first real run is the maintainer's.
 - That GitHub refuses a pull request with no commits beyond the base: stated from documented behaviour; no live request was made.
 - That Effort, Start date and Target date can be written through the REST issue-fields API the way Priority is. They are assumed to follow the Priority pattern (`issueFields.addValues`), not tried. Setting an issue Type through the API was not checked.
 - That GitHub's API can set an issue's parent and blocked-by links. The plugin reads them through GraphQL; the write mutations were not checked.
-- That Linear has no start date on an issue, and how a team with estimates off answers an estimate write.
+- That Linear has no start date on an issue (checked only against the repo's client, not Linear's own API; the decision to drop it rests on that), and how a team with estimates off answers an estimate write.
 - That the board-status handler runs on the instance a person uses (production is down, #1100, per AGENTS.md), so In Progress by the rule may lag; this is why `--status` exists.
 - That `markPullRequestReadyForReview` works with the token scopes the CLI holds.
 - That GitHub deletes the head branch after a merge in this repo (a repo setting); the command only checks.
