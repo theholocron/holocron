@@ -37,3 +37,26 @@ export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
  * `SENTINEL_GITHUB_APP_PRIVATE_KEY`) have moved: they are read prefixed first, with the bare name as the fallback.
  */
 export const DEFERRED_ENV_NAMES: ReadonlySet<string> = new Set(["RELEASE_GROUP"]);
+
+/**
+ * The bare names of group 1 of `docs/src/content/docs/environment-variables.mdx`: Holocron's own variables, read as
+ * `HOLOCRON_<NAME>` and then `<NAME>`. `scanPrefixedOnlyReads()` fails a source file that reads one of them in its
+ * prefixed spelling only, because that drops the bare fallback. `RELEASE_GROUP` is left out (deferred, read bare), and
+ * the `GOOGLE_*` names are not listed one by one: google-client reads them through the prefix helper.
+ */
+export const GROUP_ONE_ENV_NAMES: ReadonlySet<string> = new Set([
+	"AXIOM_DATASET",
+	"AXIOM_ORG",
+	"BASE_SHA",
+	"CLOUDFLARE_ACCOUNT_ID",
+	"ENVIRONMENT",
+	"IDEAS_DIR",
+	"PORT",
+	"POSTHOG_HOST",
+	"POSTHOG_PROJECT_TOKEN",
+	"PR_BODY",
+	"PR_TITLE",
+	"SENTRY_DSN",
+	"VERCEL_PROTECTION_BYPASS_SECRET",
+	"VERCEL_TEAM_ID",
+]);
