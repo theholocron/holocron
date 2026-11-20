@@ -59,6 +59,24 @@ async function check(
 const row = (rows: ProbeRow[], label: string) => rows.find((r) => r.label === label);
 
 describe("token probe", () => {
+	it("describes the backfill's organization reads when no layer is given, a refusal being only info (#2511)", async () => {
+		const { rows, calls } = await check(
+			{ "/orgs/acme/issue-fields": 403, "/orgs/acme/issue-types": 404 },
+			named("HOLOCRON_ORG_TOKEN")
+		);
+		expect(calls.map((c) => c.url)).toEqual(
+			expect.arrayContaining(["https://gh.test/orgs/acme/issue-fields", "https://gh.test/orgs/acme/issue-types"])
+		);
+		expect(row(rows, "Organization: Issue fields")).toMatchObject({ status: "info", detail: "no access (403)" });
+		expect(row(rows, "Organization: Issue types")).toMatchObject({ status: "info", detail: "no access (404)" });
+	});
+
+	it("reports the backfill's organization reads as ok when the token reaches them (#2511)", async () => {
+		const { rows } = await check({}, []);
+		expect(row(rows, "Organization: Issue fields")).toMatchObject({ status: "ok" });
+		expect(row(rows, "Organization: Issue types")).toMatchObject({ status: "ok" });
+	});
+
 	it("only reads, accepts another token, and never prints the token", async () => {
 		const { rows, secrets, calls } = await check({}, []);
 		expect(secrets).toEqual(["tok-HOLOCRON_READ_TOKEN"]);

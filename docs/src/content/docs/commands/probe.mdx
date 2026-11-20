@@ -91,7 +91,7 @@ holocron probe github token --token-name HOLOCRON_ADMIN_TOKEN   # the admin toke
 
 ### Backfilling issues
 
-`holocron probe github issue-types` is a writer the maintainer runs once, dry run first, and an agent never runs against the live service. A probe's own options follow a bare `--`, because they are not options of `holocron`:
+`holocron probe github issue-types` is a writer the maintainer runs once, dry run first, and an agent never runs against the live service. It reads the organization's issue fields with `HOLOCRON_ISSUES_TOKEN` (organization **Issue fields: read**) and its issue types with `HOLOCRON_ORG_TOKEN` (organization **Issue types: read**); without them it fails with a 403 or `FORBIDDEN` (see [Tokens](/holocron/tokens/)). A probe's own options follow a bare `--`, because they are not options of `holocron`:
 
 ```bash
 holocron probe github issue-types --dry-run -- --since 2026-09-01 --milestone v5.0 --project v5
