@@ -37,7 +37,7 @@ holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Enable dependency graph                | Dependency graph + snapshot submission                                                    |
 | Enable CodeQL                          | Default setup with extended query suite                                                   |
 | Configure Dependabot                   | Writes `.github/dependabot.yml` (see below)                                               |
-| Sync labels                            | Upserts canonical labels; removes stale ones                                              |
+| Sync labels                            | Upserts canonical labels (`epic` among them); removes stale ones                          |
 | Ensure area labels                     | Makes the missing `area:<name>` labels of `repo.labels.areas`; changes or deletes nothing |
 | Sync properties                        | Sets org-level custom properties from `repo.properties`                                   |
 | Sync topics                            | Sets GitHub topics from `repo.topics`                                                     |
