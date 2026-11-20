@@ -1,0 +1,5 @@
+Throwaway test for #1573. This is a fake, truncated key and is not a real secret.
+-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu
+KUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQJAIJLixBy2qpFoS4DSmoEs
+-----END RSA PRIVATE KEY-----
