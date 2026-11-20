@@ -42,6 +42,17 @@ describe("relaySourcesProblem", () => {
 		expect(relaySourcesProblem(source({ capability: "dns", scope: [1] }))).toMatch(/`scope` must be a list/);
 	});
 
+	it("takes a plugin name as `provider`, and refuses anything else", () => {
+		const source = (provider: unknown) =>
+			layout({ relay: { host: "h.dev", sources: { vercel: { capability: "deployment", provider } as never } } });
+		expect(relaySourcesProblem(source("vercel"))).toBeUndefined();
+		expect(relaySourcesProblem(source("1password"))).toBeUndefined();
+		expect(relaySourcesProblem(source(undefined))).toBeUndefined();
+		for (const bad of ["", "Vercel", "@theholocron/holocron-plugin-vercel", "-x", 7, ["vercel"]]) {
+			expect(relaySourcesProblem(source(bad))).toMatch(/`vercel`: `provider` must be a plugin name/);
+		}
+	});
+
 	it("refuses a feed for a source nobody declared, and a source no channel carries", () => {
 		const stray = layout({
 			categories: [{ name: "A", channels: [{ name: "x", feeds: { relay: { vercel: true, other: true } } }] }],

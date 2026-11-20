@@ -2834,6 +2834,12 @@ export interface NotificationsChannelLayout {
 export interface NotificationsRelaySource {
 	/** The capability whose provider makes the webhook (`deployment` for Vercel). Its plugin implements `ensureRelaySource`. */
 	capability: RelaySourceCapability;
+	/**
+	 * The plugin that makes the webhook, by the name `providers.<capability>` takes (`vercel`), for a capability the
+	 * root config gives to another plugin: `deployment` is single, so Cloudflare is the root's and Vercel can be named
+	 * only here. Left out, the configured provider of `capability` is used. Its plugin implements `ensureRelaySource`.
+	 */
+	provider?: string;
 	/** The webhook's name at the vendor; the id, capitalised, when absent. */
 	name?: string;
 	/** The vendor's event names to subscribe to; the provider's default when absent. */

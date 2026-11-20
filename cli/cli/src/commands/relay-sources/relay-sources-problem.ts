@@ -15,6 +15,9 @@ export const RELAY_SOURCE_CAPABILITIES: readonly RelaySourceCapability[] = [
 /** An id is a URL path segment and part of a Worker binding name, so it is lower-case letters and digits. */
 const ID = /^[a-z][a-z0-9]*$/;
 
+/** A plugin's name, as `providers.<capability>` spells it: lower-case letters, digits and hyphens (`vercel`, `1password`). */
+const PROVIDER = /^[a-z0-9][a-z0-9-]*$/;
+
 /**
  * The first reason the layout's relay sources cannot work, or undefined. `errorsSource` is the error tracker's id when a
  * channel is fed by it, since the tracker's binding names are taken. Pure: it reads the layout and nothing else.
@@ -36,6 +39,9 @@ export function relaySourcesProblem(layout: NotificationsLayout, errorsSource?: 
 		}
 		if (!RELAY_SOURCE_CAPABILITIES.includes(spec?.capability)) {
 			return `relay source \`${id}\`: \`capability\` must be one of ${RELAY_SOURCE_CAPABILITIES.join(", ")}`;
+		}
+		if (spec.provider !== undefined && !(typeof spec.provider === "string" && PROVIDER.test(spec.provider))) {
+			return `relay source \`${id}\`: \`provider\` must be a plugin name, lower-case letters, digits and hyphens (\`vercel\`)`;
 		}
 		for (const key of ["events", "scope"] as const) {
 			const list: unknown = spec[key];
