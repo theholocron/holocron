@@ -214,6 +214,7 @@ export default defineConfig({
 					{ label: "holocron-skill-util", slug: "skills/holocron-skill-util" },
 					{ label: "pr-workflow", slug: "skills/pr-workflow" },
 					{ label: "security-review", slug: "skills/security-review" },
+					{ label: "work-effort", slug: "skills/work-effort" },
 				],
 			},
 			{
