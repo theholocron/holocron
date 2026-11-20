@@ -441,6 +441,13 @@ export interface Source extends ProviderIdentity {
 	listPullRequestCommits?(number: number, repo?: string): Promise<string[]>;
 
 	/**
+	 * The paths one pull request changes, as the repository spells them (a renamed file lists both its new and its old
+	 * path), each once. A provider that caps the list returns what it has. `update work` reads the changed folders from
+	 * it for the area labels. Optional — providers without a PR concept omit this.
+	 */
+	listPullRequestFiles?(number: number, repo?: string): Promise<string[]>;
+
+	/**
 	 * Every branch on the remote, with the commit each points at.
 	 * Optional — providers without branches omit this.
 	 */

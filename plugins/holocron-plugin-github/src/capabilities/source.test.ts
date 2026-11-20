@@ -88,6 +88,29 @@ describe("GitHubSource.listPullRequestCommits", () => {
 	});
 });
 
+describe("GitHubSource.listPullRequestFiles", () => {
+	it("returns each changed path once, with the old path of a rename", async () => {
+		const { source, calls } = makeSource([
+			{
+				status: 200,
+				body: [
+					{ filename: "cli/a.ts", status: "modified" },
+					{ filename: "docs/new.md", previous_filename: "docs/old.md", status: "renamed" },
+					{ filename: "cli/a.ts", status: "modified" },
+				],
+			},
+		]);
+		expect(await source.listPullRequestFiles(42)).toEqual(["cli/a.ts", "docs/new.md", "docs/old.md"]);
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/pulls/42/files");
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [] }]);
+		expect(await source.listPullRequestFiles(7, "theholocron/clients")).toEqual([]);
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/7/files");
+	});
+});
+
 describe("GitHubSource.listBranches", () => {
 	it("maps each branch to its name and sha", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: [{ name: "alpha", commit: { sha: "abc" } }] }]);

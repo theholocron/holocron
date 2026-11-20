@@ -98,6 +98,7 @@ const EVERY_COMMAND = [
 	"new work",
 	"update issue",
 	"start work",
+	"update work",
 ];
 
 /**

@@ -80,6 +80,7 @@ import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js
 import { syncRequestsEntry } from "../../commands/sync-requests/sync-requests.entry.js";
 import { syncToolingEntry } from "../../commands/sync-tooling/sync-tooling.entry.js";
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
+import { updateWorkEntry } from "../../commands/update-work/update-work.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
 import { upgradeNodeEntry } from "../../commands/upgrade-node/upgrade-node.entry.js";
 import { uploadCoverageEntry } from "../../commands/upload-coverage/upload-coverage.entry.js";
@@ -152,6 +153,7 @@ const registry = createCommandRegistry(
 		newWorkEntry,
 		issueUpdateEntry,
 		startWorkEntry,
+		updateWorkEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,

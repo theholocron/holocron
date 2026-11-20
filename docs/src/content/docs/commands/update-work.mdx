@@ -1,0 +1,73 @@
+---
+title: "update work"
+description: Keep an issue, its pull request and the board in step, with area labels from the changed folders.
+---
+
+```bash
+holocron update work <issue> [--title <text>] [--issue-title <text>] [--label <name>]... [--remove-label <name>]... [--assignee <login>]... [--milestone <title|number>] [--unblock <key>]... [--pr <number>] [--start [--name <slug>] [--base <branch>] [--spec <file>] [--one-pr]] [--status <status> [--force] [--board <name>]] [--type bug|feature|task] [--priority urgent|high|medium|low] [--effort high|medium|low] [--start-date <date>] [--target-date <date>] [--parent <key>] [--blocked-by <key>]... [--project <board>] [--area <name>]... [--dry-run] [--yes]
+```
+
+Keeps one piece of work's three records in step: the issue (through the `issues` provider), its pull request (through `source`, GitHub only) and the board status (through `projects`). Part 5 of spec `tool-work-commands` (#2429). It is not an alias of [`update issue`](/holocron/commands/update-issue/), which edits only the tracker's issue.
+
+```bash
+holocron update work 2429 --effort medium --label bug
+holocron update work 2429 --title "feat(cli): add update work" --milestone v5
+holocron update work 2429 --status "In Progress"
+holocron update work 2429 --start --yes
+holocron update work 2429 --dry-run
+```
+
+A run with no flag still reads the pull request's changed folders and syncs the area labels.
+
+## Steps
+
+| Step              | What it does                                                                                                                                                   | Writes to         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| start (`--start`) | Runs [`start work`](/holocron/commands/start-work/) (the same function) first, so the branch and the draft pull request exist                                  | git, GitHub       |
+| pull request      | Finds the open pull request whose branch is `<type>/<issue>-<slug>` (`--pr` names one)                                                                         | nothing           |
+| area labels       | Reads the pull request's changed files and works out the `area:<name>` labels from `repo.labels.areas`                                                         | nothing           |
+| issue             | `update issue` with the field flags, `--label`, `--issue-title`, `--assignee`, `--milestone`, `--unblock`, `--project`, and the area labels it lacks           | tracker           |
+| pull request      | The title (`--title`), the labels (those named and the area ones), the removed labels, the assignees, the milestone and the board, through `updatePullRequest` | GitHub (`source`) |
+| board status      | `--status`, last, as `holocron project status` does it; the run says the value is temporary                                                                    | the board         |
+
+## Area labels
+
+The areas are the ones `repo.labels.areas` declares in `.holocron/repo.ts` (name to folder patterns; spec `tech-github-area-labels`, #2430), the list `--area` already reads. A path is in an area when a pattern matches it (`cli/**`, a plain folder or file name) and no pattern starting with `!` takes it out (`docs/**` with `!docs/wiki/**`). The command only **adds** labels: the missing `area:` ones go on the issue and on the pull request, and a label a person put there is never removed. A repo with no `areas`, a provider that cannot list a pull request's files, or no pull request is a skipped row.
+
+## `--status`
+
+`--status` is the manual path, for when the board's automation (Sentinel's board-status handler, the hourly `reconcile-projects`) is down or slow. In Review, Blocked and Done belong to that automation, which overwrites a hand-set value, so they are **refused unless `--force`**; any other status needs no flag. The refusal happens before anything is read or written. After every use the run says the value is temporary. Blocked comes from a blocked-by link: `--blocked-by` writes the link and the rule sets the status.
+
+## Behavior
+
+- **Asks once first** unless `--dry-run` or `--yes`. Without a terminal and without either it refuses. `--start` runs with the answer already given.
+- **`--dry-run`** runs the reads and prints each write as `would ...`; nothing is written.
+- **Run it twice.** A label already there, a field already as asked and a status already set change nothing.
+- **A pull request not found** is a skipped row (the issue is still updated), except with `--title`, which needs one.
+- **The pull request is mirrored, not copied.** Labels, assignees and the board are added to what the pull request has; on the issue the assignees replace the current ones. What GitHub cannot apply (a milestone it lacks) is a `not carried across` row.
+
+## Options
+
+| Option                         | Description                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `--title <text>`               | The pull request's new title                                                                                           |
+| `--issue-title <text>`         | The issue's new title                                                                                                  |
+| `--label <name>`               | Add a label to the issue and the pull request; repeatable                                                              |
+| `--remove-label <name>`        | Take a label off both; repeatable                                                                                      |
+| `--assignee <login>`           | Assign the issue (replacing); the pull request gains them                                                              |
+| `--milestone <title>`          | The milestone                                                                                                          |
+| `--unblock <key>`              | Take a blocker off the issue                                                                                           |
+| `--pr <number>`                | The pull request, when its branch is not `<type>/<issue>-<slug>`                                                       |
+| `--start`                      | Run `start work` first; `--name`, `--base`, `--spec`, `--one-pr` go to it                                              |
+| `--status <status>`            | Set the board status by hand, last (temporary)                                                                         |
+| `--force`                      | Allow In Review, Blocked or Done with `--status`, only while the automation is down                                    |
+| `--board <name>`               | The declared board for `--status` (default: the first)                                                                 |
+| the `update issue` field flags | `--type`, `--priority`, `--effort`, `--start-date`, `--target-date`, `--parent`, `--blocked-by`, `--project`, `--area` |
+| `--dry-run`                    | Show what would be done, change nothing                                                                                |
+| `--yes`                        | Change it without asking (required without a terminal)                                                                 |
+
+`update issue`'s `--body`, `--state` and `--clear` are not offered here; use that command for them.
+
+## Tokens
+
+The `issues`, `source` and `projects` providers read their tokens through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs their plugin packages to resolve.

@@ -154,6 +154,8 @@ export const COMMAND_CONTEXTS = {
 	"update issue": "workspace",
 	// Reads the issue through `issues`, opens the pull request through `source` and runs git, so those packages must resolve.
 	"start work": "workspace",
+	// Updates the issue (`issues`), finds and updates the pull request (`source`) and sets the board status (`projects`), so those packages must resolve.
+	"update work": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**
