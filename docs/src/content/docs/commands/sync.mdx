@@ -53,6 +53,17 @@ holocron sync labels properties             # run only labels and properties
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
 
+### `workflows`
+
+The `workflows` step also removes a generated caller whose task is no longer in `tasks`, for example `ci.annotate.yml` after `annotate` left a preset. Each removal is its own step row (`remove obsolete workflow <file>`), and `--dry-run` lists it without deleting. The step removes a file only when all of these are true:
+
+- It starts with the generated-file header (`AUTO-GENERATED`).
+- It is not marked `# HAND-MAINTAINED`.
+- Its `# Source package:` line is the package you are syncing. A run for `apps/sentinel` never removes a root file, and a file with no `# Source package:` line (written by an old version) is left for `holocron probe generated check` to report.
+- This run does not write it.
+
+It removes nothing when `tasks` is empty, or when a task has no template (that step is skipped, with a row that says why). Any other file in `.github/workflows` stays as it is.
+
 ### `private`
 
 `.holocron/.private/` is the one place for files that hold secrets, such as the `.credentials` file [`export tokens`](/holocron/commands/export-tokens/) and [`new github-app`](/holocron/commands/new-github-app/) write. The step writes an empty, tracked `.gitkeep` there and a managed block in `.gitignore`:
