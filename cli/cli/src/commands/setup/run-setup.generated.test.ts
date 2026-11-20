@@ -70,6 +70,7 @@ describe("setup: obsolete generated callers (#2466)", () => {
 		tasks?: string[];
 		dryRun?: boolean;
 		listError?: Error;
+		vanished?: string[];
 	}) {
 		const loaded: LoadedConfig = {
 			resolved: resolveConfig({
@@ -83,7 +84,7 @@ describe("setup: obsolete generated callers (#2466)", () => {
 		const source = {
 			listWorkflowFiles: async () => {
 				if (opts.listError) throw opts.listError;
-				return Object.keys(opts.files);
+				return [...Object.keys(opts.files), ...(opts.vanished ?? [])];
 			},
 			readWorkflowFile: async (name: string) => opts.files[name] ?? null,
 			writeWorkflowFile: async () => {},
@@ -150,6 +151,12 @@ describe("setup: obsolete generated callers (#2466)", () => {
 		};
 		const { removed } = await run({ files, tasks: ["keep"], entries: [caller, other] });
 		expect(removed).toEqual(["ci.old.yml"]);
+	});
+
+	it("skips a file that is listed but gone by the time it is read", async () => {
+		const { report, removed } = await run({ files, tasks: ["keep"], vanished: ["ci.gone.yml"] });
+		expect(removed).toEqual(["ci.old.yml"]);
+		expect(report.steps.some((s) => s.step.includes("ci.gone.yml"))).toBe(false);
 	});
 
 	it("reports a failed read as a failed step and removes nothing", async () => {
