@@ -39,6 +39,7 @@ import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring
 import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
 import { newDomainEntry } from "../../commands/new-domain/new-domain.entry.js";
+import { newWorkEntry } from "../../commands/new-work/new-work.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
 import { notificationsDedupeEntry } from "../../commands/notifications-dedupe/notifications-dedupe.entry.js";
@@ -148,6 +149,7 @@ const registry = createCommandRegistry(
 		syncRequestsEntry,
 		ideasPromoteEntry,
 		issueCreateEntry,
+		newWorkEntry,
 		issueUpdateEntry,
 		startWorkEntry,
 		syncReadmeEntry,
