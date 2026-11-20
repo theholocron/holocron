@@ -1,3 +1,9 @@
+## [5.0.0-alpha.501](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.500...v5.0.0-alpha.501) (2026-11-20)
+
+### Bug Fixes
+
+* **ci:** 🐛 install a pinned gitleaks so the required scan runs ([#2453](https://github.com/theholocron/holocron/issues/2453)) ([1be1844](https://github.com/theholocron/holocron/commit/1be1844e70465f878fa5d2633bc26f70547f3419)), closes [#2452](https://github.com/theholocron/holocron/issues/2452)
+
 ## [5.0.0-alpha.500](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.499...v5.0.0-alpha.500) (2026-11-20)
 
 ### Features
