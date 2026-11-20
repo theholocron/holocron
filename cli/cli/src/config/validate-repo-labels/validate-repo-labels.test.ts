@@ -60,4 +60,36 @@ describe("validateRepoLabels", () => {
 		expect(problem({ areas: { cli: ["a"] }, scopes: { x: 3 as unknown as string } })).toMatch(/unknown area 3/);
 		expect(problem({ areas: { cli: ["a"] }, scopes: { " ": "cli" } })).toMatch(/empty scope name/);
 	});
+
+	it("accepts a kind table, a fallback table and a list of repositories", () => {
+		expect(() =>
+			validateRepoLabels({
+				kinds: { bug: "Bug", Defect: "Bug" },
+				fallbackKinds: {},
+				repos: ["theholocron/holocron", "acme/a.b_c-d"],
+			})
+		).not.toThrow();
+	});
+
+	it("names the path of a kind label that is empty or too long, or a Type that is not a name", () => {
+		expect(problem({ kinds: { " ": "Bug" } })).toMatch(/`repo.labels.kinds. `: a label name is 1 to 50/);
+		expect(problem({ fallbackKinds: { ["x".repeat(51)]: "Task" } })).toMatch(
+			/`repo.labels.fallbackKinds.x+`: a label name/
+		);
+		expect(problem({ kinds: { bug: "" } })).toMatch(/`repo.labels.kinds.bug` needs the name of an issue Type/);
+		expect(problem({ kinds: { bug: 3 as unknown as string } })).toMatch(/needs the name of an issue Type/);
+	});
+
+	it("refuses a label that is in both tables, or twice whatever the case", () => {
+		expect(problem({ kinds: { ci: "Task" }, fallbackKinds: { CI: "Task" } })).toMatch(
+			/`repo.labels.fallbackKinds.CI`: "CI" is already in `repo.labels.kinds.ci`/
+		);
+		expect(problem({ kinds: { bug: "Bug", Bug: "Bug" } })).toMatch(/already in/);
+	});
+
+	it("refuses a repository that is not owner/name, and a list that is not a list", () => {
+		expect(problem({ repos: ["holocron"] })).toMatch(/`repo.labels.repos` has "holocron"/);
+		expect(problem({ repos: [3 as unknown as string] })).toMatch(/has 3/);
+		expect(problem({ repos: "a/b" as unknown as string[] })).toMatch(/is a list of/);
+	});
 });

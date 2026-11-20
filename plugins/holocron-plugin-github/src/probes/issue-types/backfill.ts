@@ -3,7 +3,9 @@ import { areaLabelsForFiles, areaLabelsForTitle } from "@theholocron/cli";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { gather } from "./gather.js";
-import type { AreaConfig, BackfillApi, BackfillItem, BackfillOptions } from "./issue-types.type.js";
+import type { BackfillApi, BackfillItem, BackfillOptions, LabelsConfig } from "./issue-types.type.js";
+import type { KindTables } from "./kinds.js";
+import { unknownTypes } from "./kinds.js";
 import { planType } from "./plan-type.js";
 import { reportBackfill, type Tally } from "./report.js";
 
@@ -12,7 +14,9 @@ export interface BackfillRun {
 	ctx: ProbeContext;
 	api: BackfillApi;
 	options: BackfillOptions;
-	areas: AreaConfig;
+	areas: LabelsConfig;
+	/** The kind tables, from `resolveKinds()`. */
+	kinds: KindTables;
 	isRateLimited: (err: unknown) => boolean;
 }
 
@@ -59,6 +63,16 @@ const labelOf = (item: BackfillItem) => `#${item.number}`;
 /** Reads what the run needs before it starts: labels, the named milestone and project, the organization's issue fields. Says why and returns nothing when a name does not exist. */
 async function prepare(run: BackfillRun, tally: Tally): Promise<Setup | undefined> {
 	const { api, ctx, options } = run;
+	const known = await api.typeNames();
+	const unknown = unknownTypes(run.kinds, known);
+	for (const { type, labels } of unknown) {
+		ctx.say({
+			status: "fail",
+			label: "Type",
+			detail: `${type} (for ${labels.join(", ")}) is not an issue Type of this organization; its Types are ${[...known].join(", ") || "none"}`,
+		});
+	}
+	if (unknown.length > 0) return undefined;
 	const setup: Setup = { labelNames: await api.labelNames(), fields: [] };
 	if (options.milestone !== undefined) {
 		setup.milestone = await api.milestoneNumber(options.milestone);
@@ -115,7 +129,7 @@ async function handle(
 	}
 	if (item.isPullRequest) return;
 
-	const type = planType(item);
+	const type = planType(item, run.kinds);
 	if ("set" in type) {
 		await ctx.write(`set Type ${type.set} on ${labelOf(item)}`, () => api.setType(n, type.set));
 		tally.typeSet[type.set] = (tally.typeSet[type.set] ?? 0) + 1;

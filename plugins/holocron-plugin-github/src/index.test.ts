@@ -246,7 +246,14 @@ describe("the issue-types probe", () => {
 			const body: Record<string, unknown> = {
 				"/repos/acme/widgets/issues/1": issue,
 				"/repos/acme/widgets/labels": [{ name: "area:cli" }],
-				"/graphql": { data: { nodes: [] } },
+				"/graphql": {
+					data: {
+						nodes: [],
+						organization: {
+							issueTypes: { nodes: [{ name: "Bug" }, { name: "Feature" }, { name: "Task" }] },
+						},
+					},
+				},
 			};
 			return new Response(JSON.stringify(body[url.pathname] ?? []), { status: 200 });
 		};

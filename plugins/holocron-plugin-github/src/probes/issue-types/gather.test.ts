@@ -5,7 +5,7 @@ import { fakeApi, item } from "./backfill.testing.js";
 import { gather } from "./gather.js";
 import type { BackfillOptions } from "./issue-types.type.js";
 
-const base: BackfillOptions = { after: 0, limit: 100, pullRequests: false };
+const base: BackfillOptions = { after: 0, limit: 100, pullRequests: false, repos: [] };
 const limited = (e: unknown) => e instanceof ProviderApiError;
 const numbers = (g: { items: Array<{ number: number }> }) => g.items.map((i) => i.number);
 

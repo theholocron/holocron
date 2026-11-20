@@ -46,6 +46,10 @@ export interface BackfillApi {
 	fieldValues(number: number): Promise<Set<string>>;
 	/** The paths a pull request changes. */
 	files(number: number): Promise<string[]>;
+	/** The names of the organization's issue Types. */
+	typeNames(): Promise<Set<string>>;
+	/** The text of a file of the repository's default branch, or `null` when it has none. */
+	readFile(path: string): Promise<string | null>;
 	setType(number: number, type: string): Promise<void>;
 	addLabels(number: number, labels: string[]): Promise<void>;
 	setMilestone(number: number, milestone: number): Promise<void>;
@@ -68,12 +72,22 @@ export interface BackfillOptions {
 	project?: string;
 	/** `--pull-requests`: also give pull requests their area labels. */
 	pullRequests: boolean;
+	/** `--repo`, repeatable: the repositories (`owner/name`) to run on; empty means the configured list or this one. */
+	repos: string[];
+	/** The one repository this run is for, set when the run was named or is one of several, so a resume command names it. */
+	repo?: string;
 }
 
-/** The area declaration the plugin is handed from `repo.labels`. */
-export interface AreaConfig {
+/** `repo.labels`, which the loader hands the plugin: the area map, the kind tables and the repositories. */
+export interface LabelsConfig {
 	areas?: Record<string, string[]>;
 	scopes?: Record<string, string>;
+	/** Main kind label to Type (default `bug` Bug, `enhancement` Feature, `chore` Task). */
+	kinds?: Record<string, string>;
+	/** Kind labels used only when none of `kinds` is on the issue (default the six of #2494, each Task). */
+	fallbackKinds?: Record<string, string>;
+	/** The repositories to run on when `--repo` is not given. */
+	repos?: string[];
 }
 
 /** What `parseArgs` returns: the options, or the one thing wrong with the arguments. */

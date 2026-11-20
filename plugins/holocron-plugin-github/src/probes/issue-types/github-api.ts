@@ -1,5 +1,6 @@
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { readRepoFile } from "../../capabilities/files.js";
 import { fieldRefusal } from "../../capabilities/issue-field-setter.js";
 import { GitHubProjects } from "../../capabilities/projects.js";
 import type { BackfillApi, BackfillItem } from "./issue-types.type.js";
@@ -8,6 +9,12 @@ const PAGE = 100;
 
 const PROJECTS_OF = `query($ids: [ID!]!) { nodes(ids: $ids) { ... on Issue { id projectItems(first: 20) { nodes { project { id } } } } } }`;
 const ADD_ITEM = `mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: { projectId: $project, contentId: $content }) { item { id } } }`;
+
+const ISSUE_TYPES = `query($org: String!) { organization(login: $org) { issueTypes(first: 50) { nodes { name } } } }`;
+
+interface TypesData {
+	organization: { issueTypes: { nodes: Array<{ name: string }> } | null } | null;
+}
 
 interface ProjectsData {
 	nodes: Array<{ id?: string; projectItems?: { nodes: Array<{ project: { id: string } }> } } | null>;
@@ -94,6 +101,13 @@ export function createBackfillApi(client: GitHubClient, orgClient: GitHubClient,
 		},
 		async files(number) {
 			return (await client.pulls.listFiles(repo, number)).map((f) => f.filename);
+		},
+		async typeNames() {
+			const data = await orgClient.graphql.query<TypesData>(ISSUE_TYPES, { org });
+			return new Set((data.organization?.issueTypes?.nodes ?? []).map((t) => t.name));
+		},
+		async readFile(path) {
+			return (await readRepoFile(client, repo, path))?.content ?? null;
 		},
 		async setType(number, type) {
 			await client.issues.updateIssue(repo, number, { type });

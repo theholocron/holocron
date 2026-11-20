@@ -57,6 +57,7 @@ function resumeCommand(options: BackfillOptions, cursor: number): string {
 	if (options.issues) flags.push("--issues", options.issues.join(","));
 	if (options.since) flags.push("--since", options.since);
 	flags.push("--limit", String(options.limit));
+	if (options.repo) flags.push("--repo", options.repo);
 	if (options.milestone) flags.push("--milestone", options.milestone);
 	if (options.project) flags.push("--project", options.project);
 	if (options.pullRequests) flags.push("--pull-requests");

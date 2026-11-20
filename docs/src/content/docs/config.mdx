@@ -247,6 +247,22 @@ labels: {
 
 The config load refuses, with a `ConfigError` naming the path (`repo.labels.areas.<name>`), a name that cannot end a label (letters, digits, `.`, `_` and `-`, at most 45 characters), a name given twice whatever its case, an empty pattern list or an empty pattern, a list of only `!` patterns and a scope naming an area that is not declared.
 
+`repo.labels.kinds`, `fallbackKinds` and `repos` configure the one-time [backfill](/holocron/plugins/github/#backfilling-issues) (spec `tech-backfill-config-mapping`, #2495):
+
+```ts
+labels: {
+  // Kind label to the issue Type it means. These always win. Left out: bug Bug, enhancement Feature, chore Task.
+  kinds: { bug: "Bug", enhancement: "Feature", chore: "Task" },
+  // Used only when none of `kinds` is on the issue. Left out: ci, documentation, refactor, test, performance and
+  // dependencies, each Task. `{}` turns it off.
+  fallbackKinds: { ci: "Task", documentation: "Task" },
+  // The repositories the backfill works on when `--repo` is not given. Left out: this repository.
+  repos: ["theholocron/holocron", "theholocron/clients"],
+}
+```
+
+Setting a table replaces it whole, and a table left out keeps its default, so a repository that sets none behaves as before. A label is in one table only, whatever its case. The config load refuses an empty or over-long label name, a Type that is not a name, a label in both tables and a repository that is not `owner/name`. Whether a Type exists is the organization's to say, so the probe checks the names against the organization's issue Types when it runs and fails a row naming an unknown one.
+
 - [`holocron setup`](/holocron/commands/setup/) makes each missing `area:<name>` label (one colour, the description `Changes under <paths>`). It never changes an existing label's colour or description, never deletes one, and the labels are not in the canonical set, so another repo gets none. `--dry-run` writes nothing.
 - [`holocron doctor repo`](/holocron/commands/doctor-repo/) fails a declared area with no label, and notes an `area:` label nobody declared as `info`.
 - `--area <name>` on `new issue`, `new work` and `update issue` takes the declared names; `update work` adds the labels the pull request's changed folders earn.

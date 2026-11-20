@@ -3,10 +3,11 @@ import type { ParsedArgs } from "./issue-types.type.js";
 /** The default for `--limit`: a page of issues, so one run is a few hundred requests at most. */
 export const DEFAULT_LIMIT = 100;
 
-const VALUED = ["--issues", "--since", "--after", "--limit", "--milestone", "--project"];
+const VALUED = ["--issues", "--since", "--after", "--limit", "--milestone", "--project", "--repo"];
 const INTEGER = /^\d+$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE = 1000;
+const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 /** `12,15,20-23` to `[12, 15, 20, 21, 22, 23]`, or `undefined` for text that is not such a list. */
 function numbersOf(text: string): number[] | undefined {
@@ -27,6 +28,7 @@ export function parseArgs(args: readonly string[]): ParsedArgs {
 		after: 0,
 		limit: DEFAULT_LIMIT,
 		pullRequests: false,
+		repos: [],
 	};
 	for (let i = 0; i < args.length; i++) {
 		const flag = args[i];
@@ -53,6 +55,9 @@ export function parseArgs(args: readonly string[]): ParsedArgs {
 				return { ok: false, message: `--limit takes a whole number of at least 1, not ${value}` };
 			}
 			options.limit = Number(value);
+		} else if (flag === "--repo") {
+			if (!REPOSITORY.test(value)) return { ok: false, message: `--repo takes owner/name, not ${value}` };
+			if (!options.repos.includes(value)) options.repos.push(value);
 		} else if (flag === "--milestone") options.milestone = value;
 		else options.project = value;
 	}
@@ -60,6 +65,12 @@ export function parseArgs(args: readonly string[]): ParsedArgs {
 		return {
 			ok: false,
 			message: "--milestone and --project need a window to apply to: name it with --issues or --since",
+		};
+	}
+	if (options.repos.length > 1 && (options.issues || options.after > 0)) {
+		return {
+			ok: false,
+			message: "--issues and --after are numbers of one repository, so they cannot go with more than one --repo",
 		};
 	}
 	return { ok: true, options };

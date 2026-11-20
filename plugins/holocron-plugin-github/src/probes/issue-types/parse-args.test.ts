@@ -4,7 +4,10 @@ import { DEFAULT_LIMIT, parseArgs } from "./parse-args.js";
 
 describe("parseArgs", () => {
 	it("defaults to a first page of everything, with no fill", () => {
-		expect(parseArgs([])).toEqual({ ok: true, options: { after: 0, limit: DEFAULT_LIMIT, pullRequests: false } });
+		expect(parseArgs([])).toEqual({
+			ok: true,
+			options: { after: 0, limit: DEFAULT_LIMIT, pullRequests: false, repos: [] },
+		});
 	});
 
 	it("reads every option", () => {
@@ -30,8 +33,38 @@ describe("parseArgs", () => {
 				milestone: "v5.0",
 				project: "v5",
 				pullRequests: true,
+				repos: [],
 			},
 		});
+	});
+
+	it("takes --repo more than once, keeping each repository once", () => {
+		expect(parseArgs(["--repo", "acme/a", "--repo", "acme/b.c", "--repo", "acme/a"])).toMatchObject({
+			ok: true,
+			options: { repos: ["acme/a", "acme/b.c"] },
+		});
+	});
+
+	it("refuses a --repo that is not owner/name", () => {
+		expect(parseArgs(["--repo", "widgets"])).toEqual({
+			ok: false,
+			message: "--repo takes owner/name, not widgets",
+		});
+	});
+
+	it.each([
+		["--issues", "1-3"],
+		["--after", "5"],
+	])("refuses %s with more than one repository", (flag, value) => {
+		const parsed = parseArgs(["--repo", "acme/a", "--repo", "acme/b", flag, value]);
+		expect(parsed).toMatchObject({
+			ok: false,
+			message: expect.stringContaining("cannot go with more than one --repo"),
+		});
+	});
+
+	it("lets --issues and --after go with one repository", () => {
+		expect(parseArgs(["--repo", "acme/a", "--issues", "1-3", "--after", "2"])).toMatchObject({ ok: true });
 	});
 
 	it("expands numbers and ranges", () => {
