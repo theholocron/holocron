@@ -24,9 +24,10 @@ There is one route per source, `https://comlink.theholocron.dev/<source>`.
 3. The source formats the delivery as a Discord embed with pings turned off. It can also say it does not carry the delivery (202, acknowledged and dropped so the service does not retry), or that it cannot read one it should carry (422).
 4. The message is posted to the source's own webhook (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
 
-| Source   | Path      | Verified by                                                                  | Carries                      |
-| -------- | --------- | ---------------------------------------------------------------------------- | ---------------------------- |
-| `sentry` | `/sentry` | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret | issue alerts (`event_alert`) |
+| Source       | Path          | Verified by                                                                                     | Carries                                            |
+| ------------ | ------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                    | issue alerts (`event_alert`)                       |
+| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body) | notifications (any alert type that carries `text`) |
 
 ## Relaying more Sentry projects
 

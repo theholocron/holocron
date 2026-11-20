@@ -24,9 +24,10 @@ One route per source: `https://comlink.theholocron.dev/<source>`.
 Each source has two secret bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK` (a dedicated
 Discord webhook for the channel it feeds).
 
-| Source   | Path      | Verified by                                                                  | Carries                      |
-| -------- | --------- | ---------------------------------------------------------------------------- | ---------------------------- |
-| `sentry` | `/sentry` | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret | issue alerts (`event_alert`) |
+| Source       | Path          | Verified by                                                                                     | Carries                                            |
+| ------------ | ------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                    | issue alerts (`event_alert`)                       |
+| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body) | notifications (any alert type that carries `text`) |
 
 ## Projects
 
