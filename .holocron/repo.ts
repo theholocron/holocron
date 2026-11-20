@@ -140,6 +140,8 @@ export default {
 			council: "council",
 			plugin: "plugins",
 			plugins: "plugins",
+			github: "plugins",
+			linear: "plugins",
 			clients: "clients",
 			configs: "configs",
 			utils: "utils",

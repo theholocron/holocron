@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { areaLabelsForFiles } from "../../area-labels/index.js";
+import { areaLabelsForFiles, areaLabelsForTitle } from "../../area-labels/index.js";
 import { loadConfig } from "../config-system.js";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../../../", import.meta.url));
@@ -37,6 +37,14 @@ describe("holocron's own area labels (#2430)", () => {
 			].sort()
 		);
 		for (const area of Object.values(labels?.scopes ?? {})) expect(labels?.areas).toHaveProperty(area);
+	});
+
+	it("maps the github and linear title scopes to the plugins area (#2510)", async () => {
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
+		const scopes = resolved.repo?.labels?.scopes;
+		expect(areaLabelsForTitle("feat(github): ✨ a thing", scopes)).toEqual(["area:plugins"]);
+		expect(areaLabelsForTitle("fix(linear): 🐛 a thing", scopes)).toEqual(["area:plugins"]);
+		expect(areaLabelsForTitle("feat(github,linear): ✨ both", scopes)).toEqual(["area:plugins"]);
 	});
 
 	it("points every pattern at a folder or file that exists", async () => {
