@@ -28,6 +28,31 @@ describe("alerting.webhooks", () => {
 	});
 });
 
+describe("alerting, when Cloudflare returns nothing or refuses", () => {
+	it("reads an empty answer as no destinations and no policies", async () => {
+		const { alerting } = client([
+			{ status: 204, body: undefined },
+			{ status: 204, body: undefined },
+		]);
+		expect(await alerting.webhooks.list("acct")).toEqual([]);
+		expect(await alerting.policies.list("acct")).toEqual([]);
+	});
+
+	it("throws on a 403 or 401", async () => {
+		const refused = (status: number) => ({
+			status,
+			body: { success: false, errors: [{ code: 10000, message: "no" }] },
+		});
+		const { alerting } = client([refused(403), refused(401), refused(403), refused(403)]);
+		await expect(alerting.webhooks.list("acct")).rejects.toThrow();
+		await expect(alerting.webhooks.create("acct", { name: "n", url: "u" })).rejects.toThrow();
+		await expect(alerting.policies.list("acct")).rejects.toThrow();
+		await expect(
+			alerting.policies.create("acct", { name: "p", alert_type: "t", enabled: true, mechanisms: {} })
+		).rejects.toThrow();
+	});
+});
+
 describe("alerting.policies", () => {
 	const input = { name: "p", alert_type: "incident_alert", enabled: true, mechanisms: { webhooks: [{ id: "w1" }] } };
 

@@ -93,6 +93,79 @@ describe("CloudflareDns.ensureRelaySource", () => {
 		expect(calls).toHaveLength(1);
 	});
 
+	it("makes the destination without a secret when none is offered, and returns none", async () => {
+		const { dns, calls } = make([cfOk([]), cfOk({ id: "d1" }), cfOk([]), cfOk({ id: "p1" })]);
+		const result = await dns.ensureRelaySource({ ...input, secret: undefined });
+		expect(result.created).toBe(true);
+		expect(result).not.toHaveProperty("secret");
+		expect(calls[1]?.body).toEqual({ name: "Cloudflare", url: URL });
+	});
+
+	it("keeps a policy's description, filters and interval when it fixes the policy, and adds the destination to a policy with no webhooks", async () => {
+		const bare = {
+			...policy,
+			enabled: false,
+			mechanisms: {},
+			description: "d",
+			filters: { zones: ["z"] },
+			alert_interval: "PT5M",
+		};
+		const { dns, calls } = make([cfOk([destination]), cfOk([bare]), cfOk({ id: "p1" })]);
+		await dns.ensureRelaySource(input);
+		expect(calls[2]?.body).toEqual({
+			name: "Cloudflare: incident_alert",
+			alert_type: "incident_alert",
+			enabled: true,
+			mechanisms: { webhooks: [{ id: "d1" }] },
+			description: "d",
+			filters: { zones: ["z"] },
+			alert_interval: "PT5M",
+		});
+	});
+
+	it("leaves another source's policies alone", async () => {
+		const other = { ...policy, id: "p9", name: "Other: incident_alert", mechanisms: {} };
+		const { dns, calls } = make([cfOk([destination]), cfOk([other]), cfOk({ id: "p1" })]);
+		const result = await dns.ensureRelaySource(input);
+		expect(result.updated).toEqual(["policy incident_alert"]);
+		expect(calls[2]?.method).toBe("POST");
+	});
+
+	it("passes on a refusal from Cloudflare, and creates nothing after a failed list", async () => {
+		const denied = {
+			status: 403,
+			body: { success: false, errors: [{ code: 10000, message: "Authentication error" }] },
+		};
+		const { dns, calls } = make([denied]);
+		await expect(dns.ensureRelaySource(input)).rejects.toThrow();
+		expect(calls).toHaveLength(1);
+	});
+
+	it("stops, with the destination made, when the policy call is refused", async () => {
+		const denied = {
+			status: 403,
+			body: { success: false, errors: [{ code: 10000, message: "Authentication error" }] },
+		};
+		const { dns, calls } = make([cfOk([]), cfOk({ id: "d1" }), cfOk([]), denied]);
+		await expect(dns.ensureRelaySource(input)).rejects.toThrow();
+		expect(calls.map((c) => c.method)).toEqual(["GET", "POST", "GET", "POST"]);
+	});
+
+	it("fails when the destination cannot be made", async () => {
+		const unauthorized = { status: 401, body: { success: false, errors: [{ code: 10000, message: "bad token" }] } };
+		const { dns, calls } = make([cfOk([]), unauthorized]);
+		await expect(dns.ensureRelaySource(input)).rejects.toThrow();
+		expect(calls).toHaveLength(2);
+	});
+
+	it("returns the secret of a destination made now even when it also reports the todo", async () => {
+		const { dns, calls } = make([cfOk([]), cfOk({ id: "d1" })]);
+		const result = await dns.ensureRelaySource({ ...input, events: [] });
+		expect(result.secret).toBe(SECRET);
+		expect(result.todo).toHaveLength(1);
+		expect(calls).toHaveLength(2);
+	});
+
 	it("needs an account id", async () => {
 		const { dns } = make([], null);
 		await expect(dns.ensureRelaySource(input)).rejects.toThrow(/accountId/);
@@ -112,6 +185,33 @@ describe("CloudflareDns.inspectRelaySource", () => {
 			enabled: true,
 			events: ["incident_alert"],
 		});
+	});
+
+	it("ignores policies that do not send to the destination, and other sources' policies", async () => {
+		const elsewhere = {
+			...policy,
+			id: "p2",
+			name: "Cloudflare: dos_attack_l7",
+			mechanisms: { webhooks: [{ id: "x" }] },
+		};
+		const bare = { ...policy, id: "p3", name: "Cloudflare: other", mechanisms: {} };
+		const foreign = { ...policy, id: "p4", name: "Else: incident_alert" };
+		const { dns } = make([cfOk([destination]), cfOk([policy, elsewhere, bare, foreign])]);
+		expect(await dns.inspectRelaySource(input)).toEqual({
+			exists: true,
+			enabled: true,
+			events: ["incident_alert"],
+		});
+	});
+
+	it("passes on a refusal when reading the webhooks or the policies", async () => {
+		const denied = { status: 403, body: { success: false, errors: [{ code: 10000, message: "no" }] } };
+		await expect(make([denied]).dns.inspectRelaySource(input)).rejects.toThrow();
+		await expect(make([cfOk([destination]), denied]).dns.inspectRelaySource(input)).rejects.toThrow();
+	});
+
+	it("needs an account id", async () => {
+		await expect(make([], null).dns.inspectRelaySource(input)).rejects.toThrow(/accountId/);
 	});
 
 	it("reports off when a policy is disabled or there is none", async () => {

@@ -13,6 +13,11 @@ export function policyName(name: string, alertType: string): string {
 	return `${name}: ${alertType}`;
 }
 
+/** The webhook targets of a policy with the destination in them, once. */
+function withDestination(webhooks: Array<{ id: string }> = [], id: string): Array<{ id: string }> {
+	return webhooks.some((w) => w.id === id) ? webhooks : [...webhooks, { id }];
+}
+
 /** The policies that belong to a source, found by name, one per alert type of its layout. */
 function ownPolicies(policies: CfNotificationPolicy[], name: string): CfNotificationPolicy[] {
 	const prefix = `${name}: `;
@@ -31,7 +36,6 @@ export async function ensureRelaySource(
 	input: EnsureRelaySourceInput
 ): Promise<EnsureRelaySourceResult> {
 	const updated: string[] = [];
-	const todo: string[] = [];
 	const destinations = await client.alerting.webhooks.list(accountId);
 	let found = destinations.find((d) => d.url === input.url);
 	let created = false;
@@ -50,9 +54,9 @@ export async function ensureRelaySource(
 
 	const events = input.events ?? [];
 	if (events.length === 0) {
-		todo.push(
-			`List the Cloudflare alert types to send in the source's \`events\` (GET /accounts/<id>/alerting/v3/available_alerts names them); a webhook with no policy sends nothing.`
-		);
+		const todo = [
+			`List the Cloudflare alert types to send in the source's \`events\` (GET /accounts/<id>/alerting/v3/available_alerts names them); a webhook with no policy sends nothing.`,
+		];
 		return { created, updated, ...(secret ? { secret } : {}), todo };
 	}
 
@@ -64,10 +68,8 @@ export async function ensureRelaySource(
 			alert_type: alertType,
 			enabled: true,
 			mechanisms: {
-				...(base?.mechanisms ?? {}),
-				webhooks: (base?.mechanisms.webhooks ?? []).some((w) => w.id === destination.id)
-					? (base?.mechanisms.webhooks ?? [])
-					: [...(base?.mechanisms.webhooks ?? []), { id: destination.id }],
+				...base?.mechanisms,
+				webhooks: withDestination(base?.mechanisms.webhooks, destination.id),
 			},
 			...(base?.description !== undefined ? { description: base.description } : {}),
 			...(base?.filters !== undefined ? { filters: base.filters } : {}),
@@ -80,7 +82,7 @@ export async function ensureRelaySource(
 			continue;
 		}
 		const attached = existing.mechanisms.webhooks?.some((w) => w.id === destination.id) ?? false;
-		if (existing.enabled && attached && existing.alert_type === alertType) continue;
+		if (existing.enabled && attached) continue;
 		// PUT replaces the whole policy, so everything it already had is sent back.
 		await client.alerting.policies.update(accountId, existing.id, body(existing));
 		updated.push(`policy ${alertType}`);
@@ -89,7 +91,6 @@ export async function ensureRelaySource(
 		created,
 		updated: created ? [] : updated,
 		...(secret ? { secret } : {}),
-		...(todo.length ? { todo } : {}),
 	};
 }
 

@@ -227,6 +227,32 @@ describe("token probe", () => {
 			expect(row(rows, "Pages: Edit")?.status).toBe("ok");
 		});
 
+		it("fails a ci token that can read notification webhooks, and a dev token that is refused them", async () => {
+			const reachable = await check(
+				[
+					denied,
+					cfOk([]),
+					cfOk([]),
+					cfOk([{ name: "site" }]),
+					cfOk([]),
+					cfOk([{ id: "h", name: "Cloudflare" }]),
+				],
+				ci
+			);
+			expect(row(reachable.rows, "Notifications: Edit")).toMatchObject({
+				status: "fail",
+				detail: "1 notification webhooks: Cloudflare",
+			});
+			const refused = await check(
+				[denied, cfOk([zone]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), cfOk([]), denied],
+				{ args: ["--layer", "dev"] }
+			);
+			expect(row(refused.rows, "Notifications: Edit")).toMatchObject({
+				status: "fail",
+				detail: "no access (403)",
+			});
+		});
+
 		it("fails a ci token that cannot reach Pages", async () => {
 			const { rows } = await check([denied, cfOk([]), cfOk([]), denied, cfOk([])], ci);
 			expect(row(rows, "Pages: Edit")).toMatchObject({ status: "fail", detail: "no access (403)" });
