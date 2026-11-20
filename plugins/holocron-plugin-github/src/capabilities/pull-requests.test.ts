@@ -216,3 +216,15 @@ describe("markReady", () => {
 		await expect(markReady(client, REPO, 7)).rejects.toThrow(/no node id/);
 	});
 });
+
+describe("pull requests without optional fields", () => {
+	it("treats a missing draft flag as not a draft and a missing assignees list as empty", async () => {
+		const noDraft = { ...RAW, draft: undefined };
+		const created = setup([{ body: [] }, { status: 201, body: noDraft }, { body: { number: 7 } }, { body: {} }]);
+		const result = await createPullRequest(created.client, REPO, { ...INPUT, assignees: ["a"] });
+		expect(result.draft).toBe(false);
+		expect(created.calls[3]?.body).toEqual({ assignees: ["a"] });
+		const updated = setup([{ body: noDraft }]);
+		expect((await updatePullRequest(updated.client, REPO, 7, {})).draft).toBe(false);
+	});
+});

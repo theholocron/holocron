@@ -867,3 +867,35 @@ describe("GitHubSource — reads for doctor repo", () => {
 		expect(await source.getSecurity()).toMatchObject({ vulnerabilityAlerts: true, codeScanningDefaultSetup: true });
 	});
 });
+
+describe("GitHubSource pull request methods", () => {
+	const OPEN = { ...RAW_PR, state: "open" as const, merged_at: null, draft: true, node_id: "PR_1" };
+
+	it("createPullRequest opens a draft in the plugin's repo, or the repo named", async () => {
+		const own = makeSource([{ body: [] }, { status: 201, body: OPEN }]);
+		const result = await own.source.createPullRequest({ title: "feat: x", head: "fix/something", base: "alpha" });
+		expect(result.created).toBe(true);
+		expect(own.calls[1]?.url).toContain("/repos/theholocron/holocron/pulls");
+		const other = makeSource([{ body: [OPEN] }]);
+		await other.source.createPullRequest({ title: "t", head: "h", base: "alpha" }, "theholocron/other");
+		expect(other.calls[0]?.url).toContain("/repos/theholocron/other/pulls");
+	});
+
+	it("updatePullRequest changes the title", async () => {
+		const { source, calls } = makeSource([{ body: OPEN }]);
+		await source.updatePullRequest(42, { title: "fix: y" }, "theholocron/other");
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toContain("/repos/theholocron/other/pulls/42");
+		const own = makeSource([{ body: OPEN }]);
+		await own.source.updatePullRequest(42, { title: "fix: z" });
+		expect(own.calls[0]?.url).toContain("/repos/theholocron/holocron/pulls/42");
+	});
+
+	it("markReady takes a draft out of draft", async () => {
+		const { source } = makeSource([
+			{ body: OPEN },
+			{ body: { data: { markPullRequestReadyForReview: { pullRequest: { id: "PR_1", isDraft: false } } } } },
+		]);
+		await expect(source.markReady(42)).resolves.toBe(true);
+	});
+});

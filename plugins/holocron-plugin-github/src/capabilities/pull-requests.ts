@@ -49,7 +49,7 @@ interface BoardsData {
 /** Puts the pull request (by node id) on each board of the organization found by title; a board not found or refused is returned by name. */
 async function addToBoards(client: GitHubClient, repo: string, nodeId: string, titles: string[]): Promise<string[]> {
 	const dropped: string[] = [];
-	const owner = repo.split("/")[0] ?? "";
+	const owner = repo.slice(0, repo.indexOf("/"));
 	let boards: BoardsData["organization"];
 	try {
 		const data = await client.graphql.query<BoardsData>(
