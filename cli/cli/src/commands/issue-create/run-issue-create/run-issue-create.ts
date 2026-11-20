@@ -99,7 +99,7 @@ export async function runIssueCreate(input: RunIssueCreateInput): Promise<IssueC
 
 	if (dryRun) {
 		print(`  ${title}`);
-		for (const line of (body ?? "").split("\n").slice(0, PREVIEW_LINES)) print(`    ${style.skip(line)}`);
+		for (const line of body ? body.split("\n").slice(0, PREVIEW_LINES) : []) print(`    ${style.skip(line)}`);
 		print("");
 		return finish([row(title, "skip", `would file the issue${summary}`)]);
 	}

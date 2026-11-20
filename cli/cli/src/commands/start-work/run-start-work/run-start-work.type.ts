@@ -3,6 +3,7 @@ import type { CheckRow } from "@theholocron/kyber/ui";
 
 import type { LoadedConfig } from "../../../config/index.js";
 import type { IssueEffort, IssueKind, PluginLoader, RuntimeContext } from "../../../plugin/index.js";
+import type { TemplatesIo } from "../../project/load-templates/index.js";
 
 /** The git and file system {@link runStartWork} touches, so a test runs it with fakes and never a real repository. */
 export interface StartWorkIo {
@@ -54,6 +55,8 @@ export interface RunStartWorkInput {
 	yes?: boolean;
 	/** Defaults to a loader over the config's `issues` and `source` providers. */
 	loader?: PluginLoader;
+	/** Where the board template files are read from, to find the issue's boards. Defaults to the real file system. */
+	templatesIo?: TemplatesIo;
 	/** The git and file system. Defaults to the real ones. */
 	io?: StartWorkIo;
 	/** Whether a terminal can be asked. Defaults to whether stdin is one. */
