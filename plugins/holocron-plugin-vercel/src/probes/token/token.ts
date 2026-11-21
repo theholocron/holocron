@@ -8,14 +8,15 @@ import type { TokenProbeContext } from "./token.type.js";
 
 /**
  * The `token` probe for Vercel. It asks who the token belongs to (the plugin's `verifyToken`, `/v2/user`) and whether it can list projects, which
- * are reads and change nothing. Vercel does not report a token's scope, so the probe cannot judge permissions: it says
- * so, and with `--layer` (passed because `--environment` named a layer) it only says whether that layer is one that
- * should hold the token, from the plugin's `tokens` declaration. The token is never printed.
+ * are reads and change nothing, and the team's webhook list, the read next to making a relay webhook. Vercel does not
+ * report a token's scope, so the probe cannot judge permissions beyond that: it says so, and with `--layer` (passed
+ * because `--environment` named a layer) it says whether that layer is one that should hold the token and, for a layer
+ * that requires `webhooks`, fails when the list is refused. The token is never printed.
  */
 export function tokenProbe(ctx: TokenProbeContext): Probe {
 	return {
 		summary:
-			"Check a Vercel token with the current user and the project list, and for a layer that it is one that should hold the token. Vercel cannot report a token's scope, so permissions are not checked. Read-only.",
+			"Check a Vercel token with the current user, the project list and the team's webhook list, and for a layer that it is one that should hold the token (a laptop layer must see the webhooks). Vercel cannot report a token's scope, so making a webhook is not tried. Read-only.",
 		writes: false,
 		acceptsToken: true,
 		async run(probe) {
@@ -55,10 +56,27 @@ export function tokenProbe(ctx: TokenProbeContext): Probe {
 				}
 			}
 
+			// `webhooks`: the one permission declared. A read proves the token sees the team's webhooks; making one cannot be
+			// tried without writing, so a layer that requires it is judged on the read.
+			const needsWebhooks = layer
+				? tokenExpectations(tokens, { layer }).some((entry) => entry.required.includes("webhooks"))
+				: false;
+			try {
+				const hooks = await client.webhooks.list();
+				probe.say({ status: "ok", label: "Webhooks: Read", detail: `${hooks.length} webhooks` });
+			} catch (err) {
+				const noAccess = err instanceof ProviderApiError && (err.status === 401 || err.status === 403);
+				probe.say({
+					status: noAccess && !needsWebhooks ? "info" : "fail",
+					label: "Webhooks: Read",
+					detail: noAccess ? `no access (${err.status})` : errorMessage(err),
+				});
+			}
+
 			probe.say({
 				status: "info",
 				label: "permissions",
-				detail: "Vercel cannot report a token's scope, so it is not checked",
+				detail: "Vercel cannot report a token's scope: reading the team's webhooks is proven, making one is not (it would write)",
 			});
 		},
 	};
