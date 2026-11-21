@@ -189,6 +189,30 @@ export class PluginLoader extends system.PluginLoader {
 			throw err;
 		}
 	}
+
+	/**
+	 * Loads one provider by name with the given options, whether or not `holocron.config` names it under `key`, and
+	 * returns what it makes for that capability, leaving the capability registry alone (a relay source names the plugin
+	 * that makes its webhook). The token is read when the capability is first used, not here. Throws
+	 * {@link WorkspaceContextError} when the provider's package cannot be imported here, a {@link LoaderError} when it
+	 * does not implement `key`, and what `createPlugin` throws as it is.
+	 */
+	async loadNamedCapability(provider: string, options: ProviderOptions, key: CapabilityKey): Promise<unknown> {
+		const packageName = system.resolvePackage(provider);
+		try {
+			const plugin = await this.loadProvider({ provider, packageName, options });
+			const factory = plugin.capabilities[key];
+			if (typeof factory !== "function") {
+				throw new LoaderError(`\`${packageName}\` does not implement the \`${key}\` capability`);
+			}
+			return factory();
+		} catch (err) {
+			if (err instanceof LoaderError && err.message.startsWith("failed to import")) {
+				throw new WorkspaceContextError("provider", [packageName]);
+			}
+			throw err;
+		}
+	}
 }
 
 /** The `setup` and `doctor` a created plugin carries. */

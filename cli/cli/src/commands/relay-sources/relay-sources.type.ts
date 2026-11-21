@@ -1,8 +1,10 @@
+import type { ResolvedHolocronConfig, ResolvedTuple } from "../../config/index.js";
 import type {
 	NotificationsChannelLayout,
 	NotificationsLayout,
 	NotificationsPicture,
 	NotificationsRelaySource,
+	PluginLoader,
 	ProviderIdentity,
 	RelaySourceCapability,
 	RelaySourceMethods,
@@ -28,6 +30,28 @@ export interface DeclaredRelaySource {
 
 /** The provider of a source's capability, as far as the relay cares. */
 export type RelaySourceProvider = ProviderIdentity & RelaySourceMethods;
+
+/** What {@link resolveRelaySourceProvider} reads. */
+export interface ResolveRelaySourceProviderInput {
+	/** The loader holding the configured providers; the named plugin is loaded through it. */
+	loader: PluginLoader;
+	/** The resolved root config: its provider entries supply a named plugin's options first. */
+	config: ResolvedHolocronConfig;
+	/** The repository root, where the workspace's package configs are read from. */
+	repoRoot: string;
+	/** The source to resolve. */
+	source: DeclaredRelaySource;
+	/** Reads the providers the workspace's packages name. Defaults to `workspaceProviders()`; tests pass their own. */
+	workspace?: (repoRoot: string, config: ResolvedHolocronConfig) => Promise<ResolvedTuple[]>;
+}
+
+/** The outcome of {@link resolveRelaySourceProvider}: the provider, or why there is none. */
+export interface ResolvedRelaySourceProvider {
+	/** The provider that makes the webhook, when there is one. */
+	provider?: RelaySourceProvider;
+	/** Why there is none: names the source and the plugin, ready to print as a refusal. */
+	problem?: string;
+}
 
 /** The `print` and counters `setup notifications` passes a step. */
 export interface RelaySourceRun {

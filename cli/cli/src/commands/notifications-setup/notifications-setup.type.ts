@@ -1,6 +1,6 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/index.js";
+import type { LoadedConfig, ResolvedHolocronConfig, ResolvedTuple } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 import type { ChannelOutcome, NotificationsChannelAddPrint } from "../notifications-channel-add/index.js";
 
@@ -24,6 +24,11 @@ export interface RunNotificationsSetupInput {
 	loadAvatar?: (source: string) => Promise<string>;
 	/** Reads the picture a server emoji is made from as a `data:` URI. Defaults to `loadEmojiImage`; tests pass their own. */
 	loadEmojiImage?: (source: string) => Promise<string>;
+	/**
+	 * Reads the providers the workspace's packages name, for a relay source that names a plugin the root config gives
+	 * no options to. Defaults to `workspaceProviders()`; tests pass their own.
+	 */
+	workspaceProviders?: (repoRoot: string, config: ResolvedHolocronConfig) => Promise<ResolvedTuple[]>;
 	/** Reads the built relay Worker. Defaults to the file system; tests pass their own. */
 	readRelayCode?: (path: string) => Promise<string>;
 	/**
