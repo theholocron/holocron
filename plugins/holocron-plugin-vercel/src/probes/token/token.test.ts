@@ -1,7 +1,9 @@
 import type { ProbeRow } from "@theholocron/cli";
+import { tokenExpectations } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
+import { tokens } from "../../auth.js";
 import { createVercelClient } from "../../rest.js";
 import { parseLayer } from "./parse-layer.js";
 import { tokenProbe } from "./token.js";
@@ -10,9 +12,13 @@ type Response = Parameters<typeof stubFetch>[0][number];
 
 async function check(
 	projects: Response,
-	over: { args?: string[]; who?: { ok: true; subject: string } | { ok: false; message: string } } = {}
+	over: {
+		args?: string[];
+		who?: { ok: true; subject: string } | { ok: false; message: string };
+		webhooks?: Response;
+	} = {}
 ) {
-	const { fetch } = stubFetch([projects]);
+	const { fetch } = stubFetch([projects, over.webhooks ?? { status: 200, body: [] }]);
 	const client = createVercelClient({ token: "v-tok", fetch });
 	const rows: ProbeRow[] = [];
 	const secrets: Array<string | undefined> = [];
@@ -73,6 +79,45 @@ describe("token probe", () => {
 		expect(row(ok.rows, "ci")).toMatchObject({ status: "ok" });
 		const other = await check({ status: 200, body: { projects: [] } }, { args: ["--layer=prod"] });
 		expect(row(other.rows, "prod")).toMatchObject({ status: "info" });
+	});
+});
+
+describe("token probe — the team's webhooks", () => {
+	const ok = { status: 200, body: { projects: [] } };
+	const refused = { status: 403, body: { error: { code: "forbidden" } } };
+
+	it("reads the webhook list and says that making one is not proven", async () => {
+		const { rows } = await check(ok, { webhooks: { status: 200, body: [{ id: "h1" }, { id: "h2" }] } });
+		expect(row(rows, "Webhooks: Read")).toMatchObject({ status: "ok", detail: "2 webhooks" });
+		expect(row(rows, "permissions")?.detail).toMatch(/making one is not/);
+	});
+
+	it("fails a layer that requires `webhooks` when the list is refused, and only notes it elsewhere", async () => {
+		for (const layer of ["local", "dev"]) {
+			const { rows } = await check(ok, { args: ["--layer", layer], webhooks: refused });
+			expect(row(rows, "Webhooks: Read")).toMatchObject({ status: "fail", detail: "no access (403)" });
+		}
+		for (const args of [["--layer", "ci"], []]) {
+			const { rows } = await check(ok, { args, webhooks: refused });
+			expect(row(rows, "Webhooks: Read")).toMatchObject({ status: "info", detail: "no access (403)" });
+		}
+	});
+
+	it("fails the row for an error that is not about access", async () => {
+		const { rows } = await check(ok, { webhooks: { status: 500, body: { error: { code: "boom" } } } });
+		expect(row(rows, "Webhooks: Read")?.status).toBe("fail");
+	});
+});
+
+describe("the Vercel token declaration", () => {
+	it("requires `webhooks` on a laptop, and holds the token in `ci` with no rule", () => {
+		const found = tokenExpectations(tokens);
+		expect(found.map((e) => [e.layer, e.required])).toEqual([
+			["local", ["webhooks"]],
+			["dev", ["webhooks"]],
+			["ci", []],
+		]);
+		expect(found.flatMap((e) => e.absent)).toEqual([]);
 	});
 });
 

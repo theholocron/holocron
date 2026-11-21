@@ -9,7 +9,10 @@ describe("the plugin's tokens export", () => {
 				envName: "HOLOCRON_VERCEL_TOKEN",
 				vendorEnvName: "VERCEL_TOKEN",
 				keyringKey: "vercel",
-				expect: { layers: ["local", "dev", "ci"] },
+				expect: {
+					layers: ["local", "dev", "ci"],
+					permissions: { local: { webhooks: "required" }, dev: { webhooks: "required" } },
+				},
 			},
 		]);
 	});
