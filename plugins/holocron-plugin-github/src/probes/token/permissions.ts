@@ -28,6 +28,8 @@ export const PERMISSIONS = {
 	"actions-variables": { label: "Variables", path: "/repos/{r}/actions/variables?per_page=1" },
 	"custom-properties": { label: "Custom properties", path: "/repos/{r}/properties/values" },
 	pages: { label: "Pages", path: "/repos/{r}/pages" },
+	webhooks: { label: "Webhooks", path: "/repos/{r}/hooks?per_page=1" },
+	"org-webhooks": { label: "Organization: Webhooks", path: "/orgs/{o}/hooks?per_page=1" },
 	"org-members": { label: "Organization: Members", path: "/orgs/{o}/members?per_page=1" },
 	"org-variables": { label: "Organization: Variables", path: "/orgs/{o}/actions/variables?per_page=1" },
 	"org-secrets": { label: "Organization: Secrets", path: "/orgs/{o}/actions/secrets?per_page=1" },

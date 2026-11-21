@@ -13,6 +13,7 @@
 				events: ["deployment.error"],
 				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
 			},
+			dependabot: { capability: "source", scope: ["theholocron/holocron"], events: ["dependabot_alert"] },
 		},
 	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
@@ -69,7 +70,7 @@
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
-					feeds: { relay: { cloudflare: true, vercel: true } },
+					feeds: { relay: { cloudflare: true, vercel: true, dependabot: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.

@@ -10,6 +10,14 @@ function everywhere(rules: Rules): TokenExpectation {
 }
 
 /**
+ * `rules` everywhere, plus a permission only a person at a terminal needs: `local` and `dev` must have `held`, and `ci`
+ * must not have `ci` (a workflow's token needs no more than it uses).
+ */
+function withoutInCi(rules: Rules, held: Rules, ci: Rules): TokenExpectation {
+	return { permissions: { local: { ...rules, ...held }, dev: { ...rules, ...held }, ci: { ...rules, ...ci } } };
+}
+
+/**
  * What each GitHub token is meant to carry, by its `envName`, the same as the GitHub tokens table in
  * `docs/src/content/docs/tokens.mdx`. This is the plugin's `tokens` declaration, read through `tokenExpectations()`;
  * change it and that table together.
@@ -52,15 +60,20 @@ export const EXPECTED: Readonly<Record<string, TokenExpectation>> = {
 			},
 		},
 	},
-	HOLOCRON_ADMIN_TOKEN: everywhere({
-		administration: "required",
-		secrets: "required",
-		environments: "required",
-		issues: "required",
-		"custom-properties": "required",
-		"actions-variables": "required",
-		"org-secrets": "absent",
-	}),
+	HOLOCRON_ADMIN_TOKEN: withoutInCi(
+		{
+			administration: "required",
+			secrets: "required",
+			environments: "required",
+			issues: "required",
+			"custom-properties": "required",
+			"actions-variables": "required",
+			"org-secrets": "absent",
+		},
+		// `setup notifications` makes the Dependabot relay webhook (#2531) from a laptop; no workflow does.
+		{ webhooks: "required" },
+		{ webhooks: "absent" }
+	),
 	HOLOCRON_SECRETS_TOKEN: everywhere({ "org-secrets": "required", administration: "absent" }),
 	HOLOCRON_DEPLOY_TOKEN: everywhere({
 		pages: "required",
@@ -73,10 +86,15 @@ export const EXPECTED: Readonly<Record<string, TokenExpectation>> = {
 		administration: "absent",
 		secrets: "absent",
 	}),
-	HOLOCRON_ORG_TOKEN: everywhere({
-		administration: "required",
-		"org-members": "required",
-		"org-variables": "required",
-		"org-secrets": "absent",
-	}),
+	HOLOCRON_ORG_TOKEN: withoutInCi(
+		{
+			administration: "required",
+			"org-members": "required",
+			"org-variables": "required",
+			"org-secrets": "absent",
+		},
+		// Only an organization-scoped relay webhook (`options.org`) needs this; this repo's is a repository webhook.
+		{ "org-webhooks": "required" },
+		{ "org-webhooks": "absent" }
+	),
 };

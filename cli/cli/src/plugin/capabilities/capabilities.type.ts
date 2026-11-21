@@ -181,7 +181,7 @@ export interface SourceFile {
 }
 
 /** Source hosting: the repository, its rulesets, settings, security features, workflow files and pull requests. */
-export interface Source extends ProviderIdentity {
+export interface Source extends ProviderIdentity, RelaySourceMethods {
 	/** Identifies this provider as the `source` capability. */
 	readonly key: "source";
 
@@ -1644,7 +1644,7 @@ export interface Dns extends ProviderIdentity, RelaySourceMethods {
  * webhook is made through a service they already offer. The tracker (`errors`) has its own, richer pair
  * (`ensureRelay`).
  */
-export type RelaySourceCapability = "deployment" | "dns" | "vault" | "auth" | "workers";
+export type RelaySourceCapability = "deployment" | "dns" | "vault" | "auth" | "workers" | "source";
 
 /** What {@link RelaySourceMethods.ensureRelaySource} sets up at the vendor. */
 export interface EnsureRelaySourceInput {

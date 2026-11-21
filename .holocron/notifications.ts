@@ -20,8 +20,8 @@ export default {
 	// provider (that is Cloudflare, and `deployment` holds one), so the source names `provider: "vercel"` and setup loads
 	// the plugin with the options of `apps/sentinel`, the one Vercel project (#2519); only a build failure is relayed
 	// (`deployment.error`), for Sentinel's project, whose id is `vercel-project` in `apps/sentinel/holocron.config.ts`
-	// (a test keeps them equal). Doppler is no longer used and Clerk is not. Add the id and a channel's `feeds.relay` to
-	// take another.
+	// (a test keeps them equal). GitHub's Dependabot alerts come through a webhook it makes with the admin token (#2531).
+	// Doppler is no longer used and Clerk is not. Add the id and a channel's `feeds.relay` to take another.
 	relay: {
 		host: `comlink.${domain}`,
 		errors: { projects: ["holocron-cli", "holocron"] },
@@ -33,6 +33,8 @@ export default {
 				events: ["deployment.error"],
 				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
 			},
+			// A webhook on this repository for Dependabot's security alerts (#2531); the admin token needs Webhooks: write.
+			dependabot: { capability: "source", scope: ["theholocron/holocron"], events: ["dependabot_alert"] },
 		},
 	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
@@ -91,9 +93,9 @@ export default {
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
-					// Cloudflare's incident and certificate alerts and Sentinel's failed Vercel builds arrive through the Comlink
-					// relay, each by a webhook of its own.
-					feeds: { relay: { cloudflare: true, vercel: true } },
+					// Cloudflare's incident and certificate alerts, Sentinel's failed Vercel builds and GitHub's Dependabot alerts arrive
+					// through the Comlink relay, each by a webhook of its own.
+					feeds: { relay: { cloudflare: true, vercel: true, dependabot: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.
