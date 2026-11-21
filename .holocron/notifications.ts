@@ -16,13 +16,23 @@ export default {
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `setup notifications`.
 	// `sources` are the other vendors whose signed webhook the relay carries; setup makes each webhook at the vendor and
-	// hands the Worker its secret (#2465). Only Cloudflare is here: Vercel and Doppler are not this repo's `deployment`
-	// or `vault` provider, and Clerk is not used. Add the id and a channel's `feeds.relay` to take another.
+	// hands the Worker its secret (#2465). Cloudflare is this repo's `dns` provider. Vercel is not its `deployment`
+	// provider (that is Cloudflare, and `deployment` holds one), so the source names `provider: "vercel"` and setup loads
+	// the plugin with the options of `apps/sentinel`, the one Vercel project (#2519); only a build failure is relayed
+	// (`deployment.error`), for Sentinel's project, whose id is `vercel-project` in `apps/sentinel/holocron.config.ts`
+	// (a test keeps them equal). Doppler is no longer used and Clerk is not. Add the id and a channel's `feeds.relay` to
+	// take another.
 	relay: {
 		host: `comlink.${domain}`,
 		errors: { projects: ["holocron-cli", "holocron"] },
 		sources: {
 			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+			vercel: {
+				capability: "deployment",
+				provider: "vercel",
+				events: ["deployment.error"],
+				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
+			},
 		},
 	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
@@ -81,8 +91,9 @@ export default {
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
-					// Cloudflare's incident and certificate alerts arrive through the Comlink relay, by a webhook of their own.
-					feeds: { relay: { cloudflare: true } },
+					// Cloudflare's incident and certificate alerts and Sentinel's failed Vercel builds arrive through the Comlink
+					// relay, each by a webhook of its own.
+					feeds: { relay: { cloudflare: true, vercel: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.

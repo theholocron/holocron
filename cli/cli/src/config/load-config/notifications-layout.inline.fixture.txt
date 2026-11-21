@@ -7,6 +7,12 @@
 		errors: { projects: ["holocron-cli", "holocron"] },
 		sources: {
 			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+			vercel: {
+				capability: "deployment",
+				provider: "vercel",
+				events: ["deployment.error"],
+				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
+			},
 		},
 	},
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
@@ -63,7 +69,7 @@
 					name: "alerts",
 					topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 					webhook: true,
-					feeds: { relay: { cloudflare: true } },
+					feeds: { relay: { cloudflare: true, vercel: true } },
 				},
 				// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
 				// its own ("Sentry") whose URL goes straight to the Worker.

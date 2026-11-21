@@ -75,7 +75,7 @@ See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications
 
 ## The Vercel source
 
-The Vercel plugin implements `ensureRelaySource` and `inspectRelaySource` for `relay.sources.vercel` (`capability: "deployment"`; `events` such as `deployment.error`, `scope` the project ids). `setup notifications` makes the team webhook for `https://<relay.host>/vercel` and binds `COMLINK_VERCEL_SECRET` (the secret Vercel returns once) and `COMLINK_VERCEL_WEBHOOK`; see [the Vercel plugin](/holocron/plugins/vercel/#relay-source-comlink). The source that verifies and formats the delivery is `src/sources/vercel/`.
+The Vercel plugin implements `ensureRelaySource` and `inspectRelaySource` for `relay.sources.vercel` (`capability: "deployment"`; `events` such as `deployment.error`, `scope` the project ids). `setup notifications` makes the team webhook for `https://<relay.host>/vercel` and binds `COMLINK_VERCEL_SECRET` (the secret Vercel returns once) and `COMLINK_VERCEL_WEBHOOK`; see [the Vercel plugin](/holocron/plugins/vercel/#relay-source-comlink). The source that verifies and formats the delivery is `src/sources/vercel/`. This repo's root `deployment` is Cloudflare, so its layout names `provider: "vercel"`: `relay.sources.vercel` relays only build failures (`deployment.error`) of Sentinel's project (`scope` is its `prj_` id, the one `apps/sentinel/holocron.config.ts` holds as `vercel-project`) to `#alerts`. The token needs the `webhooks` permission in `local` and `dev` ([the table](/holocron/tokens/#holocron_vercel_token)).
 
 ## Adding a source
 

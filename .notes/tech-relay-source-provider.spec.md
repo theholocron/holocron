@@ -97,12 +97,12 @@ Epic #2519, one pull request each, in this order:
 
 ## Unverified
 
-- **The plan.** Vercel's `POST /v1/webhooks` needs a Pro or Enterprise team; Sentinel's team plan is not known. #2520
-  settles it, and the epic stops there if it cannot make webhooks.
-- **What "failure" means.** A deployment webhook carries build and deployment events (`deployment.error`,
-  `deployment.canceled`), not a function that fails while running; that may already reach `#errors` through Sentry.
-  #2520 decides which one is wanted and the channel (`#alerts` for errors, or `#deploys`).
-- **`scope` by name.** The layout's `scope` is "in the vendor's terms": for Vercel a project id. Whether the provider
-  also accepts a project name and resolves it, so the layout does not carry a `prj_` id, is open.
+- **The plan.** Settled by #2520: the team is on Pro, so webhooks can be made.
+- **What "failure" means.** Settled by #2520: a build failure (`deployment.error`) only, to `#alerts`; a function that
+  fails while running is Sentry's.
+- **`scope` by name.** Settled by #2525 as the simpler option: the layout carries the project's `prj_` id (Vercel's
+  webhook takes `projectIds`), the same id `apps/sentinel/holocron.config.ts` holds as `vercel-project`, and
+  `load-config-self-adoption.test.ts` fails when the two differ. Resolving a name would add a read to the plugin for no
+  gain while the id is already in the repo. Not verified against a live team (no Vercel credentials where this was built).
 - **Options of the named plugin.** The first workspace package that names it supplies them (as for `doctor tokens`). If two
   packages disagree, the first wins; whether that needs an explicit `options` on the source is open.

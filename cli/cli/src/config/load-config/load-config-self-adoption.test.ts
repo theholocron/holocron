@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { relaySourcesProblem } from "../../commands/relay-sources/index.js";
 import type { NotificationsLayout } from "../../plugin/index.js";
 import { loadConfig } from "../config-system.js";
 
@@ -108,6 +109,21 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect(repo.defaultBranch).toBe("alpha");
 	});
 
+	it("relays Sentinel's failed Vercel builds, scoped to the project Sentinel's own config names (#2519)", async () => {
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
+		const { options } = notificationsOf(resolved);
+		const vercel = options.layout?.relay?.sources?.vercel;
+		expect(vercel).toMatchObject({ capability: "deployment", provider: "vercel", events: ["deployment.error"] });
+		const sentinel = await readFile(
+			new URL("../../../../../apps/sentinel/holocron.config.ts", import.meta.url),
+			"utf8"
+		);
+		const projectId = /"vercel-project":\s*"(prj_[A-Za-z0-9]+)"/.exec(sentinel)?.[1];
+		expect(projectId).toBeDefined();
+		expect(vercel?.scope).toEqual([projectId]);
+		expect(relaySourcesProblem(options.layout!)).toBeUndefined();
+	});
+
 	it("resolves to the same config as before the move, apart from the two moved paths", async () => {
 		const expected = JSON.parse(await readFile(SNAPSHOT, "utf8")) as Record<string, unknown>;
 		// The deliberate differences (#1788): the avatar and the rules file moved into `.holocron/`. Applied here, in the
@@ -125,12 +141,19 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect(options.layout?.relay?.sources).toBeUndefined();
 		options.layout!.relay!.sources = {
 			cloudflare: { capability: "dns", events: ["incident_alert", "universal_ssl_event_type"] },
+			// And (#2519): Sentinel's failed Vercel builds, through a provider the root config does not name.
+			vercel: {
+				capability: "deployment",
+				provider: "vercel",
+				events: ["deployment.error"],
+				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
+			},
 		};
 		const alerts = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])
 			.find((c) => c.name === "alerts");
 		expect(alerts?.feeds).toBeUndefined();
-		alerts!.feeds = { relay: { cloudflare: true } };
+		alerts!.feeds = { relay: { cloudflare: true, vercel: true } };
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.
 		const ideas = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])
