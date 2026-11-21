@@ -6,7 +6,6 @@ import type {
 	NotificationsRelaySource,
 	PluginLoader,
 	ProviderIdentity,
-	RelaySourceCapability,
 	RelaySourceMethods,
 } from "../../plugin/index.js";
 
@@ -72,8 +71,9 @@ export interface EnsuredRelaySource {
 /** What `relaySourceChecks` reads. */
 export interface RelaySourceChecksInput {
 	layout: NotificationsLayout;
-	/** The configured provider of a capability, or undefined when there is none. */
-	provider: (capability: RelaySourceCapability) => RelaySourceProvider | undefined;
-	/** Why a capability has no provider: the reason its rows skip. */
-	missingReason: (capability: RelaySourceCapability) => string;
+	/**
+	 * Finds the provider that makes a source's webhook, the way `setup notifications` does (`resolveRelaySourceProvider()`),
+	 * or says why there is none: the reason its row skips.
+	 */
+	resolve: (source: DeclaredRelaySource) => Promise<ResolvedRelaySourceProvider>;
 }

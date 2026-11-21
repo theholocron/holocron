@@ -74,14 +74,14 @@ Nine more steps check the two feeds that reach Discord from outside it. They app
 
 Each step reads from a different provider, and a provider that is missing is a **skip with its reason**, never a failure:
 
-| Steps                                                  | Reads                            | Skipped when                                                              |
-| ------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------- |
-| `monitoring-alert-channel`, `monitoring-subscriptions` | the `monitoring` provider        | there is none, its token is missing, or it cannot read its alert channels |
-| `relay-worker`, `relay-bindings`                       | the `workers` provider           | there is none, its token is missing, or it cannot read its Workers        |
-| `relay-integration`, `relay-rule`                      | the `errors` provider            | there is none, its token is missing, or it cannot read its relay          |
-| `relay-answers`                                        | the Worker itself                | there is no `errors` provider, which names the path                       |
-| `relay-source:<id>`                                    | the provider of its `capability` | there is none, its token is missing, or it cannot read its webhooks       |
-| `monitoring-feed-webhook`, `relay-feed-webhook`        | the notifications provider       | the server could not be read                                              |
+| Steps                                                  | Reads                                                                                            | Skipped when                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `monitoring-alert-channel`, `monitoring-subscriptions` | the `monitoring` provider                                                                        | there is none, its token is missing, or it cannot read its alert channels                |
+| `relay-worker`, `relay-bindings`                       | the `workers` provider                                                                           | there is none, its token is missing, or it cannot read its Workers                       |
+| `relay-integration`, `relay-rule`                      | the `errors` provider                                                                            | there is none, its token is missing, or it cannot read its relay                         |
+| `relay-answers`                                        | the Worker itself                                                                                | there is no `errors` provider, which names the path                                      |
+| `relay-source:<id>`                                    | the provider of its `capability`, or the plugin its `provider` names (found as `setup` finds it) | there is none, it cannot be loaded, its token is missing, or it cannot read its webhooks |
+| `monitoring-feed-webhook`, `relay-feed-webhook`        | the notifications provider                                                                       | the server could not be read                                                             |
 
 ### With `--built-only` and `doctor --all`
 

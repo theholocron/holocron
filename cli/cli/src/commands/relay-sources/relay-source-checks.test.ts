@@ -17,7 +17,10 @@ const provider = (inspect?: RelaySourceProvider["inspectRelaySource"]): RelaySou
 	...(inspect ? { inspectRelaySource: inspect } : {}),
 });
 const run = (p: RelaySourceProvider | undefined, l: NotificationsLayout = layout) =>
-	relaySourceChecks({ layout: l, provider: () => p, missingReason: (c) => `no \`${c}\` provider` });
+	relaySourceChecks({
+		layout: l,
+		resolve: async ({ spec }) => (p ? { provider: p } : { problem: `no \`${spec.capability}\` provider` }),
+	});
 const good: RelaySourceState = {
 	exists: true,
 	enabled: true,

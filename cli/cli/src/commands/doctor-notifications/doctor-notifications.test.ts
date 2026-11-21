@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout, ServerInspection } from "../../plugin/index.js";
-import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
+import { MissingTokenError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { runDoctorNotifications } from "./doctor-notifications.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -2522,26 +2522,44 @@ describe("runDoctorNotifications — relay sources", () => {
 		roles: [],
 	};
 
-	function sourceRun(deployment: Record<string, unknown> | undefined) {
+	function sourceRun(
+		deployment: Record<string, unknown> | undefined,
+		named?: { layout: NotificationsLayout; module?: unknown; unnamed?: boolean }
+	) {
 		const loaded = loadedFrom({
 			name: "demo",
-			providers: { notifications: ["discord"], ...(deployment ? { deployment: "vercel" } : {}) },
+			providers: { notifications: ["discord"], ...(deployment && !named ? { deployment: "vercel" } : {}) },
 		});
-		const notifications = fakeNotifications({ layout: LAYOUT, found: FOUND });
+		const notifications = fakeNotifications({ layout: named?.layout ?? LAYOUT, found: FOUND });
 		const loader = makeLoader(loaded, {
 			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
-			...(deployment
+			...(deployment && !named?.module
 				? {
 						"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
 							deployment: { key: "deployment", providerName: "vercel", ...deployment },
 						}),
 					}
 				: {}),
+			...(named?.module ? { "@theholocron/holocron-plugin-vercel": named.module } : {}),
 		});
 		return runDoctorNotifications({
 			loaded,
 			context: { repoRoot: "/tmp/test", org: "theholocron" },
 			loader,
+			...(named
+				? {
+						workspaceProviders: async () =>
+							named.unnamed
+								? []
+								: [
+										{
+											provider: "vercel",
+											packageName: "@theholocron/holocron-plugin-vercel",
+											options: { teamId: "team_1" },
+										},
+									],
+					}
+				: {}),
 			print: () => {},
 			logger: fakeLogger(),
 			builtOnly: true,
@@ -2564,5 +2582,60 @@ describe("runDoctorNotifications — relay sources", () => {
 		const none = await sourceRun(undefined);
 		expect(byId(none, "relay-source:vercel").status).toBe("skip");
 		expect(byId(none, "relay-source:vercel").detail).toContain("`deployment` provider");
+	});
+
+	describe("a source that names its provider", () => {
+		const NAMED: NotificationsLayout = {
+			...LAYOUT,
+			relay: {
+				host: "comlink.example.com",
+				sources: { vercel: { capability: "deployment", provider: "vercel", events: ["deployment.error"] } },
+			},
+		};
+		const moduleOf = (deployment: Record<string, unknown>, seen?: (opts: Record<string, unknown>) => void) => ({
+			createPlugin: (opts: Record<string, unknown>) => {
+				seen?.(opts);
+				return {
+					name: "vercel",
+					capabilities: { deployment: () => ({ key: "deployment", providerName: "vercel", ...deployment }) },
+				};
+			},
+		});
+
+		it("reads the webhook back through the plugin setup made it with, loaded with the workspace package's options", async () => {
+			const seen = vi.fn();
+			const inspectRelaySource = vi.fn(async () => ({ exists: true, events: ["deployment.error"] }));
+			const report = await sourceRun(
+				{},
+				{ layout: NAMED, module: moduleOf({ ensureRelaySource: vi.fn(), inspectRelaySource }, seen) }
+			);
+			expect(byId(report, "relay-source:vercel").status).toBe("pass");
+			expect(seen).toHaveBeenCalledWith(expect.objectContaining({ teamId: "team_1" }));
+		});
+
+		it("skips, with the reason, when the plugin is not installed, no config names it or it has no token", async () => {
+			const absent = await sourceRun(undefined, { layout: NAMED });
+			expect(byId(absent, "relay-source:vercel")).toMatchObject({ status: "skip" });
+			expect(byId(absent, "relay-source:vercel").detail).toMatch(/provider `vercel`.*could not be loaded/);
+			const unnamed = await sourceRun(
+				{},
+				{ layout: NAMED, module: moduleOf({ ensureRelaySource: vi.fn() }), unnamed: true }
+			);
+			expect(byId(unnamed, "relay-source:vercel")).toMatchObject({ status: "skip" });
+			expect(byId(unnamed, "relay-source:vercel").detail).toMatch(/named by no `holocron.config`/);
+			const noToken = await sourceRun(
+				{},
+				{
+					layout: NAMED,
+					module: moduleOf({
+						ensureRelaySource: vi.fn(),
+						inspectRelaySource: async () => {
+							throw new MissingTokenError("no vercel token");
+						},
+					}),
+				}
+			);
+			expect(byId(noToken, "relay-source:vercel")).toMatchObject({ status: "skip", detail: "no vercel token" });
+		});
 	});
 });

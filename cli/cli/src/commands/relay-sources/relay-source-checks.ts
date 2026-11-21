@@ -20,16 +20,17 @@ export async function relaySourceChecks(input: RelaySourceChecksInput): Promise<
 	const { layout } = input;
 	const host = layout.relay?.host;
 	const rows: NotificationsCheck[] = [];
-	for (const { id, spec } of declaredRelaySources(layout)) {
+	for (const source of declaredRelaySources(layout)) {
+		const { id, spec } = source;
 		const rowId = `relay-source:${id}`;
 		const title = `${shown(id)} webhook at the vendor posts to the relay`;
 		if (!host) {
 			rows.push(skipRow(rowId, title, "no `relay.host` is declared"));
 			continue;
 		}
-		const provider = input.provider(spec.capability);
+		const { provider, problem } = await input.resolve(source);
 		if (!provider) {
-			rows.push(skipRow(rowId, title, input.missingReason(spec.capability)));
+			rows.push(skipRow(rowId, title, problem!));
 			continue;
 		}
 		if (!provider.inspectRelaySource) {
