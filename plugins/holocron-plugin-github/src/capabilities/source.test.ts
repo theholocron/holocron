@@ -1015,3 +1015,45 @@ describe("GitHubSource pull request methods", () => {
 		await expect(source.markReady(42)).resolves.toBe(true);
 	});
 });
+
+describe("GitHubSource relay source webhooks", () => {
+	const URL_ = "https://comlink.example/dependabot";
+	const input = { source: "dependabot", url: URL_, name: "Dependabot", secret: "chosen" };
+	const HOOK = { id: 5, active: true, events: ["dependabot_alert"], config: { url: URL_, content_type: "json" } };
+
+	it("makes a repository's webhook with the repository client", async () => {
+		const { source, calls } = makeSource([{ body: [] }, { status: 201, body: HOOK }]);
+		const result = await source.ensureRelaySource(input);
+		expect(result).toMatchObject({ created: true, secret: "chosen" });
+		expect(calls.map((c) => `${c.method} ${new URL(c.url).pathname}`)).toEqual([
+			`GET /repos/${REPO}/hooks`,
+			`POST /repos/${REPO}/hooks`,
+		]);
+	});
+
+	it("reads a repository's webhook back", async () => {
+		const { source } = makeSource([{ body: [HOOK] }]);
+		expect(await source.inspectRelaySource(input)).toMatchObject({ exists: true });
+	});
+
+	it("uses the organization client for an organization's webhook", async () => {
+		const repoSide = stubFetch([]);
+		const orgSide = stubFetch([{ body: [HOOK] }]);
+		const source = new GitHubSource(createGitHubClient({ token: "pat", fetch: repoSide.fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org-pat", fetch: orgSide.fetch }),
+		});
+		expect(await source.inspectRelaySource({ ...input, options: { org: "theholocron" } })).toMatchObject({
+			exists: true,
+		});
+		expect(repoSide.calls).toHaveLength(0);
+		expect(new URL(orgSide.calls[0]!.url).pathname).toBe("/orgs/theholocron/hooks");
+	});
+
+	it("falls back to the repository client for an organization's webhook when there is no organization client", async () => {
+		const { source, calls } = makeSource([{ body: [HOOK] }]);
+		await source.inspectRelaySource({ ...input, options: { org: "theholocron" } });
+		expect(new URL(calls[0]!.url).pathname).toBe("/orgs/theholocron/hooks");
+	});
+});
