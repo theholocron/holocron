@@ -1,3 +1,9 @@
+## [5.0.0-alpha.516](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.515...v5.0.0-alpha.516) (2026-11-21)
+
+### Features
+
+* **notifications:** ✨ make the GitHub webhook for the Dependabot source in setup ([#2538](https://github.com/theholocron/holocron/issues/2538)) ([ca95baa](https://github.com/theholocron/holocron/commit/ca95baa6486c6976f222b78bb0092bb629a10d77))
+
 ## [5.0.0-alpha.515](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.514...v5.0.0-alpha.515) (2026-11-21)
 
 ### Features
