@@ -1,3 +1,9 @@
+## [1.58.0-alpha.50](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.49...clients-v1.58.0-alpha.50) (2026-11-21)
+
+### Features
+
+* **notifications:** ✨ make the GitHub webhook for the Dependabot source in setup ([#2538](https://github.com/theholocron/holocron/issues/2538)) ([ca95baa](https://github.com/theholocron/holocron/commit/ca95baa6486c6976f222b78bb0092bb629a10d77))
+
 ## [1.58.0-alpha.49](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.48...clients-v1.58.0-alpha.49) (2026-11-20)
 
 ### Features
