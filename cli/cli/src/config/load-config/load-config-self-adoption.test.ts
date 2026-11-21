@@ -148,12 +148,13 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				events: ["deployment.error"],
 				scope: ["prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"],
 			},
+			dependabot: { capability: "source", scope: ["theholocron/holocron"], events: ["dependabot_alert"] },
 		};
 		const alerts = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])
 			.find((c) => c.name === "alerts");
 		expect(alerts?.feeds).toBeUndefined();
-		alerts!.feeds = { relay: { cloudflare: true, vercel: true } };
+		alerts!.feeds = { relay: { cloudflare: true, vercel: true, dependabot: true } };
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.
 		const ideas = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])

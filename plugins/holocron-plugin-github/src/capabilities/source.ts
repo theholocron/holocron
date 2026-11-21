@@ -2,6 +2,9 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path";
 
 import {
+	type EnsureRelaySourceInput,
+	type EnsureRelaySourceResult,
+	type InspectRelaySourceInput,
 	type LabelDef,
 	MissingTokenError,
 	type PagesConfig,
@@ -11,6 +14,7 @@ import {
 	type PullRequestInput,
 	type PullRequestPatch,
 	type PullRequestResult,
+	type RelaySourceState,
 	type RepoRef,
 	type RepoSettings,
 	type Ruleset,
@@ -38,6 +42,7 @@ import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncPr
 import { readPullRequestChecks } from "./pull-request-checks.js";
 import { createPullRequest, markReady, toPullRequest, updatePullRequest } from "./pull-requests.js";
 import { readRepoInfo, readSecurity, toRulesetDetail } from "./read-repo.js";
+import { ensureRelaySource, inspectRelaySource } from "./relay-source.js";
 import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
 import { syncOrgVariables, syncVariables } from "./variables.js";
@@ -97,6 +102,24 @@ export class GitHubSource implements Source {
 		this.userSyncClient = opts.userSyncClient;
 		this.baseUrl = opts.baseUrl;
 		this.fetchImpl = opts.fetch;
+	}
+
+	/**
+	 * Makes the GitHub webhook for a relay source: on one repository with the admin token, or on the organization
+	 * (`options.org`) with the organization token. Found by URL, events and `active` brought in line, nothing deleted.
+	 */
+	async ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		return ensureRelaySource(this.relayClient(input), this.repo, input);
+	}
+
+	/** Reads the relay source's webhook back, changing nothing. GitHub never returns the secret, so `hasSecret` is left out. */
+	async inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		return inspectRelaySource(this.relayClient(input), this.repo, input);
+	}
+
+	/** The organization token for an organization's webhook, the repository one otherwise. */
+	private relayClient(input: InspectRelaySourceInput): GitHubClient {
+		return input.options?.org !== undefined ? (this.orgClient ?? this.client) : this.client;
 	}
 
 	async whoami(): Promise<{ login: string }> {

@@ -40,7 +40,7 @@ categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { v
 
 - `relay.sources` is keyed by id: the path the relay serves it at and the name of its bindings
   (`COMLINK_<ID>_SECRET`, `COMLINK_<ID>_WEBHOOK`). Lower-case letters and digits, so the binding name is valid.
-- `capability` is the capability whose provider makes the webhook: `deployment`, `dns`, `vault`, `auth` or `workers`
+- `capability` is the capability whose provider makes the webhook: `deployment`, `dns`, `vault`, `auth`, `workers` or `source`
   (`RelaySourceCapability`). The vendor is whichever plugin the repo already configured for it, so no new capability is
   added and the org's `holocron_capabilities` property is untouched.
 - `name`, `events`, `scope` and `options` are handed to the provider as written, in the vendor's own terms (Vercel's
@@ -51,7 +51,7 @@ categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { v
 
 ### Capability methods
 
-Optional, on the capability the vendor already implements (`Deployment`, `Dns`, `Vault`, `Auth`, `Workers` extend
+Optional, on the capability the vendor already implements (`Deployment`, `Dns`, `Vault`, `Auth`, `Workers`, `Source` extend
 `RelaySourceMethods`), like `Errors.ensureRelay`:
 
 ```ts
@@ -142,6 +142,28 @@ Clerk as built (#1666): `ClerkAuth.ensureRelaySource` calls `POST /webhooks/svix
 `todo` sentences (dashboard endpoint step; secret to `COMLINK_CLERK_SECRET`), no secret, `created: false`. Since nothing can be
 read back to tell the person is done, `options: { confirmed: true }` on the source clears the `todo`. No `inspectRelaySource`.
 Re-checked 2026-11-19: `npx clerk@latest api ls webhook` still lists only the three Svix routes.
+
+GitHub as built (#2531, the `dependabot` source): `Source` extends `RelaySourceMethods`, and the plugin's `source` capability makes
+the webhook through `POST/GET/PATCH /repos/{owner}/{repo}/hooks` or `/orgs/{org}/hooks` (`@theholocron/github-client`'s
+`hooks` group). Decisions:
+
+- **Discord does not carry the event.** Discord's GitHub-compatible webhook (a Discord webhook URL plus `/github`) lists
+  `commit_comment`, `create`, `delete`, `fork`, `issue_comment`, `issues`, `member`, `public`, `pull_request`,
+  `pull_request_review`, `pull_request_review_comment`, `push`, `release`, `watch`, `check_run`, `check_suite`,
+  `discussion` and `discussion_comment` (https://docs.discord.com/developers/resources/webhook, read 2026-11-20): no
+  `dependabot_alert`. Comlink is needed.
+- **One URL, one place.** `scope` is exactly one repository as `owner/name` (the plugin's own repository when absent) or
+  the organization through `options: { org }`; both, a list of several, or a malformed name is a failing `todo` that names
+  it. One webhook per repository from a list is not possible with one URL, and a person who wants two declares two sources.
+- **Secret.** The secret is ours (`config.secret`), returned only when the webhook is made now; GitHub never returns it, so
+  an adopted webhook keeps the one the Worker has, and `hasSecret` is left out of `inspectRelaySource`.
+- **Idempotence.** Found by `config.url`; an existing webhook has only `events` and `active` patched (the `config` is not
+  sent, so the URL and the secret stay); nothing is deleted. A 403 or 404 on the call is a `todo` naming the permission.
+- **Token.** The repository webhook uses the `source` capability's token (`HOLOCRON_ADMIN_TOKEN`), the organization one
+  `HOLOCRON_ORG_TOKEN` (falling back to the admin token, as the rest of `source` does). Fine-grained: Webhooks write
+  (`webhooks`, `org-webhooks`); classic: `admin:repo_hook`, `admin:org_hook`. Declared in the token `expect` for `local` and
+  `dev` and `absent` in `ci`, because only a person running `setup notifications` makes it. The probe's read proves
+  visibility, not write.
 
 ## Plan
 

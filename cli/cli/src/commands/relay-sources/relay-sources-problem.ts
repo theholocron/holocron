@@ -10,6 +10,7 @@ export const RELAY_SOURCE_CAPABILITIES: readonly RelaySourceCapability[] = [
 	"vault",
 	"auth",
 	"workers",
+	"source",
 ];
 
 /** An id is a URL path segment and part of a Worker binding name, so it is lower-case letters and digits. */

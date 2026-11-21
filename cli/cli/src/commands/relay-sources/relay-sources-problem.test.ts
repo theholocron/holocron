@@ -42,6 +42,11 @@ describe("relaySourcesProblem", () => {
 		expect(relaySourcesProblem(source({ capability: "dns", scope: [1] }))).toMatch(/`scope` must be a list/);
 	});
 
+	it("takes `source` as a capability, the GitHub plugin's", () => {
+		const source = layout({ relay: { host: "h.dev", sources: { vercel: { capability: "source" } } } });
+		expect(relaySourcesProblem(source)).toBeUndefined();
+	});
+
 	it("takes a plugin name as `provider`, and refuses anything else", () => {
 		const source = (provider: unknown) =>
 			layout({ relay: { host: "h.dev", sources: { vercel: { capability: "deployment", provider } as never } } });

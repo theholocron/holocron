@@ -2,6 +2,7 @@ import { branches } from "./branches/branches.js";
 import { checks } from "./checks/checks.js";
 import { environments } from "./environments/environments.js";
 import { git } from "./git/git.js";
+import { hooks } from "./hooks/hooks.js";
 import { issueFields } from "./issue-fields/issue-fields.js";
 import { issues } from "./issues/issues.js";
 import { labels } from "./labels/labels.js";
@@ -59,6 +60,7 @@ export type {
 	PutContentsInput,
 	PutContentsResult,
 } from "./git/git.js";
+export type { CreateHookInput, GitHubHook, HookScope, UpdateHookInput } from "./hooks/hooks.js";
 export type {
 	GitHubIssueField,
 	GitHubIssueFieldOption,
@@ -116,6 +118,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		git: git(rest),
 		/** The GraphQL client, for the callers whose API (Projects v2) has no REST form. */
 		graphql,
+		hooks: hooks(rest),
 		issueFields: issueFields(rest),
 		issues: issues(rest),
 		labels: labels(rest),

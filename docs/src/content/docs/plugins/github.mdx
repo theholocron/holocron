@@ -76,6 +76,23 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
   - `markReady(number)` takes a draft out of draft and answers `true`; a pull request that is not a draft, or is closed, answers `false` and is left alone.
   - A milestone or board that does not exist, or that GitHub refuses, comes back in `dropped` by name and is never created. GitHub opens no pull request whose head has no commit beyond the base (it answers 422).
 
+### The Dependabot relay webhook
+
+`source` also implements the optional `ensureRelaySource` and `inspectRelaySource`, so `holocron setup notifications` makes the GitHub webhook the [Comlink](/holocron/comlink/) `dependabot` source receives, and `holocron doctor notifications` reads it back (`relay-source:dependabot`). Declare it in the layout with `capability: "source"`:
+
+```ts
+relay: {
+	host: "comlink.example.dev",
+	sources: {
+		dependabot: { capability: "source", scope: ["owner/name"], events: ["dependabot_alert"] },
+	},
+},
+```
+
+- **One webhook, one place.** A webhook has one URL, so a source covers one place: `scope` is a single repository as `owner/name` (when it is left out, the plugin's own repository), or `options: { org: "name" }` for an organization, never both and never a list. Anything else is reported as a failing step that names it.
+- **Found by URL.** The webhook whose `config.url` is `https://<relay.host>/<id>` is adopted. When none has it, a JSON webhook is made with `active: true`, `events` from the layout (`["dependabot_alert"]` when none) and a secret setup chose; that secret is given to the Worker and never printed. An adopted webhook has only its `events` and `active` flag brought in line (the config is not sent, so the URL and the secret stay); nothing is deleted. GitHub never returns a secret, so the doctor cannot check it.
+- **Tokens.** A repository webhook is made with `HOLOCRON_ADMIN_TOKEN` (`github.admin`), the token the `source` capability already uses; an organization webhook with `HOLOCRON_ORG_TOKEN` (`github.org`), falling back to the admin token. A fine-grained token needs **Webhooks: read and write** (repository) or **Organization webhooks: read and write** (organization); a classic token needs `admin:repo_hook` or `admin:org_hook`. A refusal (403, or the 404 GitHub gives a token that cannot see the resource) is a failing step naming the permission. The permissions are declared for `local` and `dev` and must be absent from `ci`: see the [token reference](../tokens#github-tokens), and check them with `holocron probe github token --environment dev`. The probe's read proves the token can see webhooks, not that it can write them.
+
 ## What `issues` provides
 
 - Search by assignee, open-only filter or `text` (title or body, any case)

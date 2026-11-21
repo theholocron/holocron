@@ -31,7 +31,18 @@ describe("the github tokens declaration", () => {
 	it("keeps the narrow tokens off administration and secrets, and org secrets off the admin token", () => {
 		const absent = (envName: string) => tokenExpectations(tokens, { envName, layer: "ci" })[0]!.absent;
 		expect(absent("HOLOCRON_READ_TOKEN")).toEqual(expect.arrayContaining(["administration", "secrets"]));
-		expect(absent("HOLOCRON_ADMIN_TOKEN")).toEqual(["org-secrets"]);
-		expect(absent("HOLOCRON_ORG_TOKEN")).toEqual(["org-secrets"]);
+		expect(absent("HOLOCRON_ADMIN_TOKEN")).toEqual(["org-secrets", "webhooks"]);
+		expect(absent("HOLOCRON_ORG_TOKEN")).toEqual(["org-secrets", "org-webhooks"]);
+	});
+
+	it("asks local and dev for the webhook permissions the relay source needs, and ci for none", () => {
+		const required = (envName: string, layer: "local" | "dev" | "ci") =>
+			tokenExpectations(tokens, { envName, layer })[0]!.required;
+		for (const layer of ["local", "dev"] as const) {
+			expect(required("HOLOCRON_ADMIN_TOKEN", layer)).toContain("webhooks");
+			expect(required("HOLOCRON_ORG_TOKEN", layer)).toContain("org-webhooks");
+		}
+		expect(required("HOLOCRON_ADMIN_TOKEN", "ci")).not.toContain("webhooks");
+		expect(required("HOLOCRON_ORG_TOKEN", "ci")).not.toContain("org-webhooks");
 	});
 });
