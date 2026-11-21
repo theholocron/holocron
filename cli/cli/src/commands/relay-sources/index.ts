@@ -6,3 +6,4 @@ export * from "./relay-feed-webhook.js";
 export * from "./relay-source-checks.js";
 export type * from "./relay-sources.type.js";
 export * from "./relay-sources-problem.js";
+export * from "./resolve-relay-source-provider.js";

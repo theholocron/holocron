@@ -15,6 +15,7 @@ import { confirm, input as prompt } from "@inquirer/prompts";
 import { createProgress, describeError, logReason, NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { AuthError } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -55,12 +56,14 @@ import {
 } from "../notifications-reaction/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import {
+	type DeclaredRelaySource,
 	declaredRelaySources,
 	ensureRelaySource,
 	genericRelayFeeds,
 	newRelaySecret,
 	type RelaySourceProvider,
 	relaySourcesProblem,
+	resolveRelaySourceProvider,
 } from "../relay-sources/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
@@ -466,6 +469,15 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	let workers: Workers | undefined;
 	let dns: Dns | undefined;
 	const sourceProviders = new Map<string, RelaySourceProvider>();
+	// What a provider is asked about a source's webhook: where it points, its name and what it covers.
+	const inspectInputOf = (source: DeclaredRelaySource) => ({
+		source: source.id,
+		url: `https://${layout.relay?.host}/${source.id}`,
+		name: source.spec.name ?? source.id.charAt(0).toUpperCase() + source.id.slice(1),
+		...(source.spec.events ? { events: source.spec.events } : {}),
+		...(source.spec.scope ? { scope: source.spec.scope } : {}),
+		...(source.spec.options ? { options: source.spec.options } : {}),
+	});
 	const declaredSources = declaredRelaySources(layout);
 	const wantsErrors = wantsRelay(layout);
 	if (wantsAnyRelay(layout) || declaredSources.length > 0) {
@@ -477,7 +489,10 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			...(wantsErrors ? [["errors", "an `errors` provider (the tracker whose alerts it carries)"] as const] : []),
 		];
 		for (const { id, spec } of declaredSources) {
-			needs.push([spec.capability, `a \`${spec.capability}\` provider (it makes the ${id} webhook)`]);
+			// A source that names its provider needs none configured for the capability: it is loaded by name below.
+			if (spec.provider === undefined) {
+				needs.push([spec.capability, `a \`${spec.capability}\` provider (it makes the ${id} webhook)`]);
+			}
 		}
 		for (const [key, what] of needs) {
 			if (!loader.has(key)) {
@@ -487,8 +502,31 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		if (wantsErrors) errors = loader.get("errors");
 		workers = loader.get("workers");
 		dns = loader.get("dns");
-		for (const { id, spec } of declaredSources) {
-			sourceProviders.set(id, loader.get(spec.capability));
+		// Every source's provider is found and checked here, before anything is written: one that names a plugin which
+		// does not resolve, cannot make a webhook or has no token refuses the run rather than leaving a half-made relay.
+		for (const source of declaredSources) {
+			const resolved = await resolveRelaySourceProvider({
+				loader,
+				config: input.loaded.resolved,
+				repoRoot: input.context.repoRoot,
+				source,
+				...(input.workspaceProviders ? { workspace: input.workspaceProviders } : {}),
+			});
+			if (!resolved.provider) return refuse(resolved.problem!);
+			if (source.spec.provider !== undefined && !dryRun) {
+				// The plugin reads its token on first use, so ask it one question now: a missing token is a refusal, anything
+				// else (a vendor that is down) is for the step that makes the webhook to report.
+				try {
+					await resolved.provider.inspectRelaySource?.(inspectInputOf(source));
+				} catch (err) {
+					if (err instanceof AuthError) {
+						return refuse(
+							`relay source \`${source.id}\`: provider \`${source.spec.provider}\` has no token — ${describeError(err)}`
+						);
+					}
+				}
+			}
+			sourceProviders.set(source.id, resolved.provider);
 		}
 		const clash = relayProblem(layout, errors, monitoring) ?? relaySourcesProblem(layout, errors?.providerName);
 		if (clash) return refuse(clash);
@@ -947,14 +985,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				const provider = sourceProviders.get(source.id)!;
 				if (!provider.inspectRelaySource || !relayWebhooks.has(source.id)) continue;
 				try {
-					const state = await provider.inspectRelaySource({
-						source: source.id,
-						url: `https://${layout.relay!.host}/${source.id}`,
-						name: source.spec.name ?? source.id.charAt(0).toUpperCase() + source.id.slice(1),
-						...(source.spec.events ? { events: source.spec.events } : {}),
-						...(source.spec.scope ? { scope: source.spec.scope } : {}),
-						...(source.spec.options ? { options: source.spec.options } : {}),
-					});
+					const state = await provider.inspectRelaySource(inspectInputOf(source));
 					if (!state.exists) chosen.set(source.id, newRelaySecret());
 				} catch {
 					// An unreadable webhook is made the old way, after the Worker: the step below reports what fails.

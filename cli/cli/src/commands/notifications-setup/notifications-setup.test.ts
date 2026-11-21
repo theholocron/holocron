@@ -6,6 +6,7 @@ import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
+import { AuthError } from "../../auth/index.js";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
@@ -87,6 +88,12 @@ function setup(
 		};
 		/** A vendor's provider for a relay source: the capability it holds and what it implements. */
 		vendor?: { capability: "deployment" | "auth"; provider: string; impl: object };
+		/**
+		 * A plugin a relay source names (`provider`) that the config gives to no capability: `module` replaces the plugin
+		 * (default one implementing `deployment` with `impl`), `absent` leaves the package uninstalled and `unnamed` means no
+		 * workspace package names it (so there are no options).
+		 */
+		named?: { provider: string; impl?: object; module?: unknown; absent?: boolean; unnamed?: boolean };
 		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
 		loadEmojiImage?: (source: string) => Promise<string>;
@@ -149,6 +156,15 @@ function setup(
 					}),
 				}
 			: {}),
+		...(opts.named && !opts.named.absent
+			? {
+					[`@theholocron/holocron-plugin-${opts.named.provider}`]:
+						opts.named.module ??
+						makePlugin(opts.named.provider, {
+							deployment: { key: "deployment", providerName: opts.named.provider, ...opts.named.impl },
+						}),
+				}
+			: {}),
 		"@theholocron/holocron-plugin-github": makePlugin("gh", {
 			secrets: {
 				providerName: "github",
@@ -180,6 +196,20 @@ function setup(
 				...(opts.loadAvatar ? { loadAvatar: opts.loadAvatar } : {}),
 				...(opts.loadEmojiImage ? { loadEmojiImage: opts.loadEmojiImage } : {}),
 				...(opts.relay?.readCode ? { readRelayCode: opts.relay.readCode } : {}),
+				...(opts.named
+					? {
+							workspaceProviders: async () =>
+								opts.named!.unnamed
+									? []
+									: [
+											{
+												provider: opts.named!.provider,
+												packageName: `@theholocron/holocron-plugin-${opts.named!.provider}`,
+												options: { teamId: "team_1" },
+											},
+										],
+						}
+					: {}),
 				...(opts.pause ? { pause: opts.pause } : {}),
 				...(opts.yes ? { yes: true } : {}),
 				...(opts.interactive !== undefined ? { interactive: opts.interactive } : {}),
@@ -3659,5 +3689,168 @@ describe("relay sources — partial and pictured runs", () => {
 		expect(report.failures.map((f) => f.message).join("\n")).toMatch(/no relay webhook for doppler/);
 		const secrets = (c.workers.deployScript.mock.calls[0] as unknown as [string, { secrets: object }])[1].secrets;
 		expect(Object.keys(secrets)).toEqual(["COMLINK_VERCEL_WEBHOOK"]);
+	});
+});
+
+describe("relay sources that name their provider (relay.sources.<id>.provider)", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/named-feed-token";
+	const vendor = (impl: { ensureRelaySource: ReturnType<typeof vi.fn> }) => ({
+		capability: "deployment" as const,
+		provider: "vercel",
+		impl,
+	});
+	const layoutFor = (provider: string | null = "vercel"): NotificationsLayout => ({
+		relay: {
+			host: "comlink.example.dev",
+			sources: {
+				vercel: { capability: "deployment", ...(provider ? { provider } : {}), events: ["deployment.error"] },
+			},
+		},
+		categories: [{ name: "ALERTS", channels: [{ name: "deploys", feeds: { relay: { vercel: true } } }] }],
+	});
+	const hooked = (l = layoutFor()) =>
+		fakeNotifications({ layout: l, ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+	const collaborators = () => ({
+		workers: {
+			key: "workers",
+			providerName: "cloudflare",
+			deployScript: vi.fn(async (name: string) => ({ scriptName: name })),
+		},
+		dns: { key: "dns", providerName: "cloudflare", upsertRecord: vi.fn(async (_z: string, r: unknown) => r) },
+		readCode: vi.fn(async () => "export default {}"),
+	});
+	const impl = (over: object = {}) => ({
+		ensureRelaySource: vi.fn(async (input: { secret?: string }) => ({
+			created: true,
+			updated: [] as string[],
+			secret: input.secret,
+		})),
+		inspectRelaySource: vi.fn(async () => ({ exists: true })),
+		...over,
+	});
+
+	it("loads the named plugin with the workspace package's options and makes the webhook through it", async () => {
+		const relay = collaborators();
+		const v = impl();
+		const seen = vi.fn();
+		const module = {
+			createPlugin: (opts: Record<string, unknown>) => {
+				seen(opts);
+				return { name: "vercel", capabilities: { deployment: () => ({ providerName: "vercel", ...v }) } };
+			},
+		};
+		const report = await setup(hooked(), { relay, named: { provider: "vercel", module } }).run();
+		expect(report.status).toBe("ok");
+		expect(seen).toHaveBeenCalledWith(expect.objectContaining({ teamId: "team_1" }));
+		expect(v.inspectRelaySource).toHaveBeenCalled();
+		expect(v.ensureRelaySource).toHaveBeenCalledWith(expect.objectContaining({ source: "vercel" }));
+		expect(relay.workers.deployScript).toHaveBeenCalled();
+	});
+
+	it("uses the configured provider when the name is the one the config already gives the capability", async () => {
+		const v = vendor(impl());
+		const report = await setup(hooked(), { relay: collaborators(), vendor: v }).run();
+		expect(report.status).toBe("ok");
+		expect(v.impl.ensureRelaySource).toHaveBeenCalledTimes(1);
+	});
+
+	it("loads it and asks it nothing on a dry run", async () => {
+		const v = impl();
+		const { run } = setup(hooked(), {
+			relay: collaborators(),
+			named: { provider: "vercel", impl: v },
+			dryRun: true,
+		});
+		expect((await run()).status).toBe("dry-run");
+		expect(v.inspectRelaySource).not.toHaveBeenCalled();
+		expect(v.ensureRelaySource).not.toHaveBeenCalled();
+	});
+
+	it("carries on when the vendor cannot be read yet, leaving it to the step that makes the webhook", async () => {
+		const v = impl({
+			inspectRelaySource: vi.fn(async () => {
+				throw new Error("503");
+			}),
+		});
+		const { run } = setup(hooked(), { relay: collaborators(), named: { provider: "vercel", impl: v } });
+		expect((await run()).status).toBe("ok");
+		expect(v.ensureRelaySource).toHaveBeenCalled();
+	});
+
+	it("keeps the named plugin apart from the configured provider of the capability", async () => {
+		const configured = vendor(impl());
+		const named = impl();
+		const { run } = setup(hooked(layoutFor("other")), {
+			relay: collaborators(),
+			vendor: configured,
+			named: { provider: "other", impl: named },
+		});
+		expect((await run()).status).toBe("ok");
+		expect(named.ensureRelaySource).toHaveBeenCalled();
+		expect(configured.impl.ensureRelaySource).not.toHaveBeenCalled();
+	});
+
+	describe("refuses before anything is written", () => {
+		const cases: Array<[string, () => NonNullable<Parameters<typeof setup>[1]>["named"], RegExp]> = [
+			[
+				"a plugin that is not installed",
+				() => ({ provider: "vercel", absent: true }),
+				/provider `vercel`.*could not be loaded/,
+			],
+			[
+				"a plugin no config names, so it has no options",
+				() => ({ provider: "vercel", impl: impl(), unnamed: true }),
+				/named by no `holocron.config`/,
+			],
+			[
+				"a plugin that cannot build",
+				() => ({
+					provider: "vercel",
+					module: {
+						createPlugin: () => {
+							throw new Error("bad team");
+						},
+					},
+				}),
+				/could not be loaded for `deployment`: bad team/,
+			],
+			[
+				"a plugin that does not implement the capability",
+				() => ({ provider: "vercel", module: makePlugin("vercel", { dns: {} }) }),
+				/does not implement the `deployment` capability/,
+			],
+			[
+				"a plugin that cannot make a relay webhook",
+				() => ({ provider: "vercel", impl: {} }),
+				/has no `ensureRelaySource`/,
+			],
+			[
+				"a plugin with no token",
+				() => ({
+					provider: "vercel",
+					impl: impl({
+						inspectRelaySource: vi.fn(async () => {
+							throw new AuthError("no Vercel token found");
+						}),
+					}),
+				}),
+				/provider `vercel` has no token — no Vercel token found/,
+			],
+		];
+
+		it.each(cases)("%s", async (_name, named, pattern) => {
+			const n = hooked();
+			const report = await setup(n, { relay: collaborators(), named: named() }).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(pattern);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			expect(n.ensureWebhook).not.toHaveBeenCalled();
+		});
+	});
+
+	it("still refuses a source with no provider when the capability has none", async () => {
+		const report = await setup(hooked(layoutFor(null)), { relay: collaborators() }).run();
+		expect(report.message).toMatch(/`deployment` provider/);
 	});
 });
