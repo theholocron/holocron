@@ -1,3 +1,10 @@
+## [5.0.0-alpha.514](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.513...v5.0.0-alpha.514) (2026-11-21)
+
+### Features
+
+* **comlink:** relay Dependabot alert webhooks ([#2530](https://github.com/theholocron/holocron/issues/2530)) ([8e85bbc](https://github.com/theholocron/holocron/commit/8e85bbc109e4d37d35f76506cc8168c6a7955635)), closes [#1666](https://github.com/theholocron/holocron/issues/1666) [#2483](https://github.com/theholocron/holocron/issues/2483)
+* **notifications:** ✨ a relay source can name its provider in the layout ([#2532](https://github.com/theholocron/holocron/issues/2532)) ([f26cfc5](https://github.com/theholocron/holocron/commit/f26cfc52743f47d32660234c29c166afaba9f484)), closes [#2522](https://github.com/theholocron/holocron/issues/2522) [#2523](https://github.com/theholocron/holocron/issues/2523) [#2521](https://github.com/theholocron/holocron/issues/2521)
+
 ## [5.0.0-alpha.513](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.512...v5.0.0-alpha.513) (2026-11-20)
 
 ### Bug Fixes
