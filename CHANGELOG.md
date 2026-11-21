@@ -1,3 +1,12 @@
+## [5.0.0-alpha.515](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.514...v5.0.0-alpha.515) (2026-11-21)
+
+### Features
+
+* **notifications:** ✨ doctor reads a relay source back through the plugin it names ([#2534](https://github.com/theholocron/holocron/issues/2534)) ([c5ac124](https://github.com/theholocron/holocron/commit/c5ac1243ea593446ab9e323512ae58d78e17318a)), closes [#2523](https://github.com/theholocron/holocron/issues/2523)
+* **notifications:** ✨ relay Sentinel's failed Vercel builds to [#alerts](https://github.com/theholocron/holocron/issues/alerts) ([#2536](https://github.com/theholocron/holocron/issues/2536)) ([6d72afa](https://github.com/theholocron/holocron/commit/6d72afac0d5930ed68ec0b8e53ade96392ec4d13)), closes [#2525](https://github.com/theholocron/holocron/issues/2525)
+* **notifications:** ✨ setup loads the plugin a relay source names ([#2533](https://github.com/theholocron/holocron/issues/2533)) ([d273073](https://github.com/theholocron/holocron/commit/d273073ed07b9fe7afabe0c458322d0ec577a429)), closes [#2522](https://github.com/theholocron/holocron/issues/2522)
+* **vercel:** ✨ declare the webhook permission of the Vercel token ([#2535](https://github.com/theholocron/holocron/issues/2535)) ([199be97](https://github.com/theholocron/holocron/commit/199be978183f5f9dda7b02eed28fccd02cbfcd3b)), closes [#2524](https://github.com/theholocron/holocron/issues/2524)
+
 ## [5.0.0-alpha.514](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.513...v5.0.0-alpha.514) (2026-11-21)
 
 ### Features
