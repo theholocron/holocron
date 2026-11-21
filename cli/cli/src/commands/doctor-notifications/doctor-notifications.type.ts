@@ -1,6 +1,6 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { LoadedConfig } from "../../config/index.js";
+import type { LoadedConfig, ResolvedHolocronConfig, ResolvedTuple } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 
 export type NotificationsCheckStatus = "pass" | "fail" | "skip";
@@ -35,6 +35,11 @@ export interface RunDoctorNotificationsInput {
 	post?: string;
 	/** Test seam for the requests to the hosted sign-in service and to the relay Worker. */
 	fetch?: typeof fetch;
+	/**
+	 * Reads the providers the workspace's packages name, for a relay source that names a plugin the root config gives
+	 * no options to. Defaults to `workspaceProviders()`; tests pass their own.
+	 */
+	workspaceProviders?: (repoRoot: string, config: ResolvedHolocronConfig) => Promise<ResolvedTuple[]>;
 	loader?: PluginLoader;
 	print?: (line: string) => void;
 	logger?: Logger;

@@ -37,7 +37,7 @@ import { notificationsWorkflowChecks } from "../notifications-workflow-checks/in
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { prFeedChecks } from "../pr-feed-checks/index.js";
 import { relayChecks } from "../relay-checks/index.js";
-import { relaySourceChecks } from "../relay-sources/index.js";
+import { relaySourceChecks, resolveRelaySourceProvider } from "../relay-sources/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
 import type {
@@ -896,9 +896,25 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	checks.push(
 		...(await relaySourceChecks({
 			layout,
-			provider: (capability) => (loader.has(capability) ? loader.get(capability) : undefined),
-			missingReason: (capability) =>
-				whyMissing(loader, capability, `no \`${capability}\` provider is configured`),
+			resolve: async (source) => {
+				const resolved = await resolveRelaySourceProvider({
+					loader,
+					config: input.loaded.resolved,
+					repoRoot: input.context.repoRoot,
+					source,
+					...(input.workspaceProviders ? { workspace: input.workspaceProviders } : {}),
+				});
+				// A capability with no configured provider says why, a failed load included, as it always did.
+				return resolved.provider || source.spec.provider !== undefined
+					? resolved
+					: {
+							problem: whyMissing(
+								loader,
+								source.spec.capability,
+								`no \`${source.spec.capability}\` provider is configured`
+							),
+						};
+			},
 		}))
 	);
 
