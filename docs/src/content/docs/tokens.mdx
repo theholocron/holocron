@@ -413,7 +413,7 @@ The layer columns are what `holocron probe docs tokens` compares with the plugin
 - **The release token in `ci`**: none of the three. An `org:ci` token makes releases and uploads sourcemaps; if it can read the organization, its projects or its alert rules, a leak from CI reaches more than it should.
 - **Check a token** with `holocron probe sentry token`: it reports which reads the token reaches. `--environment ci` (or `dev`, `local`) reads that layer's token from 1Password and checks it against the bullets above, failing on a missing or extra read. It checks every Sentry token the Environment holds, each under its own heading against its own bullet (the general and Comlink tokens in `dev`, the release token in `ci`). `--token sentry=<token>` only reports what that token reaches. See [`probe`](/holocron/commands/probe/#sentry).
 
-This token is for the machine that runs `setup notifications`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `sync secrets --env Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+This token is for the machine that runs `setup notifications`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `prod` 1Password Environment: `sync secrets --env prod --cwd apps/comlink --worker comlink` pushes every `COMLINK_` key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
 
 ```bash
 holocron new token sentry.comlink sntryu_xxx
