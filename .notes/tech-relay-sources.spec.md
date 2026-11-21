@@ -150,7 +150,7 @@ the webhook through `POST/GET/PATCH /repos/{owner}/{repo}/hooks` or `/orgs/{org}
 - **Discord does not carry the event.** Discord's GitHub-compatible webhook (a Discord webhook URL plus `/github`) lists
   `commit_comment`, `create`, `delete`, `fork`, `issue_comment`, `issues`, `member`, `public`, `pull_request`,
   `pull_request_review`, `pull_request_review_comment`, `push`, `release`, `watch`, `check_run`, `check_suite`,
-  `discussion` and `discussion_comment` (https://docs.discord.com/developers/resources/webhook, read 2026-11-20): no
+  `discussion` and `discussion_comment` (<https://docs.discord.com/developers/resources/webhook>, read 2026-11-20): no
   `dependabot_alert`. Comlink is needed.
 - **One URL, one place.** `scope` is exactly one repository as `owner/name` (the plugin's own repository when absent) or
   the organization through `options: { org }`; both, a list of several, or a malformed name is a failing `todo` that names
