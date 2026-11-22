@@ -1,3 +1,9 @@
+## [1.11.0-alpha.4](https://github.com/theholocron/holocron/compare/themes-v1.11.0-alpha.3...themes-v1.11.0-alpha.4) (2026-11-22)
+
+### Chores
+
+* **deps:** bump typescript from 5.9.3 to 6.0.3 ([#2393](https://github.com/theholocron/holocron/issues/2393)) ([7510fca](https://github.com/theholocron/holocron/commit/7510fca64c44e23b10c1c0009dc0f1ba3c86a774))
+
 ## [1.11.0-alpha.3](https://github.com/theholocron/holocron/compare/themes-v1.11.0-alpha.2...themes-v1.11.0-alpha.3) (2026-11-17)
 
 ### Features
