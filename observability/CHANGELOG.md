@@ -1,3 +1,9 @@
+## [0.7.0-alpha.6](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.5...observability-v0.7.0-alpha.6) (2026-11-22)
+
+### Chores
+
+* **deps:** bump typescript from 5.9.3 to 6.0.3 ([#2393](https://github.com/theholocron/holocron/issues/2393)) ([7510fca](https://github.com/theholocron/holocron/commit/7510fca64c44e23b10c1c0009dc0f1ba3c86a774))
+
 ## [0.7.0-alpha.5](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.4...observability-v0.7.0-alpha.5) (2026-11-17)
 
 ### Features
