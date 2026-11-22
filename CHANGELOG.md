@@ -1,3 +1,13 @@
+## [5.0.0-alpha.517](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.516...v5.0.0-alpha.517) (2026-11-22)
+
+### Documentation
+
+* **comlink:** 📝 name the prod layer and the full sync command ([#2540](https://github.com/theholocron/holocron/issues/2540)) ([d1a80b4](https://github.com/theholocron/holocron/commit/d1a80b4e8008583ef5ac2d965aa71ddc58341723)), closes [#1791](https://github.com/theholocron/holocron/issues/1791)
+
+### Chores
+
+* **deps:** bump typescript from 5.9.3 to 6.0.3 ([#2393](https://github.com/theholocron/holocron/issues/2393)) ([7510fca](https://github.com/theholocron/holocron/commit/7510fca64c44e23b10c1c0009dc0f1ba3c86a774))
+
 ## [5.0.0-alpha.516](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.515...v5.0.0-alpha.516) (2026-11-21)
 
 ### Features
