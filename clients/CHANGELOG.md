@@ -1,3 +1,9 @@
+## [1.58.0-alpha.51](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.50...clients-v1.58.0-alpha.51) (2026-11-22)
+
+### Chores
+
+* **deps:** bump typescript from 5.9.3 to 6.0.3 ([#2393](https://github.com/theholocron/holocron/issues/2393)) ([7510fca](https://github.com/theholocron/holocron/commit/7510fca64c44e23b10c1c0009dc0f1ba3c86a774))
+
 ## [1.58.0-alpha.50](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.49...clients-v1.58.0-alpha.50) (2026-11-21)
 
 ### Features
