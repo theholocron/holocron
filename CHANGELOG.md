@@ -1,3 +1,9 @@
+## [5.0.0-alpha.518](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.517...v5.0.0-alpha.518) (2026-11-22)
+
+### Chores
+
+* **deps:** bump @tsconfig/node-lts from 24.0.1 to 26.0.1 ([#2395](https://github.com/theholocron/holocron/issues/2395)) ([557fb61](https://github.com/theholocron/holocron/commit/557fb6181cf332f8532ce5f6ffa7660623df2a59))
+
 ## [5.0.0-alpha.517](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.516...v5.0.0-alpha.517) (2026-11-22)
 
 ### Documentation
