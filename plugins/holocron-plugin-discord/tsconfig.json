@@ -2,7 +2,6 @@
   "display": "Holocron Plugin: Discord",
   "extends": "@theholocron/tsconfig/node-lts",
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./dist",
     "paths": {
       "@/*": ["./src/*"]
