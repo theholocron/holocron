@@ -66,6 +66,7 @@
     "@codecov/vite-plugin": "catalog:configs",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

@@ -43,6 +43,7 @@
     "@astrojs/starlight": "catalog:",
     "@theholocron/docs-theme": "workspace:^",
     "@theholocron/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "astro": "catalog:",
     "react": "catalog:configs",

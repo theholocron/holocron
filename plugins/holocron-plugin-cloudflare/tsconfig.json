@@ -2,7 +2,6 @@
   "display": "Holocron Plugin: Cloudflare",
   "extends": "@theholocron/tsconfig/node-lts",
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./dist",
     "paths": {
       "@/*": ["./src/*"]
