@@ -22,16 +22,19 @@ const extrasNote = (noun: string, extras: string[]): string =>
  * what `dev.suspendWhenIdle` wants of a development App while `holocron dev` is not running, and a prod App that is
  * suspended is for the person reading to notice. Never a failure.
  */
-function suspensionRow(name: string, installations: GitHubAppInstallation[]): CheckRow {
+function statusRow(name: string, installations: GitHubAppInstallation[]): CheckRow {
 	const suspended = installations.filter((i) => i.suspended);
 	const who = (i: GitHubAppInstallation) => i.account?.login ?? `installation ${i.id}`;
+	const count = `${installations.length} installation(s)`;
 	const detail =
 		installations.length === 0
 			? "no installations"
 			: suspended.length === 0
-				? `${installations.length} installation(s) active`
-				: `${suspended.length} of ${installations.length} suspended, sent no webhooks (${suspended.map(who).join(", ")}); ${installations.length - suspended.length} active`;
-	return { id: `${name}:suspension`, title: `${name}: suspension`, status: "ok", detail, problems: [] };
+				? `${count} active`
+				: suspended.length === installations.length
+					? `${count} suspended`
+					: `${count}: ${installations.length - suspended.length} active, ${suspended.length} suspended (${suspended.map(who).join(", ")})`;
+	return { id: `${name}:status`, title: `${name}: status`, status: "ok", detail, problems: [] };
 }
 
 /**
@@ -79,6 +82,6 @@ export function appRows(
 			`all ${Object.keys(manifest.permissions).length} granted${extrasNote("extra permission(s)", extraPermissions)}`
 		),
 		row(name, "installations", installationProblems, `${installations.length} installation(s) up to date`),
-		suspensionRow(name, installations),
+		statusRow(name, installations),
 	];
 }

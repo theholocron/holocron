@@ -115,23 +115,25 @@ const attempt = (id: number, guid: string, at: string, statusCode: number): GitH
 	installationId: 7,
 });
 
-describe("suspension row", () => {
+describe("status row", () => {
 	const manifest = { events: [], permissions: {} };
 	const rowOf = (installations: GitHubAppInstallation[]) =>
-		appRows("Sentinel - dev", manifest, app(), installations).find((r) => r.id === "Sentinel - dev:suspension")!;
+		appRows("Sentinel - dev", manifest, app(), installations).find((r) => r.id === "Sentinel - dev:status")!;
 
-	it("says which installations are suspended, and never fails", () => {
+	it("says which installations are active and which are suspended, and never fails", () => {
 		const row = rowOf([
 			installation({ id: 1, suspended: true }),
 			installation({ id: 2, account: null, suspended: true }),
 			installation({ id: 3 }),
 		]);
 		expect(row.status).toBe("ok");
-		expect(row.detail).toBe("2 of 3 suspended, sent no webhooks (theholocron, installation 2); 1 active");
+		expect(row.title).toBe("Sentinel - dev: status");
+		expect(row.detail).toBe("3 installation(s): 1 active, 2 suspended (theholocron, installation 2)");
 	});
 
-	it("says all active, or that there are none", () => {
+	it("says all active, all suspended, or that there are none", () => {
 		expect(rowOf([installation()]).detail).toBe("1 installation(s) active");
+		expect(rowOf([installation({ suspended: true })]).detail).toBe("1 installation(s) suspended");
 		expect(rowOf([]).detail).toBe("no installations");
 	});
 });
@@ -273,7 +275,7 @@ describe("runDoctorGitHubApp", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(report.summary).toEqual({ ok: 6, fail: 0, skip: 0 });
-		expect(report.rows.find((r) => r.id === "Sentinel:suspension")?.detail).toBe("1 installation(s) active");
+		expect(report.rows.find((r) => r.id === "Sentinel:status")?.detail).toBe("1 installation(s) active");
 		expect(text).toContain("info: 1 extra event(s) not in the manifest (star)");
 		expect(text).toContain("info: 1 extra permission(s) not in the manifest (issues)");
 		expect(text).not.toContain("SECRETKEYBODY");
