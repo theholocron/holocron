@@ -10,7 +10,6 @@ export const CANONICAL_LABELS = [
 	{ name: "documentation", color: "0075ca", description: "Documentation only" },
 	{ name: "duplicate", color: "cfd3d7", description: "Already reported" },
 	{ name: "enhancement", color: "a2eeef", description: "New feature or request" },
-	{ name: "epic", color: "5319e7", description: "A body of work made of several issues" },
 	{ name: "good first issue", color: "7057ff", description: "Good for newcomers" },
 	{ name: "help wanted", color: "008672", description: "Extra attention needed" },
 	{ name: "invalid", color: "e4e669", description: "Doesn't seem right" },

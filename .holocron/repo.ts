@@ -110,6 +110,9 @@ export default {
 	// a title scope (`feat(sentinel)`) to an area, for issues, which have no changed files; a scope it does not name earns
 	// nothing, so a topic scope such as `deps` or `monitoring` is left out on purpose. Names only.
 	labels: {
+		// The kind labels a Type is read from: `epic` is the Epic Type now (#2512, SPEC-0106 section 8), and the stock
+		// label is retired from `setup` (kept in the repositories, never deleted).
+		kinds: { epic: "Epic" },
 		areas: {
 			// One area for the five packages `cli`, `astromech`, `datapad`, `dagobah` and `kyber`.
 			cli: ["cli/**"],

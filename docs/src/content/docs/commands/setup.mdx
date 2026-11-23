@@ -26,24 +26,24 @@ holocron setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 
 ### `source` capability (GitHub plugin)
 
-| Action                                 | Notes                                                                                     |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge                               |
-| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below)                    |
-| Enable vulnerability alerts            | Dependabot alerts                                                                         |
-| Enable automated security fixes        | Dependabot auto-PRs                                                                       |
-| Enable secret scanning                 | Secret scanning alerts                                                                    |
-| Enable private vulnerability reporting | Private advisories                                                                        |
-| Enable dependency graph                | Dependency graph + snapshot submission                                                    |
-| Enable CodeQL                          | Default setup with extended query suite                                                   |
-| Configure Dependabot                   | Writes `.github/dependabot.yml` (see below)                                               |
-| Sync labels                            | Upserts canonical labels (`epic` among them); removes stale ones                          |
-| Ensure area labels                     | Makes the missing `area:<name>` labels of `repo.labels.areas`; changes or deletes nothing |
-| Sync properties                        | Sets org-level custom properties from `repo.properties`                                   |
-| Sync topics                            | Sets GitHub topics from `repo.topics`                                                     |
-| Sync variables                         | Creates and updates Actions variables from `repo.variables` (see below)                   |
-| Sync teams                             | Grants team access from `repo.teams`                                                      |
-| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                                       |
+| Action                                 | Notes                                                                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge                                                                    |
+| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below)                                                         |
+| Enable vulnerability alerts            | Dependabot alerts                                                                                                              |
+| Enable automated security fixes        | Dependabot auto-PRs                                                                                                            |
+| Enable secret scanning                 | Secret scanning alerts                                                                                                         |
+| Enable private vulnerability reporting | Private advisories                                                                                                             |
+| Enable dependency graph                | Dependency graph + snapshot submission                                                                                         |
+| Enable CodeQL                          | Default setup with extended query suite                                                                                        |
+| Configure Dependabot                   | Writes `.github/dependabot.yml` (see below)                                                                                    |
+| Sync labels                            | Upserts canonical labels; removes stale ones. `epic` is retired (Epic is an issue Type): it is no longer synced, never deleted |
+| Ensure area labels                     | Makes the missing `area:<name>` labels of `repo.labels.areas`; changes or deletes nothing                                      |
+| Sync properties                        | Sets org-level custom properties from `repo.properties`                                                                        |
+| Sync topics                            | Sets GitHub topics from `repo.topics`                                                                                          |
+| Sync variables                         | Creates and updates Actions variables from `repo.variables` (see below)                                                        |
+| Sync teams                             | Grants team access from `repo.teams`                                                                                           |
+| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                                                                            |
 
 **Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only, with the organization token when there is one; it needs read access to the organization's custom properties, otherwise the step says it could not read them), quotes GitHub's message, and says how to fix it, which does not need the definitions to be readable:
 
