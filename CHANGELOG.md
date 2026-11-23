@@ -1,3 +1,9 @@
+## [5.0.0-alpha.520](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.519...v5.0.0-alpha.520) (2026-11-23)
+
+### Bug Fixes
+
+* **cli:** 🐛 keep ensureIssueTypes out of the CLI barrel ([#2563](https://github.com/theholocron/holocron/issues/2563)) ([7519a9e](https://github.com/theholocron/holocron/commit/7519a9ed4e74319a0f3a8cd8956270ec21755454)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [5.0.0-alpha.519](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.518...v5.0.0-alpha.519) (2026-11-23)
 
 ### Features
