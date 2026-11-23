@@ -1,10 +1,11 @@
 import { postAggregate } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { SENTINEL_CI_AGGREGATE_SHADOW_NAME } from "../../../utils/constants/index.js";
+import { SENTINEL_CI_AGGREGATE_SHADOW_NAME, SENTINEL_PR_FEED_CHECK_NAME } from "../../../utils/constants/index.js";
 import { ciAggregateMode } from "../ci-aggregate-mode/index.js";
 import { githubAggregateApi } from "../github-aggregate-api/index.js";
 import { readAggregateChecks } from "../read-aggregate-checks/index.js";
+import { readAggregatePoster } from "../read-aggregate-poster/index.js";
 import type { CiAggregatePosted, RunCiAggregateInput, RunCiAggregateResult } from "./run-ci-aggregate.type.js";
 
 /** Whether a finished check run or a changed status is one the aggregate waits for. */
@@ -19,17 +20,20 @@ function isWaitedOn(
 }
 
 /**
- * Computes the `ci` aggregate for the pull requests a delivery is about and posts it (SPEC-0099, phase 3, the shadow).
+ * Computes the `ci` aggregate for the pull requests a delivery is about and posts it (SPEC-0099, phases 3 and 8).
  * Everything is read from the API, never the payload: the pull request (open, and the commit still its head), the
  * config at its base branch for `expected`, and the commit's check runs and statuses. A finished check run or a changed
  * status that the aggregate does not wait for is dropped after one config read, which a warm instance caches. A
  * pull request that fails does not stop the others; any failure is the result's `fail`. Never throws.
  *
- * It does nothing unless `SENTINEL_CI_AGGREGATE=shadow`, so deploying it changes no deployment until a person sets it.
+ * It does nothing unless `SENTINEL_CI_AGGREGATE` is `shadow` or `on`, so deploying it changes no deployment until a
+ * person sets it. In `shadow` it posts `ci / Required checks (sentinel)`. In `on` it posts the real `ci / Required
+ * checks` for a pull request whose **head** says `ci.aggregate: sentinel` and the shadow for every other, so a commit
+ * has exactly one poster of the real check; a commit where the Actions job already posts it is left alone (`foreign`).
  */
 export async function runCiAggregate(input: RunCiAggregateInput): Promise<RunCiAggregateResult> {
-	if (ciAggregateMode(input.env) === "off")
-		return { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow" };
+	const mode = ciAggregateMode(input.env);
+	if (mode === "off") return { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow or on" };
 	const { client, repo, trigger } = input;
 	const now = input.now ?? Date.now();
 	const posted: CiAggregatePosted[] = [];
@@ -82,16 +86,36 @@ export async function runCiAggregate(input: RunCiAggregateInput): Promise<RunCiA
 					skipped.push({ number, reason: "not a check the aggregate waits for" });
 					continue;
 				}
+				// One poster per commit: the real check where the head's own config says Sentinel posts it (and only in `on`
+				// mode), the shadow everywhere else.
+				const poster =
+					mode === "on"
+						? (await readAggregatePoster({ client, repo, sha: pr.head.sha, now })).poster
+						: "actions";
+				const name =
+					input.name ??
+					(poster === "sentinel" ? SENTINEL_PR_FEED_CHECK_NAME : SENTINEL_CI_AGGREGATE_SHADOW_NAME);
 				const out = await postAggregate({
 					api: githubAggregateApi(client, repo),
 					sha: pr.head.sha,
 					expected: checks.expected,
 					statuses: checks.statuses,
 					now,
-					name: input.name ?? SENTINEL_CI_AGGREGATE_SHADOW_NAME,
+					name,
 					refreshOutput: true,
 				});
-				posted.push({ number, action: out.action, conclusion: out.result.conclusion });
+				if (out.action === "foreign") {
+					skipped.push({ number, reason: "another app already posts this check on the commit" });
+					continue;
+				}
+				posted.push({
+					number,
+					action: out.action,
+					conclusion: out.result.conclusion,
+					sha: pr.head.sha,
+					runId: out.runId,
+					real: name === SENTINEL_PR_FEED_CHECK_NAME,
+				});
 			} catch (err) {
 				failures.push(`#${number}: ${errorMessage(err)}`);
 			}

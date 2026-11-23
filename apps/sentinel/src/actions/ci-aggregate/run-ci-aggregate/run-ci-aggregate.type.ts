@@ -26,6 +26,12 @@ export interface CiAggregatePosted {
 	action: string;
 	/** The verdict the check now says. */
 	conclusion: "pending" | "success" | "failure";
+	/** The head commit the check is on. */
+	sha: string;
+	/** The id of the check run the verdict is on, `null` when none was written. */
+	runId: number | null;
+	/** Whether it is the real `ci / Required checks` (the head says `sentinel`), not the shadow. */
+	real: boolean;
 }
 
 /** `skipped` is a normal state (off, nothing to compute), `fail` an error the delivery should report. */

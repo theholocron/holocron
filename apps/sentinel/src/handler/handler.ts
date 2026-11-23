@@ -182,6 +182,7 @@ import { createLogger } from "@theholocron/observability/logger";
 import {
 	type AutoFixKind,
 	ciAggregateMode,
+	type CiAggregatePosted,
 	commitEditorConfigFix,
 	commitFormattingFix,
 	commitMarkdownLintFix,
@@ -249,6 +250,7 @@ import {
 	SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
+	SENTINEL_PR_FEED_CHECK_NAME,
 	SENTINEL_PR_FEED_LOG_MSG,
 	SENTINEL_ROLE_SYNC_LOG_MSG,
 	type SentinelEvent,
@@ -508,22 +510,30 @@ const CI_AGGREGATE_ONLY_EVENTS: ReadonlySet<SentinelEvent["type"]> = new Set([
 
 /**
  * Runs the `ci` aggregate for a delivery it reads and logs its result; `undefined` for any other event. Does nothing, and
- * fetches nothing, unless `SENTINEL_CI_AGGREGATE=shadow` is set, so a finished check run costs a deployment that has not
- * turned it on only this call. Never throws.
+ * fetches nothing, unless `SENTINEL_CI_AGGREGATE` is `shadow` or `on`, so a finished check run costs a deployment that has
+ * not turned it on only this call. Never throws.
  */
 async function runCiAggregateFor(
 	event: SentinelEvent,
 	repo: string,
 	env: Env
-): Promise<RunCiAggregateResult | undefined> {
+): Promise<CiAggregateOutcome | undefined> {
 	const trigger = toCiAggregateTrigger(event);
 	if (!trigger) return undefined;
-	if (ciAggregateMode(env) === "off") return { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow" };
-	let ciAggregate: RunCiAggregateResult;
+	if (ciAggregateMode(env) === "off") {
+		return { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow or on" };
+	}
+	let ciAggregate: CiAggregateOutcome;
 	let thrown: unknown;
 	try {
 		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
 		ciAggregate = await runCiAggregate({ client, env, repo, trigger });
+		// The real check was just posted by this very invocation, so the feed and the board that key off its completion run
+		// from here, in-process, instead of waiting for GitHub to deliver Sentinel's own `check_run` back (SPEC-0099).
+		if (ciAggregate.status === "ok") {
+			const followUps = await followRealAggregate(event, repo, env, ciAggregate.posted);
+			if (followUps.length > 0) ciAggregate = { ...ciAggregate, followUps };
+		}
 	} catch (err) {
 		thrown = err;
 		ciAggregate = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
@@ -535,6 +545,48 @@ async function runCiAggregateFor(
 		logger.info({ repo, type: event.type, ciAggregate }, SENTINEL_CI_AGGREGATE_LOG_MSG);
 	}
 	return ciAggregate;
+}
+
+/** What {@link runCiAggregateFor} answers: the result, and for each real check just finished what the feed and board did. */
+type CiAggregateOutcome = RunCiAggregateResult & {
+	followUps?: Array<{ number: number; prFeed: RunPrFeedResult; boardStatus: RunBoardStatusResult | undefined }>;
+};
+
+/**
+ * For each real `ci / Required checks` the aggregate just finished (a verdict, not `pending`), runs the #prs feed and the
+ * board's status as if GitHub had delivered the completed check run: a synthetic `check_run.completed` event built from the
+ * result, read by the same triggers. Never throws, and the shadow is never followed (the feed and board follow only the
+ * real check).
+ */
+async function followRealAggregate(
+	event: SentinelEvent,
+	repo: string,
+	env: Env,
+	posted: CiAggregatePosted[]
+): Promise<NonNullable<CiAggregateOutcome["followUps"]>> {
+	const followUps: NonNullable<CiAggregateOutcome["followUps"]> = [];
+	for (const { number, sha, runId, real, conclusion } of posted) {
+		if (!real || conclusion === "pending" || runId === null) continue;
+		const completed: SentinelEvent = {
+			type: "check_run.completed",
+			repo,
+			installationId: event.installationId,
+			action: "completed",
+			pullNumbers: [number],
+			checkRun: {
+				name: SENTINEL_PR_FEED_CHECK_NAME,
+				headSha: sha,
+				conclusion,
+				url: `https://github.com/${repo}/runs/${runId}`,
+			},
+			raw: {},
+		};
+		// The event carries a check run and its pull request, so the feed always has a trigger for it.
+		const feedTrigger = toPrFeedTrigger(completed) as PrFeedTrigger;
+		const prFeed = await runFeed(completed, repo, feedTrigger, env);
+		followUps.push({ number, prFeed, boardStatus: await runBoard(completed, repo, env) });
+	}
+	return followUps;
 }
 
 /** Events only the feed reads: no check of the pipeline below runs for them. */
