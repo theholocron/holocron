@@ -1,3 +1,9 @@
+## [1.58.0-alpha.55](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.54...clients-v1.58.0-alpha.55) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ suspend the development GitHub App's installations while holocron dev is not running ([#2580](https://github.com/theholocron/holocron/issues/2580)) ([95dce76](https://github.com/theholocron/holocron/commit/95dce76ac140b9991e688a0c472b4445946d92b5)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+
 ## [1.58.0-alpha.54](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.53...clients-v1.58.0-alpha.54) (2026-11-23)
 
 ### Features
