@@ -1,3 +1,9 @@
+## [1.13.0-alpha.2](https://github.com/theholocron/holocron/compare/skills-v1.13.0-alpha.1...skills-v1.13.0-alpha.2) (2026-11-23)
+
+### Features
+
+* **skills:** ✨ say how to choose an issue Type ([#2552](https://github.com/theholocron/holocron/issues/2552)) ([aa736e7](https://github.com/theholocron/holocron/commit/aa736e795ed0342466f51a61503cd9348f8adce7)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [1.13.0-alpha.1](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.5...skills-v1.13.0-alpha.1) (2026-11-20)
 
 ### Features
