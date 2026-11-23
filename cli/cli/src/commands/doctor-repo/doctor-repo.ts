@@ -18,6 +18,7 @@ import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorRepoReport, RepoCheck, RepoCheckResult, RunDoctorRepoInput } from "./doctor-repo.type.js";
+import { issueTypesRow } from "./issue-types-check/index.js";
 import { repoChecks } from "./repo-checks.js";
 
 export async function runDoctorRepo(input: RunDoctorRepoInput): Promise<DoctorRepoReport> {
@@ -63,6 +64,15 @@ export async function runDoctorRepo(input: RunDoctorRepoInput): Promise<DoctorRe
 			}
 		}
 	}
+
+	// The organization's issue Types are read through `issues`, not `source`, so the row sits beside the others.
+	rows.push(
+		await issueTypesRow(
+			input.loaded.resolved.issueTypes,
+			loader.has("issues") ? loader.get("issues") : undefined,
+			whyMissing(loader, "issues", "no `issues` provider to read the issue Types with")
+		)
+	);
 
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);
