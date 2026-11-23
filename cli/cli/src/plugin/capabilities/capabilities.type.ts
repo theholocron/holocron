@@ -3001,6 +3001,15 @@ export interface NotificationsChannelLayout {
 		 * The forum's messages carry no link previews (the posts are links to pull requests, and the previews bury the status).
 		 */
 		prs?: boolean | NotificationsPrsFeed;
+		/**
+		 * The status page incident feed: `holocron sync incidents` keeps one post in this forum for each incident of the
+		 * named status page (spec `tech-incidents-to-discord`), tagged with its state, each update appended. The value is
+		 * the status page's name as `monitoring.statusPages` declares it, or `true` when exactly one page is declared.
+		 * Only for `kind: "forum"`, whose `tags` must hold the five state tags: `investigating`, `identified`,
+		 * `monitoring`, `resolved` and `maintenance`. Needs no webhook: the bot makes and tags the posts, so it must be
+		 * able to post in the forum and manage its threads. The forum's messages carry no link previews.
+		 */
+		incidents?: boolean | string;
 	};
 }
 
@@ -3387,7 +3396,7 @@ export interface ServerInspection {
 		access?: Required<NotificationsAccess> | "custom";
 		/**
 		 * Whether the bot itself can start posts and reply in this forum (`post`) and manage its threads (`manage`: tag and
-		 * close them), after the channel's own overwrites. Only filled in for a forum the layout gives a `feeds.prs`.
+		 * close them), after the channel's own overwrites. Only filled in for a forum the layout gives a `feeds.prs` or `feeds.incidents`.
 		 */
 		botThreads?: { post: boolean; manage: boolean };
 		/** Set when working out `botThreads` failed; it is then absent and means nothing. */

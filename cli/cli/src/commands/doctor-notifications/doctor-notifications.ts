@@ -21,6 +21,7 @@ import {
 } from "../../plugin/index.js";
 import { botPermissionChecks } from "../bot-permission-checks/index.js";
 import { emojiChecks } from "../emoji-checks/index.js";
+import { incidentFeedChecks } from "../incident-feed-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
 	layoutSecretNames,
@@ -859,6 +860,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 
 	// The forum Sentinel keeps one post per pull request in: it is there, has every state's tag, and the bot can run it.
 	checks.push(...prFeedChecks({ layout, found }));
+
+	// The forum the status page's incidents are mirrored into: same three rows, with the incident states' tags.
+	checks.push(...incidentFeedChecks({ layout, found }));
 
 	// The workflow that posts failed runs and releases: it is on the default branch and uses the layout's webhooks. Read-only.
 	checks.push(
