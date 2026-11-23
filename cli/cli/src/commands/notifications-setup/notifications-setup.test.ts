@@ -11,7 +11,13 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import { feedProblem, forumLayoutProblem, PR_FEED_TAGS, runNotificationsSetup } from "./notifications-setup.js";
+import {
+	feedProblem,
+	forumLayoutProblem,
+	INCIDENT_FEED_TAGS,
+	PR_FEED_TAGS,
+	runNotificationsSetup,
+} from "./notifications-setup.js";
 
 const confirmPrompt = vi.hoisted(() => vi.fn());
 vi.mock("@inquirer/prompts", async (importOriginal) => ({
@@ -3299,6 +3305,38 @@ describe("forum channels", () => {
 			it("still refuses a webhook beside it", () => {
 				expect(forumLayoutProblem(forumLayout({ tags: PR_TAGS, webhook: true, feeds: { prs: true } }))).toMatch(
 					/takes no `webhook`/
+				);
+			});
+		});
+
+		describe("feeds.incidents", () => {
+			const INCIDENT_TAGS = INCIDENT_FEED_TAGS.map((name) => ({ name }));
+
+			it("is accepted on a forum with all five tags, as true or a status page name", () => {
+				expect(
+					forumLayoutProblem(forumLayout({ tags: INCIDENT_TAGS, feeds: { incidents: true } }))
+				).toBeUndefined();
+				expect(
+					forumLayoutProblem(forumLayout({ tags: INCIDENT_TAGS, feeds: { incidents: "The Holocron" } }))
+				).toBeUndefined();
+			});
+
+			it("is refused on a text channel", () => {
+				const layout = { categories: [{ name: "A", channels: [{ name: "ops", feeds: { incidents: true } }] }] };
+				expect(forumLayoutProblem(layout)).toMatch(/channel `ops`: `feeds.incidents` belongs to a forum/);
+			});
+
+			it("is refused on a forum that lacks a state's tag, naming the missing ones", () => {
+				const tags = INCIDENT_TAGS.filter((t) => t.name !== "maintenance");
+				expect(forumLayoutProblem(forumLayout({ tags, feeds: { incidents: true } }))).toMatch(
+					/`feeds.incidents` needs the tags `maintenance`/
+				);
+			});
+
+			it("cannot share a forum with the pull request feed", () => {
+				const tags = [...PR_FEED_TAGS, ...INCIDENT_FEED_TAGS].map((name) => ({ name }));
+				expect(forumLayoutProblem(forumLayout({ tags, feeds: { prs: true, incidents: true } }))).toMatch(
+					/one feed/
 				);
 			});
 		});

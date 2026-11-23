@@ -380,7 +380,9 @@ export class DiscordNotifications implements Notifications {
 		);
 		const wantsPrs = new Set(
 			(layout.categories ?? []).flatMap((c) =>
-				(c.channels ?? []).filter((ch) => ch.feeds?.prs).map((ch) => ch.name.toLowerCase())
+				(c.channels ?? [])
+					.filter((ch) => ch.feeds?.prs || ch.feeds?.incidents)
+					.map((ch) => ch.name.toLowerCase())
 			)
 		);
 		const text = channels.filter(
@@ -1168,9 +1170,12 @@ export class DiscordNotifications implements Notifications {
 				),
 			suppressEmbeds: (channel) =>
 				Boolean(
-					(this.opts.layout?.categories ?? [])
-						.flatMap((c) => c.channels ?? [])
-						.find((c) => DiscordNotifications.same(c.name, channel))?.feeds?.prs
+					(() => {
+						const feeds = (this.opts.layout?.categories ?? [])
+							.flatMap((c) => c.channels ?? [])
+							.find((c) => DiscordNotifications.same(c.name, channel))?.feeds;
+						return feeds?.prs || feeds?.incidents;
+					})()
 				),
 		}));
 	}

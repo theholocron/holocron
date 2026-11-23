@@ -13,7 +13,7 @@ export function forumChannel(layout: NotificationsLayout, wanted?: string): { ch
 			? { channel: found.name }
 			: { problem: `the layout declares no forum named \`${wanted}\` -- add it with \`kind: "forum"\`` };
 	}
-	const documents = forums.filter((c) => !c.feeds?.prs);
+	const documents = forums.filter((c) => !c.feeds?.prs && !c.feeds?.incidents);
 	if (documents.length === 1) return { channel: documents[0].name };
 	return {
 		problem:

@@ -181,6 +181,9 @@ export const PR_FEED_TAGS = [
 	"closed",
 ] as const;
 
+/** The states an incident's post can be tagged with, so a forum with `feeds.incidents` must have all of them (lower case). */
+export const INCIDENT_FEED_TAGS = ["investigating", "identified", "monitoring", "resolved", "maintenance"] as const;
+
 /**
  * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or webhook feed (its
  * conversations are posts, which a plain webhook post cannot start); `feeds.prs` is the one feed a forum takes, and only
@@ -201,6 +204,9 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			}
 			if (channel.feeds?.prs) {
 				return `${where}: \`feeds.prs\` belongs to a forum, where each pull request is a post -- set \`kind: "forum"\` or remove it`;
+			}
+			if (channel.feeds?.incidents) {
+				return `${where}: \`feeds.incidents\` belongs to a forum, where each incident is a post -- set \`kind: "forum"\` or remove it`;
 			}
 			continue;
 		}
@@ -229,10 +235,19 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			const emojiProblem = tagEmojiProblem(tag.name, tag.emoji, pictured);
 			if (emojiProblem) return `${where}: ${emojiProblem}`;
 		}
+		if (channel.feeds?.prs && channel.feeds.incidents) {
+			return `${where}: a forum carries one feed; \`feeds.prs\` and \`feeds.incidents\` need separate forums`;
+		}
 		if (channel.feeds?.prs) {
 			const missing = PR_FEED_TAGS.filter((tag) => !seen.has(tag));
 			if (missing.length > 0) {
 				return `${where}: \`feeds.prs\` needs the tags ${missing.map((t) => `\`${t}\``).join(", ")}; add them to \`tags\``;
+			}
+		}
+		if (channel.feeds?.incidents) {
+			const missing = INCIDENT_FEED_TAGS.filter((tag) => !seen.has(tag));
+			if (missing.length > 0) {
+				return `${where}: \`feeds.incidents\` needs the tags ${missing.map((t) => `\`${t}\``).join(", ")}; add them to \`tags\``;
 			}
 		}
 	}
