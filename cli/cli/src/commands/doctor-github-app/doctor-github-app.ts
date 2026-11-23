@@ -92,7 +92,7 @@ function printGrouped(checked: { instance: GitHubAppConfig; rows: CheckRow[] }[]
 			if (instance.label) print(`  ${instance.label}`);
 			const shown = rows.map((r) => ({
 				...r,
-				title: r.title.startsWith(`${instance.name}: `) ? r.title.slice(instance.name.length + 2) : r.title,
+				title: r.title.slice(instance.name.length + 2),
 			}));
 			printCheckRows(shown, (line) => print(`${indent}${line}`));
 		}

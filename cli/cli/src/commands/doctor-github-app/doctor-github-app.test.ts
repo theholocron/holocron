@@ -456,6 +456,19 @@ describe("runDoctorGitHubApp", () => {
 		expect(text).toMatch(/status\s+1 installation/);
 	});
 
+	it("prints an app with no label under its heading without a subheading, beside a flat instance", async () => {
+		const { text } = await run({
+			instances: [
+				{ name: "Plain", manifest: "m.json", environment: "acme/app - ci" },
+				{ name: "Sentinel", app: "Sentinel", manifest: "m.json", environment: "acme/app - prod" },
+			],
+		});
+		const lines = text.split("\n");
+		expect(text).toContain("Plain: status");
+		expect(lines.some((l) => /^ {2}\S.*status/.test(l))).toBe(true);
+		expect(lines).toContain("Sentinel");
+	});
+
 	it("prints an instance with no app heading flat, with its full row titles", async () => {
 		const { text } = await run();
 		expect(text).toContain("Sentinel: status");
