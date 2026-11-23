@@ -143,7 +143,6 @@ export default defineConfig({
 		"update-deps",
 		"label",
 		"reconcile-projects",
-		"reconcile-ci",
 		"remind-doctor",
 		"measure:docs",
 		"validate:deps",

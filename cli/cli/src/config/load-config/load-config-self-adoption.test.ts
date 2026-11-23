@@ -282,7 +282,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			keys: [
 				"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
 				"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
-				"HOLOCRON_HEARTBEAT_RECONCILE_CI",
 				"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
 				"HOLOCRON_HEARTBEAT_SYNC_SPECS",
 			],
@@ -350,7 +349,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				graceUnit: "hours",
 				tags: ["scheduled"],
 			},
-			{ name: "reconcile-ci", period: 1, periodUnit: "hours", grace: 2, graceUnit: "hours", tags: ["scheduled"] },
 		];
 		monitoring.tuple.options.dashboards = [
 			{
@@ -522,9 +520,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// in `lint:code`), so the second ReviewDog run is not needed.
 		const expectedTasks = (expected as unknown as { tasks: unknown[] }).tasks;
 		expectedTasks.splice(0, expectedTasks.length, ...expectedTasks.filter((task) => task !== "annotate"));
-
-		// And (SPEC-0099): the `reconcile-ci` sweep follows `reconcile-projects`.
-		expectedTasks.splice(expectedTasks.indexOf("reconcile-projects") + 1, 0, "reconcile-ci");
 
 		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
 		// "claude", and the option is kept beside it.
