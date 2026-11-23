@@ -68,8 +68,8 @@ import type { ValidateConfigInput, ValidateConfigResult } from "./validate-confi
 /** Where a repo keeps the area files of its config: `.<config name>/`. */
 const CONFIG_DIR = ".holocron";
 
-/** How long a read at a branch (or the default branch) is reused: long enough for one burst of deliveries, short enough that a merged config is seen soon. */
-export const CONFIG_BRANCH_TTL_MS = 60_000;
+/** How long a read at a branch (or the default branch) is reused: long enough to cover the deliveries of several minutes, short enough that a merged config is seen soon. A push to the default branch reads again (`fresh`), so this never delays a property sync. */
+export const CONFIG_BRANCH_TTL_MS = 5 * 60_000;
 
 /** How long a read at a commit is reused. A commit never changes, so this only bounds the memory of a warm instance. */
 export const CONFIG_COMMIT_TTL_MS = 10 * 60_000;

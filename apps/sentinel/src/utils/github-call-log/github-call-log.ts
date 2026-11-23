@@ -1,3 +1,4 @@
+import { githubDeliveryFields, recordGitHubCall } from "../github-delivery-calls/index.js";
 import type { GitHubCallLogger } from "./github-call-log.type.js";
 
 /** The message every call is logged under, so a query can count them. */
@@ -54,9 +55,12 @@ export function loggedFetch(logger: GitHubCallLogger, base: typeof fetch = globa
 		try {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 			const refused = res.status === 403 || res.status === 429;
+			const route = githubRoute(url);
+			recordGitHubCall(route.startsWith("/repos/:owner/:repo/contents"));
 			const fields = {
+				...githubDeliveryFields(),
 				method: init?.method ?? "GET",
-				route: githubRoute(url),
+				route,
 				status: res.status,
 				remaining: numeric(res, "x-ratelimit-remaining"),
 				limit: numeric(res, "x-ratelimit-limit"),
