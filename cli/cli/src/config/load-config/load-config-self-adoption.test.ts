@@ -530,6 +530,11 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// And (#2430): the area labels are new since the snapshot. Check they are declared, then compare the rest.
 		expect(Object.keys(resolved.repo?.labels?.areas ?? {})).toContain("cli");
 		(expected as { repo: { labels?: unknown } }).repo.labels = resolved.repo?.labels;
+		// And (#2512): the organization's five issue Types are new since the snapshot (the declaration in
+		// `.holocron/org.ts`, placed into `config.issueTypes`; `load-config-issue-types.test.ts` checks them).
+		expect((expected as { issueTypes?: unknown }).issueTypes).toBeUndefined();
+		expect(resolved.issueTypes).toHaveLength(5);
+		(expected as { issueTypes?: unknown }).issueTypes = resolved.issueTypes;
 		expect(normalise(resolved)).toEqual(expected);
 	});
 });
