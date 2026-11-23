@@ -50,9 +50,9 @@ export async function ensureIssueTypes(input: EnsureIssueTypesInput): Promise<En
 	const created: string[] = [];
 	const updated: string[] = [];
 	// What a person who asked for it sees as a failure is, in `setup`, only a skip.
-	const refused: CheckRow["status"] = input.caller === "setup" ? "skip" : "fail";
-	const stop = (status: CheckRow["status"], detail: string, problems: string[] = []): EnsureIssueTypesReport => ({
-		status: status === "ok" ? "ok" : status === "skip" ? "skip" : "fail",
+	const refused: "skip" | "fail" = input.caller === "setup" ? "skip" : "fail";
+	const stop = (status: "skip" | "fail", detail: string, problems: string[] = []): EnsureIssueTypesReport => ({
+		status,
 		rows: [row("types", "issue types", status, detail, problems)],
 		created,
 		updated,
@@ -85,7 +85,7 @@ export async function ensureIssueTypes(input: EnsureIssueTypesInput): Promise<En
 	const todo = plan.actions.filter((a) => a.kind !== "exists");
 
 	if (input.dryRun || todo.length === 0) {
-		const rows = plan.actions.map((a) => describeAction(a, input.dryRun === true));
+		const rows = plan.actions.map((a) => describeAction(a));
 		const names = (kind: TypeAction["kind"]) =>
 			plan.actions.filter((a) => a.kind === kind).map((a) => a.declared.name);
 		return {
@@ -107,7 +107,7 @@ export async function ensureIssueTypes(input: EnsureIssueTypesInput): Promise<En
 			return stop("skip", "changing the organization's issue Types needs an answer: pass --yes");
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
-			`Change the organization's issue Types?\n${todo.map((a) => `  ${describeAction(a, true).detail} ${a.declared.name}`).join("\n")}`
+			`Change the organization's issue Types?\n${todo.map((a) => `  ${describeAction(a).detail} ${a.declared.name}`).join("\n")}`
 		);
 		if (!proceed) {
 			return {
@@ -125,7 +125,7 @@ export async function ensureIssueTypes(input: EnsureIssueTypesInput): Promise<En
 	for (const action of plan.actions) {
 		const name = action.declared.name;
 		if (action.kind === "exists") {
-			rows.push(describeAction(action, false));
+			rows.push(describeAction(action));
 			continue;
 		}
 		if (limited) {
@@ -180,16 +180,17 @@ async function nowExists(issues: Issues, name: string): Promise<boolean> {
 	}
 }
 
-function describeAction(action: TypeAction, dryRun: boolean): CheckRow {
+/** The row of an action that is not carried out (a dry run, or the list shown before asking), or that needs none. */
+function describeAction(action: TypeAction): CheckRow {
 	const name = action.declared.name;
-	if (action.kind === "create") return row(name, name, dryRun ? "skip" : "ok", dryRun ? "would create" : "created");
+	if (action.kind === "create") return row(name, name, "skip", "would create");
 	if (action.kind === "update") {
 		const fields = action.changes.map((c) => c.field).join(", ");
 		return row(
 			name,
 			name,
-			dryRun ? "skip" : "ok",
-			`${dryRun ? "would update" : "updated"} ${fields}`,
+			"skip",
+			`would update ${fields}`,
 			action.changes.map((c) => `${c.field}: was ${JSON.stringify(c.was)}, to ${JSON.stringify(c.to)}`)
 		);
 	}

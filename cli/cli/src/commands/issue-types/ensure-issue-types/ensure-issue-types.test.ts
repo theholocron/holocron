@@ -269,6 +269,27 @@ describe("ensureIssueTypes", () => {
 			expect((await run(g, { declared: [{ name: "Epic" }] })).status).toBe("fail");
 		});
 
+		it("is a failing row when the re-read after a conflict reads nothing", async () => {
+			let calls = 0;
+			const g = fake([], { listTypes: async () => (calls++ === 0 ? [] : undefined) });
+			g.create.mockRejectedValueOnce(new ProviderApiError("x", 409));
+			expect((await run(g, { declared: [{ name: "Epic" }] })).status).toBe("fail");
+		});
+
+		it("sends every field a Type declares, and only those", async () => {
+			const f = fake([BUG]);
+			await run(f, {
+				declared: [
+					{ name: "Epic", description: "Several", color: "purple", enabled: false },
+					{ name: "Spike", description: "Research" },
+				],
+			});
+			expect(f.create.mock.calls.map((c) => c[0])).toEqual([
+				{ name: "Epic", description: "Several", color: "purple", enabled: false },
+				{ name: "Spike", description: "Research" },
+			]);
+		});
+
 		it("goes on after another error and reports it", async () => {
 			const f = fake([BUG]);
 			f.create.mockRejectedValueOnce(new Error("boom"));

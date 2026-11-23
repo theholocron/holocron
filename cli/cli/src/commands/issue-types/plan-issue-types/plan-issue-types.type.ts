@@ -2,8 +2,11 @@ import type { IssueTypeDeclaration, IssueTypeInfo } from "../../../plugin/index.
 
 /** One field of an existing Type that differs from the declaration. */
 export interface TypeChange {
+	/** Which field differs. */
 	field: "description" | "color";
+	/** The value the organization has now. */
 	was: string;
+	/** The value the declaration states. */
 	to: string;
 }
 
@@ -15,6 +18,7 @@ export type TypeAction =
 
 /** The plan: one action per declared Type, in declaration order. */
 export interface IssueTypesPlan {
+	/** One action per declared Type. */
 	actions: TypeAction[];
 	/** The Types the organization has now plus those the plan would make. */
 	total: number;
