@@ -68,7 +68,55 @@ import type { ValidateConfigInput, ValidateConfigResult } from "./validate-confi
 /** Where a repo keeps the area files of its config: `.<config name>/`. */
 const CONFIG_DIR = ".holocron";
 
+/** How long a read at a branch (or the default branch) is reused: long enough for one burst of deliveries, short enough that a merged config is seen soon. */
+export const CONFIG_BRANCH_TTL_MS = 60_000;
+
+/** How long a read at a commit is reused. A commit never changes, so this only bounds the memory of a warm instance. */
+export const CONFIG_COMMIT_TTL_MS = 10 * 60_000;
+
+/** How many reads are kept; older entries are dropped first, so a long-lived instance stays small. */
+export const CONFIG_CACHE_MAX_ENTRIES = 50;
+
+const configCache = new Map<string, { at: number; promise: Promise<ValidateConfigResult> }>();
+
+/** Forgets every cached read; for tests, and for anything that must see the repository as it is now. */
+export function resetValidateConfigCache(): void {
+	configCache.clear();
+}
+
+/**
+ * Reads and validates a repo's config (see the module comment), sharing one read between the deliveries and actions
+ * that ask for the same repo and ref at about the same time. Reading the `.holocron/` tree costs a GitHub call per
+ * directory and file, and a single delivery asks several times (the feed, the board, the labels, the aggregate), so
+ * without this a burst of deliveries exhausted the App's hourly quota (#2426). A read in progress is shared too, so
+ * concurrent callers make one read. A GitHub failure is never kept. `fresh: true` reads again, for a caller that writes
+ * persistent state from the result (the property sync on a push to the default branch).
+ */
 export async function validateConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {
+	if (input.fresh === true) return loadRepoConfig(input);
+	const now = input.now ?? Date.now();
+	const key = `${input.repo}@${input.ref ?? "default"}`;
+	const ttl =
+		input.ref !== undefined && /^[0-9a-f]{40}$/.test(input.ref) ? CONFIG_COMMIT_TTL_MS : CONFIG_BRANCH_TTL_MS;
+	const hit = configCache.get(key);
+	if (hit !== undefined && now - hit.at < ttl) return hit.promise;
+
+	for (const [stale, entry] of configCache) {
+		if (now - entry.at >= CONFIG_COMMIT_TTL_MS || configCache.size >= CONFIG_CACHE_MAX_ENTRIES)
+			configCache.delete(stale);
+	}
+	const entry = { at: now, promise: loadRepoConfig(input) };
+	configCache.set(key, entry);
+	try {
+		return await entry.promise;
+	} catch (err) {
+		// Forget a failed read, unless a newer one has taken its place.
+		if (configCache.get(key) === entry) configCache.delete(key);
+		throw err;
+	}
+}
+
+async function loadRepoConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {
 	const { client, repo, ref } = input;
 
 	const fetch = fetchRepoFile(client, repo, ref);

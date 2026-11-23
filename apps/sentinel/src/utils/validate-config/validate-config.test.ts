@@ -1,8 +1,8 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { validateConfig } from "./validate-config.js";
+import { resetValidateConfigCache, validateConfig } from "./validate-config.js";
 
 // No test here sweeps the temp directory for `sentinel-validate-*`: `validateConfig` removes its own sandbox, and a
 // sweep deletes the sandboxes that other test files, running in parallel workers, are still using.
@@ -29,6 +29,10 @@ function makeClient(
 	const { fetch, calls } = stubFetch([...responses, ...tree, ...dedicated]);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
+
+beforeEach(() => {
+	resetValidateConfigCache();
+});
 
 describe("validateConfig", () => {
 	it("validates a plain-object holocron.config.json with only known task names", async () => {
