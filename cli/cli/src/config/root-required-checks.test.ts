@@ -58,12 +58,12 @@ describe("this repo's required checks (#1727, B6)", () => {
 		expect([...contexts].sort()).toEqual([...PINNED_CONTEXTS].sort());
 	});
 
-	it("writes the aggregate's statuses and ids into ci.ci.yml exactly as derived", async () => {
+	it("derives the aggregate's statuses, and writes no ci.ci.yml because Sentinel posts the check (#2426)", async () => {
 		const { statuses, expected } = aggregateChecks(await rootTasksConfig());
 		expect(statuses).toEqual(["codecov/patch", "codecov/project", "codecov/patch/documentation"]);
-		const caller = await readFile(`${REPO_ROOT}.github/workflows/ci.ci.yml`, "utf8");
-		expect(caller).toContain(`statuses: '${JSON.stringify(statuses)}'`);
-		expect(caller).toContain(`expected: '${JSON.stringify(expected)}'`);
+		expect(expected.length).toBeGreaterThan(0);
+		const caller = await readFile(`${REPO_ROOT}.github/workflows/ci.ci.yml`, "utf8").catch((e: unknown) => e);
+		expect((caller as NodeJS.ErrnoException).code).toBe("ENOENT");
 	});
 
 	it("lists a codecov component and a flag for every workspace package in codecov.yml", async () => {

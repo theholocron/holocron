@@ -535,6 +535,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect((expected as { issueTypes?: unknown }).issueTypes).toBeUndefined();
 		expect(resolved.issueTypes).toHaveLength(5);
 		(expected as { issueTypes?: unknown }).issueTypes = resolved.issueTypes;
+		// And (#2426, phase 9): Sentinel posts the `ci` aggregate for this repo, so the config says so.
+		expect(expected.ci).toBeUndefined();
+		expected.ci = { aggregate: "sentinel" };
 		expect(normalise(resolved)).toEqual(expected);
 	});
 });
