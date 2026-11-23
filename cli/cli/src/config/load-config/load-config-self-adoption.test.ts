@@ -155,6 +155,23 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			.find((c) => c.name === "alerts");
 		expect(alerts?.feeds).toBeUndefined();
 		alerts!.feeds = { relay: { cloudflare: true, vercel: true, dependabot: true } };
+		// And (#2366): the `incidents` forum, the status page incident feed's, sits after `uptime` in ALERTS.
+		const alertsCategory = options.layout?.categories?.find((c) => c.channels?.some((c) => c.name === "uptime"));
+		const uptimeAt = alertsCategory!.channels!.findIndex((c) => c.name === "uptime");
+		expect(alertsCategory!.channels!.some((c) => c.name === "incidents")).toBe(false);
+		alertsCategory!.channels!.splice(uptimeAt + 1, 0, {
+			name: "incidents",
+			kind: "forum",
+			topic: "One post for each status page incident, tagged with its status and kept up to date. Updates are appended; comment on the status page, not here.",
+			tags: [
+				{ name: "investigating", emoji: "🔍", moderated: true },
+				{ name: "identified", emoji: "🎯", moderated: true },
+				{ name: "monitoring", emoji: "👀", moderated: true },
+				{ name: "resolved", emoji: "✅", moderated: true },
+				{ name: "maintenance", emoji: "🛠️", moderated: true },
+			],
+			feeds: { incidents: "The Holocron" },
+		});
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.
 		const ideas = (options.layout?.categories ?? [])
 			.flatMap((c) => c.channels ?? [])
