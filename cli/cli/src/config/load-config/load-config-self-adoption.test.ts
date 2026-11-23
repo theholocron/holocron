@@ -454,11 +454,19 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 
 		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
 		(expected as unknown as { githubApps: unknown }).githubApps = [
-			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: `${SLUG} - prod` },
 			{
 				name: "Sentinel - dev",
+				app: "Sentinel",
+				label: "Dev",
 				manifest: "apps/sentinel/github-app.manifest.json",
 				environment: `${SLUG} - dev`,
+			},
+			{
+				name: "Sentinel",
+				app: "Sentinel",
+				label: "Prod",
+				manifest: "apps/sentinel/github-app.manifest.json",
+				environment: `${SLUG} - prod`,
 			},
 		];
 		// And (#2069): the vault is the `ci` layer's Environment.

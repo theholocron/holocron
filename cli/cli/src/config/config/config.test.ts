@@ -323,6 +323,8 @@ describe("resolveConfig", () => {
 		["an empty name", [{ name: " ", manifest: "m", environment: "e" }], /githubApps\[0\]\.name/],
 		["no manifest", [{ name: "n", environment: "e" }], /githubApps\[0\]\.manifest/],
 		["no environment", [{ name: "n", manifest: "m", environment: "" }], /githubApps\[0\]. needs the name/],
+		["an empty app", [{ name: "n", manifest: "m", environment: "e", app: " " }], /githubApps\[0\]\.app/],
+		["an empty label", [{ name: "n", manifest: "m", environment: "e", label: "" }], /githubApps\[0\]\.label/],
 	])("rejects githubApps with %s", (_label, githubApps, message) => {
 		expect(() => resolveConfig({ ...minimal, githubApps: githubApps as never })).toThrow(message);
 	});

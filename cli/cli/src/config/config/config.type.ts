@@ -457,6 +457,16 @@ export interface GitHubAppConfig {
 	/** The instance's name in the report, e.g. `"acme/app - dev"`. */
 	name: string;
 	/**
+	 * The heading `doctor github-app` prints this instance under, e.g. `"Sentinel"`; instances that share one are
+	 * listed together. Left out, the instance has no heading and is printed flat, as before.
+	 */
+	app?: string;
+	/**
+	 * The subheading under the `app` heading, e.g. `"Dev"` or `"Prod"`. Display only: the `name` stays the key
+	 * (`holocron redeliver webhooks --app <name>`).
+	 */
+	label?: string;
+	/**
 	 * The App manifest file, relative to the directory: `default_permissions` (name to `read`, `write` or
 	 * `admin`) and `default_events` (names), as in `apps/sentinel/github-app.manifest.json`.
 	 */

@@ -429,6 +429,38 @@ describe("runDoctorGitHubApp", () => {
 		expect(report.reason).toBe("no `githubApps` are declared in holocron.config.ts");
 	});
 
+	it("prints instances under their app heading and label, and the rest flat", async () => {
+		const { text } = await run({
+			instances: [
+				{
+					name: "Sentinel - dev",
+					app: "Sentinel",
+					label: "Dev",
+					manifest: "m.json",
+					environment: "acme/app - dev",
+				},
+				{
+					name: "Sentinel",
+					app: "Sentinel",
+					label: "Prod",
+					manifest: "m.json",
+					environment: "acme/app - prod",
+				},
+			],
+		});
+		const lines = text.split("\n");
+		expect(lines.filter((l) => l === "Sentinel")).toHaveLength(1);
+		expect(lines.indexOf("  Dev")).toBeGreaterThan(lines.indexOf("Sentinel"));
+		expect(lines.indexOf("  Prod")).toBeGreaterThan(lines.indexOf("  Dev"));
+		expect(text).not.toContain("Sentinel - dev: status");
+		expect(text).toMatch(/status\s+1 installation/);
+	});
+
+	it("prints an instance with no app heading flat, with its full row titles", async () => {
+		const { text } = await run();
+		expect(text).toContain("Sentinel: status");
+	});
+
 	it("checks every instance and fails the run when one fails", async () => {
 		const { report } = await run({
 			instances: [...INSTANCES, { name: "Sentinel - dev", manifest: "m.json", environment: "acme/app - dev" }],

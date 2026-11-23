@@ -27,6 +27,7 @@ const codecovUploads = generateCodecovUploads(readWorkspacePackages(fileURLToPat
 	skills: "skills/lcov.info",
 });
 
+const sentinelApp = { app: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json" };
 const description =
 	"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.";
 
@@ -231,8 +232,8 @@ export default defineConfig({
 	// existing App's permissions or events, so each instance is changed by hand). The id and key come from the
 	// 1Password Environment of the layer: `prod` for Sentinel, `dev` for the development instance (#2069).
 	githubApps: [
-		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", layer: "prod" },
-		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", layer: "dev" },
+		{ name: "Sentinel - dev", ...sentinelApp, label: "Dev", layer: "dev" },
+		{ name: "Sentinel", ...sentinelApp, label: "Prod", layer: "prod" },
 	],
 	agent: ["claude", { dcg: true }],
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
