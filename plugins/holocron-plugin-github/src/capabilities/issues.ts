@@ -63,7 +63,6 @@ const TEXT_PAGE_SIZE = 100;
 /** Pages `search` reads for a `text` before it stops (the 2000 most recently updated issues). */
 const TEXT_MAX_PAGES = 20;
 
-/** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
 /** A Type as the capability reports it: GitHub's `null`s are left out. */
 function toTypeInfo(t: OrgIssueTypeInfo): IssueTypeInfo {
 	return {
@@ -75,6 +74,7 @@ function toTypeInfo(t: OrgIssueTypeInfo): IssueTypeInfo {
 	};
 }
 
+/** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
 export class GitHubIssues implements Issues {
 	/** Capability key, always `"issues"`. */
 	readonly key = "issues" as const;

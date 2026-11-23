@@ -58,6 +58,26 @@ describe("GitHubIssues issue Types", () => {
 		expect(org[1]?.body).toEqual({ name: "Epic", is_enabled: true, description: "New text", color: "purple" });
 	});
 
+	it("sends only the fields a Type declares: a description and a disabled flag, with no colour", async () => {
+		const { issues, org } = make([{ status: 201, body: { ...EPIC, is_enabled: false } }]);
+		await issues.createType({ name: "Epic", description: "A body of work", enabled: false });
+		expect(org[0]?.body).toEqual({ name: "Epic", is_enabled: false, description: "A body of work" });
+	});
+
+	it("sets a colour on a Type that has no description or colour yet, and leaves the missing fields out", async () => {
+		const bare = { id: 7, name: "Epic", description: null, color: null, is_enabled: true };
+		const { issues, org } = make([
+			{ status: 200, body: [bare] },
+			{ status: 200, body: bare },
+			{ status: 200, body: [bare] },
+			{ status: 200, body: bare },
+		]);
+		await issues.updateType(7, { color: "red" });
+		expect(org[1]?.body).toEqual({ name: "Epic", is_enabled: true, color: "red" });
+		await issues.updateType(7, {});
+		expect(org[3]?.body).toEqual({ name: "Epic", is_enabled: true });
+	});
+
 	it("names a Type id the organization lacks", async () => {
 		const { issues } = make([{ status: 200, body: [EPIC] }]);
 		await expect(issues.updateType(99, { color: "red" })).rejects.toThrow(/no issue Type with id 99/);
