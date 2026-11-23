@@ -10,6 +10,16 @@ export interface Env extends RoleSyncEnv, GitHubAppEnv, CiAggregateEnv {
 	SENTINEL_WEBHOOK_SECRET: string;
 }
 
+/** What a platform adapter can hand `handleWebhookRequest()`. */
+export interface HandleWebhookOptions {
+	/**
+	 * Keeps the function alive until the promise settles after the response is sent (Vercel's `waitUntil`). When set,
+	 * a verified delivery is answered `202` at once and its work runs here; when absent the work is awaited and its
+	 * status is the response.
+	 */
+	waitUntil?: (promise: Promise<unknown>) => void;
+}
+
 /** The push/pull_request-specific fields the pipeline needs beyond what `SentinelEvent` already normalizes. */
 export interface ResolutionContext {
 	defaultBranch: string;

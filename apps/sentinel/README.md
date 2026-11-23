@@ -196,7 +196,19 @@ check has no workflow behind it at all. Built from `SENTINEL_APP_NAME`
 own literal — the brand prefix any future action reads from one source
 instead of retyping.
 
-## `handleWebhookRequest(request, env)`
+## `handleWebhookRequest(request, env, options?)`
+
+**Answer first, work after.** GitHub gives up on a delivery after about 10 seconds ("Recent deliveries" shows
+`context deadline exceeded`), and a pull request's work (config read, feed, board, labels, aggregate and about nine check
+posts) takes tens of seconds. With `options.waitUntil` (Vercel's, handed in by `api/webhook.mjs`) the signature is checked
+and the event read, `202 { handled, type, deferred: true }` is sent at once and the work runs inside `waitUntil`, for as
+long as `maxDuration` in `vercel.json` (300 seconds) allows. A bad signature is still `401`, and a ping or an unhandled
+event is still answered inline. The GitHub-call counts, the `githubDelivery` line and the logger and error-tracker
+flushes happen when the work ends. The cost: a failure can no longer be the response's status, so a delivery that
+failed shows `202` in GitHub; look for the `handleWebhookRequest: unhandled error` and `deferred work answered an error
+status` log lines and the error tracker instead (`doctor github-app`'s `deliveries` row no longer sees them, and
+`redeliver webhooks` has nothing to redeliver). Without `waitUntil` (tests, `holocron dev serve`) the work is awaited and
+its status is the response, as before.
 
 Wires the capability-compliance pipeline above (`parseWebhookEvent →
 validateConfig → syncPropertiesFromConfig → postCheckRun`) together with
