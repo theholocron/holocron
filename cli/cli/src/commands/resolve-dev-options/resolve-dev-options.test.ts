@@ -17,7 +17,13 @@ describe("resolveDevOptions", () => {
 			hostname: "sentinel-dev.example.dev",
 			port: 4000,
 			command: ["pnpm", "run", "serve"],
+			suspendWhenIdle: false,
 		});
+	});
+
+	it("passes `dev.suspendWhenIdle` on, and is off without it", () => {
+		expect(resolveDevOptions({}, { ...config, suspendWhenIdle: true }).suspendWhenIdle).toBe(true);
+		expect(resolveDevOptions({}, config).suspendWhenIdle).toBe(false);
 	});
 
 	it("lets each flag win over the config", () => {
@@ -31,6 +37,7 @@ describe("resolveDevOptions", () => {
 			hostname: "h.example.dev",
 			port: 5000,
 			command: ["node", "app.js"],
+			suspendWhenIdle: false,
 		});
 	});
 
@@ -43,7 +50,14 @@ describe("resolveDevOptions", () => {
 	it("works from flags alone, with no dev block", () => {
 		expect(
 			resolveDevOptions({ environment: "E", name: "n", hostname: "h.example.dev", command: ["x"] }, undefined)
-		).toEqual({ environment: "E", name: "n", hostname: "h.example.dev", port: 3000, command: ["x"] });
+		).toEqual({
+			environment: "E",
+			name: "n",
+			hostname: "h.example.dev",
+			port: 3000,
+			command: ["x"],
+			suspendWhenIdle: false,
+		});
 	});
 
 	it("names everything that is missing, and where to give it", () => {

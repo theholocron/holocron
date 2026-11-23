@@ -24,4 +24,6 @@ export interface ResolvedDevOptions {
 	port: number;
 	/** The application's command and arguments. */
 	command: string[];
+	/** Whether the development App's installations are suspended whenever `holocron dev` is not running. */
+	suspendWhenIdle: boolean;
 }

@@ -37,5 +37,6 @@ export function resolveDevOptions(
 		hostname: hostname as string,
 		port: flags.port ?? config?.port ?? DEFAULT_PORT,
 		command: command as string[],
+		suspendWhenIdle: config?.suspendWhenIdle ?? false,
 	};
 }

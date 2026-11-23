@@ -3,6 +3,10 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
+import type {
+	SetInstallationsSuspendedInput,
+	SetInstallationsSuspendedResult,
+} from "../set-installations-suspended/index.js";
 import type { RunTunnelUpInput, TunnelUpReport } from "../tunnel-up/index.js";
 
 /** Input for {@link runDev}. */
@@ -21,6 +25,11 @@ export interface RunDevInput {
 	port: number;
 	/** The application's command and arguments. */
 	command: string[];
+	/** Unsuspend the development App's installations while the application runs and suspend them after (`dev.suspendWhenIdle`). */
+	suspendWhenIdle?: boolean | undefined;
+	/** Switches the App's installations on or off. Defaults to {@link setInstallationsSuspended}. */
+	switchInstallations?:
+		((input: SetInstallationsSuspendedInput) => Promise<SetInstallationsSuspendedResult>) | undefined;
 	/** The plugin loader. Defaults to one for `loaded`. */
 	loader?: PluginLoader | undefined;
 	/** Where the rows go (never a variable's value or the tunnel's token). Defaults to stdout. */

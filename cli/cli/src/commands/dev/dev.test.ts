@@ -267,6 +267,93 @@ describe("runDev", () => {
 		}
 	});
 
+	describe("suspendWhenIdle", () => {
+		const result = { total: 2, changed: 1 };
+
+		it("unsuspends the App's installations before the application runs and suspends them after", async () => {
+			const { base, runProcesses, said } = setup();
+			const order: string[] = [];
+			const switchInstallations = vi.fn(async (input: { suspended: boolean }) => {
+				order.push(input.suspended ? "suspend" : "unsuspend");
+				return result;
+			});
+			runProcesses.mockImplementation(async () => {
+				order.push("run");
+				return { exitCode: 0, endedFirst: "primary" as const, interrupted: true };
+			});
+			const report = await runDev({ ...base, suspendWhenIdle: true, switchInstallations });
+			expect(report.status).toBe("ok");
+			expect(order).toEqual(["unsuspend", "run", "suspend"]);
+			expect(switchInstallations).toHaveBeenCalledWith({
+				creds: { appId: "7", privateKey: VALUE },
+				suspended: false,
+			});
+			expect(said()).toMatch(/2 installation\(s\) active \(1 unsuspended\)/);
+			expect(said()).toMatch(/2 installation\(s\) suspended again/);
+			expect(said()).not.toContain(VALUE);
+		});
+
+		it("does not touch the App unless asked", async () => {
+			const { base } = setup();
+			const switchInstallations = vi.fn(async () => result);
+			await runDev({ ...base, switchInstallations });
+			expect(switchInstallations).not.toHaveBeenCalled();
+		});
+
+		it("suspends again when the processes throw, and says so when that fails too", async () => {
+			const { base, runProcesses, said } = setup();
+			runProcesses.mockRejectedValue(new Error("spawn failed"));
+			const switchInstallations = vi
+				.fn()
+				.mockResolvedValueOnce(result)
+				.mockRejectedValueOnce(new Error("GitHub said 403"));
+			const report = await runDev({ ...base, suspendWhenIdle: true, switchInstallations });
+			expect(report.status).toBe("fail");
+			expect(switchInstallations).toHaveBeenLastCalledWith(expect.objectContaining({ suspended: true }));
+			expect(said()).toMatch(/could not suspend its installations, do it by hand: GitHub said 403/);
+		});
+
+		it("stops before running anything when it cannot unsuspend, or the environment lacks the App's id and key", async () => {
+			const refused = setup();
+			const failing = vi.fn().mockRejectedValue(new Error("401 Bad credentials"));
+			expect(
+				(await runDev({ ...refused.base, suspendWhenIdle: true, switchInstallations: failing })).status
+			).toBe("fail");
+			expect(refused.said()).toMatch(/could not unsuspend its installations: 401 Bad credentials/);
+			expect(refused.runProcesses).not.toHaveBeenCalled();
+
+			const bare = setup({ vault: { readEnvironment: vi.fn(async () => ({ OTHER: "1" })) } });
+			const never = vi.fn();
+			expect((await runDev({ ...bare.base, suspendWhenIdle: true, switchInstallations: never })).status).toBe(
+				"fail"
+			);
+			expect(bare.said()).toMatch(/does not hold .*APP_ID.*`dev.suspendWhenIdle` needs its id and key/);
+			expect(never).not.toHaveBeenCalled();
+			expect(bare.runProcesses).not.toHaveBeenCalled();
+		});
+
+		it("says what it would do on a dry run and calls nothing", async () => {
+			const { base, said } = setup();
+			const switchInstallations = vi.fn();
+			await runDev({
+				...base,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				suspendWhenIdle: true,
+				switchInstallations,
+			});
+			expect(said()).toMatch(/would unsuspend its installations while this runs, and suspend them after/);
+			expect(switchInstallations).not.toHaveBeenCalled();
+		});
+
+		it("uses the installations switch of the GitHub client when none is given", async () => {
+			const { base } = setup();
+			const { switchInstallations: _s, ...rest } = base as typeof base & { switchInstallations?: unknown };
+			// The real switch reaches GitHub; a refused credential proves it was called and its error is reported.
+			const report = await runDev({ ...rest, suspendWhenIdle: true });
+			expect(report.status).toBe("fail");
+		});
+	});
+
 	it("uses runTunnelUp and superviseProcesses when none are given", async () => {
 		defaultTunnel.mockResolvedValue(TUNNEL_OK);
 		defaultProcesses.mockResolvedValue({ exitCode: 0, endedFirst: "primary", interrupted: true });

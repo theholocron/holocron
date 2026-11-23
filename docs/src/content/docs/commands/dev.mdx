@@ -31,6 +31,14 @@ dev: {
 
 A flag wins over the config, and a command after `--` wins over `dev.command`. A missing value is named in one message, with both places it could be given.
 
+## Suspending the development App when idle
+
+When the application is a GitHub App's webhook handler, the App's webhook points at the tunnel, so while `holocron dev` is not running GitHub keeps delivering into a `530` and the failures pile up. Set `suspendWhenIdle: true` in the `dev` block and the App's installations are suspended except for the length of a run: `holocron dev` unsuspends them once the tunnel and the variables are ready, and suspends them again when the application ends (Ctrl-C, or the process dying on its own). GitHub sends a suspended installation no webhooks.
+
+The App's id and key are read from the environment the application already runs with: `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`, or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`. They sign the App's own JWT; nothing is printed or written. If they are missing, or GitHub refuses the call, nothing starts and the row says why; if suspending again fails at the end, the row says to do it by hand. `--dry-run` says what it would do and calls nothing.
+
+It cannot help when the CLI is killed without a chance to clean up (`kill -9`, a crash of the machine): the installations then stay active, as they were before, until the next run ends. A suspended installation also has its tokens refused, which is the point for a development App and no problem for one that is only used while it is running. Not checked against the real App: the suspend and unsuspend endpoints are taken from GitHub's documentation.
+
 ## Serving a handler
 
 For an application that is one web-standard handler (`(Request, env) => Response`), name it instead of writing a server and a `command`:
