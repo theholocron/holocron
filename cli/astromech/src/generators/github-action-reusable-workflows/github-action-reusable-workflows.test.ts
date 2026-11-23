@@ -1162,6 +1162,46 @@ describe("REUSABLE_WORKFLOWS['reconcile-ci'] — the scheduled sweep of the ci a
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['sync-incidents'] — the status page incident mirror (#2366)", () => {
+	const wf = REUSABLE_WORKFLOWS["sync-incidents"]!;
+
+	it("is a reusable workflow that takes a dry-run input and the two tokens and the heartbeat URL, all optional", () => {
+		expect(wf).toContain("workflow_call:");
+		expect(wf).toMatch(/dry-run:\n\s+description: .+\n\s+type: boolean/);
+		for (const name of [
+			"HOLOCRON_CHECKLY_TOKEN",
+			"HOLOCRON_DISCORD_BOT_TOKEN",
+			"HOLOCRON_HEARTBEAT_SYNC_INCIDENTS",
+		]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
+		}
+	});
+
+	it("does nothing but warn unless both tokens are set, and hands them over in the environment, never the command line", () => {
+		expect(wf).toContain("HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}");
+		expect(wf).toContain("HOLOCRON_DISCORD_BOT_TOKEN: ${{ secrets.HOLOCRON_DISCORD_BOT_TOKEN }}");
+		expect(wf).toContain("Warn that a token is missing");
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("syncs with --yes, only a dry run on request, one run at a time, with read-only repository access", () => {
+		expect(wf).toContain("sync incidents --yes");
+		expect(wf).toContain("sync incidents --dry-run");
+		expect(wf).toContain("group: sync-incidents");
+		expect(wf).toContain("cancel-in-progress: false");
+		expect(wf).toContain("contents: read");
+		expect(wf).not.toContain("contents: write");
+	});
+
+	it("pings its heartbeat last, never for a dry run, and a failed ping is a warning", () => {
+		const ping = wf.indexOf("- name: Ping the heartbeat");
+		expect(ping).toBeGreaterThan(wf.indexOf("sync incidents --yes"));
+		expect(wf.slice(ping)).toContain("env.DRY_RUN != 'true'");
+		expect(wf.slice(ping)).toContain("secrets.HOLOCRON_HEARTBEAT_SYNC_INCIDENTS");
+		expect(wf.slice(ping)).toContain("::warning::The heartbeat ping failed.");
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['sync-issues'] — the scheduled issue sync", () => {
 	const wf = REUSABLE_WORKFLOWS["sync-issues"]!;
 

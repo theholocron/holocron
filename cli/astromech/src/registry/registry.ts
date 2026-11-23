@@ -293,6 +293,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// `tech-issue-sync-schedule-and-assignees`, #2251). The endpoints are the task's `with:` inputs, so a repo with one
 	// tracker never lists it, and it has no local runner (the command needs them as flags).
 	"sync-issues": { group: "Platform", scope: "repo", local: null },
+	// `holocron sync incidents --yes` every ten minutes: mirrors the status page's incidents into the forum with
+	// `feeds.incidents`, one post each (#2366, spec `tech-incidents-to-discord`). It posts with the bot token, so it is
+	// never part of `holocron run ci`; a repo with no status page never lists it.
+	"sync-incidents": { group: "Platform", scope: "repo", local: { command: "sync incidents --yes" } },
 
 	// ── Knowledge — published content, not software ───────────────────────
 	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull

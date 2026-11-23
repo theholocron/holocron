@@ -54,6 +54,7 @@ on: # yamllint disable-line rule:truthy
       - sync-specs
       - reconcile-projects
       - reconcile-ci
+      - sync-incidents
       - sync-issues
       - remind-doctor
       - measure:docs

@@ -14,6 +14,7 @@ const PINGS = {
 	"sync-specs": "HOLOCRON_HEARTBEAT_SYNC_SPECS",
 	"reconcile-projects": "HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
 	"reconcile-ci": "HOLOCRON_HEARTBEAT_RECONCILE_CI",
+	"sync-incidents": "HOLOCRON_HEARTBEAT_SYNC_INCIDENTS",
 } as const;
 
 const PING_STEP = /- name: Ping the heartbeat\n([\s\S]*?)(?=\n {6}- |\n[^\s]|$)/;
