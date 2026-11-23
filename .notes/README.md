@@ -15,5 +15,5 @@ Once the design is settled, the spec **moves to
 - `archived` / `superseded` — the work shipped, or the exploration was dropped
   or replaced.
 
-`holocron probe specs check` validates frontmatter in both directories (the
+`holocron probe specs check` checks the frontmatter in both directories (the
 `validate:specs` task).
