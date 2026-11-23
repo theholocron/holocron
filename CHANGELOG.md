@@ -1,3 +1,9 @@
+## [5.0.0-alpha.529](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.528...v5.0.0-alpha.529) (2026-11-23)
+
+### Bug Fixes
+
+* **cli:** 🐛 call the doctor github-app installation row status and say active or suspended ([#2583](https://github.com/theholocron/holocron/issues/2583)) ([af3150b](https://github.com/theholocron/holocron/commit/af3150b077d847db6ee02e7482cfe2419fcec156)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+
 ## [5.0.0-alpha.528](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.527...v5.0.0-alpha.528) (2026-11-23)
 
 ### Features
