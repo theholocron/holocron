@@ -17,9 +17,9 @@ export default {
 	cloudflare: { zone: domain },
 	checkly: { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" },
 	sentry: { org: "theholocron" },
-	// The organization's issue Types (SPEC-0106, #2512). Bug, Feature and Task already exist in the organization; their
-	// descriptions and colours below are PLACEHOLDERS (GitHub's defaults, from memory) to be replaced from a live read
-	// (`holocron apply issue-types --dry-run`) before anything runs with `--update`. Epic and Spike are the new ones.
+	// The organization's issue Types (SPEC-0106, #2512). Bug, Feature and Task already existed in the organization and
+	// their descriptions and colours below match it (`holocron apply issue-types --update --dry-run` planned no change on
+	// 2026-11-23); Epic and Spike were made by `apply issue-types` that day.
 	// `label` is the Linear label that stands for the Type; `commit` is the Conventional Commit type `start work` uses
 	// (none for Epic and Spike, so the issue title's own prefix, else `chore`, applies).
 	issueTypes: [
