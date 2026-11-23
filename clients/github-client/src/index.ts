@@ -4,6 +4,7 @@ import { environments } from "./environments/environments.js";
 import { git } from "./git/git.js";
 import { hooks } from "./hooks/hooks.js";
 import { issueFields } from "./issue-fields/issue-fields.js";
+import { issueTypes } from "./issue-types/issue-types.js";
 import { issues } from "./issues/issues.js";
 import { labels } from "./labels/labels.js";
 import { pages } from "./pages/pages.js";
@@ -67,6 +68,7 @@ export type {
 	GitHubIssueFieldValue,
 	IssueFieldValueInput,
 } from "./issue-fields/issue-fields.js";
+export type { IssueTypeColor, IssueTypeInput, OrgIssueTypeInfo } from "./issue-types/issue-types.js";
 export type { GitHubIssue, GitHubIssueComment, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
 export type { GitHubLabel } from "./labels/labels.js";
 export type {
@@ -120,6 +122,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		graphql,
 		hooks: hooks(rest),
 		issueFields: issueFields(rest),
+		issueTypes: issueTypes(rest),
 		issues: issues(rest),
 		labels: labels(rest),
 		pages: pages(rest),

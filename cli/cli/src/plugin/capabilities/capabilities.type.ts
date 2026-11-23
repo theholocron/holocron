@@ -1071,6 +1071,32 @@ export interface SyncResult extends ImportResult {
 }
 
 /** An issue tracker: finds, reads, creates, moves and comments on issues. */
+/** One issue Type of the organization (spec `tech-org-issue-types`, #2512). */
+export interface IssueTypeInfo {
+	/** The tracker's id for it. */
+	id: number | string;
+	/** The Type's name. */
+	name: string;
+	/** One line. */
+	description?: string;
+	/** The tracker's colour word. */
+	color?: string;
+	/** Whether new issues may take it. */
+	enabled: boolean;
+}
+
+/** A Type to make: what `OrgIssueType` declares that a tracker's own Type holds. */
+export interface IssueTypeDeclaration {
+	/** The Type's name. */
+	name: string;
+	/** One line. */
+	description?: string;
+	/** The tracker's colour word. */
+	color?: string;
+	/** Whether new issues may take it. Default `true`. */
+	enabled?: boolean;
+}
+
 export interface Issues extends ProviderIdentity {
 	/** Identifies this provider as the `issues` capability. */
 	readonly key: "issues";
@@ -1123,6 +1149,18 @@ export interface Issues extends ProviderIdentity {
 	 * be a sync target.
 	 */
 	sync?(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]>;
+
+	/**
+	 * The organization's issue Types (#2512). `undefined` when they cannot be read (no token for it). A tracker with
+	 * no Type (Linear) leaves the three Type methods out. Optional.
+	 */
+	listTypes?(): Promise<IssueTypeInfo[] | undefined>;
+	/** Makes a Type; never replaces one that exists. Throws when it cannot (no token, a refusal). Optional. */
+	createType?(type: IssueTypeDeclaration): Promise<IssueTypeInfo>;
+	/**
+	 * Sets a Type's description and colour, keeping its name and whether it is enabled. Nothing else changes. Optional.
+	 */
+	updateType?(id: IssueTypeInfo["id"], patch: { description?: string; color?: string }): Promise<void>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

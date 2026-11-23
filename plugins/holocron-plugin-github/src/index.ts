@@ -101,10 +101,11 @@ export function ci(ctx: PluginContext): Ci {
 }
 
 /** Builds the `issues` capability, passing the lifecycle labels when configured. */
-export function issues(ctx: PluginContext): Issues {
+export function issues(ctx: PluginContext, orgClient?: () => GitHubClient | undefined): Issues {
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
 	if (ctx.options.issueTypes !== undefined) opts.issueTypes = ctx.options.issueTypes;
+	if (orgClient) opts.orgClient = orgClient;
 	return new GitHubIssues(ctx.client, opts);
 }
 
@@ -207,7 +208,7 @@ export function createPlugin(options: GitHubPluginOptions) {
 			ci: () => ci(makeCtx(resolveReadToken)),
 			secrets: () => makeSecrets(),
 			environments: () => environments(makeCtx(resolveAdminToken)),
-			issues: () => issues(makeCtx(resolveIssuesToken)),
+			issues: () => issues(makeCtx(resolveIssuesToken), makeOrgClient),
 			projects: () => projects(makeCtx(resolveOrgToken)),
 		},
 	};
