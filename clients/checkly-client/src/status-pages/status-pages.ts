@@ -178,6 +178,59 @@ export interface CustomDomainVerification {
 	CNAME?: string;
 }
 
+/** The status an incident update carries. */
+export type IncidentUpdateStatus = "INVESTIGATING" | "IDENTIFIED" | "MONITORING" | "RESOLVED";
+
+/** One component an incident marks, and how badly. */
+export interface IncidentComponentImpact {
+	/** The id of the impacted component. */
+	componentId?: string;
+	/** The component's name, when Checkly includes it. */
+	name?: string;
+	/** How badly the component is marked. */
+	impact: StatusRuleImpact;
+}
+
+/** One update on an incident (`incidentUpdates` of a read). */
+export interface IncidentUpdate {
+	/** The update's id. */
+	id: string;
+	/** What the people running the page said. */
+	description: string;
+	/** The status the update puts the incident in. */
+	status: IncidentUpdateStatus;
+	/** The date the page shows for the update. */
+	publicIncidentUpdateDate?: string | null;
+	/** Whether subscribers were told. */
+	notifySubscribers?: boolean;
+	/** When Checkly made the update. */
+	created_at: string;
+}
+
+/** An incident as the list returns it: no updates. */
+export interface IncidentSummary {
+	/** The incident's id. */
+	id: string;
+	/** The incident's name. */
+	name: string;
+	/** The status of the newest update. */
+	lastUpdateStatus?: IncidentUpdateStatus;
+	/** Seconds from opening to resolution; null while open. */
+	duration?: number | null;
+	/** The components the incident marks. */
+	componentImpacts?: IncidentComponentImpact[];
+	/** When Checkly made the incident. */
+	created_at: string;
+	/** When it last changed. Typed as a date by Checkly, so it may carry no time of day. */
+	updated_at?: string | null;
+}
+
+/** An incident with its updates, as a read of one returns it. */
+export interface Incident extends IncidentSummary {
+	/** The updates, in the order Checkly returns them. */
+	incidentUpdates?: IncidentUpdate[];
+}
+
 interface Page<T> {
 	length: number;
 	entries: T[];
@@ -238,6 +291,14 @@ export function statusPages(rest: RestClient) {
 					method: "PUT",
 					body: input,
 				}),
+		},
+		incidents: {
+			/** The page's incidents, most recently updated first, with no updates. */
+			list: (pageId: string): Promise<IncidentSummary[]> =>
+				readAll<IncidentSummary>(rest, `/status-pages/${pageId}/incidents`),
+			/** One incident with its updates. */
+			get: (pageId: string, id: string): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${pageId}/incidents/${id}`),
 		},
 		customDomain: {
 			/** The DNS record Checkly asks for and whether it has been found. */
