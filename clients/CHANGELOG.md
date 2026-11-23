@@ -1,3 +1,9 @@
+## [1.58.0-alpha.52](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.51...clients-v1.58.0-alpha.52) (2026-11-23)
+
+### Features
+
+* **github:** ✨ read and write the organization's issue Types ([#2547](https://github.com/theholocron/holocron/issues/2547)) ([1ff702f](https://github.com/theholocron/holocron/commit/1ff702fd5d91066f7af2795ab3d83edf25ef1c7c)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [1.58.0-alpha.51](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.50...clients-v1.58.0-alpha.51) (2026-11-22)
 
 ### Chores
