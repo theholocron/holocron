@@ -222,7 +222,7 @@ describe("runSyncIncidents", () => {
 	});
 
 	it("stops cleanly at a rate limit and counts what is left", async () => {
-		const limit = new ProviderApiError("discord", 429, "Too Many Requests", '{"retry_after": 2}');
+		const limit = new ProviderApiError("Too Many Requests", 429, '{"retry_after": 2}');
 		const f = fakes({
 			incidents: [incident(), incident({ id: "i2" })],
 			notifications: { ensureDiscussion: vi.fn(async () => Promise.reject(limit)) },
@@ -237,7 +237,7 @@ describe("runSyncIncidents", () => {
 	it("fails an incident whose write is refused and goes on with the next", async () => {
 		const ensure = vi
 			.fn()
-			.mockRejectedValueOnce(new ProviderApiError("discord", 403, "Forbidden", "Missing Access"))
+			.mockRejectedValueOnce(new ProviderApiError("Forbidden", 403, "Missing Access"))
 			.mockResolvedValueOnce({ post: { url: "u" }, created: true });
 		const f = fakes({
 			incidents: [incident(), incident({ id: "i2" })],
@@ -292,7 +292,7 @@ describe("runSyncIncidents", () => {
 
 	it("skips for a plan that refuses the read, and fails for any other error", async () => {
 		const refused = fakes({
-			list: async () => Promise.reject(new ProviderApiError("checkly", 403, "Forbidden", "plan")),
+			list: async () => Promise.reject(new ProviderApiError("Forbidden", 403, "plan")),
 		});
 		expect((await run(refused).promise).status).toBe("skip");
 		const broken = fakes({ list: async () => Promise.reject(new Error("down")) });
