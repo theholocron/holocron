@@ -99,6 +99,21 @@ describe("resolveConfig", () => {
 		},
 	};
 
+	it("keeps a valid inline issueTypes list and refuses an invalid one with a ConfigError", () => {
+		const issueTypes = [{ name: "Epic", color: "purple" }];
+		expect(resolveConfig({ name: "demo", providers: { vault: "1password" }, issueTypes }).issueTypes).toEqual(
+			issueTypes
+		);
+		expect(resolveConfig({ name: "demo", providers: { vault: "1password" } }).issueTypes).toBeUndefined();
+		expect(() =>
+			resolveConfig({
+				name: "demo",
+				providers: { vault: "1password" },
+				issueTypes: [{ name: "A", color: "teal" }],
+			})
+		).toThrow(/issueTypes\[0\]: "color" must be one of/);
+	});
+
 	it("validates repo.labels with a ConfigError naming the path", () => {
 		expect(() =>
 			resolveConfig({
