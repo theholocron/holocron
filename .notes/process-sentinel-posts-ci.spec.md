@@ -1,6 +1,6 @@
 ---
 id: SPEC-0099
-status: draft
+status: proposed
 issue: theholocron/holocron#2426
 blocked-by: []
 related:
@@ -105,6 +105,8 @@ Decided: if Sentinel is down or misses a delivery there must be a way to recompu
 - Other repos' rulesets or callers. They have no aggregate yet and follow `CI_HOME`.
 - Changing `DCO`, which stays its own required context.
 - Sentinel's hosting and deploy cadence (#945, #2203).
+- Merge queues. This repo uses none (the ruleset has no merge queue rule and no workflow triggers on `merge_group`), and a
+  `check_run` on a merge group commit carries no pull request, which this design does not handle. A queue needs its own spec.
 
 ## What is computed, and from which events
 
@@ -238,6 +240,9 @@ holocron reconcile ci [pull-request]  [--dry-run] [--max-age <minutes>]
 - It posts as the **Sentinel GitHub App** (installation token minted from `SENTINEL_GITHUB_APP_ID` and
   `SENTINEL_GITHUB_APP_PRIVATE_KEY`, as `reconcile-projects` does), not as `GITHUB_TOKEN`: a check run posted with
   `GITHUB_TOKEN` belongs to the `github-actions` app, which matters as soon as the ruleset is pinned to Sentinel's app.
+  **Decided:** the installation token is minted narrowed, with only `checks: write`, `pull_requests: read` and `statuses: read`
+  (GitHub accepts a `permissions` subset when it creates an installation token), so the same key reaches no more than the sweep
+  needs and still posts as Sentinel's App.
 - **Cadence: every 15 minutes** (`*/15 * * * *`). GitHub delays and drops scheduled runs (the heartbeat section of
   `tech-monitoring-dashboards-status-pages` already says so), so the heartbeat is more lenient than the cron: period 1 hour, grace 2
   hours, tagged `scheduled`, like `reconcile-projects`. 15 minutes bounds how long a stuck pull request waits to well under the
@@ -253,7 +258,7 @@ astromech's function and the GitHub client, nothing from `apps/sentinel`.
 The reusable `ci/workflows/ci.yml` and the caller generation stay in the repo through the cutover and for **two weeks and at
 least 20 merged pull requests after it**, with the sweep reporting no repair beyond a 10 minute grace in that time. During it,
 "switched on" means the repo's config says `aggregate: "actions"`, and falling back is a revert of the cutover pull request.
-It is switched off by deleting the reusable, the caller generator and the jq (phase 10), after which the only recovery for a
+It is switched off by deleting the reusable, the caller generator and the jq (phase 11), after which the only recovery for a
 Sentinel outage is 1 to 3 and a ruleset bypass. The jq stays in step with the TypeScript until then through shared fixtures
 (see "Safety"); it is not rewritten to call the CLI, because its value is that it needs nothing built.
 
@@ -296,13 +301,14 @@ on the entry). The change needs:
 
 Pinning changes the failure mode of an outage from "a stale check" to "nobody can satisfy the check except a bypass or the
 sweep" (which posts as the same App, so it counts). It is therefore **after** the sweep is live and after the bypass question
-(#1478) is answered. It also removes the forge-by-workflow route: with the pin, a pull request that edits `ci.yml` cannot post the
+(#1478) is answered. **Decided:** pin after #1478 is answered. The ruleset `holocron-default-branch` already has one bypass actor,
+`RepositoryRole` id 4 (taken to be Write), mode `always`, and the outage runbook relies on it. It also removes the forge-by-workflow route: with the pin, a pull request that edits `ci.yml` cannot post the
 required result.
 
 The sweep's App key sits in the Actions secrets of `reconcile-projects` already; giving the same key to a second workflow widens
 who can post the check to anyone who can change that workflow on a branch. Mitigation: the sweep's secrets are used only by the
-scheduled and manually dispatched caller, never a `pull_request` run, and the reusable is read from the base branch. Listed as a
-risk below.
+scheduled and manually dispatched caller, never a `pull_request` run, and the reusable is read from the base branch, and the token
+it mints is narrowed to the three permissions it needs. Listed as a risk below.
 
 ## Cutover with no missing-check window
 
@@ -359,14 +365,14 @@ Steps:
   caller, so the row becomes "Sentinel is declared the poster; the expected list derives from the config" and compares against
   the **live** run of the latest merged commit's `ci / Required checks` (its `expected` named in its summary), never a skip. A
   skip would hide drift.
-- **Thin caller `ci.ci.yml`**: removed under `sentinel`; kept under `actions` with no change until phase 10.
+- **Thin caller `ci.ci.yml`**: removed under `sentinel`; kept under `actions` with no change until phase 11.
 - **`repo.protection` / ruleset**: no change to contexts (the name is the contract). The optional source pin is the later phase.
   `requiredChecks(config, aggregate)` still returns `ci / Required checks` and `DCO`.
 - **The registry**: the `ci` entry gains a way to say "posted by Sentinel". `sentinel: true` today means a leaf with no caller;
   the aggregate needs its own marker driven by the setting, not a second boolean on the task.
 - **`#prs` feed and board status**: they key off a completed `ci / Required checks` `check_run` event. If Sentinel posts it, they
   can run from the same invocation (no webhook round trip, no dependence on receiving its own events), or Sentinel must receive
-  its own `check_run` events (unverified). Recommended: call them in-process after the post.
+  its own `check_run` events (unverified). **Decided:** call them in-process after the post.
 
 ## Safety: a wrong success lets a red pull request merge
 
@@ -460,27 +466,27 @@ check`, `doctor ci` row, registry marker. Default `actions`, so no generated fil
 
 **Recommendation: option 2, then option 3 as phase 10.**
 
-## Open questions (for the maintainer)
+## Decisions on the open questions
 
-1. **Pin timing:** phase 10 right after the flip, or only after #1478 (a bypass role on this repo) is answered? Recommended: after.
-2. **Fallback period:** is two weeks and 20 merged pull requests, with no repair over grace, the right bar before phase 11?
-3. **Sweep cadence and grace:** every 15 minutes with a 10 minute grace, heartbeat period 1 hour and grace 2 hours. Tighter costs
-   more scheduled runs (GitHub drops some); is that acceptable?
-4. **`expected` at the base ref:** the cost is that a pull request adding a required task is not gated by it until merge. Accept,
-   or read at the head and live with a pull request shrinking its own gate until the pin?
-5. **Subscribe to `status`:** it is an App permission change an owner accepts on each installed App. Yes, or rely on Codecov's
-   check run alone? What does Codecov post for this repo today?
-6. **The setting's name and place** (`ci.aggregate` in `holocron.config.ts`, or a `repo.protection` field). Recommended: `ci`.
-7. **Does a ruleset bypass role exist** on this repo, and who holds it (#1478, SPEC-0064 Q11)? The outage runbook depends on it.
-8. **Self-delivery:** call the feed and board-status handlers in-process after posting (recommended), or receive Sentinel's
-   own `check_run` events?
-9. **Merge queue:** the caller mentions `merge_group` "if used". Used or planned here? A `check_run` on a merge group commit
-   carries no pull request, which this design does not handle yet.
-10. **Sweep credential:** accept sharing the `reconcile-projects` App key with the sweep, or mint a separate installation
-    credential with only `checks: write`, `pull_requests: read`, `statuses: read`?
+Answered by the maintainer on 2026-11-22.
+
+| #   | Question                     | Decision                                                                                                                                                |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Pin timing                   | Phase 10 (the pin) comes after #1478 is answered, not right after the flip.                                                                             |
+| 2   | Fallback bar before phase 11 | Two weeks and 20 merged pull requests, with no sweep repair beyond the grace.                                                                           |
+| 3   | Sweep cadence and grace      | Every 15 minutes, 10 minute grace; heartbeat period 1 hour, grace 2 hours.                                                                              |
+| 4   | Where `expected` is read     | The base ref. A task a pull request adds gates only after it merges.                                                                                    |
+| 5   | `status` subscription        | Yes. A human step: an owner accepts `statuses: read` and the `status` event on each installed App.                                                      |
+| 6   | The setting's place          | A top-level `ci` key: `ci: { aggregate: "actions" \| "sentinel" }`.                                                                                     |
+| 7   | Bypass role                  | The existing Write-role bypass (`always`) is the escape hatch the runbook relies on. Whether id 4 is Write is from memory, not read from GitHub's docs. |
+| 8   | Self-delivery                | Sentinel calls the feed and board-status handlers in-process after posting.                                                                             |
+| 9   | Merge queue                  | Not used and not planned; out of scope (see Non-goals).                                                                                                 |
+| 10  | Sweep credential             | The Sentinel App's own key, with an installation token narrowed to `checks: write`, `pull_requests: read` and `statuses: read`.                         |
 
 ## Not verified
 
+- That `RepositoryRole` id 4 in the ruleset's bypass list is the Write role (read from the ruleset API on 2026-11-22; the id mapping is from memory).
+- That GitHub accepts a `permissions` subset when minting the sweep's installation token for a check run write.
 - That GitHub sends `check_run.rerequested` for a check run created through the API to its owning app, and shows Re-run on it
   when no custom actions are set.
 - That GitHub delivers `check_run` events for runs created by another app to an App with `checks` permission. The code relies on
