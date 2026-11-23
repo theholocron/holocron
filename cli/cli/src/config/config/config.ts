@@ -171,6 +171,11 @@ function validateDev(dev: DevConfig): void {
 	) {
 		throw new ConfigError('`dev.command` must be the program and its arguments, e.g. ["pnpm", "run", "serve"]');
 	}
+	if (dev.suspendWhenIdle !== undefined && typeof dev.suspendWhenIdle !== "boolean") {
+		throw new ConfigError(
+			`\`dev.suspendWhenIdle\` must be true or false, got ${JSON.stringify(dev.suspendWhenIdle)}`
+		);
+	}
 	if (dev.serve !== undefined) {
 		const { serve } = dev;
 		if (!nonEmpty(serve.handler)) {

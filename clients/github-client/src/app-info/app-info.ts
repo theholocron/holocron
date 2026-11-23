@@ -44,6 +44,8 @@ export interface GitHubAppInstallation {
 	permissions: Record<string, string>;
 	/** The events delivered to this installation. */
 	events: string[];
+	/** Whether the installation is suspended: GitHub then sends it no webhooks and refuses its tokens. */
+	suspended: boolean;
 }
 
 const PAGE_SIZE = 100;
@@ -59,7 +61,7 @@ async function appFetch(
 	creds: GitHubAppCredentials,
 	path: string,
 	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch">,
-	method: "GET" | "POST" = "GET"
+	method: "GET" | "POST" | "PUT" | "DELETE" = "GET"
 ): Promise<Response> {
 	const jwt = await createAppJWT(creds);
 	const baseUrl = opts.baseUrl ?? "https://api.github.com";
@@ -116,10 +118,34 @@ export async function listAppInstallations(
 				account: account(raw.account),
 				permissions: (raw.permissions as Record<string, string> | undefined) ?? {},
 				events: (raw.events as string[] | undefined) ?? [],
+				suspended: typeof raw.suspended_at === "string",
 			});
 		}
 		if (raws.length < PAGE_SIZE) return installations;
 	}
+}
+
+/**
+ * Suspends an installation of the App this JWT identifies (`PUT /app/installations/{id}/suspended`): GitHub sends it no
+ * webhooks and refuses its tokens until it is unsuspended. Idempotent. Needs only the App's own JWT.
+ *
+ * https://docs.github.com/en/rest/apps/apps#suspend-an-app-installation
+ */
+export async function suspendAppInstallation(
+	creds: GitHubAppCredentials,
+	installationId: number,
+	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
+): Promise<void> {
+	await appFetch(creds, `/app/installations/${installationId}/suspended`, opts, "PUT");
+}
+
+/** Undoes {@link suspendAppInstallation} (`DELETE /app/installations/{id}/suspended`). Idempotent. */
+export async function unsuspendAppInstallation(
+	creds: GitHubAppCredentials,
+	installationId: number,
+	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
+): Promise<void> {
+	await appFetch(creds, `/app/installations/${installationId}/suspended`, opts, "DELETE");
 }
 
 /** One delivery of a webhook event to the App, as `GET /app/hook/deliveries` reports it. */

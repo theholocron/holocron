@@ -39,6 +39,8 @@ export {
 	type ListAppDeliveriesOptions,
 	listAppInstallations,
 	redeliverAppDelivery,
+	suspendAppInstallation,
+	unsuspendAppInstallation,
 } from "./app-info/app-info.js";
 export {
 	type CheckRunAnnotation,

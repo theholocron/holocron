@@ -42,6 +42,17 @@ export async function readAppCredentials(
 	} catch (err) {
 		return { reason: `cannot read the "${environment}" environment: ${errorMessage(err)}` };
 	}
+	return credentialsFromValues(values, environment);
+}
+
+/**
+ * The App's id and key from the variables of a vault environment already read (`environment` names it in the reason),
+ * or the reason one is missing. The key's literal `\n` line breaks are restored.
+ */
+export function credentialsFromValues(
+	values: Record<string, string>,
+	environment: string
+): { creds: GitHubAppCredentials } | { reason: string } {
 	const appId = held(values, APP_ID);
 	const key = held(values, PRIVATE_KEY);
 	const missing = [appId ? undefined : APP_ID, key ? undefined : PRIVATE_KEY].filter((names) => names !== undefined);

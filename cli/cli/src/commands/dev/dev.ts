@@ -12,6 +12,8 @@ import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader } from "../../plugin/index.js";
+import { credentialsFromValues } from "../doctor-github-app/index.js";
+import { setInstallationsSuspended } from "../set-installations-suspended/index.js";
 import { runTunnelUp } from "../tunnel-up/index.js";
 import type { DevReport, RunDevInput } from "./dev.type.js";
 
@@ -82,6 +84,9 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	if (dryRun) {
 		row(true, `vault ${input.environment}`, "would read its variables for the application");
 		row(true, shown, `would run beside cloudflared, with PORT=${input.port}`);
+		if (input.suspendWhenIdle) {
+			row(true, "GitHub App", "would unsuspend its installations while this runs, and suspend them after");
+		}
 		return finish("ok");
 	}
 
@@ -103,6 +108,34 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 		row(false, "cloudflared", describeError(err));
 		return finish("fail");
 	}
+
+	// While nothing listens on the tunnel GitHub would send the development App's webhooks into a 530; with
+	// `dev.suspendWhenIdle` its installations are suspended except for the length of this run.
+	const switchInstallations = input.switchInstallations ?? setInstallationsSuspended;
+	let appCreds: ReturnType<typeof credentialsFromValues> | undefined;
+	if (input.suspendWhenIdle) {
+		appCreds = credentialsFromValues(values, input.environment);
+		if ("reason" in appCreds) {
+			row(false, "GitHub App", `${appCreds.reason}; \`dev.suspendWhenIdle\` needs its id and key`);
+			return finish("fail");
+		}
+		try {
+			const result = await switchInstallations({ creds: appCreds.creds, suspended: false });
+			row(true, "GitHub App", `${result.total} installation(s) active (${result.changed} unsuspended)`);
+		} catch (err) {
+			row(false, "GitHub App", `could not unsuspend its installations: ${describeError(err)}`);
+			return finish("fail");
+		}
+	}
+	const suspendAgain = async (): Promise<void> => {
+		if (!appCreds || "reason" in appCreds) return;
+		try {
+			const result = await switchInstallations({ creds: appCreds.creds, suspended: true });
+			row(true, "GitHub App", `${result.total} installation(s) suspended again`);
+		} catch (err) {
+			row(false, "GitHub App", `could not suspend its installations, do it by hand: ${describeError(err)}`);
+		}
+	};
 
 	print("");
 	print(`running ${shown} and cloudflared (Ctrl-C stops both): ${tunnel.url} to localhost:${input.port}`);
@@ -129,8 +162,10 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 		}));
 	} catch (err) {
 		row(false, "dev", describeError(err));
+		await suspendAgain();
 		return finish("fail");
 	}
 	row(exitCode === 0, "dev", `ended with ${exitCode}`);
+	await suspendAgain();
 	return finish(exitCode === 0 ? "ok" : "fail", { exitCode });
 }

@@ -304,6 +304,13 @@ describe("resolveConfig", () => {
 		expect(resolveConfig(minimal).dev).toBeUndefined();
 	});
 
+	it("takes `dev.suspendWhenIdle` as a boolean and refuses anything else", () => {
+		expect(resolveConfig({ ...minimal, dev: { suspendWhenIdle: true } }).dev).toEqual({ suspendWhenIdle: true });
+		expect(() => resolveConfig({ ...minimal, dev: { suspendWhenIdle: "yes" as never } })).toThrow(
+			/`dev.suspendWhenIdle` must be true or false/
+		);
+	});
+
 	it("passes the githubApps list through, and leaves it unset by default", () => {
 		const githubApps = [{ name: "Sentinel", manifest: "m.json", environment: "Sentinel" }];
 		expect(resolveConfig({ ...minimal, githubApps }).githubApps).toEqual(githubApps);

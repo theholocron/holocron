@@ -158,6 +158,9 @@ export default defineConfig({
 		layer: "dev",
 		tunnel: { name: "sentinel-dev", hostname: `sentinel-dev.${domain}` },
 		port: 3000,
+		// The dev App's webhook points at this tunnel, so while `pnpm dev` is not running GitHub would deliver into a 530:
+		// its installations are suspended except for the length of a run.
+		suspendWhenIdle: true,
 		serve: {
 			handler: "./src/handler/index.ts",
 			export: "handleWebhookRequest",

@@ -521,6 +521,14 @@ export interface DevConfig {
 	 * `holocron dev serve`, which loads the handler and serves it on `PORT`. `command` and a command after `--` win.
 	 */
 	serve?: DevServeConfig;
+	/**
+	 * Keep the development GitHub App's installations suspended except while `holocron dev` runs: it unsuspends them
+	 * when it starts and suspends them again when it ends, so GitHub sends the tunnel no webhooks (and sees no 530s)
+	 * while nothing listens. The App's id and key are read from the `dev` environment's `SENTINEL_GITHUB_APP_ID` and
+	 * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older bare names), the ones the application already needs. A suspended
+	 * installation also has its tokens refused. Default `false`.
+	 */
+	suspendWhenIdle?: boolean;
 }
 
 /** The `dev.serve` block: the handler `holocron dev` serves, and the variables it needs. */

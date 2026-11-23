@@ -36,6 +36,7 @@ const installation = (over: Partial<GitHubAppInstallation> = {}): GitHubAppInsta
 	account: { login: "theholocron", type: "Organization" },
 	permissions: { checks: "write", metadata: "read" },
 	events: ["push", "pull_request_review"],
+	suspended: false,
 	...over,
 });
 

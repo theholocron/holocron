@@ -3,7 +3,14 @@ import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { stubFetch } from "../test-helpers.js";
-import { getApp, listAppDeliveries, listAppInstallations, redeliverAppDelivery } from "./app-info.js";
+import {
+	getApp,
+	listAppDeliveries,
+	listAppInstallations,
+	redeliverAppDelivery,
+	suspendAppInstallation,
+	unsuspendAppInstallation,
+} from "./app-info.js";
 
 const { privateKey } = generateKeyPairSync("rsa", {
 	modulusLength: 2048,
@@ -87,6 +94,25 @@ describe("getApp", () => {
 	});
 });
 
+describe("suspendAppInstallation and unsuspendAppInstallation", () => {
+	it("PUT and DELETE /app/installations/{id}/suspended with the App JWT", async () => {
+		const { fetch, calls } = stubFetch([{ status: 204 }, { status: 204 }]);
+		await suspendAppInstallation(CREDS, 42, { baseUrl: BASE, fetch });
+		await unsuspendAppInstallation(CREDS, 42, { baseUrl: BASE, fetch });
+		expect(calls.map((c) => [c.method, c.url])).toEqual([
+			["PUT", `${BASE}/app/installations/42/suspended`],
+			["DELETE", `${BASE}/app/installations/42/suspended`],
+		]);
+		expect(calls[0]?.headers.authorization).toMatch(/^Bearer /);
+	});
+
+	it("throws a ProviderApiError carrying the status when GitHub refuses", async () => {
+		const { fetch } = stubFetch([{ status: 404, text: "Not Found" }]);
+		const err = await suspendAppInstallation(CREDS, 7, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
+		expect((err as { status: number }).status).toBe(404);
+	});
+});
+
 describe("listAppInstallations", () => {
 	it("returns each installation with its account, permissions and events", async () => {
 		const { fetch, calls } = stubFetch([
@@ -98,7 +124,7 @@ describe("listAppInstallations", () => {
 						permissions: { a: "read" },
 						events: ["push"],
 					},
-					{ id: 2 },
+					{ id: 2, suspended_at: "2026-11-23T10:00:00Z" },
 				],
 			},
 		]);
@@ -110,8 +136,9 @@ describe("listAppInstallations", () => {
 				account: { login: "theholocron", type: "Organization" },
 				permissions: { a: "read" },
 				events: ["push"],
+				suspended: false,
 			},
-			{ id: 2, account: null, permissions: {}, events: [] },
+			{ id: 2, account: null, permissions: {}, events: [], suspended: true },
 		]);
 	});
 

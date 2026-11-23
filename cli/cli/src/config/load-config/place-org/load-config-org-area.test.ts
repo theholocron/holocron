@@ -70,6 +70,9 @@ describe("the org area in this repo (#1820)", () => {
 		const devBlock = (expected as unknown as { dev: { environment: string } }).dev;
 		expect(devBlock.environment).toBe("Sentinel - dev");
 		devBlock.environment = "theholocron/holocron - dev";
+		// And the development App's installations stay suspended except while `holocron dev` runs (`dev.suspendWhenIdle`).
+		expect((devBlock as { suspendWhenIdle?: boolean }).suspendWhenIdle).toBeUndefined();
+		(devBlock as { suspendWhenIdle?: boolean }).suspendWhenIdle = true;
 		// Another (#1874): Sentinel's logger reads its Axiom dataset from `SENTINEL_AXIOM_DATASET`, the per-service name,
 		// instead of the bare `AXIOM_DATASET`.
 		const { logging, required } = (
