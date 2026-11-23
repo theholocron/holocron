@@ -386,6 +386,19 @@ posts must match), and the list of checks it waits for at the **base** ref (so a
 Flipping it is one pull request that changes the setting and the generated files together; do it only after
 `holocron doctor ci --shadow` passes. This repository does not set it.
 
+#### Pinning the check to one App (`ci.pin`)
+
+`ci: { pin: { integrationId: <GitHub App id> } }` is an opt-in, off by default (spec `process-sentinel-posts-ci`, phase 10).
+Rulesets name a required check by its context only, so any App with `checks: write`, or a workflow in a pull request, can
+satisfy `ci / Required checks`. With the pin, `holocron setup` writes `integration_id` on that one entry of a `strict`
+repo's ruleset, so only that App's check run counts; the other required checks (`DCO`, ...) are never pinned. The id is the
+numeric id of Sentinel's production App (a dev instance has another id, so its posts never satisfy a merge); it is typed
+once, here, and is not a secret. The option does nothing unless `ci / Required checks` is a required check of the repo
+(`setup` says so; `doctor repo` fails the `repo-ci-pin` row). Pinning changes an outage from a stale check to one only a
+bypass or the `reconcile-ci` sweep can satisfy, so turn it on only after the bypass question (#1478) is answered. A
+`ci.pin` whose `integrationId` is not a positive integer is a config error. The classic branch-protection fallback (free
+plans) cannot pin and ignores it.
+
 ### Doc-comment coverage
 
 `repoValidation.docsCoverage` decides what `holocron probe docs patch` and the `documentation` Codecov flag do about an

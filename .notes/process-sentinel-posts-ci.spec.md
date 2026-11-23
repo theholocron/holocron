@@ -495,8 +495,10 @@ Answered by the maintainer on 2026-11-22.
 - That an App receives `check_run` events for its own runs.
 - How GitHub evaluates a required context when two apps post the same name on one commit, and that `status: in_progress` can be
   set again on a completed check run.
-- The ruleset API's `integration_id` field and its behaviour, known only from memory of GitHub's API. Whether `read-repo` and
-  `doctor repo` compare it was not read; the string occurs only in tests.
+- The ruleset API's `integration_id` field and its behaviour, known only from memory of GitHub's API. Phase 10's code now
+  writes it (`setup`), reads it back (`read-repo`) and compares it (`doctor repo`'s `repo-ci-pin` row), all against
+  hand-written fakes shaped from that memory; no live ruleset has been written or read with it, and whether GitHub accepts,
+  returns and enforces it as assumed is still unverified.
 - That GitHub does not redeliver failed webhooks itself, and the exact endpoints, auth and retention of the App delivery log.
 - That a Sentinel production App can have its permissions and events edited without reinstalling (the README says
   subscriptions are set by hand on an existing App).

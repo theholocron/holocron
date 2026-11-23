@@ -1585,6 +1585,69 @@ describe("runSetup", () => {
 		});
 	});
 
+	describe("ci.pin", () => {
+		async function pinned(ci: Record<string, unknown> | undefined, hosting: boolean) {
+			const dir = await mkdtemp(join(tmpdir(), "holo-pin-"));
+			if (hosting) {
+				await mkdir(join(dir, "ci"));
+				await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
+			}
+			let rulesetPayload: Record<string, unknown> | null = null;
+			const lines: string[] = [];
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo", protection: "strict" },
+				...(ci ? { ci } : {}),
+				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						enableVulnerabilityAlerts: async () => {},
+						enableAutomatedSecurityFixes: async () => {},
+						enableSecretScanning: async () => {},
+						enablePrivateVulnerabilityReporting: async () => {},
+						updateRepoSettings: async () => {},
+						listRulesets: async () => [],
+						createRuleset: async (p: Record<string, unknown>) => {
+							rulesetPayload = p;
+							return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+						},
+						writeWorkflowFile: async () => {},
+					},
+				}),
+			});
+			await runSetup({ loaded, context: { repoRoot: dir }, loader, print: (l) => lines.push(l) });
+			await rm(dir, { recursive: true, force: true });
+			const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+			return { checks: rules.find((r) => r.type === "required_status_checks")?.parameters, lines };
+		}
+
+		it("writes integration_id on `ci / Required checks` only, when the option is set", async () => {
+			const { checks } = await pinned({ pin: { integrationId: 42 } }, true);
+			expect(checks).toMatchObject({
+				required_status_checks: [
+					{ context: "ci / Required checks", integration_id: 42 },
+					{ context: DCO_CHECK },
+				],
+			});
+			expect(JSON.stringify(checks)).not.toMatch(/"context":"DCO","integration_id"/);
+		});
+
+		it("writes no integration_id by default", async () => {
+			const { checks } = await pinned(undefined, true);
+			expect(JSON.stringify(checks)).not.toContain("integration_id");
+		});
+
+		it("pins nothing and says so when ci / Required checks is not a required check", async () => {
+			const { checks, lines } = await pinned({ pin: { integrationId: 42 } }, false);
+			expect(JSON.stringify(checks)).not.toContain("integration_id");
+			expect(lines.join("\n")).toContain("ci.pin is set but ci / Required checks is not a required check");
+		});
+	});
+
 	it("takes the required contexts from a loaded coverage provider", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "holo-coverage-statuses-"));
 		let rulesetPayload: Record<string, unknown> | null = null;

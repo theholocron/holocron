@@ -266,6 +266,18 @@ describe("resolveConfig", () => {
 		expect((err as ConfigError).message).toMatch(/ci\.aggregate.*"actions", "sentinel".*"Sentinel"/);
 	});
 
+	it("passes ci.pin through and rejects an id that is not a positive integer", () => {
+		expect(resolveConfig({ ...minimal, ci: { pin: { integrationId: 42 } } }).ci).toEqual({
+			pin: { integrationId: 42 },
+		});
+		for (const bad of [0, -1, 1.5, "42"]) {
+			expect(() => resolveConfig({ ...minimal, ci: { pin: { integrationId: bad as never } } })).toThrow(
+				/ci\.pin\.integrationId/
+			);
+		}
+		expect(() => resolveConfig({ ...minimal, ci: { pin: null as never } })).toThrow(/ci\.pin\.integrationId/);
+	});
+
 	it("passes the credentials environment through, and leaves it unset by default", () => {
 		expect(resolveConfig({ ...minimal, credentials: { environment: "Demo" } }).credentials).toEqual({
 			environment: "Demo",
