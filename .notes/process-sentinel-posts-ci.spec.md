@@ -37,7 +37,7 @@ This spec is the design. It builds nothing and changes no workflow, ruleset or c
 
 ## Decisions at a glance
 
-The maintainer's framing: "post that check from Sentinel" is the easy half. The aggregate is a function of other checks, so
+The maintainer's framing: "post that check from Sentinel" is the small half. The aggregate is a function of other checks, so
 it needs `check_run` and `status` events, the expected list from the repo's config, and a cutover with no missing check.
 Decided: if Sentinel is down or misses a delivery there must be a way to recompute. Recommendations (each argued below):
 
@@ -172,7 +172,7 @@ file. **Recommendation: A, read at the pull request's base ref.**
   gate. Reading the base ref means a task added or dropped by a pull request takes effect once it merges. The cost: a pull
   request that adds a required check is not blocked by it until merge, which is how a ruleset edit behaves today.
 - Plugins: `statuses` depends on the coverage provider's `statusContexts()`, which needs the plugin loaded. Sentinel's remote
-  config read does not obviously load plugins (not verified). Without them `aggregateChecks()` falls back to the `codecov/`
+  config read may not load plugins (not verified). Without them `aggregateChecks()` falls back to the `codecov/`
   prefix, the behaviour the repo keeps on purpose. Acceptable for now (this repo's three statuses all start with `codecov/`);
   a repo that renames them needs the provider loaded, which is the later spec for other repos.
 
@@ -239,7 +239,7 @@ holocron reconcile ci [pull-request]  [--dry-run] [--max-age <minutes>]
   `SENTINEL_GITHUB_APP_PRIVATE_KEY`, as `reconcile-projects` does), not as `GITHUB_TOKEN`: a check run posted with
   `GITHUB_TOKEN` belongs to the `github-actions` app, which matters as soon as the ruleset is pinned to Sentinel's app.
 - **Cadence: every 15 minutes** (`*/15 * * * *`). GitHub delays and drops scheduled runs (the heartbeat section of
-  `tech-monitoring-dashboards-status-pages` already says so), so the heartbeat is looser than the cron: period 1 hour, grace 2
+  `tech-monitoring-dashboards-status-pages` already says so), so the heartbeat is more lenient than the cron: period 1 hour, grace 2
   hours, tagged `scheduled`, like `reconcile-projects`. 15 minutes bounds how long a stuck pull request waits to well under the
   30 minute deadline when the schedule runs; it is a bound for the normal case, not a guarantee.
 - It also applies the **timeout**: it passes `now`, so a run still pending past 30 minutes becomes the "never posted" failure
