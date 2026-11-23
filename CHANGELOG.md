@@ -1,3 +1,21 @@
+## [5.0.0-alpha.519](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.518...v5.0.0-alpha.519) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ apply the declared issue Types to the organization ([#2548](https://github.com/theholocron/holocron/issues/2548)) ([f6f3271](https://github.com/theholocron/holocron/commit/f6f3271d8dfb851d2d7f665e8fab98cb8d00fd17)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **cli:** ✨ declare the organization's issue Types and open the kind ([#2544](https://github.com/theholocron/holocron/issues/2544)) ([04d7061](https://github.com/theholocron/holocron/commit/04d7061e17f35b52c3abdde01a354c00d308e368)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **cli:** ✨ doctor repo compares the declared issue Types ([#2550](https://github.com/theholocron/holocron/issues/2550)) ([1581680](https://github.com/theholocron/holocron/commit/15816804be33c5971cc5d8f4b3db18910fa52cbe)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **cli:** ✨ retire the epic label now that Epic is a Type ([#2553](https://github.com/theholocron/holocron/issues/2553)) ([a63a61f](https://github.com/theholocron/holocron/commit/a63a61f65df05eb8b245569139d5f8a182df58fc)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **cli:** ✨ setup makes the declared issue Types ([#2549](https://github.com/theholocron/holocron/issues/2549)) ([a11c42a](https://github.com/theholocron/holocron/commit/a11c42a211ef7788494154026450e5dfd6605f58)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **config:** ✨ ⚙️ declare the organization's five issue Types ([#2551](https://github.com/theholocron/holocron/issues/2551)) ([934f6d2](https://github.com/theholocron/holocron/commit/934f6d2b259c2853eb766dbde0f708e0aac4ae58)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **github:** ✨ read and write the organization's issue Types ([#2547](https://github.com/theholocron/holocron/issues/2547)) ([1ff702f](https://github.com/theholocron/holocron/commit/1ff702fd5d91066f7af2795ab3d83edf25ef1c7c)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+* **skills:** ✨ say how to choose an issue Type ([#2552](https://github.com/theholocron/holocron/issues/2552)) ([aa736e7](https://github.com/theholocron/holocron/commit/aa736e795ed0342466f51a61503cd9348f8adce7)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
+### Documentation
+
+* **sentinel:** 📝 spec for posting the ci aggregate from Sentinel ([#2542](https://github.com/theholocron/holocron/issues/2542)) ([ea48162](https://github.com/theholocron/holocron/commit/ea48162cb67497ef9830989f1521de9f2e9b09db)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **specs:** 📚️ record final answers on issue Types token, setup and menu ([#2543](https://github.com/theholocron/holocron/issues/2543)) ([ced58fb](https://github.com/theholocron/holocron/commit/ced58fb48a34c498490e0dbfcc3f49a621d91da9)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [5.0.0-alpha.518](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.517...v5.0.0-alpha.518) (2026-11-22)
 
 ### Chores
