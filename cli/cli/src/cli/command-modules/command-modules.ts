@@ -21,6 +21,7 @@ import { projectCommand } from "../../commands/project/project.command.js";
 import { providerCommand } from "../../commands/provider/index.js";
 import { publishCommand } from "../../commands/publish/publish.command.js";
 import { reconcileCommand } from "../../commands/reconcile/index.js";
+import { redeliverCommand } from "../../commands/redeliver/index.js";
 import { removeCommand } from "../../commands/remove/index.js";
 import { resolveCommand } from "../../commands/resolve/index.js";
 import { runCommand } from "../../commands/run/run.command.js";
@@ -68,5 +69,6 @@ export const COMMAND_MODULES = [
 	deployCommand,
 	resolveCommand,
 	reconcileCommand,
+	redeliverCommand,
 	projectCommand,
 ] as unknown as CommandModule[];

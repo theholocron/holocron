@@ -87,6 +87,7 @@ export const COMMAND_CONTEXTS = {
 	// Reads a board's items and sets statuses through the `projects` provider.
 	"reconcile ci": "workspace",
 	"reconcile project": "workspace",
+	"redeliver webhooks": "workspace",
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",

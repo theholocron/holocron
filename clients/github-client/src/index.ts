@@ -33,8 +33,12 @@ export {
 	getApp,
 	type GitHubApp,
 	type GitHubAppAccount,
+	type GitHubAppDelivery,
 	type GitHubAppInstallation,
+	listAppDeliveries,
+	type ListAppDeliveriesOptions,
 	listAppInstallations,
+	redeliverAppDelivery,
 } from "./app-info/app-info.js";
 export {
 	type CheckRunAnnotation,

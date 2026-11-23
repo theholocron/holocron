@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
-import type { GitHubApp, GitHubAppInstallation } from "@theholocron/github-client";
+import type { GitHubApp, GitHubAppDelivery, GitHubAppInstallation } from "@theholocron/github-client";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -44,6 +44,8 @@ interface Fakes {
 	live?: GitHubApp;
 	installations?: GitHubAppInstallation[];
 	getApp?: GitHubAppApi["getApp"];
+	/** The delivery log: deliveries, or an error to throw. Left out, the log is empty. `false` is a reader with no log. */
+	deliveries?: GitHubAppDelivery[] | Error | false;
 	manifest?: string | Error;
 	instances?: unknown;
 }
@@ -83,6 +85,14 @@ async function run(fakes: Fakes = {}, extra: Partial<RunDoctorGitHubAppInput> = 
 		api: {
 			getApp: fakes.getApp ?? (async () => fakes.live ?? app()),
 			listAppInstallations: async () => fakes.installations ?? [installation()],
+			...(fakes.deliveries === false
+				? {}
+				: {
+						listAppDeliveries: async () => {
+							if (fakes.deliveries instanceof Error) throw fakes.deliveries;
+							return fakes.deliveries || [];
+						},
+					}),
 		},
 		print: (l) => lines.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
@@ -90,6 +100,105 @@ async function run(fakes: Fakes = {}, extra: Partial<RunDoctorGitHubAppInput> = 
 	});
 	return { report, text: lines.join("\n") };
 }
+
+const attempt = (id: number, guid: string, at: string, statusCode: number): GitHubAppDelivery => ({
+	id,
+	guid,
+	deliveredAt: at,
+	redelivery: false,
+	statusCode,
+	status: statusCode === 200 ? "OK" : statusCode === 0 ? "" : `Invalid HTTP Response: ${statusCode}`,
+	event: "check_run",
+	action: "completed",
+	installationId: 7,
+});
+
+describe("runDoctorGitHubApp: the deliveries row", () => {
+	const deliveriesRow = (report: { rows: { id: string; status: string; detail: string; problems: string[] }[] }) =>
+		report.rows.find((r) => r.id === "Sentinel:deliveries")!;
+
+	it("passes when no delivery of the last day failed, or the failures were delivered again successfully", async () => {
+		expect(deliveriesRow((await run()).report)).toMatchObject({
+			status: "ok",
+			detail: "no failed webhook deliveries in the last day",
+		});
+		const healed = await run({
+			deliveries: [
+				attempt(1, "a", "2026-11-22T10:00:00Z", 500),
+				{ ...attempt(2, "a", "2026-11-22T10:05:00Z", 200), redelivery: true },
+			],
+		});
+		expect(deliveriesRow(healed.report).status).toBe("ok");
+	});
+
+	it("asks for the last day only", async () => {
+		const asked: unknown[] = [];
+		await run(
+			{ deliveries: [] },
+			{
+				now: () => Date.parse("2026-11-22T12:00:00Z"),
+				api: {
+					getApp: async () => app(),
+					listAppInstallations: async () => [installation()],
+					listAppDeliveries: async (_creds, opts) => {
+						asked.push(opts);
+						return [];
+					},
+				},
+			}
+		);
+		expect(asked).toEqual([{ since: "2026-11-21T12:00:00.000Z" }]);
+	});
+
+	it("fails naming the failures and the command that repairs them", async () => {
+		const { report } = await run({
+			deliveries: [
+				attempt(1, "a", "2026-11-22T10:00:00Z", 500),
+				attempt(2, "b", "2026-11-22T10:01:00Z", 0),
+				{ ...attempt(3, "c", "2026-11-22T10:02:00Z", 200) },
+			],
+		});
+		const row = deliveriesRow(report);
+		expect(report.status).toBe("fail");
+		expect(row.status).toBe("fail");
+		expect(row.detail).toBe(
+			"2 failed webhook deliveries in the last day; repair with `holocron redeliver webhooks --app Sentinel`"
+		);
+		expect(row.problems).toEqual([
+			"check_run.completed, Invalid HTTP Response: 500, 2026-11-22T10:00:00Z",
+			"check_run.completed, status 0, 2026-11-22T10:01:00Z",
+		]);
+	});
+
+	it("says `delivery` for one, names an event with no action by its event alone, and counts what it does not name", async () => {
+		const one = await run({
+			deliveries: [{ ...attempt(1, "a", "2026-11-22T10:00:00Z", 500), action: null, event: "push" }],
+		});
+		expect(deliveriesRow(one.report).detail).toContain("1 failed webhook delivery in the last day");
+		expect(deliveriesRow(one.report).problems).toEqual(["push, Invalid HTTP Response: 500, 2026-11-22T10:00:00Z"]);
+		const many = await run({
+			deliveries: Array.from({ length: 12 }, (_, i) =>
+				attempt(i + 1, `g${i}`, `2026-11-22T10:${String(i).padStart(2, "0")}:00Z`, 500)
+			),
+		});
+		const row = deliveriesRow(many.report);
+		expect(row.problems).toHaveLength(11);
+		expect(row.problems.at(-1)).toBe("and 2 more");
+	});
+
+	it("is a skip with the reason, never a failure, when the log cannot be read, and keeps the key out of it", async () => {
+		const { report, text } = await run({ deliveries: new Error(`403 ${KEY}`) });
+		expect(deliveriesRow(report).status).toBe("skip");
+		expect(deliveriesRow(report).detail).toContain("cannot read the delivery log: 403");
+		expect(report.status).toBe("ok");
+		expect(`${text}${JSON.stringify(report.rows)}`).not.toContain("SECRETKEYBODY");
+	});
+
+	it("is a skip when the reader has no delivery log at all", async () => {
+		const { report } = await run({ deliveries: false });
+		expect(deliveriesRow(report)).toMatchObject({ status: "skip", detail: "the delivery log is not read here" });
+	});
+});
 
 describe("runDoctorGitHubApp defaults", () => {
 	const loaded = (githubApps: unknown) => ({
@@ -140,7 +249,7 @@ describe("runDoctorGitHubApp", () => {
 			}),
 		});
 		expect(report.status).toBe("ok");
-		expect(report.summary).toEqual({ ok: 4, fail: 0, skip: 0 });
+		expect(report.summary).toEqual({ ok: 5, fail: 0, skip: 0 });
 		expect(text).toContain("info: 1 extra event(s) not in the manifest (star)");
 		expect(text).toContain("info: 1 extra permission(s) not in the manifest (issues)");
 		expect(text).not.toContain("SECRETKEYBODY");
