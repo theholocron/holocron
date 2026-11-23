@@ -215,6 +215,7 @@ export default defineConfig({
 					{ label: "pr-workflow", slug: "skills/pr-workflow" },
 					{ label: "security-review", slug: "skills/security-review" },
 					{ label: "work-effort", slug: "skills/work-effort" },
+					{ label: "work-type", slug: "skills/work-type" },
 				],
 			},
 			{

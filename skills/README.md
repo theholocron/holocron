@@ -31,13 +31,14 @@ Skills authored and maintained in this repo. Published inside the npm package.
 
 ### Workflow & safety
 
-| Skill                                                 | Description                                                          |
-| ----------------------------------------------------- | -------------------------------------------------------------------- |
-| [`git-safety`](./src/git-safety/SKILL.md)             | Never force-push or run destructive git ops without permission       |
-| [`pr-workflow`](./src/pr-workflow/SKILL.md)           | Always open a PR; one-change-per-PR; delete branch on close          |
-| [`commit-standards`](./src/commit-standards/SKILL.md) | Conventional Commits format + DCO signing                            |
-| [`security-review`](./src/security-review/SKILL.md)   | OWASP-oriented checklist for code review                             |
-| [`work-effort`](./src/work-effort/SKILL.md)           | Choose `--effort` (high, medium, low) for `new work` and `new issue` |
+| Skill                                                 | Description                                                                      |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [`git-safety`](./src/git-safety/SKILL.md)             | Never force-push or run destructive git ops without permission                   |
+| [`pr-workflow`](./src/pr-workflow/SKILL.md)           | Always open a PR; one-change-per-PR; delete branch on close                      |
+| [`commit-standards`](./src/commit-standards/SKILL.md) | Conventional Commits format + DCO signing                                        |
+| [`security-review`](./src/security-review/SKILL.md)   | OWASP-oriented checklist for code review                                         |
+| [`work-effort`](./src/work-effort/SKILL.md)           | Choose `--effort` (high, medium, low) for `new work` and `new issue`             |
+| [`work-type`](./src/work-type/SKILL.md)               | Choose `--type` (Epic, Spike, Bug, Feature, Task) for `new work` and `new issue` |
 
 ### Project-specific (theholocron)
 
