@@ -1,3 +1,15 @@
+## [5.0.0-alpha.524](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.523...v5.0.0-alpha.524) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ render and plan the status page incident feed ([#2573](https://github.com/theholocron/holocron/issues/2573)) ([377d253](https://github.com/theholocron/holocron/commit/377d253148248713dde450758ee130a26e40b154)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+* **monitoring:** ✨ list status page incidents through the Checkly provider ([#2571](https://github.com/theholocron/holocron/issues/2571)) ([5f88cae](https://github.com/theholocron/holocron/commit/5f88cae066b3da14b8d138076ec518c9e92890d4)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+* **notifications:** ✨ declare a status page incident feed in the layout ([#2572](https://github.com/theholocron/holocron/issues/2572)) ([715d36d](https://github.com/theholocron/holocron/commit/715d36d3cc704411e46d6bbe6b7b0af3e17548c7)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
+### Documentation
+
+* **monitoring:** 📝 revise the incident mirror spec: polling only, plan and decisions ([#2541](https://github.com/theholocron/holocron/issues/2541)) ([70d1f21](https://github.com/theholocron/holocron/commit/70d1f2185b38f269a060242091b0871b9dcc694f)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
 ## [5.0.0-alpha.523](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.522...v5.0.0-alpha.523) (2026-11-23)
 
 ### Features
