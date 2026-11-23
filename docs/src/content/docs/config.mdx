@@ -144,6 +144,14 @@ export default defineConfig({
   // also adds the statuses it says are required, so these two are the default when none is loaded.
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
+  // Who posts the required `ci / Required checks`: "actions" (the default, the polling
+  // job in `ci.yml`) or "sentinel" (Sentinel, from webhooks; spec
+  // `process-sentinel-posts-ci`). With "sentinel" `holocron setup` and `sync` write
+  // no `ci.ci.yml` caller and no `ci.yml` reusable, and Sentinel posts the check
+  // for a commit whose own config says so. Leave it out until Sentinel's shadow
+  // agrees with the Actions aggregate (`holocron doctor ci --shadow`).
+  // ci: { aggregate: "actions" },
+
   // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
   // `holocron` entry + a script per runnable task: `turbo run <task>` in a workspace,
   // `holocron run <task>` in a single package.
@@ -363,6 +371,20 @@ request description or in a commit message:
 Like `[skip ci]`, the marker is read from the text, and the reason after it is required: a bare `[skip docs]` still
 warns. The description is read from the run's event, so editing it after the run needs a new push (a commit message
 works the same way); a re-run uses the old description.
+
+### Who posts the `ci` aggregate (`ci.aggregate`)
+
+`ci: { aggregate: "actions" | "sentinel" }` says who posts the one required check, `ci / Required checks`. Left out, it is
+`"actions"`: the thin caller `ci.ci.yml` and the reusable `ci.yml` that polls the Checks API, as today. With `"sentinel"`
+neither is generated, because Sentinel computes the check from webhooks and posts it under that name (spec
+`process-sentinel-posts-ci`, SPEC-0099). A value other than the two is a config error. `holocron probe generated check`
+fails on a `ci.ci.yml` or `ci.yml` the config no longer generates, and `holocron doctor ci` fails the `aggregate` row when a
+caller is left beside a `sentinel` setting, so a commit never has two posters.
+
+Sentinel reads the setting at the **head** ref of a pull request (the files that run for a commit and the word that says who
+posts must match), and the list of checks it waits for at the **base** ref (so a pull request cannot shrink its own gate).
+Flipping it is one pull request that changes the setting and the generated files together; do it only after
+`holocron doctor ci --shadow` passes. This repository does not set it.
 
 ### Doc-comment coverage
 

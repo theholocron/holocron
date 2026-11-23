@@ -197,6 +197,9 @@ function validateVaultLayer(entry: ResolvedProviderEntry | undefined): void {
 /** The values `repoValidation.docsCoverage` accepts. */
 const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
 
+/** The values `ci.aggregate` accepts. */
+const CI_AGGREGATE_POSTERS: readonly string[] = ["actions", "sentinel"];
+
 /**
  * The environment a `credentials` provider reads: its own `environment` option when it has one, else the shared
  * `credentials.environment`, else `undefined`. The option lets each of several providers name its own (a 1Password
@@ -244,6 +247,13 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (docsCoverage !== undefined && !DOCS_COVERAGE_MODES.includes(docsCoverage)) {
 		throw new ConfigError(
 			`\`repoValidation.docsCoverage\` must be one of ${DOCS_COVERAGE_MODES.map((m) => `"${m}"`).join(", ")}, got ${JSON.stringify(docsCoverage)}`
+		);
+	}
+
+	const aggregate = raw.ci?.aggregate;
+	if (aggregate !== undefined && !CI_AGGREGATE_POSTERS.includes(aggregate)) {
+		throw new ConfigError(
+			`\`ci.aggregate\` must be one of ${CI_AGGREGATE_POSTERS.map((m) => `"${m}"`).join(", ")}, got ${JSON.stringify(aggregate)}`
 		);
 	}
 
@@ -297,6 +307,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		syncScripts: raw.syncScripts,
 		holocronScript: raw.holocronScript,
 		extraRequiredChecks: raw.extraRequiredChecks,
+		ci: raw.ci,
 		hooks: raw.hooks,
 		providers,
 		apps: raw.apps ?? [],

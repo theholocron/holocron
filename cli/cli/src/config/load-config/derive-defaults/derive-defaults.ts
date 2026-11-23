@@ -34,6 +34,7 @@ export async function deriveDefaults(found: Loaded<HolocronConfig>): Promise<Hol
 	if (manifest.syncScripts !== undefined) result.syncScripts = manifest.syncScripts;
 	if (manifest.holocronScript !== undefined) result.holocronScript = manifest.holocronScript;
 	if (manifest.hooks !== undefined) result.hooks = manifest.hooks;
+	if (manifest.ci !== undefined) result.ci = manifest.ci;
 	if (manifest.extraRequiredChecks) {
 		result.extraRequiredChecks = [...(result.extraRequiredChecks ?? []), ...manifest.extraRequiredChecks];
 	}

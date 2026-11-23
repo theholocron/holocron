@@ -1,5 +1,6 @@
 export * from "./aggregate-caller/index.js";
 export * from "./aggregate-checks/index.js";
+export * from "./aggregate-poster/index.js";
 export * from "./ci-ref/index.js";
 export * from "./codecov/index.js";
 export * from "./github-action-reusable-workflows/index.js";

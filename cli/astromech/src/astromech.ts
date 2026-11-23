@@ -12,6 +12,7 @@ import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/s
 import {
 	aggregateCaller as resolveAggregateCaller,
 	aggregateChecks,
+	aggregatePoster as resolveAggregatePoster,
 	deriveDeployPaths,
 	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
 	ensureTurboDependency as resolveEnsureTurboDependency,
@@ -204,7 +205,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		requiredChecks: (aggregate: boolean) =>
 			resolveRequiredChecks(options.config ?? {}, aggregate, options.statusContexts),
 
+		aggregatePoster: () => resolveAggregatePoster(options.config ?? {}),
+
 		aggregateCaller: () => {
+			// Sentinel posts the check for a manifest that says so, and then no caller is written.
+			if (resolveAggregatePoster(options.config ?? {}) === "sentinel") return null;
 			const checks = aggregateChecks(options.config ?? {}, options.statusContexts);
 			return checks.expected.length === 0 && checks.statuses.length === 0 ? null : resolveAggregateCaller(checks);
 		},

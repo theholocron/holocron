@@ -1,3 +1,4 @@
+import type { CiAggregatePoster } from "@theholocron/astromech/config";
 import type { CheckRow } from "@theholocron/kyber/ui";
 import { declaredVsActual } from "@theholocron/kyber/ui";
 
@@ -13,9 +14,31 @@ const byId = (ids: readonly string[]) => new Map(ids.map((id) => [id, id]));
  * stale. A skip when the repo has no aggregate caller, which only the repo that hosts the reusables writes today. The
  * ruleset that requires the aggregate is `doctor repo`'s to compare, not this row's.
  */
-export function aggregateRow(callers: readonly ParsedCaller[], derived: readonly string[]): CheckRow {
+export function aggregateRow(
+	callers: readonly ParsedCaller[],
+	derived: readonly string[],
+	poster: CiAggregatePoster = "actions"
+): CheckRow {
 	const id = "aggregate";
 	const title = "ci aggregate lists the configured tasks";
+	if (poster === "sentinel") {
+		// Declared posted by Sentinel (`ci.aggregate: sentinel`): there is no caller, and one that is left is a second poster.
+		const left = callers.find((caller) => caller.file === "ci.ci.yml" || caller.file === "ci.yml");
+		return left === undefined
+			? {
+					id,
+					title,
+					status: "ok",
+					detail: `Sentinel posts the aggregate (ci.aggregate); its expected list derives from the config (${derived.length} ids)`,
+					problems: [],
+				}
+			: problemRow(
+					id,
+					title,
+					[`${left.file} is still there, but ci.aggregate says Sentinel posts the check: two posters`],
+					""
+				);
+	}
 	const aggregate = callers.find(
 		(caller) => (caller.file === "ci.ci.yml" || caller.file === "ci.yml") && caller.expected !== undefined
 	);

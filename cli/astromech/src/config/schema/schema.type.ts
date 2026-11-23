@@ -84,10 +84,30 @@ export interface TasksConfig {
 	 */
 	extraRequiredChecks?: string[];
 	/**
+	 * Settings of the repo's CI as a whole. Left out, everything is as it was: the Actions poller posts the `ci` aggregate.
+	 * Read at the **head** ref by Sentinel, so a commit carries both the files that run for it and the word that says who
+	 * posts (spec `process-sentinel-posts-ci`, SPEC-0099).
+	 */
+	ci?: CiConfig;
+	/**
 	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
 	 * `.husky/pre-push` (runs `holocron run ci`); `false` / `{ prePush: false }`
 	 * opts out. Omitted → on for `protection: "strict"` repos, off otherwise.
 	 * When enabled, `packageScripts()` also emits `prepare: "husky"`.
 	 */
 	hooks?: boolean | { prePush?: boolean };
+}
+
+/** Who posts the required `ci / Required checks` check: the Actions poller (`ci.yml`) or Sentinel, from webhooks. */
+export type CiAggregatePoster = "actions" | "sentinel";
+
+/** The `ci` block of the manifest. */
+export interface CiConfig {
+	/**
+	 * Who posts `ci / Required checks`. `"actions"` (the default) keeps the thin caller `ci.ci.yml` and the reusable that
+	 * polls; `"sentinel"` writes neither, because Sentinel posts the check under that name for a commit whose own config
+	 * says so. Each commit has exactly one poster: the setting and the generated files change together in one pull
+	 * request, which `probe generated check` enforces.
+	 */
+	aggregate?: CiAggregatePoster;
 }
