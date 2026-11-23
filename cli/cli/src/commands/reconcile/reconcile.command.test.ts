@@ -4,7 +4,7 @@ import type { Argv } from "yargs";
 import { reconcileCommand } from "./reconcile.command.js";
 
 describe("reconcile", () => {
-	it("is the reconcile verb, with project and the menu fallback under it", () => {
+	it("is the reconcile verb, with project, ci and the menu fallback under it", () => {
 		const command = vi.fn();
 		const y = { command } as unknown as Argv;
 		command.mockReturnValue(y);
@@ -14,6 +14,7 @@ describe("reconcile", () => {
 		expect(reconcileCommand.command).toBe("reconcile");
 		expect(command.mock.calls.map(([module]) => (module as { command: string }).command)).toEqual([
 			"project [board]",
+			"ci [pull-request]",
 			expect.stringContaining("$0"),
 		]);
 	});

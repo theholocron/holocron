@@ -14,6 +14,7 @@ import { repos } from "./repos/repos.js";
 import { rulesets } from "./rulesets/rulesets.js";
 import { secrets } from "./secrets/secrets.js";
 import { security } from "./security/security.js";
+import { statuses } from "./statuses/statuses.js";
 import { teams } from "./teams/teams.js";
 import { topics } from "./topics/topics.js";
 import { user } from "./user/user.js";
@@ -94,6 +95,7 @@ export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
 export type { GitHubRuleset, GitHubRulesetDetail } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, OrgSecretInfo, OrgSecretVisibility, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";
+export type { CommitStatusState, GitHubCommitStatus } from "./statuses/statuses.js";
 export type { RepoTeam, TeamMember, TeamPermission } from "./teams/teams.js";
 export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";
 export { parseTokenExpiration } from "./user/user.js";
@@ -116,6 +118,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 	return {
 		branches: branches(rest),
 		checks: checks(rest),
+		statuses: statuses(rest),
 		environments: environments(rest),
 		git: git(rest),
 		/** The GraphQL client, for the callers whose API (Projects v2) has no REST form. */

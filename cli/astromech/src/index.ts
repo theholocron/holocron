@@ -23,13 +23,17 @@
 
 export type {
 	AggregateAnnotation,
+	AggregateApi,
 	AggregateCheckRun,
 	AggregateCommitStatus,
 	AggregateResult,
 	AggregateRow,
+	AggregateWrite,
 	EvaluateAggregateInput,
+	PostAggregateInput,
+	PostAggregateResult,
 } from "./aggregate/index.js";
-export { evaluateAggregate } from "./aggregate/index.js";
+export { AGGREGATE_CHECK_NAME, AGGREGATE_TIMEOUT_MS, evaluateAggregate, postAggregate } from "./aggregate/index.js";
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { AggregateChecks } from "./generators/aggregate-checks/index.js";

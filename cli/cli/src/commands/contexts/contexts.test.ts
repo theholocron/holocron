@@ -81,6 +81,7 @@ const EVERY_COMMAND = [
 	"doctor releases",
 	"probe",
 	"provider",
+	"reconcile ci",
 	"reconcile project",
 	"deploy",
 	"deploy cleanup-preview",
