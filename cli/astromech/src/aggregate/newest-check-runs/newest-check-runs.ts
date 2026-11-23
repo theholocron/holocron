@@ -3,7 +3,7 @@ import type { AggregateCheckRun } from "../evaluate-aggregate/evaluate-aggregate
 /**
  * Keeps only the newest run of each check name, ordered by name. A commit can carry several runs of one check (a
  * cancelled first batch, a job re-run to green): the newest is the one that counts (latest `startedAt`, then `id`, #2171).
- * The sort key is the one the `ci` workflow's jq program uses.
+ * The sort key is the one the `ci` workflow's jq program uses (names are unique here, so there are no ties).
  */
 export function newestCheckRuns(runs: AggregateCheckRun[]): AggregateCheckRun[] {
 	const byName = new Map<string, AggregateCheckRun>();
@@ -11,7 +11,7 @@ export function newestCheckRuns(runs: AggregateCheckRun[]): AggregateCheckRun[] 
 		const kept = byName.get(run.name);
 		if (kept === undefined || isNewer(run, kept)) byName.set(run.name, run);
 	}
-	return [...byName.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+	return [...byName.values()].sort((a, b) => (a.name < b.name ? -1 : 1));
 }
 
 function isNewer(a: AggregateCheckRun, b: AggregateCheckRun): boolean {

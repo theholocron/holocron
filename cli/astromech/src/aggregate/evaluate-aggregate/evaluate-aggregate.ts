@@ -19,12 +19,14 @@ function row(id: string, kind: AggregateRow["kind"], state: AggregateRow["state"
 
 function checkRow(id: string, latest: AggregateCheckRun[]): AggregateRow {
 	const found = latest.filter((run) => run.name.startsWith(`${id} / `));
-	if (found.length === 0) return row(id, "check", "missing", "never posted", null);
+	const [first] = found;
+	if (first === undefined) return row(id, "check", "missing", "never posted", null);
 	const open = found.find((run) => run.status !== "completed");
 	if (open !== undefined) return row(id, "check", "pending", "still running", open.url);
 	const bad = found.find((run) => !passes(run.conclusion));
 	if (bad !== undefined) return row(id, "check", "failure", bad.conclusion ?? "none", bad.url);
-	return row(id, "check", "success", found[0]?.conclusion ?? "none", found[0]?.url ?? null);
+	// Every run here passed, so its conclusion is not null.
+	return row(id, "check", "success", String(first.conclusion), first.url);
 }
 
 function statusRow(context: string, latest: AggregateCheckRun[], input: EvaluateAggregateInput): AggregateRow {
@@ -32,7 +34,7 @@ function statusRow(context: string, latest: AggregateCheckRun[], input: Evaluate
 	const run = latest.find((candidate) => candidate.name === context);
 	if (run !== undefined) {
 		if (run.status !== "completed") return row(context, "status", "pending", "still running", run.url);
-		if (passes(run.conclusion)) return row(context, "status", "success", run.conclusion ?? "none", run.url);
+		if (passes(run.conclusion)) return row(context, "status", "success", String(run.conclusion), run.url);
 		return row(context, "status", "failure", run.conclusion ?? "none", run.url);
 	}
 	const posted = input.commitStatuses.find((status) => status.context === context);

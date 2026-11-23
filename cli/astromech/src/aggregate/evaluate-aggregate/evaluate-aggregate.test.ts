@@ -218,4 +218,15 @@ describe("evaluateAggregate output", () => {
 		expect(ID_ITEMS.length).toBeGreaterThan(10);
 		expect(STATUS_ITEMS.length).toBeGreaterThan(10);
 	});
+
+	it("treats a completed run with no conclusion as a failure that says none", () => {
+		const input = build([["typecheck", GREEN]], [["codecov/patch", GREEN]], "before");
+		input.checkRuns = [
+			run("typecheck / Conclusion", null, "2026-11-22T10:01:00Z", 1),
+			run("codecov/patch", null, "2026-11-22T10:01:00Z", 2),
+		].map((r) => ({ ...r, status: "completed" }));
+		const result = evaluateAggregate(input);
+		expect(result.conclusion).toBe("failure");
+		expect(result.rows.map((r) => r.detail)).toEqual(["none", "none"]);
+	});
 });
