@@ -131,6 +131,12 @@ function validateGitHubApps(apps: GitHubAppConfig[]): void {
 				throw new ConfigError(`\`githubApps[${idx}].${key}\` must be a non-empty string`);
 			}
 		}
+		for (const key of ["app", "label"] as const) {
+			const value: unknown = app?.[key];
+			if (value !== undefined && (typeof value !== "string" || value.trim() === "")) {
+				throw new ConfigError(`\`githubApps[${idx}].${key}\` must be a non-empty string`);
+			}
+		}
 		validateEnvironmentChoice(app, `\`githubApps[${idx}]\``);
 	});
 }

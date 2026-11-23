@@ -53,9 +53,15 @@ export async function runDoctorGitHubApp(input: RunDoctorGitHubAppInput): Promis
 	if (instances.length === 0) {
 		rows.push(row("github-app", "reachable", "skip", "no `githubApps` are declared in holocron.config.ts"));
 	}
-	for (const instance of instances) rows.push(...(await checkInstance(instance, loader, input)));
+	const checked: { instance: GitHubAppConfig; rows: CheckRow[] }[] = [];
+	for (const instance of instances) {
+		const instanceRows = await checkInstance(instance, loader, input);
+		checked.push({ instance, rows: instanceRows });
+		rows.push(...instanceRows);
+	}
 
-	printCheckRows(rows, print);
+	if (instances.length === 0) printCheckRows(rows, print);
+	else printGrouped(checked, print);
 	const summary = summariseChecks(rows);
 	printCheckSummary(summary, print);
 
@@ -70,6 +76,28 @@ export async function runDoctorGitHubApp(input: RunDoctorGitHubAppInput): Promis
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Prints the instances under their `app` heading (first appearance first) and, when an instance has a `label`, under
+ * that subheading. An instance with neither is printed flat with its full row titles, as before.
+ */
+function printGrouped(checked: { instance: GitHubAppConfig; rows: CheckRow[] }[], print: (line: string) => void): void {
+	const headings = [...new Set(checked.map(({ instance }) => instance.app).filter((a): a is string => !!a))];
+	const flat = checked.filter(({ instance }) => !instance.app);
+	for (const { rows } of flat) printCheckRows(rows, print);
+	for (const heading of headings) {
+		print(heading);
+		for (const { instance, rows } of checked.filter((c) => c.instance.app === heading)) {
+			const indent = instance.label ? "    " : "  ";
+			if (instance.label) print(`  ${instance.label}`);
+			const shown = rows.map((r) => ({
+				...r,
+				title: r.title.slice(instance.name.length + 2),
+			}));
+			printCheckRows(shown, (line) => print(`${indent}${line}`));
+		}
+	}
+}
 
 function row(name: string, what: string, status: CheckRow["status"], detail: string): CheckRow {
 	return { id: `${name}:${what}`, title: `${name}: ${what}`, status, detail, problems: [] };
