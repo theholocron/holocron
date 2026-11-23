@@ -1,3 +1,10 @@
+## [5.0.0-alpha.528](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.527...v5.0.0-alpha.528) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ show whether each GitHub App installation is suspended in doctor github-app ([#2582](https://github.com/theholocron/holocron/issues/2582)) ([b66d8f5](https://github.com/theholocron/holocron/commit/b66d8f5d480c028628be9187ca748d247927e41d)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+* **sentinel:** ✨ count GitHub calls per delivery and keep config reads for 5 minutes ([#2579](https://github.com/theholocron/holocron/issues/2579)) ([cb27f11](https://github.com/theholocron/holocron/commit/cb27f1158b2fe53082297fead0632dd210987eba)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.527](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.526...v5.0.0-alpha.527) (2026-11-23)
 
 ### Features
