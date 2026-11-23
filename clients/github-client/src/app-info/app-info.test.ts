@@ -3,7 +3,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import { stubFetch } from "../test-helpers.js";
-import { getApp, listAppInstallations } from "./app-info.js";
+import { getApp, listAppDeliveries, listAppInstallations, redeliverAppDelivery } from "./app-info.js";
 
 const { privateKey } = generateKeyPairSync("rsa", {
 	modulusLength: 2048,
@@ -121,5 +121,154 @@ describe("listAppInstallations", () => {
 		const result = await listAppInstallations(CREDS, { baseUrl: BASE, fetch });
 		expect(result).toHaveLength(101);
 		expect(calls[1]?.url).toBe(`${BASE}/app/installations?per_page=100&page=2`);
+	});
+});
+
+const delivery = (id: number, at: string, over: Record<string, unknown> = {}) => ({
+	id,
+	guid: `guid-${id}`,
+	delivered_at: at,
+	redelivery: false,
+	status_code: 200,
+	status: "OK",
+	event: "check_run",
+	action: "completed",
+	installation_id: 7,
+	...over,
+});
+
+describe("listAppDeliveries", () => {
+	it("GETs /app/hook/deliveries with a Bearer App JWT and returns each delivery in the plain shape", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: [
+					delivery(1, "2026-11-22T10:00:00Z"),
+					delivery(2, "2026-11-22T09:00:00Z", {
+						redelivery: true,
+						status_code: 500,
+						status: "Invalid HTTP Response: 500",
+						action: null,
+						installation_id: null,
+					}),
+				],
+			},
+		]);
+		const result = await listAppDeliveries(CREDS, { baseUrl: BASE, fetch });
+		expect(calls[0]?.url).toBe(`${BASE}/app/hook/deliveries?per_page=100`);
+		expect(calls[0]?.headers.authorization).toMatch(/^Bearer /);
+		expect(result).toEqual([
+			{
+				id: 1,
+				guid: "guid-1",
+				deliveredAt: "2026-11-22T10:00:00Z",
+				redelivery: false,
+				statusCode: 200,
+				status: "OK",
+				event: "check_run",
+				action: "completed",
+				installationId: 7,
+			},
+			{
+				id: 2,
+				guid: "guid-2",
+				deliveredAt: "2026-11-22T09:00:00Z",
+				redelivery: true,
+				statusCode: 500,
+				status: "Invalid HTTP Response: 500",
+				event: "check_run",
+				action: null,
+				installationId: null,
+			},
+		]);
+	});
+
+	it("defaults the fields GitHub leaves out", async () => {
+		const { fetch } = stubFetch([
+			{ body: [{ id: 3, guid: "g", delivered_at: "2026-11-22T10:00:00Z", event: "ping" }] },
+		]);
+		expect(await listAppDeliveries(CREDS, { baseUrl: BASE, fetch })).toEqual([
+			{
+				id: 3,
+				guid: "g",
+				deliveredAt: "2026-11-22T10:00:00Z",
+				redelivery: false,
+				statusCode: 0,
+				status: "",
+				event: "ping",
+				action: null,
+				installationId: null,
+			},
+		]);
+	});
+
+	it("follows the cursor of the next link until the last page", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: [delivery(1, "2026-11-22T10:00:00Z")],
+				headers: {
+					link: `<${BASE}/app/hook/deliveries?per_page=100&cursor=abc>; rel="next", <${BASE}/x>; rel="first"`,
+				},
+			},
+			{ body: [delivery(2, "2026-11-22T09:00:00Z")] },
+		]);
+		const result = await listAppDeliveries(CREDS, { baseUrl: BASE, fetch });
+		expect(result.map((d) => d.id)).toEqual([1, 2]);
+		expect(calls[1]?.url).toBe(`${BASE}/app/hook/deliveries?per_page=100&cursor=abc`);
+	});
+
+	it("stops reading at a delivery older than since, and leaves the older ones out", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: [delivery(1, "2026-11-22T10:00:00Z"), delivery(2, "2026-11-21T10:00:00Z")],
+				headers: { link: `<${BASE}/a?cursor=abc>; rel="next"` },
+			},
+		]);
+		const result = await listAppDeliveries(CREDS, { baseUrl: BASE, fetch, since: "2026-11-22T00:00:00Z" });
+		expect(result.map((d) => d.id)).toEqual([1]);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("keeps reading while the page is still newer than since, and stops at maxPages", async () => {
+		const link = { link: `<${BASE}/a?cursor=abc>; rel="next"` };
+		const { fetch, calls } = stubFetch([
+			{ body: [delivery(1, "2026-11-22T10:00:00Z")], headers: link },
+			{ body: [delivery(2, "2026-11-22T09:00:00Z")], headers: link },
+			{ body: [delivery(3, "2026-11-22T08:00:00Z")], headers: link },
+		]);
+		expect(
+			(await listAppDeliveries(CREDS, { baseUrl: BASE, fetch, since: "2026-11-22T00:00:00Z", maxPages: 2 })).map(
+				(d) => d.id
+			)
+		).toEqual([1, 2]);
+		expect(calls).toHaveLength(2);
+	});
+
+	it("reads a page with no deliveries, and a link with no next cursor, as the end", async () => {
+		const { fetch } = stubFetch([{ body: [], headers: { link: `<${BASE}/a>; rel="prev"` } }]);
+		expect(await listAppDeliveries(CREDS, { baseUrl: BASE, fetch, since: "2026-11-22T00:00:00Z" })).toEqual([]);
+	});
+
+	it("throws a ProviderApiError carrying the status", async () => {
+		const { fetch } = stubFetch([{ status: 401, text: "Bad credentials" }]);
+		const err = await listAppDeliveries(CREDS, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
+		expect((err as { status: number }).status).toBe(401);
+		expect((err as Error).message).toMatch(/GET \/app\/hook\/deliveries.*401/);
+	});
+});
+
+describe("redeliverAppDelivery", () => {
+	it("POSTs /app/hook/deliveries/{id}/attempts with the App's JWT", async () => {
+		const { fetch, calls } = stubFetch([{ status: 202, body: {} }]);
+		await redeliverAppDelivery(CREDS, 42, { baseUrl: BASE, fetch });
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe(`${BASE}/app/hook/deliveries/42/attempts`);
+		expect(calls[0]?.headers.authorization).toMatch(/^Bearer /);
+	});
+
+	it("throws a ProviderApiError naming the POST when GitHub refuses", async () => {
+		const { fetch } = stubFetch([{ status: 422, text: "too old" }]);
+		const err = await redeliverAppDelivery(CREDS, 42, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/POST \/app\/hook\/deliveries\/42\/attempts.*422/);
+		expect((err as { status: number }).status).toBe(422);
 	});
 });

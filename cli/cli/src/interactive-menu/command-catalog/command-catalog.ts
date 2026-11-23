@@ -61,6 +61,7 @@ import { projectReconcileEntry } from "../../commands/project/reconcile/reconcil
 import { providerEntry } from "../../commands/provider/provider.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { reconcileCiEntry } from "../../commands/reconcile-ci/reconcile-ci.entry.js";
+import { redeliverWebhooksEntry } from "../../commands/redeliver-webhooks/redeliver-webhooks.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
 import { repoPropertiesApplyEntry } from "../../commands/repo-properties/repo-properties-apply.entry.js";
 import { requestsExportEntry } from "../../commands/requests-export/requests-export.entry.js";
@@ -187,6 +188,7 @@ const registry = createCommandRegistry(
 		// project (SPEC-0020)
 		projectReconcileEntry,
 		reconcileCiEntry,
+		redeliverWebhooksEntry,
 	],
 	"interactive-menu"
 );

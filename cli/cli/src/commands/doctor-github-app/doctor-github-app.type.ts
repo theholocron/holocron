@@ -1,4 +1,10 @@
-import type { GitHubApp, GitHubAppCredentials, GitHubAppInstallation } from "@theholocron/github-client";
+import type {
+	GitHubApp,
+	GitHubAppCredentials,
+	GitHubAppDelivery,
+	GitHubAppInstallation,
+	ListAppDeliveriesOptions,
+} from "@theholocron/github-client";
 import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -22,6 +28,8 @@ export interface GitHubAppApi {
 	getApp(creds: GitHubAppCredentials): Promise<GitHubApp>;
 	/** `GET /app/installations` with the App's own JWT. */
 	listAppInstallations(creds: GitHubAppCredentials): Promise<GitHubAppInstallation[]>;
+	/** `GET /app/hook/deliveries` with the App's own JWT. A reader that has no delivery log leaves it out, and the row is a skip. */
+	listAppDeliveries?(creds: GitHubAppCredentials, opts?: ListAppDeliveriesOptions): Promise<GitHubAppDelivery[]>;
 }
 
 /** What `doctor github-app` needs to run. */
@@ -36,6 +44,8 @@ export interface RunDoctorGitHubAppInput {
 	readManifest?: (path: string) => string;
 	/** The reads of the live App. Defaults to the GitHub client's. */
 	api?: GitHubAppApi;
+	/** The clock, in epoch milliseconds; defaults to `Date.now`. The delivery row looks back a day from it. */
+	now?: () => number;
 	/** Where the rows and the closing count go. Defaults to the console. */
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */
