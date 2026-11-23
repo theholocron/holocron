@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+const confirmPrompt = vi.hoisted(() => vi.fn());
+vi.mock("@inquirer/prompts", async (importOriginal) => ({
+	...(await importOriginal<typeof import("@inquirer/prompts")>()),
+	confirm: confirmPrompt,
+}));
+
 import type { LoadedConfig } from "../../../config/index.js";
 import type {
 	DiscussionPost,
@@ -41,6 +47,8 @@ function fakes(
 		messages?: string[];
 		notifications?: Partial<Notifications>;
 		noMonitoring?: boolean;
+		noNotifications?: boolean;
+		noPages?: boolean;
 	} = {}
 ) {
 	const notifications = {
@@ -58,14 +66,15 @@ function fakes(
 	} as unknown as Notifications;
 	const monitoring = {
 		key: "monitoring",
-		statusPages: opts.pages ?? [PAGE],
+		...(opts.noPages ? {} : { statusPages: opts.pages ?? [PAGE] }),
 		listIncidents: vi.fn(opts.list ?? (async () => opts.incidents ?? [incident()])),
 	} as unknown as Monitoring;
 	const loader = {
 		load: async () => {},
 		loadFailures: () => [],
 		loadedKeys: () => ["notifications", "monitoring"],
-		has: (key: string) => (key === "monitoring" ? !opts.noMonitoring : key === "notifications"),
+		has: (key: string) =>
+			key === "monitoring" ? !opts.noMonitoring : key === "notifications" && !opts.noNotifications,
 		get: (key: string) => (key === "monitoring" ? monitoring : [notifications]),
 	} as unknown as PluginLoader;
 	return { notifications, monitoring, loader };
@@ -297,5 +306,88 @@ describe("runSyncIncidents", () => {
 		expect((await run(refused).promise).status).toBe("skip");
 		const broken = fakes({ list: async () => Promise.reject(new Error("down")) });
 		expect((await run(broken).promise).status).toBe("fail");
+	});
+
+	it("is a skip when no notifications provider is loaded", async () => {
+		expect((await run(fakes({ noNotifications: true })).promise).status).toBe("skip");
+	});
+
+	it("tolerates a layout with no categories or channels and a monitoring provider with no pages", async () => {
+		expect((await run(fakes({ layout: {} })).promise).status).toBe("skip");
+		expect((await run(fakes({ layout: { categories: [{ name: "A" }] } })).promise).reason).toMatch(/no forum/);
+		const bare: NotificationsLayout = {
+			categories: [{ name: "OPS", channels: [{ name: "incidents", kind: "forum", feeds: { incidents: true } }] }],
+		};
+		expect((await run(fakes({ layout: bare, noPages: true })).promise).reason).toMatch(/no status page/);
+	});
+
+	it("links no page when it has no domain, and counts back from the clock when no time is given", async () => {
+		const f = fakes({ pages: [{ name: "The Holocron" }] });
+		const { promise } = run(f, { now: undefined });
+		await promise;
+		expect(f.notifications.ensureDiscussion).toHaveBeenCalledWith(
+			expect.objectContaining({ body: expect.stringContaining("Status page: The Holocron\n") })
+		);
+		expect(f.monitoring.listIncidents).toHaveBeenCalledWith({
+			statusPage: "The Holocron",
+			since: expect.any(String),
+		});
+	});
+
+	it("reports a failed read on a dry run and exits as a failure", async () => {
+		const f = fakes({ notifications: { readDiscussion: vi.fn(async () => Promise.reject(new Error("boom"))) } });
+		const { promise } = run(f, { context: { repoRoot: "/repo", dryRun: true } });
+		expect((await promise).status).toBe("fail");
+	});
+
+	it("prints to the console by default, and asks with the real prompt and a real terminal check by default", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const f = fakes();
+		await runSyncIncidents({ loaded, context: { repoRoot: "/repo" }, loader: f.loader, yes: true });
+		expect(log).toHaveBeenCalled();
+		// No terminal in the test run, so without --yes the default check refuses before any question.
+		await expect(runSyncIncidents({ loaded, context: { repoRoot: "/repo" }, loader: f.loader })).rejects.toThrow(
+			/pass --yes/
+		);
+		confirmPrompt.mockResolvedValue(false);
+		expect(
+			(await runSyncIncidents({ loaded, context: { repoRoot: "/repo" }, loader: f.loader, interactive: true }))
+				.status
+		).toBe("cancelled");
+		expect(confirmPrompt).toHaveBeenCalled();
+		log.mockRestore();
+	});
+
+	it("only closes a resolved incident's post that is otherwise in step", async () => {
+		const resolved = incident({
+			status: "resolved",
+			resolvedAt: "2026-11-20T11:00:00Z",
+			updates: [{ id: "u1", status: "resolved", text: "ok", at: "2026-11-20T11:00:00Z" }],
+		});
+		const messages = [
+			renderIncidentUpdate(resolved.updates[0]!),
+			`${renderIncident(resolved, statusPage).body}\n-# sync`,
+		];
+		const f = fakes({
+			incidents: [resolved],
+			post: { url: "u", title: resolved.title, state: "resolved" },
+			messages,
+		});
+		await run(f).promise;
+		expect(f.notifications.updateDiscussion).toHaveBeenCalledTimes(1);
+		expect(f.notifications.updateDiscussion).toHaveBeenCalledWith("incidents", "The Holocron#i1", { closed: true });
+	});
+
+	it("only retags a post whose summary and updates are in step but whose tag is not", async () => {
+		const i = incident();
+		const messages = [renderIncidentUpdate(i.updates[0]!), `${renderIncident(i, statusPage).body}\n-# sync`];
+		const f = fakes({ post: { url: "u", title: i.title, state: "identified" }, messages });
+		await run(f).promise;
+		expect(f.notifications.updateDiscussion).toHaveBeenCalledWith(
+			"incidents",
+			"The Holocron#i1",
+			expect.objectContaining({ state: "investigating" })
+		);
+		expect(f.notifications.postDiscussionMessage).not.toHaveBeenCalled();
 	});
 });

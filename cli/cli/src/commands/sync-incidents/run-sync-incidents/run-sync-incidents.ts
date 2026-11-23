@@ -205,13 +205,13 @@ async function apply(
 			quiet: true,
 		});
 		// A post made here may have raced another run's: keep the oldest, and post only what it lacks.
-		if (ensured.created && notifications.dedupeDiscussion) {
-			const removed = await notifications.dedupeDiscussion(channel, key, { refresh: true });
+		if (ensured.created) {
+			const removed = await notifications.dedupeDiscussion!(channel, key, { refresh: true });
 			if (removed > 0) {
 				const posted = postedUpdateIds(await notifications.readDiscussionMessages!(channel, key, MESSAGES));
 				append = append.filter((u) => !posted.has(u.id));
 			}
-		} else if (!ensured.created) {
+		} else {
 			const posted = postedUpdateIds(await notifications.readDiscussionMessages!(channel, key, MESSAGES));
 			append = append.filter((u) => !posted.has(u.id));
 		}
