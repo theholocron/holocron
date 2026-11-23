@@ -260,7 +260,7 @@ import {
 	type ValidateConfigResult,
 	WebhookVerificationError,
 } from "../utils/index.js";
-import type { Env, ResolutionContext } from "./handler.type.js";
+import type { Env, HandleWebhookOptions, ResolutionContext } from "./handler.type.js";
 
 // Axiom transport config comes from the environment (utils/axiom-config.ts);
 // absent → no transport, not a throw. `runId` is threaded into every check
@@ -374,20 +374,82 @@ async function runDocsPresence(
 	}
 }
 
-/** Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required. */
-export async function handleWebhookRequest(request: Request, env: Env): Promise<Response> {
+/**
+ * Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required.
+ *
+ * With `options.waitUntil` the signature is checked and the event read first, then `202` is answered at once and the
+ * work (checks, feed, board, aggregate) runs after the response inside `waitUntil`, because GitHub gives up on a
+ * delivery after about 10 seconds and a pull request's work takes far longer. Without it (tests, `holocron dev serve`)
+ * the work is awaited and its status is the response, as before.
+ */
+export async function handleWebhookRequest(
+	request: Request,
+	env: Env,
+	options: HandleWebhookOptions = {}
+): Promise<Response> {
 	if (request.method !== "POST") {
 		return new Response("Method Not Allowed", { status: 405 });
 	}
 
 	// Every call to GitHub inside this delivery is counted against it, and the totals are logged when it ends.
-	return runWithGitHubCalls(() => processWebhook(request, env));
+	return runWithGitHubCalls(() => processWebhook(request, env, options.waitUntil));
 }
 
-async function processWebhook(request: Request, env: Env): Promise<Response> {
-	errors.begin();
+/** Logs the delivery's GitHub totals and flushes the logger and the error sink: the end of one delivery. */
+async function finishDelivery(): Promise<void> {
+	logGitHubDelivery(logger);
+	// Axiom's transport runs on a worker thread -- a line logged is only *enqueued*, not yet sent. Vercel can freeze
+	// this Lambda right after the work ends, so without this the buffered lines silently never reach Axiom at all. A
+	// flush failure is itself just an observability gap, never a reason to turn a response into a 500. The error sink
+	// has the same need (Sentry queues an event and sends it later); the two flushes run side by side, so an Axiom
+	// flush that stalls cannot keep a Sentry event from going out, and `errors.flush()` never rejects.
+	await Promise.all([
+		(async () => {
+			try {
+				await logger.flush();
+			} catch (err) {
+				console.error("handleWebhookRequest: logger.flush() failed", err);
+			}
+		})(),
+		errors.flush(),
+	]);
+}
+
+/**
+ * Runs the work of a delivery that was already answered. Nothing can turn a failure into a status any more, so a
+ * thrown error and a 5xx answer are logged and sent to the error tracker here; GitHub's "Recent deliveries" shows
+ * `202` either way, and the log line and the tracker are where a failed run is found.
+ */
+async function runDeferred(work: () => Promise<Response>): Promise<void> {
 	try {
-		return await handle(request, env);
+		const response = await work();
+		if (response.status >= 500) {
+			logger.error({ status: response.status }, "handleWebhookRequest: deferred work answered an error status");
+		}
+	} catch (err) {
+		logger.error({ err: serializeError(err) }, "handleWebhookRequest: unhandled error");
+		errors.capture(err);
+	} finally {
+		await finishDelivery();
+	}
+}
+
+async function processWebhook(
+	request: Request,
+	env: Env,
+	waitUntil: HandleWebhookOptions["waitUntil"]
+): Promise<Response> {
+	errors.begin();
+	let deferred = false;
+	const defer: DeferWork | undefined = waitUntil
+		? (type, work) => {
+				deferred = true;
+				waitUntil(runDeferred(work));
+				return json({ handled: true, type, deferred: true }, 202);
+			}
+		: undefined;
+	try {
+		return await handle(request, env, defer);
 	} catch (err) {
 		// The read-only-filesystem ENOENT crash (validateConfig writing outside
 		// os.tmpdir()) previously reached here with nothing observable at all --
@@ -398,32 +460,12 @@ async function processWebhook(request: Request, env: Env): Promise<Response> {
 		errors.capture(err);
 		return json({ handled: false, reason: "internal error" }, 500);
 	} finally {
-		logGitHubDelivery(logger);
-		// Axiom's transport runs on a worker thread -- a line logged above is
-		// only *enqueued*, not yet sent, when the try/catch above returns.
-		// Vercel can freeze this Lambda right after the Response goes out, so
-		// without this the buffered lines (including the one unhandled-error
-		// line above) silently never reach Axiom at all. `finally`'s own
-		// `await` delays the function's real return until the flush settles.
-		// A flush failure is itself just an observability gap, never a reason
-		// to turn an otherwise-successful response into a 500.
-		// Same reason for the error sink: Sentry queues an event and sends it later. The two flushes run side by side,
-		// so an Axiom flush that stalls cannot keep a Sentry event from going out (Sentry's own close is time-boxed),
-		// and `errors.flush()` never rejects.
-		await Promise.all([
-			(async () => {
-				try {
-					await logger.flush();
-				} catch (err) {
-					console.error("handleWebhookRequest: logger.flush() failed", err);
-				}
-			})(),
-			errors.flush(),
-		]);
+		// A deferred delivery finishes (and flushes) when its work does, in `runDeferred()`.
+		if (!deferred) await finishDelivery();
 	}
 }
 
-async function handle(request: Request, env: Env): Promise<Response> {
+async function handle(request: Request, env: Env, defer?: DeferWork): Promise<Response> {
 	const body = await request.text();
 	const headers = Object.fromEntries(request.headers);
 
@@ -456,6 +498,15 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		return json({ handled: true, type: event.type });
 	}
 
+	// The signature is checked and the event read; what follows is the work. Answered at once when the platform can
+	// keep the function alive after the response, awaited otherwise.
+	return defer ? defer(event.type, () => dispatch(event, env)) : dispatch(event, env);
+}
+
+type DeferWork = (type: string, work: () => Promise<Response>) => Response;
+
+/** The work of one verified delivery: role sync, the feed, the board, the labels, the aggregate and the checks. */
+async function dispatch(event: SentinelEvent, env: Env): Promise<Response> {
 	// Role sync (holocron#1595): a team or org membership change keeps the server roles equal to their GitHub
 	// teams. Org-level, so it has no repo and none of the checks below apply. A deployment that has not set
 	// it up (see RoleSyncEnv) answers `skipped`; a sync that runs and fails answers 500, so the delivery shows

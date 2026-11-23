@@ -1871,6 +1871,75 @@ describe("handleWebhookRequest — role sync (holocron#1595)", () => {
 	});
 });
 
+describe("handleWebhookRequest — waitUntil (answer first, work after)", () => {
+	const teamEvent = {
+		handled: true as const,
+		event: { type: "team.membership" as const, org: "acme", team: "gatekeepers", installationId: 5, raw: {} },
+	};
+
+	it("answers 202 before the work finishes and flushes only when the work has", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(teamEvent);
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		let release!: () => void;
+		vi.mocked(runRoleSync).mockReturnValue(
+			new Promise((resolve) => {
+				release = () => resolve({ status: "skipped", reason: "off" });
+			})
+		);
+		const pending: Promise<unknown>[] = [];
+		const res = await handleWebhookRequest(req(), ENV, { waitUntil: (p) => pending.push(p) });
+		expect(res.status).toBe(202);
+		expect(await res.json()).toEqual({ handled: true, type: "team.membership", deferred: true });
+		expect(pending).toHaveLength(1);
+		expect(fakeFlush).not.toHaveBeenCalled();
+		release();
+		await Promise.all(pending);
+		expect(runRoleSync).toHaveBeenCalledTimes(1);
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+
+	it("still rejects a bad signature with 401 and defers nothing", async () => {
+		vi.mocked(parseWebhookEvent).mockImplementation(() => {
+			throw new WebhookVerificationError("bad signature");
+		});
+		const waitUntil = vi.fn();
+		const res = await handleWebhookRequest(req(), ENV, { waitUntil });
+		expect(res.status).toBe(401);
+		expect(waitUntil).not.toHaveBeenCalled();
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+
+	it("answers a ping and an unhandled event at once, without deferring", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: false, reason: "x", githubEvent: "ping" });
+		const waitUntil = vi.fn();
+		const res = await handleWebhookRequest(req(), ENV, { waitUntil });
+		expect(res.status).toBe(200);
+		expect(waitUntil).not.toHaveBeenCalled();
+	});
+
+	it("logs and sends to the error tracker an error thrown by the deferred work, never swallowing it", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(teamEvent);
+		vi.mocked(createInstallationClient).mockRejectedValue(new Error("token exchange failed"));
+		const pending: Promise<unknown>[] = [];
+		const res = await handleWebhookRequest(req(), ENV, { waitUntil: (p) => pending.push(p) });
+		expect(res.status).toBe(202);
+		await Promise.all(pending);
+		expect(fakeErrorSink.captureException).toHaveBeenCalledTimes(1);
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+
+	it("logs a 5xx the deferred work would have answered", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(teamEvent);
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(runRoleSync).mockResolvedValue({ status: "fail", reason: "Discord is down" });
+		const pending: Promise<unknown>[] = [];
+		const res = await handleWebhookRequest(req(), ENV, { waitUntil: (p) => pending.push(p) });
+		expect(res.status).toBe(202);
+		await Promise.all(pending);
+		expect(fakeFlush).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 	const feedEvent = (type: "pull_request.feed" | "pull_request_review" | "check_run.completed") => ({
 		handled: true as const,

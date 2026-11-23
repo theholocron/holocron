@@ -23,8 +23,20 @@
 
 import { handleWebhookRequest } from "../dist/index.mjs";
 
+/**
+ * Vercel's `waitUntil` (what `@vercel/functions` exports), read from the request context Vercel's runtime puts on
+ * `globalThis`, so no dependency is added to the trimmed deploy. `undefined` anywhere else, and `handleWebhookRequest`
+ * then awaits the work as before. GitHub gives up on a delivery after about 10 seconds; with this the signature is
+ * checked, `202` is sent and the work runs after the response, for as long as `maxDuration` in `vercel.json` allows.
+ */
+function vercelWaitUntil() {
+	const context = globalThis[Symbol.for("@vercel/request-context")]?.get?.();
+	const waitUntil = context?.waitUntil;
+	return typeof waitUntil === "function" ? (promise) => waitUntil.call(context, promise) : undefined;
+}
+
 export default {
 	fetch(request) {
-		return handleWebhookRequest(request, process.env);
+		return handleWebhookRequest(request, process.env, { waitUntil: vercelWaitUntil() });
 	},
 };
