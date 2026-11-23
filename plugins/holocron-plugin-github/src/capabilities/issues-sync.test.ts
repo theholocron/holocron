@@ -3,7 +3,13 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { type FakeIssueFields, PRIORITY_FIELD, withIssueFields } from "./issue-fields.testing.js";
+import {
+	EFFORT_FIELD,
+	type FakeIssueFields,
+	PRIORITY_FIELD,
+	TARGET_DATE_FIELD,
+	withIssueFields,
+} from "./issue-fields.testing.js";
 import { GitHubIssues } from "./issues.js";
 import { isRateLimited } from "./issues-sync.js";
 
@@ -256,6 +262,52 @@ describe("GitHubIssues.sync", () => {
 		await expect(denied.issues.sync?.([record()])).rejects.toThrow();
 		const broken = make([{ body: [] }, { status: 422, body: { message: "bad" } }]);
 		await expect(broken.issues.sync?.([record()])).rejects.toThrow();
+	});
+});
+
+describe("GitHubIssues.sync Effort and dates (#2496)", () => {
+	const fields = [EFFORT_FIELD, TARGET_DATE_FIELD];
+	const NEW = () => [{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }];
+
+	it("sets them on a new issue the record carries them for", async () => {
+		const { issues, fieldCalls } = make(NEW(), { fields });
+		const [res] =
+			(await issues.sync?.([record({ priority: undefined, effort: "high", targetDate: "2026-04-01" })])) ?? [];
+		expect(res?.dropped.join(" ")).not.toMatch(/effort|target date/);
+		expect(fieldCalls.filter((c) => c.method === "POST")).toHaveLength(2);
+	});
+
+	it("reports an org with no such field for a new issue", async () => {
+		const { issues } = make(NEW());
+		const [res] = (await issues.sync?.([record({ priority: undefined, effort: "high" })])) ?? [];
+		expect(res?.dropped).toContain("effort field (theholocron has no Effort issue field)");
+	});
+
+	it("sets them on an issue it made when they differ, and leaves them alone when they match", async () => {
+		const current = (value: string) => ({ issue_field_id: TARGET_DATE_FIELD.id, data_type: "date", value });
+		const differs = make([{ body: [made({ labels: [{ name: "Bug" }] })] }, { body: [comment(HAN)] }], {
+			fields,
+			values: { 30: [current("2026-01-01")] },
+		});
+		const [res] =
+			(await differs.issues.sync?.([record({ priority: undefined, effort: "low", targetDate: "2026-04-01" })])) ??
+			[];
+		expect(res).toMatchObject({ updated: true, changes: ["effort", "targetDate"] });
+
+		const same = make([{ body: [made({ labels: [{ name: "Bug" }] })] }, { body: [comment(HAN)] }], {
+			fields,
+			values: { 30: [current("2026-04-01")] },
+		});
+		const [unchanged] =
+			(await same.issues.sync?.([record({ priority: undefined, targetDate: "2026-04-01" })])) ?? [];
+		expect(unchanged).toMatchObject({ updated: false, changes: [] });
+	});
+
+	it("never clears a value a record without one leaves, and reports a field the org lacks", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], { fields: [] });
+		const [res] = (await issues.sync?.([record({ priority: undefined, startDate: "2026-03-01" })])) ?? [];
+		expect(res?.dropped).toContain("start date field (theholocron has no Start date issue field)");
+		expect(fieldCalls.filter((c) => c.method !== "GET")).toEqual([]);
 	});
 });
 

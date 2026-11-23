@@ -3,7 +3,14 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { type FakeIssueFields, PRIORITY_FIELD, withIssueFields } from "./issue-fields.testing.js";
+import {
+	EFFORT_FIELD,
+	type FakeIssueFields,
+	PRIORITY_FIELD,
+	START_DATE_FIELD,
+	TARGET_DATE_FIELD,
+	withIssueFields,
+} from "./issue-fields.testing.js";
 import { GitHubIssues } from "./issues.js";
 
 const REPO = "theholocron/holocron";
@@ -87,6 +94,27 @@ describe("GitHubIssues.export", () => {
 		expect(r?.comments).toEqual([{ author: "leia", body: "c1", createdAt: "2026-01-05T00:00:00Z" }]);
 	});
 
+	it("reads Effort, Start date and Target date from the issue's field values (#2496)", async () => {
+		const { issues, fieldCalls } = make([{ body: raw() }, { body: [] }, links(null, [])], {
+			fields: [EFFORT_FIELD, START_DATE_FIELD, TARGET_DATE_FIELD],
+			values: {
+				7: [
+					{
+						issue_field_id: EFFORT_FIELD.id,
+						data_type: "single_select",
+						value: "High",
+						single_select_option: { id: 1, name: "High", color: "red" },
+					},
+					{ issue_field_id: START_DATE_FIELD.id, data_type: "date", value: "2026-03-01" },
+					{ issue_field_id: TARGET_DATE_FIELD.id, data_type: "date", value: "2026-04-01" },
+				],
+			},
+		});
+		const [r] = await issues.export({ keys: ["#7"] });
+		expect(r).toMatchObject({ effort: "high", startDate: "2026-03-01", targetDate: "2026-04-01" });
+		expect(fieldCalls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
 	it("fetches a board's issues a few at a time, not all at once, and keeps their order (#1957)", async () => {
 		let inFlight = 0;
 		let most = 0;
@@ -97,11 +125,12 @@ describe("GitHubIssues.export", () => {
 			inFlight--;
 			const url = String(input);
 			const number = Number(/issues\/(\d+)/.exec(url)?.[1]);
-			const body = url.includes("/comments")
-				? []
-				: url.includes("graphql")
-					? { data: { repository: { issue: { parent: null, blockedBy: { nodes: [] } } } } }
-					: raw({ number, html_url: `https://github.com/theholocron/holocron/issues/${number}` });
+			const body =
+				url.includes("/comments") || url.includes("/issue-fields")
+					? []
+					: url.includes("graphql")
+						? { data: { repository: { issue: { parent: null, blockedBy: { nodes: [] } } } } }
+						: raw({ number, html_url: `https://github.com/theholocron/holocron/issues/${number}` });
 			return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
 		}) as typeof globalThis.fetch;
 		const issues = new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO });
@@ -210,7 +239,7 @@ describe("GitHubIssues.export with a limit", () => {
 			const url = String(input);
 			const number = Number(/issues\/(\d+)/.exec(url)?.[1]);
 			let body: unknown;
-			if (url.includes("/comments")) body = [];
+			if (url.includes("/comments") || url.includes("/issue-fields")) body = [];
 			else if (url.includes("graphql"))
 				body = { data: { repository: { issue: { parent: null, blockedBy: { nodes: [] } } } } };
 			else {
@@ -345,6 +374,26 @@ describe("GitHubIssues.import", () => {
 		const without = make(queue());
 		const [bare] = await without.issues.import([record()]);
 		expect(bare?.dropped).toContain("priority field (theholocron has no Priority issue field)");
+	});
+
+	it("sets Effort and the dates of the issue it makes, and reports what the org cannot hold (#2496)", async () => {
+		const queue = () => [{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }];
+		const full = make(queue(), { fields: [EFFORT_FIELD, START_DATE_FIELD, TARGET_DATE_FIELD] });
+		const [res] = await full.issues.import([
+			record({ effort: "medium", startDate: "2026-03-01", targetDate: "2026-04-01" }),
+		]);
+		expect(res?.dropped.join(" ")).not.toMatch(/effort|start date|target date/);
+		const writes = full.fieldCalls.filter((c) => c.method === "POST").map((c) => c.body);
+		expect(writes).toContainEqual({ issue_field_values: [{ field_id: EFFORT_FIELD.id, value: "Medium" }] });
+		expect(writes).toContainEqual({ issue_field_values: [{ field_id: START_DATE_FIELD.id, value: "2026-03-01" }] });
+		expect(writes).toContainEqual({
+			issue_field_values: [{ field_id: TARGET_DATE_FIELD.id, value: "2026-04-01" }],
+		});
+
+		const bare = make(queue());
+		const [dropped] = await bare.issues.import([record({ effort: "high", targetDate: "2026-04-01" })]);
+		expect(dropped?.dropped).toContain("effort field (theholocron has no Effort issue field)");
+		expect(dropped?.dropped).toContain("target date field (theholocron has no Target date issue field)");
 	});
 
 	it("skips what an earlier run made", async () => {

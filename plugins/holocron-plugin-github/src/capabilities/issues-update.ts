@@ -12,15 +12,14 @@
  * Not verified against the live API: writing Type, Effort and the dates, the sub-issue and dependency endpoints.
  */
 
-import type { IssueClearable, IssueEffort, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
+import type { IssueClearable, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
 import { createFieldSetter, fieldRefusal, type FieldSetter } from "./issue-field-setter.js";
 import type { KindNames } from "./issue-kind.js";
 import { PRIORITY_OPTION_NAMES } from "./issue-priority.js";
-
-const EFFORT_NAMES: Record<IssueEffort, string> = { high: "High", medium: "Medium", low: "Low" };
+import { EFFORT_NAMES } from "./issue-work-fields.js";
 
 /** What the field writers need to know about the repository. */
 export interface FieldContext {

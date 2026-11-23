@@ -10,15 +10,13 @@
  * `dropped` line, not a failure (how Linear answers is not verified).
  */
 
-import type { IssueClearable, IssueEffort, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
+import type { IssueClearable, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
 import type { LinearIssue, LinearIssueUpdate } from "@theholocron/linear-client";
 
 import { CORE_KIND_LABELS } from "./issue-kind.js";
+import { ESTIMATE } from "./issue-work-fields.js";
 import { normalizeKey, pickState, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
-
-/** Linear's estimate for each effort, on the usual 1-3-5 scale. */
-const ESTIMATE: Record<IssueEffort, number> = { low: 1, medium: 3, high: 5 };
 
 /** A person can read why a call failed. */
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err));

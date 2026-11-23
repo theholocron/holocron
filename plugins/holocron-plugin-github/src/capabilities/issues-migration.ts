@@ -28,8 +28,10 @@ import {
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { createFieldSetter } from "./issue-field-setter.js";
 import { CORE_KIND_NAMES, type KindNames, kindOfIssue, writeKind } from "./issue-kind.js";
 import { createPrioritySetter } from "./issue-priority.js";
+import { createWorkFieldReader, writeWorkFields } from "./issue-work-fields.js";
 
 export const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
 const PRIORITY_LABEL = /^priority\s*[:/-]\s*(urgent|high|medium|low)$/i;
@@ -160,6 +162,7 @@ async function readIssues(
 		if (limit !== undefined) issues = pickByCreation(issues, (i) => i.created_at ?? i.updated_at, order, limit);
 	}
 
+	const work = createWorkFieldReader(client, repo);
 	const records: IssueRecord[] = [];
 	for (const issue of issues) {
 		reportProgress(info.onProgress, records.length, issues.length);
@@ -172,6 +175,7 @@ async function readIssues(
 		const body = issue.body?.replace(MARKER, "").trimEnd();
 		const migratedFrom = issue.body ? MARKER.exec(issue.body)?.[1] : undefined;
 		const kind = kindOfIssue(issue, kinds);
+		const workFields = await work.read(issue.number);
 		records.push({
 			key: `#${issue.number}`,
 			url: issue.html_url,
@@ -182,6 +186,7 @@ async function readIssues(
 			...(priority ? { priority } : {}),
 			labels: labels.filter((l) => !l.toLowerCase().startsWith("status:")),
 			...(kind ? { kind } : {}),
+			...workFields,
 			...(issue.assignee
 				? {
 						assignee: {
@@ -223,6 +228,7 @@ export async function importIssues(
 	}
 
 	const priority = createPrioritySetter(client, repo);
+	const fields = createFieldSetter(client, repo);
 	const results: ImportResult[] = [];
 	const tick = () => reportProgress(options.onProgress, results.length, records.length);
 	for (const record of records) {
@@ -241,6 +247,7 @@ export async function importIssues(
 		const number = await createFromRecord(client, repo, record, options);
 		const field = await priority.set(number, record.priority, { isNew: true });
 		if (field.note) dropped.push(field.note);
+		dropped.push(...(await writeWorkFields(fields, number, record, { isNew: true })).notes);
 		const kindNote = record.kind ? await writeKind(client, repo, number, record.kind, kinds) : undefined;
 		if (kindNote) dropped.push(kindNote);
 		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
