@@ -1,0 +1,44 @@
+---
+title: "apply issue-types"
+description: Make the organization's issue Types match the issueTypes the org area declares.
+---
+
+```bash
+holocron apply issue-types --dry-run   # read the organization's Types, print what would change
+holocron apply issue-types             # asks first
+holocron apply issue-types --yes       # no question
+holocron apply issue-types --update    # also set a differing description or colour
+```
+
+The organization's issue Types (GitHub's Bug, Feature and Task, and any it adds) are an organization setting. The org area (`.holocron/org.ts`) declares the ones this organization wants in `issueTypes`; this command reads the organization's list and makes what is missing. A name is matched ignoring case, so a Type that differs only by case exists and is not made again.
+
+```text
+  · Epic   would create
+  ✓ Bug    exists
+  · Task   would update description
+      - description: was "A task", to "A specific piece of work"
+```
+
+## What it changes
+
+- **Creates** each declared Type the organization lacks, in the order the declaration lists them.
+- **`--update`** also sets `description` and `color` on a Type that exists and differs, only a field the declaration states. It lists each change (`was` and `to`) first.
+- It **never deletes** a Type, **never renames** one and **never changes `enabled`**: turning a Type off or on hides it for everyone, so a declared Type that is turned off is only reported (`exists (turned off in the organization)`) and a person flips it.
+- A Type that exists is otherwise left alone, whatever its description or colour, so a person's edit in the settings is not overwritten by a plain run. A second run changes nothing.
+
+With no `issueTypes` declared it is a skipped row and writes nothing. A provider that has no Types (Linear) is a skipped row that says so.
+
+## It writes, so it asks
+
+The Types are organization-wide. Without `--yes` it lists every Type to make and every field to update and asks (default no); a no changes nothing and exits 0. Without a terminal and without `--yes` it refuses instead of waiting for an answer. `--dry-run` only reads and never asks.
+
+## Limits and failures
+
+- **The limit.** GitHub documents up to 25 issue types for an organization, the defaults included. Before writing anything it counts the Types that exist plus those it would make; over 25 it fails naming the count and writes none. (The 25 is from GitHub's documentation of the settings, not the REST page, and is not verified.)
+- A create that answers 409 or 422 for a name that now exists (a second run, a person) is read again and counted as existing; any other 4xx is a failing row, and the other Types go on.
+- A rate limit stops the run cleanly, names what is left and fails; run it again to finish.
+- A refused token is a failing row naming the permission (below). The `setup` step that calls the same function reports it as a skipped row instead.
+
+## Token
+
+Reading needs the organization permission Issue types: read; creating and updating need Issue types: write and an organization admin (`HOLOCRON_ORG_TOKEN`). `--token github=<token>` replaces it for the run. A token that can read does not prove it can write: the first real run is the proof.

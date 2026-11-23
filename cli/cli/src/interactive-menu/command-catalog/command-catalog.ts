@@ -1,5 +1,6 @@
 import { createCommandRegistry } from "@theholocron/kyber/menu";
 
+import { applyIssueTypesEntry } from "../../commands/apply-issue-types/apply-issue-types.entry.js";
 import { authCheckEntry } from "../../commands/auth/auth-check.entry.js";
 import { authListEntry } from "../../commands/auth/auth-list.entry.js";
 import { authSetEntry } from "../../commands/auth/auth-set.entry.js";
@@ -119,6 +120,7 @@ const registry = createCommandRegistry(
 		doctorWorkersEntry,
 		projectMoveEntry,
 		repoPropertiesApplyEntry,
+		applyIssueTypesEntry,
 		migrateIssueEntry,
 		migrateIssuesEntry,
 		migrateProjectEntry,

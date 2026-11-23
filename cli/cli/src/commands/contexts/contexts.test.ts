@@ -29,6 +29,7 @@ const EVERY_COMMAND = [
 	"setup project",
 	"project status",
 	"apply properties",
+	"apply issue-types",
 	"migrate issue",
 	"migrate issues",
 	"migrate project",

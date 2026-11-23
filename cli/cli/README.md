@@ -796,6 +796,11 @@ See the [command pages](https://theholocron.dev/holocron/commands/setup-notifica
   custom property does not allow yet (`holocron doctor repo` names them). The allowed values are organization-wide, so it
   asks first (`--yes` skips the question; `--dry-run` only reads). It only adds values: nothing is removed or reordered
   and the rest of the definition is kept. It needs a token with the organization's Custom properties: admin.
+- **`holocron apply issue-types [--update] [--yes]`** — makes the organization's issue Types match the `issueTypes` the
+  org area declares: creates the missing ones in declaration order and, with `--update`, sets a differing description or
+  colour. It never deletes, renames or turns a Type on or off, asks first (`--yes` skips the question; `--dry-run` only
+  reads), refuses to write when existing plus new Types would pass GitHub's 25, and needs the organization permission
+  Issue types: write (`HOLOCRON_ORG_TOKEN`) and an organization admin.
 - **`holocron cleanup branches [--local | --remote]`** — lists the branches whose pull request is merged,
   grouped, each saying whether it lives locally, on the remote or both; then asks, and offers a checklist with the
   proven-merged ones ticked. Proven merged means an ancestor of `origin/alpha` or `origin/main`, or the head (or an

@@ -10,6 +10,8 @@ export type {
 } from "./commands/auth/index.js";
 // What `holocron sync` writes to `codecov.yml`, by name, for a coverage provider's `checkRepo()` (#2167).
 export * from "./commands/coverage-expectations/index.js";
+// One function makes the organization's issue Types from the org area's declaration; `apply issue-types` and the `setup` step call it (#2512).
+export * from "./commands/issue-types/index.js";
 export * from "./commands/notifications-reaction/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
 // Sentinel's board handler reads `providers.projects` and the built-in templates the way `reconcile project` does (#2388).
