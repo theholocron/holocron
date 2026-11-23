@@ -550,11 +550,149 @@ describe("parseWebhookEvent — check_run events", () => {
 		expect(event["deliveryId"]).toBeUndefined();
 	});
 
-	it("leaves any other check run, and any other action, unhandled", () => {
-		for (const body of [run({ name: "test:unit / Conclusion" }), run({}, "created")]) {
+	it("leaves the shadow aggregate's own completion, and any created check run, unhandled", () => {
+		for (const body of [
+			run({ name: "ci / Required checks (sentinel)" }),
+			run({ name: "test:unit / Conclusion" }, "created"),
+		]) {
 			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "check_run"), secret: SECRET });
 			expect(result.handled).toBe(false);
 		}
+	});
+
+	it("normalizes any other completed check run as a leaf for the ci aggregate, with each pull request's base branch", () => {
+		const body = run({
+			name: "test:unit / Conclusion",
+			pull_requests: [{ number: 12, base: { ref: "alpha" } }, { number: 13 }],
+		});
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "check_run"), secret: SECRET });
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "check_run.leaf",
+			repo: "acme/widgets",
+			installationId: 3,
+			action: "completed",
+			headSha: "abc1234",
+			checkName: "test:unit / Conclusion",
+			pullNumbers: [12, 13],
+			pullRequests: [{ number: 12, baseRef: "alpha" }, { number: 13 }],
+		});
+	});
+
+	it("normalizes a Re-run on the aggregate or its shadow, and leaves the delivery id out when absent", () => {
+		for (const name of ["ci / Required checks", "ci / Required checks (sentinel)"]) {
+			const body = run({ name }, "rerequested");
+			const headers = signedHeaders(body, "check_run", { "x-github-delivery": undefined });
+			const event = (
+				parseWebhookEvent({ body, headers, secret: SECRET }) as unknown as { event: Record<string, unknown> }
+			).event;
+			expect(event).toMatchObject({ type: "check_run.rerequested", checkName: name, headSha: "abc1234" });
+			expect(event["deliveryId"]).toBeUndefined();
+		}
+		const other = run({ name: "test:unit / Conclusion" }, "rerequested");
+		expect(
+			parseWebhookEvent({ body: other, headers: signedHeaders(other, "check_run"), secret: SECRET }).handled
+		).toBe(false);
+	});
+
+	it("defaults the installation of a leaf with none", () => {
+		const body = JSON.stringify({
+			action: "completed",
+			check_run: { name: "a / b", head_sha: "s", conclusion: "success", html_url: "u", pull_requests: [] },
+			repository: { full_name: "acme/widgets" },
+		});
+		const event = (
+			parseWebhookEvent({ body, headers: signedHeaders(body, "check_run"), secret: SECRET }) as unknown as {
+				event: { installationId: number; pullRequests: unknown[] };
+			}
+		).event;
+		expect(event.installationId).toBe(0);
+		expect(event.pullRequests).toEqual([]);
+	});
+});
+
+describe("parseWebhookEvent — status events", () => {
+	const status = (extra: Record<string, unknown> = {}) =>
+		JSON.stringify({
+			sha: "abc1234",
+			context: "codecov/patch",
+			state: "success",
+			branches: [{ name: "feat/x" }, { name: "alpha" }],
+			repository: { full_name: "acme/widgets" },
+			installation: { id: 3 },
+			...extra,
+		});
+
+	it("normalizes a commit status with its commit, context and branches", () => {
+		const body = status();
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "status"), secret: SECRET });
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "status",
+			repo: "acme/widgets",
+			installationId: 3,
+			headSha: "abc1234",
+			checkName: "codecov/patch",
+			branches: ["feat/x", "alpha"],
+		});
+	});
+
+	it("copes with a status that names no branches, no installation and no delivery id", () => {
+		const body = status({ branches: undefined, installation: undefined });
+		const headers = signedHeaders(body, "status", { "x-github-delivery": undefined });
+		const event = (
+			parseWebhookEvent({ body, headers, secret: SECRET }) as unknown as { event: Record<string, unknown> }
+		).event;
+		expect(event["branches"]).toEqual([]);
+		expect(event["installationId"]).toBe(0);
+		expect(event["deliveryId"]).toBeUndefined();
+	});
+});
+
+describe("parseWebhookEvent — pull request head and base", () => {
+	it("carries the head commit and the base branch of a pull request delivery for the ci aggregate", () => {
+		const body = JSON.stringify({
+			action: "synchronize",
+			number: 5,
+			pull_request: { number: 5, head: { sha: "headsha" }, base: { ref: "alpha" } },
+			repository: { full_name: "acme/widgets" },
+			installation: { id: 3 },
+		});
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "pull_request.synchronize",
+			headSha: "headsha",
+			pullRequests: [{ number: 5, baseRef: "alpha" }],
+		});
+	});
+
+	it("leaves them out when the payload has no pull request object or number", () => {
+		const body = JSON.stringify({
+			action: "opened",
+			repository: { full_name: "acme/widgets" },
+			installation: { id: 3 },
+		});
+		const event = (
+			parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET }) as unknown as {
+				event: Record<string, unknown>;
+			}
+		).event;
+		expect(event).not.toHaveProperty("headSha");
+		expect(event).not.toHaveProperty("pullRequests");
+		const noBase = JSON.stringify({
+			action: "opened",
+			number: 6,
+			pull_request: { number: 6 },
+			repository: { full_name: "acme/widgets" },
+		});
+		const second = (
+			parseWebhookEvent({
+				body: noBase,
+				headers: signedHeaders(noBase, "pull_request"),
+				secret: SECRET,
+			}) as unknown as {
+				event: Record<string, unknown>;
+			}
+		).event;
+		expect(second["pullRequests"]).toEqual([{ number: 6 }]);
 	});
 });
 

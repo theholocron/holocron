@@ -11,6 +11,12 @@ export type SentinelEventType =
 	| "pull_request_review"
 	/** A completed `ci / Required checks` check run; only the #prs feed reads it. */
 	| "check_run.completed"
+	/** A completed check run that is not the aggregate: only the `ci` aggregate (SPEC-0099) reads it. */
+	| "check_run.leaf"
+	/** The Re-run button pressed on the aggregate (or its shadow): the `ci` aggregate recomputes that commit. */
+	| "check_run.rerequested"
+	/** A commit status; only the `ci` aggregate reads it, for the contexts in its `statuses`. */
+	| "status"
 	/** An `issues` `opened`, or an `edited` that changed the title; only the area labels read it. */
 	| "issues.area"
 	| "team.membership"
@@ -39,6 +45,14 @@ export interface SentinelEvent {
 	issueNumber?: number;
 	/** Set for `check_run.completed` only. */
 	checkRun?: SentinelCheckRun;
+	/** The commit the delivery is about: a check run's or a status's commit, a pull request's head. */
+	headSha?: string;
+	/** The pull requests a `pull_request*` or `check_run*` delivery names, each with its base branch when the payload gives one. */
+	pullRequests?: Array<{ number: number; baseRef?: string }>;
+	/** The name of the check run (`check_run.leaf`, `check_run.rerequested`) or the context of the status (`status`). */
+	checkName?: string;
+	/** The branches a `status` delivery says the commit is the head of. */
+	branches?: string[];
 	/** `"owner/repo"` — absent for installation events, which aren't scoped to one repo. */
 	repo?: string;
 	/** The organisation the delivery is about: set for the two org-level events (`team.membership`, `organization.member-removed`) only. */
@@ -114,9 +128,21 @@ export interface GitHubCheckRunWebhookPayload {
 		conclusion: string | null;
 		html_url: string;
 		details_url?: string | null;
-		/** The pull requests the run's commit is in; empty for a fork's. */
-		pull_requests: Array<{ number: number }>;
+		/** The pull requests the run's commit is in, each with its base branch; empty for a fork's. */
+		pull_requests: Array<{ number: number; base?: { ref?: string } }>;
 	};
+	repository: { full_name: string };
+	installation?: { id: number };
+}
+
+/** The part of a `status` delivery Sentinel reads. */
+export interface GitHubStatusWebhookPayload {
+	/** The commit the status is on. */
+	sha: string;
+	/** The context that posted it, such as `codecov/patch`. */
+	context: string;
+	/** The branches whose head is the commit. */
+	branches?: Array<{ name: string }>;
 	repository: { full_name: string };
 	installation?: { id: number };
 }

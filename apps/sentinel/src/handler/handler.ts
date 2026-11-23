@@ -181,6 +181,7 @@ import { createLogger } from "@theholocron/observability/logger";
 
 import {
 	type AutoFixKind,
+	ciAggregateMode,
 	commitEditorConfigFix,
 	commitFormattingFix,
 	commitMarkdownLintFix,
@@ -211,12 +212,15 @@ import {
 	type RunAreaLabelsResult,
 	runBoardStatus,
 	type RunBoardStatusResult,
+	runCiAggregate,
+	type RunCiAggregateResult,
 	runPrFeed,
 	type RunPrFeedResult,
 	runRoleSync,
 	syncPropertiesFromConfig,
 	toAreaLabelsTrigger,
 	toBoardStatusTrigger,
+	toCiAggregateTrigger,
 	toPrFeedTrigger,
 	validateAdrs,
 	validateDocsPresence,
@@ -233,6 +237,7 @@ import {
 	SENTINEL_AREA_LABELS_LOG_MSG,
 	SENTINEL_BOARD_STATUS_LOG_MSG,
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
+	SENTINEL_CI_AGGREGATE_LOG_MSG,
 	SENTINEL_COMMIT_STANDARDS_LOG_MSG,
 	SENTINEL_DCO_LOG_MSG,
 	SENTINEL_DOCS_PRESENCE_LOG_MSG,
@@ -465,6 +470,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		return json({ handled: true, type: event.type, areaLabels });
 	}
 
+	// The `ci` aggregate (SPEC-0099): a finished check run, a Re-run on the aggregate and a commit status are for it
+	// alone. Answered 500 on a failure, so the delivery shows as failed and can be redelivered (the compute is idempotent).
+	if (CI_AGGREGATE_ONLY_EVENTS.has(event.type)) {
+		const ciAggregate = await runCiAggregateFor(event, repo, env);
+		return json({ handled: true, type: event.type, ciAggregate }, ciAggregate?.status === "fail" ? 500 : 200);
+	}
+
 	const trigger = toPrFeedTrigger(event);
 	if (trigger) {
 		const prFeed = await runFeed(event, repo, trigger, env);
@@ -473,15 +485,56 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		const boardStatus = await runBoard(event, repo, env);
 		// So do a pull request's area labels (#2430): add-only, and a miss is repaired by the next push or title edit.
 		const areaLabels = await runAreas(event, repo, env);
+		// And the `ci` aggregate: its own result never changes the status here, because the sweep repairs a miss.
+		const ciAggregate = await runCiAggregateFor(event, repo, env);
 		if (FEED_ONLY_EVENTS.has(event.type)) {
 			return json(
-				{ handled: true, type: event.type, prFeed, boardStatus, areaLabels },
+				{ handled: true, type: event.type, prFeed, boardStatus, areaLabels, ciAggregate },
 				prFeed.status === "fail" ? 500 : 200
 			);
 		}
-		return withPrFeed(await handleChecks(event, repo, env), prFeed, boardStatus, areaLabels);
+		return withPrFeed(await handleChecks(event, repo, env), prFeed, boardStatus, areaLabels, ciAggregate);
 	}
+	// A pull request action the feed does not read (opened and pushed to are read by it, so they never get here).
 	return handleChecks(event, repo, env);
+}
+
+/** Events only the `ci` aggregate reads: no check, feed or board runs for them. */
+const CI_AGGREGATE_ONLY_EVENTS: ReadonlySet<SentinelEvent["type"]> = new Set([
+	"check_run.leaf",
+	"check_run.rerequested",
+	"status",
+]);
+
+/**
+ * Runs the `ci` aggregate for a delivery it reads and logs its result; `undefined` for any other event. Does nothing, and
+ * fetches nothing, unless `SENTINEL_CI_AGGREGATE=shadow` is set, so a finished check run costs a deployment that has not
+ * turned it on only this call. Never throws.
+ */
+async function runCiAggregateFor(
+	event: SentinelEvent,
+	repo: string,
+	env: Env
+): Promise<RunCiAggregateResult | undefined> {
+	const trigger = toCiAggregateTrigger(event);
+	if (!trigger) return undefined;
+	if (ciAggregateMode(env) === "off") return { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow" };
+	let ciAggregate: RunCiAggregateResult;
+	let thrown: unknown;
+	try {
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		ciAggregate = await runCiAggregate({ client, env, repo, trigger });
+	} catch (err) {
+		thrown = err;
+		ciAggregate = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
+	}
+	if (ciAggregate.status === "fail") {
+		errors.capture(thrown ?? new Error(`ci aggregate failed: ${ciAggregate.reason}`));
+		logger.error({ repo, type: event.type, ciAggregate }, SENTINEL_CI_AGGREGATE_LOG_MSG);
+	} else {
+		logger.info({ repo, type: event.type, ciAggregate }, SENTINEL_CI_AGGREGATE_LOG_MSG);
+	}
+	return ciAggregate;
 }
 
 /** Events only the feed reads: no check of the pipeline below runs for them. */
@@ -573,10 +626,14 @@ async function withPrFeed(
 	response: Response,
 	prFeed: RunPrFeedResult,
 	boardStatus?: RunBoardStatusResult,
-	areaLabels?: RunAreaLabelsResult
+	areaLabels?: RunAreaLabelsResult,
+	ciAggregate?: RunCiAggregateResult
 ): Promise<Response> {
 	const body = (await response.json()) as Record<string, unknown>;
-	return json({ ...body, prFeed, boardStatus, areaLabels }, prFeed.status === "fail" ? 500 : response.status);
+	return json(
+		{ ...body, prFeed, boardStatus, areaLabels, ciAggregate },
+		prFeed.status === "fail" ? 500 : response.status
+	);
 }
 
 /** The check pipelines for a `push.default-branch` or `pull_request.*` event (everything below). */

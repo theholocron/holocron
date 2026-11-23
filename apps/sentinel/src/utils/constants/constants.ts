@@ -75,6 +75,10 @@ export const SENTINEL_BOARD_STATUS_LOG_MSG = "runBoardStatus: finished";
 export const SENTINEL_AREA_LABELS_LOG_MSG = "runAreaLabels: finished";
 /** The one check run whose completion tells the #prs feed how CI went: the `ci` aggregate (holocron#1613). Other check runs are dropped before anything is fetched. */
 export const SENTINEL_PR_FEED_CHECK_NAME = "ci / Required checks";
+/** The name Sentinel posts the `ci` aggregate under while it runs beside the Actions poller (shadow): not required, never read by the feed or the board (spec `process-sentinel-posts-ci`, SPEC-0099). */
+export const SENTINEL_CI_AGGREGATE_SHADOW_NAME = "ci / Required checks (sentinel)";
+/** Logged once per `ci` aggregate delivery, whatever its result (SPEC-0099) — never hand-copy this string elsewhere. */
+export const SENTINEL_CI_AGGREGATE_LOG_MSG = "runCiAggregate: finished";
 /** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_EDITORCONFIG_LOG_MSG = "postEditorConfigCheck: posted";
 /** Logged once `commitEditorConfigFix()` actually commits a fix — never hand-copy this string elsewhere. */
