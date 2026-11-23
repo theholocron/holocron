@@ -53,6 +53,7 @@ on: # yamllint disable-line rule:truthy
       - deploy-sentinel
       - sync-specs
       - reconcile-projects
+      - reconcile-ci
       - sync-issues
       - remind-doctor
       - measure:docs

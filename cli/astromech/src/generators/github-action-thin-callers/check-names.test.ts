@@ -106,6 +106,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	preview: ["preview / Preview", "preview / Clean up Preview"],
 	"publish-wiki": ["publish-wiki / Publish to Fern", "publish-wiki / Publish to Fern"],
 	"reconcile-projects": ["reconcile-projects / Reconcile and check the boards"],
+	"reconcile-ci": ["reconcile-ci / Bring the ci check up to date"],
 	"remind-doctor": ["remind-doctor / Remind to run the drift check"],
 	release: [
 		"release / Semantic release",

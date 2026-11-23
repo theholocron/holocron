@@ -12,6 +12,8 @@ export interface AggregateCheckRun {
 	startedAt: string | null;
 	/** A link to the run, `null` when there is none. */
 	url: string | null;
+	/** The slug of the app that posted the run (`github-actions` for a workflow's), `null` or absent when unknown. */
+	appSlug?: string | null;
 }
 
 /** A commit status on the head commit. */

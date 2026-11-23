@@ -7,7 +7,7 @@ import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runReconcileCi } from "./run-reconcile-ci/index.js";
 
-type Args = GlobalArgs & { "pull-request"?: number; "max-age"?: number };
+type Args = GlobalArgs & { "pull-request"?: number; "max-age"?: number; shadow?: boolean };
 
 export const reconcileCiCommand: CommandModule<GlobalArgs, Args> = {
 	command: "ci [pull-request]",
@@ -18,6 +18,11 @@ export const reconcileCiCommand: CommandModule<GlobalArgs, Args> = {
 			.positional("pull-request", {
 				type: "number",
 				describe: "Reconcile only this pull request (default: every open one)",
+			})
+			.option("shadow", {
+				type: "boolean",
+				describe:
+					"Repair Sentinel's shadow check (ci / Required checks (sentinel)) instead of the real one; the only way to post while ci.aggregate is actions",
 			})
 			.option("max-age", {
 				type: "number",
@@ -34,6 +39,7 @@ export const reconcileCiCommand: CommandModule<GlobalArgs, Args> = {
 			context: { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org: resolveOrg(argv, loaded.resolved) },
 			...(argv["pull-request"] !== undefined ? { pullRequest: Number(argv["pull-request"]) } : {}),
 			...(argv["max-age"] !== undefined ? { maxAgeMinutes: Number(argv["max-age"]) } : {}),
+			...(argv.shadow ? { shadow: true } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

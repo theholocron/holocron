@@ -13,6 +13,7 @@ const PINGS = {
 	"doctor-tokens": "HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
 	"sync-specs": "HOLOCRON_HEARTBEAT_SYNC_SPECS",
 	"reconcile-projects": "HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
+	"reconcile-ci": "HOLOCRON_HEARTBEAT_RECONCILE_CI",
 } as const;
 
 const PING_STEP = /- name: Ping the heartbeat\n([\s\S]*?)(?=\n {6}- |\n[^\s]|$)/;

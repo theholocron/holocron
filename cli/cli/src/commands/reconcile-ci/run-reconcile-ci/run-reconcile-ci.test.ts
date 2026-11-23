@@ -65,7 +65,11 @@ function loadedWithTasks() {
 	const loaded = loadedWith({ source: "github" });
 	return {
 		...loaded,
-		resolved: { ...loaded.resolved, extraRequiredChecks: ["typecheck / Conclusion", "codecov/patch"] },
+		resolved: {
+			...loaded.resolved,
+			extraRequiredChecks: ["typecheck / Conclusion", "codecov/patch"],
+			ci: { aggregate: "sentinel" as const },
+		},
 	};
 }
 
@@ -203,7 +207,10 @@ describe("runReconcileCi", () => {
 			"--max-age is a number of minutes above zero"
 		);
 		const noSource = await runReconcileCi({
-			loaded: loadedWith({}),
+			loaded: (() => {
+				const bare = loadedWith({});
+				return { ...bare, resolved: { ...bare.resolved, ci: { aggregate: "sentinel" as const } } };
+			})(),
 			context: { repoRoot: "/tmp/repo" },
 			print: () => {},
 		});
@@ -240,5 +247,49 @@ describe("runReconcileCi", () => {
 		expect((await run(noList)).text).toContain("cannot list pull requests");
 		const noGet = sourceFake({}, { getPullRequest: undefined });
 		expect((await run(noGet, { pullRequest: 2 })).text).toContain("cannot read a pull request");
+	});
+
+	describe("who posts the check", () => {
+		const actionsConfig = () => {
+			const loaded = loadedWithTasks();
+			return { ...loaded, resolved: { ...loaded.resolved, ci: undefined } };
+		};
+
+		it("does nothing while ci.aggregate is actions, so a second writer never joins the Actions job", async () => {
+			const source = sourceFake({ sha1: green(1) });
+			const { report, text } = await run(source, { loaded: actionsConfig() });
+			expect(report.status).toBe("ok");
+			expect(text).toContain("ci.aggregate is actions here");
+			expect(text).toContain("--shadow repairs Sentinel's shadow check");
+			expect(source.listPullRequests).not.toHaveBeenCalled();
+			expect(source.createCheckRun).not.toHaveBeenCalled();
+		});
+
+		it("with --shadow, repairs Sentinel's shadow check under its own name, whatever ci.aggregate says", async () => {
+			const source = sourceFake({ sha1: green(1) });
+			const { report } = await run(source, { loaded: actionsConfig(), shadow: true });
+			expect(report.status).toBe("fail");
+			expect(source.createCheckRun).toHaveBeenCalledWith(
+				"sha1",
+				"ci / Required checks (sentinel)",
+				expect.objectContaining({ conclusion: "success" })
+			);
+		});
+
+		it("posts the real name when ci.aggregate is sentinel", async () => {
+			const source = sourceFake({ sha1: green(1) });
+			await run(source);
+			expect(source.createCheckRun).toHaveBeenCalledWith("sha1", "ci / Required checks", expect.anything());
+		});
+
+		it("leaves a commit alone where the Actions job already posts the check", async () => {
+			const actions = { ...leaf("ci / Required checks", "success", 9), appSlug: "github-actions" };
+			const source = sourceFake({ sha1: [...green(1), actions] });
+			const { report, text } = await run(source);
+			expect(report.status).toBe("ok");
+			expect(text).toContain("another app (the Actions job) already posts this check");
+			expect(source.createCheckRun).not.toHaveBeenCalled();
+			expect(source.updateCheckRun).not.toHaveBeenCalled();
+		});
 	});
 });

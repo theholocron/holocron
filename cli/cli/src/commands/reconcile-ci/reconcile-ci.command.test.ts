@@ -42,6 +42,13 @@ describe("reconcile ci", () => {
 		expect(runReconcileCi.mock.calls[0]![0]).toMatchObject({ pullRequest: 42, maxAgeMinutes: 5 });
 	});
 
+	it("passes --shadow, and not otherwise", async () => {
+		await go("--shadow");
+		expect(runReconcileCi.mock.calls[0]![0]).toMatchObject({ shadow: true });
+		await go();
+		expect(runReconcileCi.mock.calls[1]![0]).not.toHaveProperty("shadow");
+	});
+
 	it("exits non-zero when the run fails", async () => {
 		runReconcileCi.mockResolvedValueOnce({ status: "fail", rows: [] });
 		await go();

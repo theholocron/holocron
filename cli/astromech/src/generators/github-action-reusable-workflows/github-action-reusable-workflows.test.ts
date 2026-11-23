@@ -1123,6 +1123,45 @@ describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project boa
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['reconcile-ci'] — the scheduled sweep of the ci aggregate (SPEC-0099)", () => {
+	const wf = REUSABLE_WORKFLOWS["reconcile-ci"]!;
+
+	it("is a reusable workflow that takes the App's id and key, and the heartbeat URL, all optional", () => {
+		expect(wf).toContain("workflow_call:");
+		for (const name of [
+			"SENTINEL_GITHUB_APP_ID",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+			"HOLOCRON_HEARTBEAT_RECONCILE_CI",
+		]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
+		}
+	});
+
+	it("mints an installation token narrowed to checks: write, pull_requests: read and statuses: read, and no other permission", () => {
+		expect(wf).toContain("actions/create-github-app-token@");
+		expect(wf).toContain("permission-checks: write");
+		expect(wf).toContain("permission-pull-requests: read");
+		expect(wf).toContain("permission-statuses: read");
+		expect(wf.match(/permission-[a-z-]+:/g)).toHaveLength(3);
+	});
+
+	it("runs the command with a ten minute grace and hands the token over in the environment, never on the command line", () => {
+		expect(wf).toContain("command: reconcile ci --max-age 10");
+		expect(wf).toContain("HOLOCRON_ADMIN_TOKEN: ${{ steps.app-token.outputs.token }}");
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("runs one at a time, only reads the repository, and pings its heartbeat last, without failing the job", () => {
+		expect(wf).toContain("group: reconcile-ci");
+		expect(wf).toContain("cancel-in-progress: false");
+		expect(wf).toContain("contents: read");
+		const ping = wf.indexOf("- name: Ping the heartbeat");
+		expect(ping).toBeGreaterThan(wf.indexOf("command: reconcile ci"));
+		expect(wf.slice(ping)).toContain("secrets.HOLOCRON_HEARTBEAT_RECONCILE_CI");
+		expect(wf.slice(ping)).toContain("::warning::The heartbeat ping failed.");
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['sync-issues'] — the scheduled issue sync", () => {
 	const wf = REUSABLE_WORKFLOWS["sync-issues"]!;
 
