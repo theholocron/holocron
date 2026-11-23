@@ -23,6 +23,8 @@ import {
 	type MonitoringDashboardState,
 	type MonitoringHeartbeatInput,
 	type MonitoringHeartbeatResult,
+	type MonitoringIncident,
+	type MonitoringIncidentQuery,
 	type MonitoringStatusPageInput,
 	type MonitoringStatusPageResult,
 	type MonitoringStatusPageState,
@@ -44,6 +46,7 @@ import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 import { ensureDashboard, inspectDashboard } from "./dashboards.js";
 import { ensureChecklyHeartbeat, fromChecklyHeartbeat } from "./heartbeats.js";
+import { listChecklyIncidents } from "./incidents.js";
 import { ensureStatusPage, inspectStatusPage } from "./status-pages.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
@@ -474,6 +477,11 @@ export class ChecklyMonitoring implements Monitoring {
 	/** Reads the status page `input.name` and compares it with the declaration. */
 	inspectStatusPage(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageState> {
 		return inspectStatusPage(this.client(), input);
+	}
+
+	/** The incidents of a status page, with their updates; see `capabilities/incidents.ts`. */
+	listIncidents(query: MonitoringIncidentQuery): Promise<MonitoringIncident[]> {
+		return listChecklyIncidents(this.client(), query);
 	}
 
 	/** Checkly's `search` param is a case-insensitive partial match — narrow to the exact name ourselves. */

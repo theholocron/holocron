@@ -2422,6 +2422,52 @@ export interface MonitoringHeartbeatResult {
 	pingUrl?: string;
 }
 
+/** Where a status page incident stands, from its newest update. */
+export type MonitoringIncidentStatus = "investigating" | "identified" | "monitoring" | "resolved";
+
+/** How badly a component is marked by an incident. */
+export type MonitoringIncidentImpact = "maintenance" | "degraded" | "partial" | "major";
+
+/** One update on a status page incident. */
+export interface MonitoringIncidentUpdate {
+	/** The provider's id for the update; the de-duplication key of a message. */
+	id: string;
+	/** The status the update puts the incident in. */
+	status: MonitoringIncidentStatus;
+	/** What the people running the page said. */
+	text: string;
+	/** When the update was made (an ISO time or date). */
+	at: string;
+}
+
+/** A status page incident in a vocabulary no status page vendor owns. */
+export interface MonitoringIncident {
+	/** The provider's id for the incident. */
+	id: string;
+	/** The incident's name. */
+	title: string;
+	/** The status of the newest update. */
+	status: MonitoringIncidentStatus;
+	/** The components the incident marks and how badly. */
+	impacts: { component: string; impact: MonitoringIncidentImpact }[];
+	/** When the incident was opened. */
+	startedAt: string;
+	/** When it was resolved, when it has been. */
+	resolvedAt?: string;
+	/** Seconds from opening to resolution, when resolved. */
+	durationSeconds?: number;
+	/** The updates, oldest first. */
+	updates: MonitoringIncidentUpdate[];
+}
+
+/** What {@link Monitoring.listIncidents} reads. */
+export interface MonitoringIncidentQuery {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** Leave out incidents that are resolved and were last updated before this ISO time or date. */
+	since?: string;
+}
+
 /** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
 export interface Monitoring extends ProviderIdentity {
 	/** Identifies this provider as the `monitoring` capability. */
@@ -2503,6 +2549,11 @@ export interface Monitoring extends ProviderIdentity {
 	ensureHeartbeat?(input: MonitoringHeartbeatInput): Promise<MonitoringHeartbeatResult>;
 	/** Every heartbeat the account holds now, in the shape `heartbeats` declares them and without the ping URL. Read-only. */
 	listHeartbeats?(): Promise<MonitoringHeartbeatInput[]>;
+	/**
+	 * The incidents of the status page named `query.statusPage`: every one still open and, with `since`, those resolved
+	 * since then; updates oldest first. Read-only. Optional: a provider with no status page incidents omits it.
+	 */
+	listIncidents?(query: MonitoringIncidentQuery): Promise<MonitoringIncident[]>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

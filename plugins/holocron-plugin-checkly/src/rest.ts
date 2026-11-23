@@ -18,6 +18,8 @@ export {
 	type HeartbeatInput,
 	type HeartbeatUnit,
 	type HttpMethod,
+	type Incident,
+	type IncidentSummary,
 	type ListChecksParams,
 	type StatusComponent,
 	type StatusPage,
