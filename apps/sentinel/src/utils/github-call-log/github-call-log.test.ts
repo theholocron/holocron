@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { describeGitHubDelivery, runWithGitHubCalls } from "../github-delivery-calls/index.js";
 import { GITHUB_CALL_LOG_MSG, GITHUB_CALL_MESSAGE_CHARS, githubRoute, loggedFetch } from "./github-call-log.js";
 
 const SHA = "a".repeat(40);
@@ -120,5 +121,25 @@ describe("loggedFetch", () => {
 			globalThis.fetch = original;
 		}
 		expect(log.info).toHaveBeenCalledTimes(1);
+	});
+
+	it("says which delivery a call belongs to, and counts it there, when it is made inside one", async () => {
+		const log = loggers();
+		const base = answering(200);
+		await runWithGitHubCalls(async () => {
+			describeGitHubDelivery({ event: "pull_request.opened", repo: "acme/demo", delivery: "d-9" });
+			await loggedFetch(log, base)("https://api.github.com/repos/acme/demo/contents/.holocron/org.ts");
+			await loggedFetch(log, base)("https://api.github.com/repos/acme/demo/pulls/7");
+		});
+		expect(log.info).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({
+				event: "pull_request.opened",
+				repo: "acme/demo",
+				delivery: "d-9",
+				route: "/repos/:owner/:repo/contents/.holocron/org.ts",
+			}),
+			GITHUB_CALL_LOG_MSG
+		);
 	});
 });

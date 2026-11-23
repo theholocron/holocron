@@ -227,6 +227,7 @@ import {
 	validateDocsPresence,
 } from "../actions/index.js";
 import { loggedFetch } from "../utils/github-call-log/index.js";
+import { describeGitHubDelivery, logGitHubDelivery, runWithGitHubCalls } from "../utils/github-delivery-calls/index.js";
 import {
 	createErrorReporter,
 	declaresRepoValidation,
@@ -379,6 +380,11 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		return new Response("Method Not Allowed", { status: 405 });
 	}
 
+	// Every call to GitHub inside this delivery is counted against it, and the totals are logged when it ends.
+	return runWithGitHubCalls(() => processWebhook(request, env));
+}
+
+async function processWebhook(request: Request, env: Env): Promise<Response> {
 	errors.begin();
 	try {
 		return await handle(request, env);
@@ -392,6 +398,7 @@ export async function handleWebhookRequest(request: Request, env: Env): Promise<
 		errors.capture(err);
 		return json({ handled: false, reason: "internal error" }, 500);
 	} finally {
+		logGitHubDelivery(logger);
 		// Axiom's transport runs on a worker thread -- a line logged above is
 		// only *enqueued*, not yet sent, when the try/catch above returns.
 		// Vercel can freeze this Lambda right after the Response goes out, so
@@ -440,6 +447,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	}
 
 	const { event } = result;
+	describeGitHubDelivery({
+		event: event.type,
+		repo: event.repo ?? event.org,
+		delivery: headers["x-github-delivery"],
+	});
 	if (event.type === "installation.created" || event.type === "installation.deleted") {
 		return json({ handled: true, type: event.type });
 	}
