@@ -142,6 +142,8 @@ export const COMMAND_CONTEXTS = {
 	"sync github": "workspace",
 	// Loads the source and target `issues` providers, so their packages must be resolvable.
 	"sync issues": "workspace",
+	// Reads incidents through the `monitoring` provider and posts them through `notifications`, so both packages must be resolvable.
+	"sync incidents": "workspace",
 	// Reads ideas through the `ideas` provider and files each ready one through `issues`, so both packages must be resolvable.
 	"sync ideas": "workspace",
 	// Calls each `tooling` provider's `sync()`, so those packages (and a `credentials` one for their tokens) must be resolvable.

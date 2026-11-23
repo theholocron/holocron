@@ -93,6 +93,7 @@ const EVERY_COMMAND = [
 	"cleanup branches",
 	"sync github",
 	"sync issues",
+	"sync incidents",
 	"sync ideas",
 	"sync tooling",
 	"sync requests",

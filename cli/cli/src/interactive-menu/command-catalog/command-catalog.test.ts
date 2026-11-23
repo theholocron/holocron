@@ -119,6 +119,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 			"specs",
 			"github",
 			"issues",
+			"incidents",
 			"ideas",
 			"tooling",
 			"requests",
