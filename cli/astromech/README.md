@@ -223,6 +223,17 @@ the coverage entries. Astromech imports no provider, so a `coverage` provider's 
 `holocron sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 
+`evaluateAggregate({ expected, statuses, checkRuns, commitStatuses, now, startedAt, timeoutMs, incomplete? })` is the verdict itself
+as a pure function (SPEC-0099, phase 1): the newest run of each check name counts (#2171), an expected id needs a run named
+`<id> / ...`, a status context is a check run named like it else a commit status, and `success`, `skipped` and `neutral`
+pass. It returns `{ conclusion: "pending" | "success" | "failure", rows, summary, annotations }`. `pending` lasts until
+`startedAt + timeoutMs`; at the deadline running and missing rows become failures. It has no clock, network or GitHub types
+and fails closed: an empty `expected`, an `incomplete` read (a truncated list, a failed request) or a clock that cannot be read
+never gives `success`. Nothing calls it yet: the reusable `ci.yml` still polls with a jq program, and
+`evaluate-aggregate.conformance.test.ts` runs that exact program and the function over the same fixtures and fails if their
+verdicts differ (it needs `jq`; CI has it, and without `jq` or `CI` it skips). One deliberate difference: the jq passes an empty
+`expected` list, the function does not.
+
 ### `codecov.yml`
 
 Astromech no longer writes `codecov.yml`: the `coverage` provider does, through its optional `Coverage.configFiles()`
