@@ -104,6 +104,8 @@ export const COMMAND_CONTEXTS = {
 	"move issues": "workspace",
 	// Reads and extends an organization property through the `source` provider.
 	"apply properties": "workspace",
+	// Reads and creates the organization issue Types through the `issues` provider.
+	"apply issue-types": "workspace",
 	// `migrate` loads the source and target `issues` providers (and `projects` for a board), so their packages must be resolvable.
 	"migrate issue": "workspace",
 	"migrate issues": "workspace",
