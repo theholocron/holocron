@@ -123,6 +123,19 @@ describe("new issue", () => {
 		);
 	});
 
+	it("takes a Type the organization declares, as its lower-case kind, and refuses it when it is not declared", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await go("Fix it", "--type", "Epic");
+		expect(runIssueCreate).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(expect.stringContaining("Use one of: bug, feature, task"));
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		loadConfig.mockResolvedValue({ resolved: { org: "acme", issueTypes: [{ name: "Epic" }] }, filepath: "/x" });
+		await go("Fix it", "--type", "Epic");
+		expect(runIssueCreate).toHaveBeenCalledWith(expect.objectContaining({ kind: "epic" }));
+		err.mockRestore();
+	});
+
 	it("refuses a type, priority or effort it does not know", async () => {
 		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
 		await go("Fix it", "--type", "epic").catch(() => undefined);

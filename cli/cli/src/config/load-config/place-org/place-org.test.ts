@@ -15,6 +15,30 @@ const org = (value: unknown): ConfigDirArea => ({
 const NONE = {} as HolocronConfig;
 const ORG = { vercel: { teamId: "team_1" }, checkly: { accountId: "acc_1" }, sentry: { org: "org_1" } };
 
+describe("placeOrg issueTypes", () => {
+	const TYPES = [{ name: "Epic", color: "purple" }, { name: "Spike" }];
+
+	it("sets the declared Types on a config that leaves them out", () => {
+		expect(placeOrg(NONE, org({ issueTypes: TYPES })).issueTypes).toEqual(TYPES);
+	});
+
+	it("leaves a config with no declaration alone", () => {
+		expect(placeOrg(NONE, org({ domain: "a.dev" })).issueTypes).toBeUndefined();
+	});
+
+	it("refuses a declaration in the file and in the config, naming the file", () => {
+		expect(() => placeOrg({ issueTypes: [{ name: "Bug" }] } as HolocronConfig, org({ issueTypes: TYPES }))).toThrow(
+			/issueTypes is set in the config and in \.holocron\/org\.ts/
+		);
+	});
+
+	it("names the file and entry of an invalid Type", () => {
+		expect(() => placeOrg(NONE, org({ issueTypes: [{ name: "A", color: "teal" }] }))).toThrow(
+			/\.holocron\/org\.ts: issueTypes\[0\]: "color" must be one of/
+		);
+	});
+});
+
 describe("placeOrg", () => {
 	it("gives a bare sentry entry the org slug", () => {
 		const raw: HolocronConfig = { providers: { errors: "sentry" } };

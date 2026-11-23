@@ -9,6 +9,7 @@ import type { Issues, Projects, ProviderAction } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { kindLabels } from "./capabilities/issue-kind.js";
 import { LinearIssues } from "./capabilities/issues.js";
 import { LinearProjects } from "./capabilities/projects.js";
 import { createTeamScope, type TeamScope } from "./capabilities/team-scope.js";
@@ -23,6 +24,8 @@ import { verifyToken } from "./verify-token.js";
 export interface LinearPluginOptions extends ResolveTokenInput {
 	/** The key of the team the issues and boards belong to, e.g. `ENG`. Required by both capabilities. */
 	team?: string;
+	/** The organization's issue Types (`issueTypes`, #2512), handed in by the loader: each one's `label` is its Linear kind label. */
+	issueTypes?: ReadonlyArray<{ name: string; label?: string }>;
 	/** Names of the states the `inProgress` and `inReview` lifecycle slots move an issue to. */
 	states?: {
 		/** The state for work that has started. */
@@ -69,7 +72,7 @@ function createScope(options: LinearPluginOptions): TeamScope {
 		throw new Error("the Linear plugin needs a `team` option (the team key, e.g. `ENG`)");
 	}
 	const client = createLinearClient({ token: resolveToken(options), baseUrl: options.baseUrl, fetch: options.fetch });
-	return createTeamScope(client, options.team);
+	return createTeamScope(client, options.team, kindLabels(options.issueTypes));
 }
 
 /** Builds the `issues` capability. */

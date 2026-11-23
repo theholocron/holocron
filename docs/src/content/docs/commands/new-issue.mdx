@@ -29,7 +29,7 @@ A tracker that cannot hold something the call asked for files the issue anyway a
 
 | Field                           | GitHub                                                         | Linear                                                                          |
 | ------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `--type`                        | The issue Type (Bug, Feature, Task)                            | A label: `bug`, `enhancement`, `chore`                                          |
+| `--type`                        | The issue Type (Bug, Feature, Task, or a declared one)         | A label: `bug`, `enhancement`, `chore`, or the declared Type's `label`          |
 | `--priority`                    | The organization's `Priority` issue field                      | Linear's priority                                                               |
 | `--effort`                      | The organization's `Effort` issue field                        | The estimate (low 1, medium 3, high 5); a team with estimates off may refuse it |
 | `--start-date`, `--target-date` | The `Start date` and `Target date` issue fields                | Target date is the due date; a start date is dropped (Linear has none)          |
@@ -50,7 +50,7 @@ A field the organization lacks (no `Effort` field, no such Type) is a `not carri
 | `--label <name>`       | none    | A label to put on it; repeat the option for more                                     |
 | `--assignee <login>`   | none    | A person to assign, by login (`me` is you); repeat for more where the tracker allows |
 | `--milestone <value>`  | none    | The milestone, by number or exact title (case-insensitive)                           |
-| `--type <kind>`        | none    | `bug`, `feature` or `task`                                                           |
+| `--type <kind>`        | none    | `bug`, `feature`, `task` or a Type the organization declares (`issueTypes`)          |
 | `--priority <level>`   | none    | `urgent`, `high`, `medium` or `low`                                                  |
 | `--effort <size>`      | none    | `high`, `medium` or `low`; the `work-effort` skill says how to choose                |
 | `--start-date <date>`  | none    | When work starts, `YYYY-MM-DD`                                                       |

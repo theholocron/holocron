@@ -110,4 +110,17 @@ describe("update work", () => {
 		await go("#12");
 		expect(runUpdateWork).not.toHaveBeenCalled();
 	});
+
+	it("refuses a --type the organization does not declare, and takes one it does", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await go("#12", "--type", "Epic");
+		expect(runUpdateWork).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(expect.stringContaining("Use one of: bug, feature, task"));
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		loadConfig.mockResolvedValue({ resolved: { org: "acme", issueTypes: [{ name: "Epic" }] }, filepath: "/x" });
+		await go("#12", "--type", "Epic");
+		expect(runUpdateWork).toHaveBeenCalledWith(expect.objectContaining({ kind: "epic" }));
+		err.mockRestore();
+	});
 });

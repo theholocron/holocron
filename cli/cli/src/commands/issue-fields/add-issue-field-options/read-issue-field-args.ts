@@ -3,7 +3,7 @@ import type { IssueFieldArgs, IssueFieldInput } from "./add-issue-field-options.
 /** The issue-field flags that were given, in the words of the run functions; a flag not given is absent. */
 export function readIssueFieldArgs(argv: IssueFieldArgs): IssueFieldInput {
 	return {
-		...(argv.type ? { kind: argv.type } : {}),
+		...(argv.type ? { kind: argv.type.toLowerCase() } : {}),
 		...(argv.priority ? { priority: argv.priority } : {}),
 		...(argv.effort ? { effort: argv.effort } : {}),
 		...(argv.startDate ? { startDate: String(argv.startDate) } : {}),

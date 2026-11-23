@@ -4,8 +4,10 @@ import type { IssueKind } from "../../../plugin/index.js";
 export interface WorkTitleInput {
 	/** The issue's title; a conventional-commit prefix and emoji are taken off it. */
 	issueTitle: string;
-	/** The issue's kind, from `--type`; wins over everything else. */
+	/** The issue's kind, from `--type`; wins over everything else that has a commit type. */
 	kind?: IssueKind;
+	/** The commit type of each declared kind (`kindCommitTypes()`); the core three need none. */
+	kindTypes?: Record<string, string>;
 	/** The issue's labels. */
 	labels?: string[];
 	/** The pull request carries only the spec: `docs(specs): ...`. */

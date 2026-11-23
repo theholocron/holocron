@@ -273,6 +273,13 @@ export interface RepoValidationConfig {
  */
 export interface OrgConfig {
 	/**
+	 * The organization's issue Types (spec `tech-org-issue-types`, #2512): the one declaration of what the tracker's
+	 * Types are. The loader sets `issueTypes` on a config that leaves it out (set in both is a `ConfigError`) and hands
+	 * it to the issues plugins as the option `issueTypes`; a kind that `--type` accepts is the core three plus these
+	 * names in lower case.
+	 */
+	issueTypes?: OrgIssueType[];
+	/**
 	 * The organization's DNS zone (`theholocron.dev`). The loader sets `domain` on a config that leaves it out; a
 	 * config that sets it too is a `ConfigError`. A file that must build a hostname before the loader runs imports
 	 * this area file instead (`import org from "./org.js"`).
@@ -304,6 +311,25 @@ export interface OrgConfig {
 		/** The Sentry organization slug (an identifier, not a credential). */
 		org?: string;
 	};
+}
+
+/**
+ * One of the organization's issue Types (spec `tech-org-issue-types`, #2512). A tracker with no Type (Linear) carries
+ * the kind as a label, which is `label`. Names and words only; no secret.
+ */
+export interface OrgIssueType {
+	/** The Type's name, the key. Unique ignoring case. */
+	name: string;
+	/** One line, shown in GitHub's settings. */
+	description?: string;
+	/** GitHub's colour word: `gray`, `blue`, `green`, `yellow`, `orange`, `red`, `pink` or `purple`. */
+	color?: string;
+	/** Whether new issues may take it. Default `true`. */
+	enabled?: boolean;
+	/** The Linear label that stands for it. Default: the name in lower case. */
+	label?: string;
+	/** The Conventional Commit type `start work` uses for it. Default: none, so `start work` falls back to `chore`. */
+	commit?: string;
 }
 
 /**
@@ -687,6 +713,8 @@ export interface HolocronConfig {
 	 * domain as `preview.<domain>`, giving URLs like `<repo>-pr-<n>.<domain>`.
 	 */
 	domain?: string;
+	/** The organization's issue Types, from `.holocron/org.*` (`OrgConfig.issueTypes`) or set here. */
+	issueTypes?: OrgIssueType[];
 	/**
 	 * Repository identity and metadata. When set, `PluginLoader` injects
 	 * `repo.name` into every plugin's `RuntimeContext.repo` so plugins that
@@ -966,6 +994,8 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	/** Org canonical domain. */
 	domain?: string;
+	/** The organization's issue Types. */
+	issueTypes?: OrgIssueType[];
 	/** Repository settings. */
 	repo?: RepoConfig;
 	/** Which repo-wide checks this repo turns on (`docsCoverage`), validated by `resolveConfig`. */

@@ -13,7 +13,7 @@ import type { ImportOptions, IssueRecord, SyncResult } from "@theholocron/cli";
 import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
-import { hasKindType, writeKind } from "./issue-kind.js";
+import { CORE_KIND_NAMES, hasKindType, type KindNames, writeKind } from "./issue-kind.js";
 import { createPrioritySetter, type PrioritySetter } from "./issue-priority.js";
 import {
 	createFromRecord,
@@ -47,7 +47,8 @@ export async function syncIssues(
 	client: GitHubClient,
 	repo: string,
 	records: IssueRecord[],
-	options: ImportOptions = {}
+	options: ImportOptions = {},
+	kinds: KindNames = CORE_KIND_NAMES
 ): Promise<SyncResult[]> {
 	const existing = new Map<string, GitHubIssue>();
 	for (const issue of await listAll(client, repo, {})) {
@@ -62,8 +63,8 @@ export async function syncIssues(
 			const found = existing.get(record.url);
 			results.push(
 				found
-					? await update(client, repo, found, record, options, priority)
-					: await create(client, repo, record, options, priority)
+					? await update(client, repo, found, record, options, priority, kinds)
+					: await create(client, repo, record, options, priority, kinds)
 			);
 			reportProgress(options.onProgress, results.length, records.length);
 		} catch (err) {
@@ -79,14 +80,15 @@ async function create(
 	repo: string,
 	record: IssueRecord,
 	options: ImportOptions,
-	priority: PrioritySetter
+	priority: PrioritySetter,
+	kinds: KindNames
 ): Promise<SyncResult> {
 	const dropped = droppedFor(record);
 	if (options.dryRun) return { source: record.key, created: true, updated: false, changes: [], dropped };
 	const number = await createFromRecord(client, repo, record, options);
 	const field = await priority.set(number, record.priority, { isNew: true });
 	if (field.note) dropped.push(field.note);
-	const kindNote = record.kind ? await writeKind(client, repo, number, record.kind) : undefined;
+	const kindNote = record.kind ? await writeKind(client, repo, number, record.kind, kinds) : undefined;
 	if (kindNote) dropped.push(kindNote);
 	return { source: record.key, key: `#${number}`, created: true, updated: false, changes: [], dropped };
 }
@@ -97,7 +99,8 @@ async function update(
 	issue: GitHubIssue,
 	record: IssueRecord,
 	options: ImportOptions,
-	priority: PrioritySetter
+	priority: PrioritySetter,
+	kinds: KindNames
 ): Promise<SyncResult> {
 	const patch: Record<string, unknown> = {};
 	const changes: string[] = [];
@@ -132,10 +135,10 @@ async function update(
 	const field = await priority.set(issue.number, record.priority, { dryRun: options.dryRun });
 	if (field.changed) changes.push("priority field");
 
-	const kindWrong = record.kind !== undefined && !hasKindType(issue, record.kind);
+	const kindWrong = record.kind !== undefined && !hasKindType(issue, record.kind, kinds);
 	if (kindWrong) changes.push("kind");
 	const kindNote =
-		kindWrong && !options.dryRun ? await writeKind(client, repo, issue.number, record.kind!) : undefined;
+		kindWrong && !options.dryRun ? await writeKind(client, repo, issue.number, record.kind!, kinds) : undefined;
 
 	const comments = await client.issues.listComments(repo, issue.number);
 	const seen = new Set(comments.map((c) => COMMENT_HEADER.exec(c.body)?.[1]));

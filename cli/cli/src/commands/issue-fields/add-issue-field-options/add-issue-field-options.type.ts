@@ -2,7 +2,7 @@ import type { IssueEffort, IssueKind, IssuePriority } from "../../../plugin/inde
 
 /** The issue-field flags `new issue` and `update issue` share, as yargs parses them. */
 export interface IssueFieldArgs {
-	type?: IssueKind;
+	type?: string;
 	priority?: Exclude<IssuePriority, "none">;
 	effort?: IssueEffort;
 	startDate?: string;

@@ -11,8 +11,8 @@ export function addIssueFieldOptions<T>(y: Argv<T>): Argv<T & IssueFieldArgs> {
 	return y
 		.option("type", {
 			type: "string",
-			choices: ["bug", "feature", "task"] as const,
-			describe: "The issue's kind: GitHub's issue Type, a label on Linear",
+			describe:
+				"The issue's kind: bug, feature, task or a Type the organization declares (GitHub's issue Type, a label on Linear)",
 		})
 		.option("priority", {
 			type: "string",

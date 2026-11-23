@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { workTitle } from "./work-title.js";
+import { kindCommitTypes, workTitle } from "./work-title.js";
 
 describe("workTitle", () => {
 	it("maps the issue's kind to the commit type", () => {
@@ -16,6 +16,16 @@ describe("workTitle", () => {
 			scope: "cli",
 			reason: "the issue's title says so",
 		});
+	});
+
+	it("uses a declared Type's commit type, and chore for one that has none unless the title says otherwise", () => {
+		const kindTypes = kindCommitTypes([{ name: "Epic" }, { name: "Spike" }, { name: "Chore", commit: "perf" }]);
+		expect(kindTypes).toMatchObject({ bug: "fix", chore: "perf" });
+		expect(workTitle({ issueTitle: "Add it", kind: "chore", kindTypes }).title).toBe("perf: Add it");
+		const epic = workTitle({ issueTitle: "Add it", kind: "epic", kindTypes, labels: ["bug"] });
+		expect(epic).toMatchObject({ title: "chore: Add it", type: "chore" });
+		expect(epic.reason).toMatch(/no commit type/);
+		expect(workTitle({ issueTitle: "docs(x): Add it", kind: "spike", kindTypes }).title).toBe("docs(x): Add it");
 	});
 
 	it("lets the kind win over the title's own type", () => {

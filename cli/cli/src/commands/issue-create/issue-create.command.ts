@@ -9,6 +9,7 @@ import {
 	type IssueFieldArgs,
 	readIssueFieldArgs,
 } from "../issue-fields/add-issue-field-options/index.js";
+import { kindProblem } from "../issue-fields/issue-kinds/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { readIssueBody } from "./read-issue-body/index.js";
@@ -50,6 +51,12 @@ export const issueCreateCommand: CommandModule<GlobalArgs, Args> = {
 		if (!tokens) return;
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
+		const problem = kindProblem(argv.type, loaded.resolved.issueTypes);
+		if (problem) {
+			console.error(problem);
+			process.exitCode = 1;
+			return;
+		}
 		let body = argv.body;
 		if (argv.bodyFile) {
 			try {

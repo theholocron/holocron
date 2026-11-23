@@ -35,7 +35,7 @@ import { buildWorkBody } from "../work-body/index.js";
 import { workBranchName } from "../work-branch/index.js";
 import { workReference } from "../work-reference/index.js";
 import { workSlug } from "../work-slug/index.js";
-import { workTitle } from "../work-title/index.js";
+import { kindCommitTypes, workTitle } from "../work-title/index.js";
 import type { RunStartWorkInput, StartWorkReport } from "./run-start-work.type.js";
 
 /** The longest a commit subject or pull request title may be. */
@@ -158,7 +158,7 @@ export async function runStartWork(input: RunStartWorkInput): Promise<StartWorkR
 
 	const named = workTitle({
 		issueTitle: issue.summary,
-		...(input.kind ? { kind: input.kind } : {}),
+		...(input.kind ? { kind: input.kind, kindTypes: kindCommitTypes(input.loaded.resolved.issueTypes) } : {}),
 		labels: record?.labels ?? [],
 		specOnly,
 	});

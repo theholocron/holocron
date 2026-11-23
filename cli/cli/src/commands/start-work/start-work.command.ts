@@ -4,6 +4,7 @@ import { loadConfig } from "../../config/index.js";
 import type { IssueEffort, IssueKind } from "../../plugin/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../global-args/index.js";
+import { kindProblem } from "../issue-fields/issue-kinds/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runStartWork } from "./run-start-work/index.js";
@@ -67,8 +68,8 @@ export const startWorkCommand: CommandModule<GlobalArgs, Args> = {
 			})
 			.option("type", {
 				type: "string",
-				choices: ["bug", "feature", "task"] as const,
-				describe: "The issue's kind, deciding the commit type (default: its title and labels)",
+				describe:
+					"The issue's kind, deciding the commit type: bug, feature, task or a Type the organization declares (default: its title and labels)",
 			})
 			.option("effort", {
 				type: "string",
@@ -92,6 +93,12 @@ export const startWorkCommand: CommandModule<GlobalArgs, Args> = {
 		if (!tokens) return;
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
+		const problem = kindProblem(argv.type, loaded.resolved.issueTypes);
+		if (problem) {
+			console.error(problem);
+			process.exitCode = 1;
+			return;
+		}
 		const report = await runStartWork({
 			issue: String(argv.issue),
 			loaded,
@@ -103,7 +110,7 @@ export const startWorkCommand: CommandModule<GlobalArgs, Args> = {
 			...(argv.worktreePath ? { worktreePath: argv.worktreePath } : {}),
 			...(argv.spec ? { spec: argv.spec } : {}),
 			...(argv.onePr ? { onePr: true } : {}),
-			...(argv.type ? { kind: argv.type } : {}),
+			...(argv.type ? { kind: argv.type.toLowerCase() } : {}),
 			...(argv.effort ? { effort: argv.effort } : {}),
 			...(argv.assignee ? { assignees: argv.assignee.map(String) } : {}),
 			...(argv.project ? { project: argv.project } : {}),

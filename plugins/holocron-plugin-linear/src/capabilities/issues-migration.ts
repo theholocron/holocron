@@ -23,7 +23,7 @@ import {
 } from "@theholocron/cli";
 import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 
-import { kindOfLabels, labelsFor } from "./issue-kind.js";
+import { CORE_KIND_LABELS, droppedKind, type KindLabels, kindOfLabels, labelsFor } from "./issue-kind.js";
 import { fromLinearPriority, isClosed, normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
@@ -41,8 +41,14 @@ export function assigneeFor(record: IssueRecord, userIds: Map<string, string>): 
 }
 
 /** What Linear cannot carry of this record, for the report. */
-export function droppedFor(record: IssueRecord, assigneeId: string | undefined): string[] {
+export function droppedFor(
+	record: IssueRecord,
+	assigneeId: string | undefined,
+	kinds: KindLabels = CORE_KIND_LABELS
+): string[] {
 	const dropped: string[] = [];
+	const kind = droppedKind(record, kinds);
+	if (kind) dropped.push(kind);
 	if (record.assignee && !assigneeId) dropped.push("assignee (no Linear user with that email)");
 	if (record.comments.some((c) => c.author)) dropped.push("comment authors (named in the text)");
 	return dropped;
@@ -110,7 +116,7 @@ export async function exportIssues(
 		const comments = await client.issues.comments(issue.id);
 		const priority = fromLinearPriority(issue.priority);
 		const labelNames = issue.labels.nodes.map((l) => l.name);
-		const kind = kindOfLabels(labelNames);
+		const kind = kindOfLabels(labelNames, scope.kinds ?? CORE_KIND_LABELS);
 		const migratedFrom = issue.attachments?.nodes.find((a) => a.title.startsWith(MIGRATED_TITLE_PREFIX))?.url;
 		records.push({
 			key: issue.identifier,
@@ -192,7 +198,7 @@ export async function importIssues(
 		}
 
 		const assigneeId = assigneeFor(record, userIds);
-		const dropped = droppedFor(record, assigneeId);
+		const dropped = droppedFor(record, assigneeId, scope.kinds);
 		if (options.dryRun) {
 			results.push({ source: record.key, created: true, dropped });
 			tick();
@@ -205,7 +211,7 @@ export async function importIssues(
 			closed: record.closed,
 		});
 		const ids: string[] = [];
-		for (const name of labelsFor(record)) {
+		for (const name of labelsFor(record, scope.kinds ?? CORE_KIND_LABELS)) {
 			let id = labelIds.get(name.toLowerCase());
 			if (!id) {
 				id = (await client.teams.createLabel({ name, teamId: team.id })).id;

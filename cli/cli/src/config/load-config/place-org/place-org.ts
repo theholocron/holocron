@@ -1,10 +1,11 @@
 import type { ConfigDirArea } from "@theholocron/datapad";
 import { ConfigError } from "@theholocron/kyber/config";
 
-import type { HolocronConfig, OrgConfig, ProviderOptions, RawProviderEntry } from "../../config/index.js";
+import type { HolocronConfig, OrgConfig, OrgIssueType, ProviderOptions, RawProviderEntry } from "../../config/index.js";
+import { validateIssueTypes } from "../../validate-issue-types/index.js";
 
 /** The options each provider key of `.holocron/org.*` may hold. Checked against `OrgConfig` by the type. */
-const ORG_OPTIONS: Record<Exclude<keyof OrgConfig, "domain">, readonly string[]> = {
+const ORG_OPTIONS: Record<Exclude<keyof OrgConfig, "domain" | "issueTypes">, readonly string[]> = {
 	cloudflare: ["accountId", "zone"],
 	vercel: ["teamId"],
 	checkly: ["accountId"],
@@ -19,8 +20,8 @@ type Tuple = [provider: string, options: ProviderOptions];
 const isTuple = (entry: unknown): entry is Tuple =>
 	Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "string" && isObject(entry[1]);
 
-/** The checked content of one org file: the top-level `domain` and the provider options. */
-type Checked = { domain?: string; providers: Record<string, Record<string, string>> };
+/** The checked content of one org file: the top-level `domain` and `issueTypes`, and the provider options. */
+type Checked = { domain?: string; issueTypes?: OrgIssueType[]; providers: Record<string, Record<string, string>> };
 
 /**
  * Check the shape of the area file: the top-level `domain` (a non-empty string), then a closed list of providers,
@@ -28,10 +29,11 @@ type Checked = { domain?: string; providers: Record<string, Record<string, strin
  */
 function validate(area: ConfigDirArea): Checked {
 	if (!isObject(area.value)) throw new ConfigError(`${area.path} must export the org settings as an object`);
-	const { domain, ...rest } = area.value;
+	const { domain, issueTypes, ...rest } = area.value;
 	if (domain !== undefined && (typeof domain !== "string" || domain === "")) {
 		throw new ConfigError(`${area.path}: "domain" must be a non-empty string`);
 	}
+	const types = issueTypes === undefined ? undefined : validateIssueTypes(issueTypes, `${area.path}: issueTypes`);
 	for (const [provider, options] of Object.entries(rest)) {
 		const allowed = (ORG_OPTIONS as Record<string, readonly string[] | undefined>)[provider];
 		if (allowed === undefined) {
@@ -51,7 +53,11 @@ function validate(area: ConfigDirArea): Checked {
 			}
 		}
 	}
-	return { ...(domain !== undefined ? { domain } : {}), providers: rest as Record<string, Record<string, string>> };
+	return {
+		...(domain !== undefined ? { domain } : {}),
+		...(types !== undefined ? { issueTypes: types } : {}),
+		providers: rest as Record<string, Record<string, string>>,
+	};
 }
 
 /** An org option's value and the file it came from, for the error that names it. */
@@ -61,18 +67,24 @@ type Sourced = { value: string; path: string };
  * The org options of an area and, when the repository root has the same area, the root's under them: an option set in
  * both takes the config's own value, option by option (the root's other options stay). Each file is checked on its own.
  */
-function merge(area: ConfigDirArea): { domain?: Sourced; providers: Record<string, Record<string, Sourced>> } {
+function merge(area: ConfigDirArea): {
+	domain?: Sourced;
+	issueTypes?: { value: OrgIssueType[]; path: string };
+	providers: Record<string, Record<string, Sourced>>;
+} {
 	const providers: Record<string, Record<string, Sourced>> = {};
 	let domain: Sourced | undefined;
+	let issueTypes: { value: OrgIssueType[]; path: string } | undefined;
 	for (const layer of area.root ? [area.root, area] : [area]) {
 		const checked = validate(layer);
 		if (checked.domain !== undefined) domain = { value: checked.domain, path: layer.path };
+		if (checked.issueTypes !== undefined) issueTypes = { value: checked.issueTypes, path: layer.path };
 		for (const [provider, options] of Object.entries(checked.providers)) {
 			const sourced = (providers[provider] ??= {});
 			for (const [option, value] of Object.entries(options)) sourced[option] = { value, path: layer.path };
 		}
 	}
-	return { ...(domain ? { domain } : {}), providers };
+	return { ...(domain ? { domain } : {}), ...(issueTypes ? { issueTypes } : {}), providers };
 }
 
 /** Fill one entry when it names a provider the area holds; throws when the config already sets one of its options. */
@@ -95,7 +107,8 @@ function fill(entry: string | Tuple, org: Record<string, Record<string, Sourced>
 
 /**
  * Fill `.holocron/org.*` into the config. Its top-level `domain` (the org's zone) is set on a config that leaves
- * `domain` out; set inline and in the file it is a `ConfigError` naming both. Its provider options go into the
+ * `domain` out; set inline and in the file it is a `ConfigError` naming both. Its `issueTypes` (#2512) are placed the
+ * same way, a list that the subdirectory file replaces whole. Its provider options go into the
  * providers the config uses. A provider entry (a name, a
  * `[name, options]` tuple, or either inside a list) that names a provider the file holds gets each option it leaves
  * out. An option set inline and in the file is a `ConfigError` naming both (no merge, no precedence); a provider the
@@ -104,13 +117,19 @@ function fill(entry: string | Tuple, org: Record<string, Record<string, Sourced>
  * option by option and the config's own file wins; that is not an error.
  */
 export function placeOrg(raw: HolocronConfig, area: ConfigDirArea): HolocronConfig {
-	const { domain, providers: org } = merge(area);
+	const { domain, issueTypes, providers: org } = merge(area);
 	if (domain !== undefined && raw.domain !== undefined) {
 		throw new ConfigError(
 			`domain is set in the config and in ${domain.path}. Set it in one place: remove the inline value or the key from ${domain.path}`
 		);
 	}
-	const withDomain = domain === undefined ? raw : { ...raw, domain: domain.value };
+	if (issueTypes !== undefined && raw.issueTypes !== undefined) {
+		throw new ConfigError(
+			`issueTypes is set in the config and in ${issueTypes.path}. Set it in one place: remove the inline value or the key from ${issueTypes.path}`
+		);
+	}
+	const withTypes = issueTypes === undefined ? raw : { ...raw, issueTypes: issueTypes.value };
+	const withDomain = domain === undefined ? withTypes : { ...withTypes, domain: domain.value };
 	if (withDomain.providers === undefined) return withDomain;
 	const providers: Record<string, RawProviderEntry> = { ...withDomain.providers };
 	for (const [capability, entry] of Object.entries(withDomain.providers)) {
