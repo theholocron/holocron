@@ -1,3 +1,9 @@
+## [5.0.0-alpha.531](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.530...v5.0.0-alpha.531) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ group doctor github-app rows under an app heading with a subheading per environment ([#2585](https://github.com/theholocron/holocron/issues/2585)) ([04286af](https://github.com/theholocron/holocron/commit/04286af3ac7fc0648164d0139095f7a3ba0b39b0))
+
 ## [5.0.0-alpha.530](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.529...v5.0.0-alpha.530) (2026-11-23)
 
 ### Bug Fixes
