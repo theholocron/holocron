@@ -1,3 +1,9 @@
+## [5.0.0-alpha.526](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.525...v5.0.0-alpha.526) (2026-11-23)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 share one config read per repo and ref ([#2578](https://github.com/theholocron/holocron/issues/2578)) ([7209d2c](https://github.com/theholocron/holocron/commit/7209d2c9d2c1a09677ab3ad6423fa46e8ca90a8e)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.525](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.524...v5.0.0-alpha.525) (2026-11-23)
 
 ### Bug Fixes
