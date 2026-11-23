@@ -43,6 +43,7 @@ const run = (client: unknown, trigger: Partial<CiAggregateTrigger>, over: Record
 		repo: "acme/demo",
 		trigger: { kind: "pull_request", pullRequests: [], branches: [], ...trigger },
 		now: 1_000,
+		pullRequestCache: new Map(),
 		...over,
 	});
 
@@ -230,6 +231,128 @@ describe("runCiAggregate", () => {
 		expect(await run(client, { kind: "status", sha: "abc", branches: ["feat/a"], name: "codecov/patch" })).toEqual({
 			status: "fail",
 			reason: "rate limited",
+		});
+	});
+});
+
+describe("runCiAggregate under a burst of finished checks", () => {
+	const finished = (name: string, over: Partial<CiAggregateTrigger> = {}): Partial<CiAggregateTrigger> => ({
+		kind: "check_run",
+		name,
+		sha: "abc",
+		pullRequests: [{ number: 12, baseRef: "alpha" }],
+		...over,
+	});
+
+	it("drops a finished check the aggregate does not wait for before reading the pull request", async () => {
+		const client = setup({ 12: pull(12) });
+		const out = await run(client, finished("deploy-preview / Report deployment status"));
+		expect(out).toEqual({
+			status: "ok",
+			posted: [],
+			skipped: [{ number: 12, reason: "not a check the aggregate waits for" }],
+		});
+		expect(client.pulls.getPullRequest).not.toHaveBeenCalled();
+		expect(readAggregateChecks).toHaveBeenCalledWith(expect.objectContaining({ baseRef: "alpha" }));
+		expect(postAggregate).not.toHaveBeenCalled();
+	});
+
+	it("drops a status the aggregate does not wait for the same way", async () => {
+		const client = setup({ 12: pull(12) }, { "feat/12": [pull(12)] });
+		const out = await run(client, {
+			kind: "status",
+			name: "some/other-status",
+			sha: "abc",
+			branches: ["feat/12"],
+			pullRequests: [{ number: 12, baseRef: "alpha" }],
+		});
+		expect(out).toMatchObject({ status: "ok", posted: [] });
+		expect(client.pulls.getPullRequest).not.toHaveBeenCalled();
+	});
+
+	it("reads the pull request for a check it does wait for, and posts", async () => {
+		const client = setup({ 12: pull(12) });
+		const out = await run(client, finished("test:unit / Run unit tests"));
+		expect(out).toMatchObject({ status: "ok", posted: [{ number: 12 }] });
+		expect(client.pulls.getPullRequest).toHaveBeenCalledTimes(1);
+	});
+
+	it("takes the full path when the payload names no base branch", async () => {
+		const client = setup({ 12: pull(12) });
+		const out = await run(client, finished("deploy-preview / x", { pullRequests: [{ number: 12 }] }));
+		expect(out).toMatchObject({
+			status: "ok",
+			posted: [],
+			skipped: [{ number: 12, reason: "not a check the aggregate waits for" }],
+		});
+		expect(client.pulls.getPullRequest).toHaveBeenCalledTimes(1);
+	});
+
+	it("takes the full path when the early config read cannot be used", async () => {
+		readAggregateChecks.mockResolvedValue({ ok: false, reason: "no usable config" });
+		const client = setup({ 12: pull(12) });
+		const out = await run(client, finished("test:unit / x"));
+		expect(out).toEqual({ status: "ok", posted: [], skipped: [{ number: 12, reason: "no usable config" }] });
+		expect(client.pulls.getPullRequest).toHaveBeenCalledTimes(1);
+	});
+
+	it("reads the pull request once for a burst about one commit", async () => {
+		const client = setup({ 12: pull(12) });
+		const cache = new Map();
+		for (const name of ["typecheck / a", "test:unit / b", "lint:code / c"]) {
+			await run(client, finished(name), { pullRequestCache: cache });
+		}
+		expect(client.pulls.getPullRequest).toHaveBeenCalledTimes(1);
+	});
+
+	it("always reads a pull request fresh for a pull_request delivery", async () => {
+		const client = setup({ 12: pull(12) });
+		const cache = new Map();
+		await run(
+			client,
+			{ kind: "pull_request", sha: "abc", pullRequests: [{ number: 12, baseRef: "alpha" }] },
+			{ pullRequestCache: cache }
+		);
+		await run(
+			client,
+			{ kind: "pull_request", sha: "abc", pullRequests: [{ number: 12, baseRef: "alpha" }] },
+			{ pullRequestCache: cache }
+		);
+		expect(client.pulls.getPullRequest).toHaveBeenCalledTimes(2);
+	});
+
+	it("shares the compute between deliveries that arrive while it runs, and runs it once more", async () => {
+		const client = setup({ 12: pull(12) });
+		const releases: Array<() => void> = [];
+		postAggregate.mockImplementation(
+			() =>
+				new Promise((resolve) =>
+					releases.push(() => resolve({ action: "updated", runId: 99, result: { conclusion: "pending" } }))
+				)
+		);
+		const cache = new Map();
+		const all = Array.from({ length: 5 }, (_, i) =>
+			run(client, finished(`test:unit / job ${i}`), { pullRequestCache: cache })
+		);
+		await vi.waitFor(() => expect(releases.length).toBe(1));
+		releases[0]!();
+		await vi.waitFor(() => expect(releases.length).toBe(2));
+		releases[1]!();
+		const results = await Promise.all(all);
+		expect(postAggregate).toHaveBeenCalledTimes(2);
+		for (const out of results)
+			expect(out).toMatchObject({ status: "ok", posted: [{ number: 12, action: "updated" }] });
+	});
+
+	it("says what GitHub answered when a read fails, so a 403 names its reason", async () => {
+		const err = Object.assign(new Error("GitHub GET /repos/acme/demo/pulls/12 → 403"), {
+			details: '{"message":"API rate limit exceeded"}',
+		});
+		const client = setup({ 12: err });
+		const out = await run(client, finished("test:unit / x"));
+		expect(out).toEqual({
+			status: "fail",
+			reason: '#12: GitHub GET /repos/acme/demo/pulls/12 → 403 ({"message":"API rate limit exceeded"})',
 		});
 	});
 });

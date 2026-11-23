@@ -1,11 +1,14 @@
 import { postAggregate } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { coalesce } from "../../../utils/coalesce/index.js";
 import { SENTINEL_CI_AGGREGATE_SHADOW_NAME, SENTINEL_PR_FEED_CHECK_NAME } from "../../../utils/constants/index.js";
 import { ciAggregateMode } from "../ci-aggregate-mode/index.js";
+import { describeFailure } from "../describe-failure/index.js";
 import { githubAggregateApi } from "../github-aggregate-api/index.js";
 import { readAggregateChecks } from "../read-aggregate-checks/index.js";
 import { readAggregatePoster } from "../read-aggregate-poster/index.js";
+import { readPullRequest } from "../read-pull-request/index.js";
 import type { CiAggregatePosted, RunCiAggregateInput, RunCiAggregateResult } from "./run-ci-aggregate.type.js";
 
 /** Whether a finished check run or a changed status is one the aggregate waits for. */
@@ -58,9 +61,30 @@ export async function runCiAggregate(input: RunCiAggregateInput): Promise<RunCiA
 		}
 		if (targets.length === 0) return { status: "skipped", reason: "no open pull request for this delivery" };
 
+		const baseRefs = new Map(trigger.pullRequests.map((pr) => [pr.number, pr.baseRef]));
+		const finishedCheck = trigger.kind === "check_run" || trigger.kind === "status";
+
 		for (const number of [...new Set(targets)]) {
 			try {
-				const pr = await client.pulls.getPullRequest(repo, number);
+				// A finished check the aggregate does not wait for is dropped before the pull request is read, using the
+				// base branch the payload named and the config read that is cached: most deliveries in a burst end here, at
+				// no GitHub call. A payload with no base branch, or a config that cannot be read, takes the full path below.
+				const payloadBase = baseRefs.get(number);
+				if (finishedCheck && payloadBase !== undefined) {
+					const early = await readAggregateChecks({ client, repo, baseRef: payloadBase, now });
+					if (early.ok && !isWaitedOn(trigger.kind as "check_run" | "status", trigger.name, early)) {
+						skipped.push({ number, reason: "not a check the aggregate waits for" });
+						continue;
+					}
+				}
+				const pr = await readPullRequest({
+					client,
+					repo,
+					number,
+					sha: finishedCheck ? trigger.sha : undefined,
+					now,
+					cache: input.pullRequestCache,
+				});
 				if (pr.state !== "open") {
 					skipped.push({ number, reason: "closed" });
 					continue;
@@ -86,38 +110,43 @@ export async function runCiAggregate(input: RunCiAggregateInput): Promise<RunCiA
 					skipped.push({ number, reason: "not a check the aggregate waits for" });
 					continue;
 				}
-				// One poster per commit: the real check where the head's own config says Sentinel posts it (and only in `on`
-				// mode), the shadow everywhere else.
-				const poster =
-					mode === "on"
-						? (await readAggregatePoster({ client, repo, sha: pr.head.sha, now })).poster
-						: "actions";
-				const name =
-					input.name ??
-					(poster === "sentinel" ? SENTINEL_PR_FEED_CHECK_NAME : SENTINEL_CI_AGGREGATE_SHADOW_NAME);
-				const out = await postAggregate({
-					api: githubAggregateApi(client, repo),
-					sha: pr.head.sha,
-					expected: checks.expected,
-					statuses: checks.statuses,
-					now,
-					name,
-					refreshOutput: true,
+				// Deliveries for one commit that arrive while it is being computed share the work: it is computed again once
+				// afterwards, so a check that finished meanwhile is counted, instead of once for every delivery of a burst.
+				const outcome = await coalesce(`${repo}#${number}@${pr.head.sha}`, async () => {
+					// One poster per commit: the real check where the head's own config says Sentinel posts it (and only in `on`
+					// mode), the shadow everywhere else.
+					const poster =
+						mode === "on"
+							? (await readAggregatePoster({ client, repo, sha: pr.head.sha, now })).poster
+							: "actions";
+					const name =
+						input.name ??
+						(poster === "sentinel" ? SENTINEL_PR_FEED_CHECK_NAME : SENTINEL_CI_AGGREGATE_SHADOW_NAME);
+					const out = await postAggregate({
+						api: githubAggregateApi(client, repo),
+						sha: pr.head.sha,
+						expected: checks.expected,
+						statuses: checks.statuses,
+						now,
+						name,
+						refreshOutput: true,
+					});
+					return { name, out };
 				});
-				if (out.action === "foreign") {
+				if (outcome.out.action === "foreign") {
 					skipped.push({ number, reason: "another app already posts this check on the commit" });
 					continue;
 				}
 				posted.push({
 					number,
-					action: out.action,
-					conclusion: out.result.conclusion,
+					action: outcome.out.action,
+					conclusion: outcome.out.result.conclusion,
 					sha: pr.head.sha,
-					runId: out.runId,
-					real: name === SENTINEL_PR_FEED_CHECK_NAME,
+					runId: outcome.out.runId,
+					real: outcome.name === SENTINEL_PR_FEED_CHECK_NAME,
 				});
 			} catch (err) {
-				failures.push(`#${number}: ${errorMessage(err)}`);
+				failures.push(`#${number}: ${describeFailure(err)}`);
 			}
 		}
 	} catch (err) {

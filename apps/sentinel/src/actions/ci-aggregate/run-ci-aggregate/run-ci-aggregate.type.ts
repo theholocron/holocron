@@ -1,6 +1,7 @@
 import type { GitHubClient } from "@theholocron/github-client";
 
 import type { CiAggregateEnv, CiAggregateTrigger } from "../ci-aggregate.type.js";
+import type { ReadPullRequestInput } from "../read-pull-request/index.js";
 
 /** What {@link runCiAggregate} needs. */
 export interface RunCiAggregateInput {
@@ -16,6 +17,8 @@ export interface RunCiAggregateInput {
 	now?: number;
 	/** The name the check is posted under; the shadow name by default. */
 	name?: string;
+	/** The cache of pull request reads, for tests; one per process by default. */
+	pullRequestCache?: ReadPullRequestInput["cache"];
 }
 
 /** One pull request the run posted on. */
