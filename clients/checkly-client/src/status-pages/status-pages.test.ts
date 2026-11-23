@@ -90,6 +90,19 @@ describe("statusPages", () => {
 		expect(calls[1]).toMatchObject({ method: "PUT", url: `${V3}/status-pages/p1/automation-rules/r1` });
 	});
 
+	it("lists a page's incidents and reads one with its updates", async () => {
+		const { statusPages, calls } = client([
+			{ body: { length: 1, entries: [{ id: "i1", name: "Down" }], nextId: null } },
+			{ body: { id: "i1", name: "Down", incidentUpdates: [{ id: "u1", status: "RESOLVED" }] } },
+		]);
+		expect(await statusPages.incidents.list("p1")).toEqual([{ id: "i1", name: "Down" }]);
+		expect((await statusPages.incidents.get("p1", "i1")).incidentUpdates).toHaveLength(1);
+		expect(calls.map((c) => new URL(c.url).pathname)).toEqual([
+			"/v3/status-pages/p1/incidents",
+			"/v3/status-pages/p1/incidents/i1",
+		]);
+	});
+
 	it("reads and rechecks the custom domain verification", async () => {
 		const verification = {
 			status: "pending",

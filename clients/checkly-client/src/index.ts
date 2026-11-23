@@ -38,6 +38,11 @@ export type {
 } from "./heartbeats/heartbeats.js";
 export type {
 	CustomDomainVerification,
+	Incident,
+	IncidentComponentImpact,
+	IncidentSummary,
+	IncidentUpdate,
+	IncidentUpdateStatus,
 	StatusComponent,
 	StatusComponentConfiguration,
 	StatusComponentInput,
