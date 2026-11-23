@@ -1,0 +1,22 @@
+name: sync-incidents
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "7,17,27,37,47,57 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only say what would be made or changed; write nothing to Discord"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-incidents:
+    name: sync-incidents
+    uses: theholocron/.github/.github/workflows/sync-incidents.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+    secrets: inherit

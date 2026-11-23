@@ -200,6 +200,12 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"sync-issues": { id: "sync-issues", name: "Sync Issues" },
 		},
 	},
+	"sync-incidents": {
+		name: "Sync incidents",
+		jobs: {
+			"sync-incidents": { id: "sync-incidents", name: "Sync incidents" },
+		},
+	},
 	"sync-specs": {
 		name: "Spec discussions",
 		jobs: {

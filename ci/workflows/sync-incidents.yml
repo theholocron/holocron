@@ -1,0 +1,93 @@
+name: Sync incidents
+
+# Mirrors the status page's incidents into the forum the layout gives `feeds.incidents` (#2366, spec
+# `tech-incidents-to-discord`). It runs `holocron sync incidents --yes`, which reads state, not events: every incident
+# still open and those resolved in the last two days, and brings each one's post in step with it (a missing post is made,
+# a new update is appended once, the tag and the closed state follow the status). Nothing is deleted. It only reads
+# Checkly and only writes to Discord, so it changes no file and opens no pull request.
+#
+# Its caller runs it every ten minutes and on demand, with `dry-run` to see what a run would do. Incidents are rare and
+# written by hand, so a notice up to ten minutes late (plus GitHub's own delay, which also drops scheduled runs; the
+# heartbeat is more lenient than the cron) is acceptable. The first run posts only what is open or recent, so a page with
+# history is not dumped into the forum.
+#
+# It needs two secrets in the `ci` layer: `HOLOCRON_CHECKLY_TOKEN` (the same key `setup` uses, which can also write the
+# status page; whether Checkly issues a read-only one is not known) and `HOLOCRON_DISCORD_BOT_TOKEN` (the Holonet bot,
+# which must be able to post in the forum and manage its threads). Without either the job warns and does nothing.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      dry-run:
+        description: Only say what would be made or changed; write nothing to Discord.
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      HOLOCRON_CHECKLY_TOKEN:
+        description: The Checkly API key that reads the status page's incidents. Without it the job warns and does nothing.
+        required: false
+      HOLOCRON_DISCORD_BOT_TOKEN:
+        description: The Holonet bot token. Without it the job warns and does nothing.
+        required: false
+      HOLOCRON_HEARTBEAT_SYNC_INCIDENTS:
+        description: The ping URL of the `sync-incidents` heartbeat. Without it the run sends none.
+        required: false
+
+jobs:
+  sync-incidents:
+    name: Sync status page incidents
+    if: github.repository == format('{0}/holocron', github.repository_owner)
+    # One run at a time, however it was started: two runs at once could each make a post for the same incident.
+    concurrency:
+      group: sync-incidents
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}
+      HOLOCRON_DISCORD_BOT_TOKEN: ${{ secrets.HOLOCRON_DISCORD_BOT_TOKEN }}
+      DRY_RUN: ${{ inputs.dry-run && 'true' || 'false' }}
+    steps:
+      - name: Warn that a token is missing
+        if: env.HOLOCRON_CHECKLY_TOKEN == '' || env.HOLOCRON_DISCORD_BOT_TOKEN == ''
+        run: |
+          echo "::warning::HOLOCRON_CHECKLY_TOKEN and HOLOCRON_DISCORD_BOT_TOKEN are both needed, and one is not set, so no incidents were synced. Add them as Actions secrets."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        if: env.HOLOCRON_CHECKLY_TOKEN != '' && env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: env.HOLOCRON_CHECKLY_TOKEN != '' && env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+
+      - name: Build the CLI
+        if: env.HOLOCRON_CHECKLY_TOKEN != '' && env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        run: pnpm turbo run build --filter=@theholocron/cli...
+
+      - name: Sync the incidents
+        if: env.HOLOCRON_CHECKLY_TOKEN != '' && env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            node cli/cli/dist/cli.mjs sync incidents --dry-run
+          else
+            node cli/cli/dist/cli.mjs sync incidents --yes
+          fi
+
+      # Tells Checkly this run finished (#2359, the `sync-incidents` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job. A dry run does not ping.
+      - name: Ping the heartbeat
+        if: env.HOLOCRON_CHECKLY_TOKEN != '' && env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_SYNC_INCIDENTS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_SYNC_INCIDENTS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."
