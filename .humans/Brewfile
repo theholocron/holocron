@@ -12,6 +12,9 @@ brew "editorconfig-checker"
 brew "gitleaks"
 brew "yamllint"
 
+# The astromech conformance test runs the `ci` aggregate's jq program from `ci/workflows/ci.yml` (skipped without it).
+brew "jq"
+
 # `.holocron/media/emoji/make-emoji.mjs` rasterises the server emoji SVGs.
 brew "librsvg" # bin: rsvg-convert
 

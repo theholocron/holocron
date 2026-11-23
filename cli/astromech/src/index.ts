@@ -21,6 +21,15 @@
  * lives in the zero-runtime-dep `@theholocron/astromech/config` subpath.
  */
 
+export type {
+	AggregateAnnotation,
+	AggregateCheckRun,
+	AggregateCommitStatus,
+	AggregateResult,
+	AggregateRow,
+	EvaluateAggregateInput,
+} from "./aggregate/index.js";
+export { evaluateAggregate } from "./aggregate/index.js";
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { AggregateChecks } from "./generators/aggregate-checks/index.js";
