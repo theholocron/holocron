@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { DiscussionPost, MonitoringIncident } from "../../plugin/index.js";
 import { renderIncident, renderIncidentUpdate } from "../render-incident/index.js";
-import { planIncidentFeed } from "./plan-incident-feed.js";
+import { planIncidentFeed } from "./index.js";
 
 const page = { name: "The Holocron" };
 const incident = (over: Partial<MonitoringIncident> = {}): MonitoringIncident => ({
