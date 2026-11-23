@@ -1,3 +1,19 @@
+## [5.0.0-alpha.521](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.520...v5.0.0-alpha.521) (2026-11-23)
+
+### Features
+
+* **astromech:** ✨ a ci.aggregate setting says who posts the ci check ([#2558](https://github.com/theholocron/holocron/issues/2558)) ([7265634](https://github.com/theholocron/holocron/commit/726563487a1e1593905d5c1f895413a843f331db)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **astromech:** ✨ evaluate the ci aggregate in a pure function ([#2545](https://github.com/theholocron/holocron/issues/2545)) ([66dd4da](https://github.com/theholocron/holocron/commit/66dd4da8722281cdad25f0fe24c2ee3930d4e5d4)), closes [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **cli:** ✨ doctor ci --shadow compares Sentinel's shadow with the Actions aggregate ([#2557](https://github.com/theholocron/holocron/issues/2557)) ([b49ede2](https://github.com/theholocron/holocron/commit/b49ede2a4b4d8d2695ed4c5459e6ae82370ed151)), closes [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **cli:** ✨ holocron reconcile ci posts the ci aggregate from the state it reads ([#2555](https://github.com/theholocron/holocron/issues/2555)) ([dfeff83](https://github.com/theholocron/holocron/commit/dfeff83520414a6e99706d40e47be7eb6dc84e85)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **cli:** ✨ holocron redeliver webhooks and a deliveries row in doctor github-app ([#2560](https://github.com/theholocron/holocron/issues/2560)) ([2c644f9](https://github.com/theholocron/holocron/commit/2c644f98f51a6f29849970572c3d069c9611d1ce)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **sentinel:** ✨ post the ci aggregate in shadow under its own name ([#2556](https://github.com/theholocron/holocron/issues/2556)) ([75f7c87](https://github.com/theholocron/holocron/commit/75f7c879fa1a350a0abcf99652aef472eb4806b7)), closes [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **sentinel:** ✨ post the real ci check when the head's setting is sentinel ([#2561](https://github.com/theholocron/holocron/issues/2561)) ([1f6efbc](https://github.com/theholocron/holocron/commit/1f6efbcc53b42edbf81b2657b1d4cca931a1a431)), closes [#prs](https://github.com/theholocron/holocron/issues/prs) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+### Documentation
+
+* **specs:** 📚️ record the decisions on the ci aggregate spec's open questions ([#2546](https://github.com/theholocron/holocron/issues/2546)) ([f9edf83](https://github.com/theholocron/holocron/commit/f9edf83a04708b87a85a641e6f3212a515a2c252)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.520](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.519...v5.0.0-alpha.520) (2026-11-23)
 
 ### Bug Fixes
