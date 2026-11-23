@@ -31,6 +31,10 @@ import { runCi, type RunDeps, runWords } from "./tasks/index.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";
 import { resolveTaskName, workflowKeys } from "./vocabulary/index.js";
 
+/**
+ * Creates the Holocron task runner: `run` / `ci`, the generated workflows, `package.json` scripts, linter set and required
+ * checks, all driven by one `tasks` manifest. `@theholocron/cli` creates it once and delegates to it.
+ */
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {
 		print: options.print ?? ((line: string) => console.log(line)),
