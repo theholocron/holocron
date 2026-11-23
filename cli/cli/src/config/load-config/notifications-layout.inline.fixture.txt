@@ -90,6 +90,22 @@
 					// Discord's Integrations list, so no picture is named here.
 					feeds: { monitoring: true },
 				},
+				// A forum: one post for each incident on the status page, kept by `holocron sync incidents` (#2366, spec
+				// tech-incidents-to-discord). The tag is the incident's status; only the bot and members who can manage
+				// threads change it. `feeds.incidents` names the status page (`.holocron/monitoring.ts`).
+				{
+					name: "incidents",
+					kind: "forum",
+					topic: "One post for each status page incident, tagged with its status and kept up to date. Updates are appended; comment on the status page, not here.",
+					tags: [
+						{ name: "investigating", emoji: "🔍", moderated: true },
+						{ name: "identified", emoji: "🎯", moderated: true },
+						{ name: "monitoring", emoji: "👀", moderated: true },
+						{ name: "resolved", emoji: "✅", moderated: true },
+						{ name: "maintenance", emoji: "🛠️", moderated: true },
+					],
+					feeds: { incidents: "The Holocron" },
+				},
 			],
 		},
 		{
