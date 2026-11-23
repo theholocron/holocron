@@ -1,3 +1,13 @@
+## [5.0.0-alpha.522](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.521...v5.0.0-alpha.522) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ pin the required ci check to Sentinel's app ([#2566](https://github.com/theholocron/holocron/issues/2566)) ([fcf9ec8](https://github.com/theholocron/holocron/commit/fcf9ec8ecf699b6ff269894de7615adaff2fa8f2)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+### Documentation
+
+* **specs:** 📚️ accept the organization issue Types spec after the real run ([#2567](https://github.com/theholocron/holocron/issues/2567)) ([7da469e](https://github.com/theholocron/holocron/commit/7da469ed6cfdc5daac421234884d85647b7041b6)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
 ## [5.0.0-alpha.521](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.520...v5.0.0-alpha.521) (2026-11-23)
 
 ### Features

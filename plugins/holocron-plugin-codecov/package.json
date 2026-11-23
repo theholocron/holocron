@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-codecov",
-  "version": "5.0.0-alpha.521",
+  "version": "5.0.0-alpha.522",
   "description": "Holocron plugin for Codecov. Implements the coverage capability against Codecov's REST API: checks that the service accepts a token for the repository.",
   "keywords": [
     "codecov",
