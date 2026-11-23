@@ -22,6 +22,8 @@ import type {
 	Issues,
 	IssueSearchFilter,
 	IssueSelector,
+	IssueTypeDeclaration,
+	IssueTypeInfo,
 	IssueUpdateResult,
 	LifecycleResult,
 	LifecycleSlot,
@@ -30,7 +32,7 @@ import type {
 	TrackerDoctorReport,
 	TrackerUser,
 } from "@theholocron/cli";
-import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
+import type { GitHubClient, GitHubIssue, IssueTypeColor, OrgIssueTypeInfo } from "@theholocron/github-client";
 
 import { createFieldSetter, type FieldSetter } from "./issue-field-setter.js";
 import { type KindNames, kindNames } from "./issue-kind.js";
@@ -49,6 +51,11 @@ export interface IssuesOptions {
 	labels?: { inProgress: string; inReview: string };
 	/** The organization's issue Types (`issueTypes`), which `--type` and a record's kind are written as. */
 	issueTypes?: ReadonlyArray<{ name: string }>;
+	/**
+	 * A client with the organization token (`HOLOCRON_ORG_TOKEN`, Issue types read and write), for the Type methods
+	 * only; `undefined` when none is configured. The shared issues token never writes the organization's vocabulary.
+	 */
+	orgClient?: () => GitHubClient | undefined;
 }
 
 /** Issues read per request when `search` has a `text`; GitHub's largest page. */
@@ -57,6 +64,17 @@ const TEXT_PAGE_SIZE = 100;
 const TEXT_MAX_PAGES = 20;
 
 /** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
+/** A Type as the capability reports it: GitHub's `null`s are left out. */
+function toTypeInfo(t: OrgIssueTypeInfo): IssueTypeInfo {
+	return {
+		id: t.id,
+		name: t.name,
+		...(t.description ? { description: t.description } : {}),
+		...(t.color ? { color: t.color } : {}),
+		enabled: t.is_enabled,
+	};
+}
+
 export class GitHubIssues implements Issues {
 	/** Capability key, always `"issues"`. */
 	readonly key = "issues" as const;
@@ -68,6 +86,7 @@ export class GitHubIssues implements Issues {
 	private readonly repo: string;
 	private readonly labels: { inProgress: string; inReview: string } | undefined;
 	private readonly kinds: KindNames;
+	private readonly orgClient: (() => GitHubClient | undefined) | undefined;
 
 	constructor(
 		private readonly client: GitHubClient,
@@ -79,6 +98,7 @@ export class GitHubIssues implements Issues {
 		this.repo = opts.repo;
 		this.labels = opts.labels;
 		this.kinds = kindNames(opts.issueTypes);
+		this.orgClient = opts.orgClient;
 	}
 
 	// ── identity ─────────────────────────────────────────────────────────
@@ -332,6 +352,41 @@ export class GitHubIssues implements Issues {
 	/** Like `import`, and it also updates what an earlier import or sync made, for `holocron sync issues`. */
 	sync(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]> {
 		return syncIssues(this.client, this.repo, records, options, this.kinds);
+	}
+
+	// ── the organization's issue Types ───────────────────────────────────
+
+	async listTypes(): Promise<IssueTypeInfo[] | undefined> {
+		const client = this.orgClient?.();
+		return client ? (await client.issueTypes.list(this.owner)).map(toTypeInfo) : undefined;
+	}
+
+	async createType(type: IssueTypeDeclaration): Promise<IssueTypeInfo> {
+		const client = this.orgClient?.();
+		if (!client) throw new Error("no organization token (HOLOCRON_ORG_TOKEN) to make an issue Type with");
+		const made = await client.issueTypes.create(this.owner, {
+			name: type.name,
+			is_enabled: type.enabled ?? true,
+			...(type.description !== undefined ? { description: type.description } : {}),
+			...(type.color !== undefined ? { color: type.color as IssueTypeColor } : {}),
+		});
+		return toTypeInfo(made);
+	}
+
+	async updateType(id: IssueTypeInfo["id"], patch: { description?: string; color?: string }): Promise<void> {
+		const client = this.orgClient?.();
+		if (!client) throw new Error("no organization token (HOLOCRON_ORG_TOKEN) to change an issue Type with");
+		// GitHub replaces the whole Type, so the name and the enabled flag it has now go back unchanged: no rename.
+		const current = (await client.issueTypes.list(this.owner)).find((t) => String(t.id) === String(id));
+		if (!current) throw new Error(`the organization has no issue Type with id ${id}`);
+		const description = patch.description ?? current.description;
+		const color = (patch.color as IssueTypeColor | undefined) ?? current.color;
+		await client.issueTypes.update(this.owner, current.id, {
+			name: current.name,
+			is_enabled: current.is_enabled,
+			...(description != null ? { description } : {}),
+			...(color != null ? { color } : {}),
+		});
 	}
 
 	// ── internals ────────────────────────────────────────────────────────
