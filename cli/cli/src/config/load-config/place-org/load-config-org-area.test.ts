@@ -132,7 +132,10 @@ describe("the org area in this repo (#1820)", () => {
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.
 		expect(resolved.domain).toBe("theholocron.dev");
-		expect(JSON.parse(JSON.stringify({ ...resolved, domain: undefined }))).toEqual(expected);
+		// And (#2512): Sentinel's own org file declares no `issueTypes`, so it inherits the root's five (the key is the
+		// organization's, not the app's); the list is checked in `load-config-issue-types.test.ts`.
+		expect(resolved.issueTypes?.map((type) => type.name)).toEqual(["Bug", "Feature", "Task", "Epic", "Spike"]);
+		expect(JSON.parse(JSON.stringify({ ...resolved, domain: undefined, issueTypes: undefined }))).toEqual(expected);
 	});
 
 	it("spells the zone once, in the root area, and every config and area file gets it from there (#1727)", async () => {
