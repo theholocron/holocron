@@ -86,6 +86,19 @@ describe("new work", () => {
 		expect(process.exitCode).toBe(1);
 	});
 
+	it("refuses a --type the organization does not declare, and takes one it does", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		await go("Fix it", "--type", "Epic");
+		expect(runNewWork).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(expect.stringContaining("Use one of: bug, feature, task"));
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		loadConfig.mockResolvedValue({ resolved: { org: "acme", issueTypes: [{ name: "Epic" }] }, filepath: "/x" });
+		await go("Fix it", "--type", "Epic");
+		expect(runNewWork).toHaveBeenCalledWith(expect.objectContaining({ kind: "epic" }));
+		err.mockRestore();
+	});
+
 	it("sets a failing exit code and does nothing without a token", async () => {
 		runNewWork.mockResolvedValue({ status: "fail", rows: [] });
 		await go("Fix it");
