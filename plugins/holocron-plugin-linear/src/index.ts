@@ -25,7 +25,7 @@ export interface LinearPluginOptions extends ResolveTokenInput {
 	/** The key of the team the issues and boards belong to, e.g. `ENG`. Required by both capabilities. */
 	team?: string;
 	/** The organization's issue Types (`issueTypes`, #2512), handed in by the loader: each one's `label` is its Linear kind label. */
-	issueTypes?: ReadonlyArray<{ name: string; label?: string }>;
+	issueTypes?: ReadonlyArray<{ name: string; label?: string; color?: string }>;
 	/** Names of the states the `inProgress` and `inReview` lifecycle slots move an issue to. */
 	states?: {
 		/** The state for work that has started. */
@@ -91,7 +91,11 @@ export function projects(options: LinearPluginOptions): Projects {
  */
 function providerAction(
 	options: LinearPluginOptions,
-	make: (scope: TeamScope, config: ReturnType<typeof parseLinearSetup>) => ProviderAction
+	make: (
+		scope: TeamScope,
+		config: ReturnType<typeof parseLinearSetup>,
+		types: ReadonlyArray<{ name: string; label?: string; color?: string }>
+	) => ProviderAction
 ): ProviderAction {
 	return async (ctx) => {
 		const config = parseLinearSetup(options);
@@ -105,7 +109,7 @@ function providerAction(
 				),
 			];
 		}
-		return make(createScope(options), config)(ctx);
+		return make(createScope(options), config, options.issueTypes ?? [])(ctx);
 	};
 }
 

@@ -8,10 +8,36 @@ import type { LinearSetupConfig } from "./provider-config.js";
 import { failure, findProject, row } from "./rows.js";
 import { templateRows } from "./templates.js";
 
-/** The colour GitHub's label of this name has, as Linear spells a colour (`#d73a4a`), or undefined. */
-const colorOf = (name: string): string | undefined => {
-	const known = CANONICAL_LABELS.find((l) => l.name.toLowerCase() === name.toLowerCase());
-	return known ? `#${known.color}` : undefined;
+/** GitHub's eight issue Type colour words as hex, the one table that turns a declared Type's colour into a label's. */
+const TYPE_COLORS: Record<string, string> = {
+	gray: "#848d97",
+	blue: "#0969da",
+	green: "#1a7f37",
+	yellow: "#bf8700",
+	orange: "#bc4c00",
+	red: "#cf222e",
+	pink: "#bf3989",
+	purple: "#8250df",
+};
+
+/** What `provider linear setup` reads of a declared issue Type: the label it makes and the colour it falls back to. */
+export interface SetupIssueType {
+	name: string;
+	label?: string;
+	color?: string;
+}
+
+/**
+ * The colour GitHub's stock label of this name has, as Linear spells a colour (`#d73a4a`); else the colour of the
+ * declared Type whose label (or lower-cased name) it is, so `epic` keeps a colour once it leaves `CANONICAL_LABELS`
+ * (spec `tech-org-issue-types`, section 8); else undefined.
+ */
+export const colorOf = (name: string, types: ReadonlyArray<SetupIssueType> = []): string | undefined => {
+	const lower = name.toLowerCase();
+	const known = CANONICAL_LABELS.find((l) => l.name.toLowerCase() === lower);
+	if (known) return `#${known.color}`;
+	const type = types.find((t) => (t.label ?? t.name).toLowerCase() === lower);
+	return type?.color ? TYPE_COLORS[type.color] : undefined;
 };
 
 /** Runs one step; a throw is a failing row, not the end of the run. */
@@ -23,7 +49,13 @@ async function attempt(id: string, title: string, step: () => Promise<ProviderRo
 	}
 }
 
-async function labelRows(scope: TeamScope, team: LinearTeam, names: string[], dryRun: boolean): Promise<ProviderRow[]> {
+async function labelRows(
+	scope: TeamScope,
+	team: LinearTeam,
+	names: string[],
+	dryRun: boolean,
+	types: ReadonlyArray<SetupIssueType>
+): Promise<ProviderRow[]> {
 	let existing: Array<{ name: string }>;
 	try {
 		existing = await scope.client.teams.labels(team.id);
@@ -40,7 +72,7 @@ async function labelRows(scope: TeamScope, team: LinearTeam, names: string[], dr
 					return row(id, title, "ok", "already exists");
 				}
 				if (dryRun) return row(id, title, "ok", "would create");
-				const color = colorOf(name);
+				const color = colorOf(name, types);
 				await scope.client.teams.createLabel({ name, teamId: team.id, ...(color ? { color } : {}) });
 				return row(id, title, "ok", "created");
 			})
@@ -146,7 +178,11 @@ async function gitRows(
  * auto-archive and makes or repoints each git automation rule it declares (issue templates are reported as skipped). Each step is a row and a step that fails does not stop the next. Nothing is deleted or reordered, an
  * existing label or project is left alone, and a team that already matches changes nothing, so a second run is all `ok`.
  */
-export function linearSetup(scope: TeamScope, config: LinearSetupConfig): ProviderAction {
+export function linearSetup(
+	scope: TeamScope,
+	config: LinearSetupConfig,
+	types: ReadonlyArray<SetupIssueType> = []
+): ProviderAction {
 	return async ({ dryRun }) => {
 		let team: LinearTeam;
 		try {
@@ -156,7 +192,7 @@ export function linearSetup(scope: TeamScope, config: LinearSetupConfig): Provid
 		}
 		const rows: ProviderRow[] = [];
 
-		if (config.labels.length > 0) rows.push(...(await labelRows(scope, team, config.labels, dryRun)));
+		if (config.labels.length > 0) rows.push(...(await labelRows(scope, team, config.labels, dryRun, types)));
 
 		const name = config.project;
 		if (name) {

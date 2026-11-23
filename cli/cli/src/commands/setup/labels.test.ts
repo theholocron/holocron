@@ -25,13 +25,8 @@ describe("CANONICAL_LABELS", () => {
 		expect(names).toContain("wontfix");
 	});
 
-	it("includes the epic label and keeps it out of the stale list", () => {
-		const epic = CANONICAL_LABELS.find((l) => l.name === "epic");
-		expect(epic).toEqual({
-			name: "epic",
-			color: "5319e7",
-			description: "A body of work made of several issues",
-		});
+	it("retires the epic label (Epic is a Type) without making it stale, so it is never deleted", () => {
+		expect(CANONICAL_LABELS.map((l) => l.name as string).includes("epic")).toBe(false);
 		expect(STALE_LABELS).not.toContain("epic");
 	});
 });
