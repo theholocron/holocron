@@ -47,6 +47,10 @@ github to linear: created 3, updated 1, unchanged 40, skipped (guard) 2, left 0
 
 and the same `not carried across` list as `migrate`, with one line per loss and the number of issues it hit.
 
+## Effort and dates
+
+Effort, the start date and the target date travel with the issue (`migrate` and `sync` alike). On GitHub they are the organization's `Effort`, `Start date` and `Target date` issue fields; on Linear Effort is the estimate (1 low, 3 medium, 5 high, any other number is no effort) and the target date the due date. Linear has no start date, so it is listed as `startDate (Linear has no start date)`. A target only gets a value the record carries: nothing is ever cleared, and `migrate` writes only to issues it makes, while `sync` sets an issue it made to the source's value when they differ. A field the target lacks, an option it has no `Effort` for or a team with estimates off is a `not carried across` line, never a failure. Not verified against live GitHub or Linear yet.
+
 ## Interrupted and rate limited runs
 
 A failure part-way leaves every finished issue correct, and the next run continues. A provider rate limit stops the run cleanly: the issues not reached are the `left` count, and running it again does them. A write that errored is not repeated inside the run, so an errored create cannot become two issues.

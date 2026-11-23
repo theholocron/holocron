@@ -14,6 +14,7 @@ import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { LinearIssueUpdate } from "@theholocron/linear-client";
 
 import { CORE_KIND_LABELS, labelsFor } from "./issue-kind.js";
+import { setEstimate, workFieldsOf } from "./issue-work-fields.js";
 import { assigneeFor, droppedFor, importIssues, renderComment } from "./issues-migration.js";
 import { pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
@@ -115,6 +116,12 @@ export async function syncIssues(
 						patch.labelIds = ids;
 					}
 				}
+				if (record.targetDate && issue.dueDate?.slice(0, 10) !== record.targetDate) {
+					patch.dueDate = record.targetDate;
+					changes.push("targetDate");
+				}
+				const wantsEstimate = record.effort !== undefined && workFieldsOf(issue).effort !== record.effort;
+				if (wantsEstimate) changes.push("effort");
 				const assigneeId = assigneeFor(record, userIds);
 				if (assigneeId && issue.assignee?.id !== assigneeId) {
 					patch.assigneeId = assigneeId;
@@ -130,8 +137,13 @@ export async function syncIssues(
 				);
 				if (missingComments.length > 0) changes.push("comments");
 
+				const dropped = droppedFor(record, assigneeId, scope.kinds);
 				if (!options.dryRun) {
 					if (Object.keys(patch).length > 0) await client.issues.update(issue.id, patch);
+					const estimateNote = wantsEstimate
+						? await setEstimate(client, issue.id, record.effort!)
+						: undefined;
+					if (estimateNote) dropped.push(estimateNote);
 					for (const c of missingComments)
 						await client.issues.comment(issue.id, renderComment(c), c.createdAt);
 				}
@@ -141,7 +153,7 @@ export async function syncIssues(
 					created: false,
 					updated: changes.length > 0,
 					changes,
-					dropped: droppedFor(record, assigneeId, scope.kinds),
+					dropped,
 				});
 				tick();
 			}

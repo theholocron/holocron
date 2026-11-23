@@ -13,8 +13,10 @@ import type { ImportOptions, IssueRecord, SyncResult } from "@theholocron/cli";
 import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
+import { createFieldSetter, type FieldSetter } from "./issue-field-setter.js";
 import { CORE_KIND_NAMES, hasKindType, type KindNames, writeKind } from "./issue-kind.js";
 import { createPrioritySetter, type PrioritySetter } from "./issue-priority.js";
+import { writeWorkFields } from "./issue-work-fields.js";
 import {
 	createFromRecord,
 	droppedFor,
@@ -57,14 +59,15 @@ export async function syncIssues(
 	}
 
 	const priority = createPrioritySetter(client, repo);
+	const fields = createFieldSetter(client, repo);
 	const results: SyncResult[] = [];
 	for (const record of records) {
 		try {
 			const found = existing.get(record.url);
 			results.push(
 				found
-					? await update(client, repo, found, record, options, priority, kinds)
-					: await create(client, repo, record, options, priority, kinds)
+					? await update(client, repo, found, record, options, priority, fields, kinds)
+					: await create(client, repo, record, options, priority, fields, kinds)
 			);
 			reportProgress(options.onProgress, results.length, records.length);
 		} catch (err) {
@@ -81,6 +84,7 @@ async function create(
 	record: IssueRecord,
 	options: ImportOptions,
 	priority: PrioritySetter,
+	fields: FieldSetter,
 	kinds: KindNames
 ): Promise<SyncResult> {
 	const dropped = droppedFor(record);
@@ -88,6 +92,7 @@ async function create(
 	const number = await createFromRecord(client, repo, record, options);
 	const field = await priority.set(number, record.priority, { isNew: true });
 	if (field.note) dropped.push(field.note);
+	dropped.push(...(await writeWorkFields(fields, number, record, { isNew: true })).notes);
 	const kindNote = record.kind ? await writeKind(client, repo, number, record.kind, kinds) : undefined;
 	if (kindNote) dropped.push(kindNote);
 	return { source: record.key, key: `#${number}`, created: true, updated: false, changes: [], dropped };
@@ -100,6 +105,7 @@ async function update(
 	record: IssueRecord,
 	options: ImportOptions,
 	priority: PrioritySetter,
+	fields: FieldSetter,
 	kinds: KindNames
 ): Promise<SyncResult> {
 	const patch: Record<string, unknown> = {};
@@ -134,6 +140,8 @@ async function update(
 
 	const field = await priority.set(issue.number, record.priority, { dryRun: options.dryRun });
 	if (field.changed) changes.push("priority field");
+	const work = await writeWorkFields(fields, issue.number, record, { dryRun: options.dryRun });
+	changes.push(...work.changed);
 
 	const kindWrong = record.kind !== undefined && !hasKindType(issue, record.kind, kinds);
 	if (kindWrong) changes.push("kind");
@@ -155,6 +163,11 @@ async function update(
 		created: false,
 		updated: changes.length > 0,
 		changes,
-		dropped: [...droppedFor(record), ...(field.note ? [field.note] : []), ...(kindNote ? [kindNote] : [])],
+		dropped: [
+			...droppedFor(record),
+			...(field.note ? [field.note] : []),
+			...work.notes,
+			...(kindNote ? [kindNote] : []),
+		],
 	};
 }

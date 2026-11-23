@@ -1047,6 +1047,12 @@ export interface IssueRecord {
 	labels: string[];
 	/** What kind of issue it is: the Type or the kind label on GitHub, the kind label on Linear. `undefined` when the source names none. */
 	kind?: IssueKind;
+	/** How much work it is; `undefined` when the source holds none (Linear: an estimate other than 1, 3 or 5 is none). */
+	effort?: IssueEffort;
+	/** When work starts, `YYYY-MM-DD`; `undefined` when the source holds none (Linear has no start date). */
+	startDate?: string;
+	/** When it is due, `YYYY-MM-DD`: GitHub's `Target date` field, Linear's `dueDate`. */
+	targetDate?: string;
 	/** Who it is assigned to. */
 	assignee?: TrackerUser;
 	/** The milestone (GitHub) or project (Linear) it belongs to, by name. */

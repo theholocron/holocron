@@ -53,3 +53,21 @@ export function withIssueFields(inner: typeof fetch, setup: FakeIssueFields = {}
 	};
 	return { fetch: fake, calls };
 }
+
+/** The Effort field of an organization that has one. */
+export const EFFORT_FIELD: GitHubIssueField = {
+	id: 30633743,
+	name: "Effort",
+	data_type: "single_select",
+	options: [
+		{ id: 1, name: "High" },
+		{ id: 2, name: "Medium" },
+		{ id: 3, name: "Low" },
+	],
+};
+
+/** The Start date field of an organization that has one. */
+export const START_DATE_FIELD: GitHubIssueField = { id: 30633744, name: "Start date", data_type: "date" };
+
+/** The Target date field of an organization that has one. */
+export const TARGET_DATE_FIELD: GitHubIssueField = { id: 30633745, name: "Target date", data_type: "date" };

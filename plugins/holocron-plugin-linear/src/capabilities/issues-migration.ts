@@ -8,7 +8,8 @@
  *  - a comment is posted by the token's user, so its author is named in the text;
  *  - a link to an issue outside the migrated set cannot be made (the target has no key for it).
  * Each imported issue gets an attachment pointing at the source address, which is how a second run finds it.
- * Fields Linear has and the neutral record does not (estimate, due date, cycle) are not exported.
+ * The estimate is the record's effort (1 low, 3 medium, 5 high; another number is none) and the due date its target
+ * date; Linear has no start date. Fields the neutral record does not have (cycle) are not exported.
  */
 
 import {
@@ -24,6 +25,7 @@ import {
 import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 
 import { CORE_KIND_LABELS, droppedKind, type KindLabels, kindOfLabels, labelsFor } from "./issue-kind.js";
+import { setEstimate, workFieldsOf } from "./issue-work-fields.js";
 import { fromLinearPriority, isClosed, normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
@@ -49,6 +51,7 @@ export function droppedFor(
 	const dropped: string[] = [];
 	const kind = droppedKind(record, kinds);
 	if (kind) dropped.push(kind);
+	if (record.startDate) dropped.push("startDate (Linear has no start date)");
 	if (record.assignee && !assigneeId) dropped.push("assignee (no Linear user with that email)");
 	if (record.comments.some((c) => c.author)) dropped.push("comment authors (named in the text)");
 	return dropped;
@@ -129,6 +132,7 @@ export async function exportIssues(
 			...(priority ? { priority } : {}),
 			labels: labelNames,
 			...(kind ? { kind } : {}),
+			...workFieldsOf(issue),
 			...(issue.assignee
 				? {
 						assignee: {
@@ -231,8 +235,11 @@ export async function importIssues(
 			...(assigneeId ? { assigneeId } : {}),
 			...(ids.length > 0 ? { labelIds: ids } : {}),
 			...(project ? { projectId: project } : {}),
+			...(record.targetDate ? { dueDate: record.targetDate } : {}),
 			createdAt: record.createdAt,
 		});
+		const estimateNote = record.effort ? await setEstimate(client, issue.id, record.effort) : undefined;
+		if (estimateNote) dropped.push(estimateNote);
 		await client.issues.attach(issue.id, record.url, `${MIGRATED_TITLE_PREFIX}${record.key}`);
 		for (const comment of record.comments) {
 			await client.issues.comment(issue.id, renderComment(comment), comment.createdAt);
