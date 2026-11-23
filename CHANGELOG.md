@@ -1,3 +1,9 @@
+## [5.0.0-alpha.523](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.522...v5.0.0-alpha.523) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ carry Effort and the dates through issue export, import and sync ([#2568](https://github.com/theholocron/holocron/issues/2568)) ([d9aab56](https://github.com/theholocron/holocron/commit/d9aab5611f7c81e45e295a788f71ed782a54e776)), closes [#2496](https://github.com/theholocron/holocron/issues/2496)
+
 ## [5.0.0-alpha.522](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.521...v5.0.0-alpha.522) (2026-11-23)
 
 ### Features
