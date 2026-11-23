@@ -4,7 +4,7 @@ description: Check a repository against the flat task vocabulary - aliases, call
 ---
 
 ```bash
-holocron doctor ci
+holocron doctor ci [--shadow [--limit <n>]]
 ```
 
 Answers one question for the repository you are in: has it moved to the flat task vocabulary (spec `ci-flat-task-vocabulary`)? It reads `holocron.config.ts` and `.github/workflows`, needs no provider or token, changes nothing, and exits non-zero while any row fails. Run it before and after repointing a repository's callers.
@@ -28,6 +28,16 @@ Answers one question for the repository you are in: has it moved to the flat tas
 | `home`      | every caller calls reusables from one home: `theholocron/.github` (frozen copies, legacy names), holocron at `ci-v1` (flat names) or the repo's own reusables (the repo that hosts them)               |
 
 A job name may carry a suffix after the id (`release ${{ matrix.group }}`). Only generated callers are read (the `AUTO-GENERATED` header and a job that calls a reusable workflow); hand-written workflows and the reusables themselves are left alone.
+
+## Comparing Sentinel's shadow (`--shadow`)
+
+While Sentinel's `ci` aggregate runs in shadow (spec `process-sentinel-posts-ci`, SPEC-0099), `--shadow` adds a `shadow` row that answers whether the two checks say the same thing. It reads, through the `source` provider (so it needs a token; the other rows need none), the newest `--limit` open and merged pull requests (default 40) and, for each head commit, the newest `ci / Required checks` run (the Actions poller) and the newest `ci / Required checks (sentinel)` run.
+
+- A pull request is **decided** when both posted and neither is still running. One the shadow never posted on, and one still running, are left out: neither says the two disagree.
+- **Any decided pull request where they differ fails the row**, and each is named with what each side said.
+- With none decided the row is a skip. Below 20 consecutive agreeing pull requests it is a skip too (the shadow is still being watched); at 20 it passes. That is the spec's exit criterion for the dev instance (10 for the production shadow, by hand).
+
+The spec also asks that the agreeing set include a re-run of one leaf, a cancelled first batch (#2171), a `codecov/*` status that arrives late, a skipped leaf and a missing id. The row cannot tell which pull requests those were; a person reads that off the pull requests it lists.
 
 ## Skips
 

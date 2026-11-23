@@ -19,6 +19,7 @@ import type { DoctorCiReport, RunDoctorCiInput } from "./doctor-ci.type.js";
 import { homeRow } from "./home-row.js";
 import { parseCaller } from "./parse-caller.js";
 import { realCiIo } from "./real-ci-io.js";
+import { shadowRows } from "./shadow-rows.js";
 import { tasksRow } from "./tasks-row.js";
 
 export async function runDoctorCi(input: RunDoctorCiInput): Promise<DoctorCiReport> {
@@ -38,6 +39,7 @@ export async function runDoctorCi(input: RunDoctorCiInput): Promise<DoctorCiRepo
 		callersRow(callers),
 		aggregateRow(callers, aggregateChecks(tasksConfig).expected),
 		homeRow(callers, input.legacyGate ?? legacyGate()),
+		...(input.shadow ? await shadowRows(input) : []),
 	];
 
 	printCheckRows(rows, print);

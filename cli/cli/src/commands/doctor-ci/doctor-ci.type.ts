@@ -54,6 +54,10 @@ export interface RunDoctorCiInput {
 	io?: CiIo;
 	/** Whether generated callers still keep their old names (`legacyGate()` in astromech); the default reads it. */
 	legacyGate?: boolean;
+	/** Also compare Sentinel's shadow aggregate with the Actions one on the newest pull requests (reads through `source`). */
+	shadow?: boolean;
+	/** With `shadow`: how many of the newest pull requests to read; the default is `SHADOW_DEFAULT_LIMIT`. */
+	shadowLimit?: number;
 }
 
 /** How a `doctor ci` run ended. */
