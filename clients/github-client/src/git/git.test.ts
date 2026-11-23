@@ -279,4 +279,88 @@ describe("git.getTree without recursion", () => {
 		expect(calls[0]?.url).toContain("/git/trees/tree123");
 		expect(calls[0]?.url).not.toContain("recursive");
 	});
+
+	describe("listTree", () => {
+		const SHA = "0123456789abcdef0123456789abcdef01234567";
+		const item = (path: string, type: string, extra: Record<string, unknown> = {}) => ({
+			path,
+			type,
+			sha: `sha-${path}`,
+			mode: type === "tree" ? "040000" : "100644",
+			...extra,
+		});
+
+		it("lists a directory and everything under it in ONE request, with full paths", async () => {
+			const { fetch, calls } = stubFetch([
+				{
+					body: {
+						sha: "t",
+						truncated: false,
+						tree: [
+							item("org.ts", "blob", { size: 42 }),
+							item("media", "tree"),
+							item("media/emoji/git_merge.png", "blob", { size: 900 }),
+							item("link", "blob", { mode: "120000" }),
+							item("sub", "commit", { mode: "160000" }),
+						],
+					},
+				},
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listTree(REPO, "/.holocron/");
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/git/trees/HEAD:.holocron");
+			expect(calls[0]?.url).toContain("recursive=1");
+			expect(result).toEqual([
+				{ name: "org.ts", path: ".holocron/org.ts", type: "file", size: 42, sha: "sha-org.ts" },
+				{ name: "media", path: ".holocron/media", type: "dir", size: 0, sha: "sha-media" },
+				{
+					name: "git_merge.png",
+					path: ".holocron/media/emoji/git_merge.png",
+					type: "file",
+					size: 900,
+					sha: "sha-media/emoji/git_merge.png",
+				},
+				{ name: "link", path: ".holocron/link", type: "symlink", size: 0, sha: "sha-link" },
+				{ name: "sub", path: ".holocron/sub", type: "submodule", size: 0, sha: "sha-sub" },
+			]);
+		});
+
+		it("names the commit when the ref is a full commit SHA", async () => {
+			const { fetch, calls } = stubFetch([{ body: { sha: "t", truncated: false, tree: [] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: SHA })).toEqual([]);
+			expect(calls[0]?.url).toContain(`/git/trees/${SHA}:.holocron`);
+		});
+
+		it("makes no request for a branch name, which it cannot name reliably", async () => {
+			const { fetch, calls } = stubFetch([]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: "feat/x" })).toBeUndefined();
+			expect(calls).toHaveLength(0);
+		});
+
+		it("answers undefined for a tree GitHub cut short", async () => {
+			const { fetch } = stubFetch([{ body: { sha: "t", truncated: true, tree: [item("a", "blob")] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+		});
+
+		it("answers undefined for a 404 and a 422, so the caller lists the directory the other way", async () => {
+			const { fetch } = stubFetch([
+				{ status: 404, body: { message: "Not Found" } },
+				{ status: 422, body: { message: "Invalid request" } },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+		});
+
+		it("throws for any other failure", async () => {
+			const { fetch } = stubFetch([{ status: 500, body: { message: "boom" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const err = await client.git.listTree(REPO, ".holocron").catch((e: unknown) => e);
+			expect(err).toBeInstanceOf(ProviderApiError);
+		});
+	});
 });

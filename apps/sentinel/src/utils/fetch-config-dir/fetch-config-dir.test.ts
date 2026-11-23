@@ -10,13 +10,14 @@ interface Entry {
 	type: string;
 }
 
-const makeClient = (entries: Entry[]) => {
+const makeClient = (entries: Entry[], tree?: Entry[]) => {
 	const getContents = vi.fn(async (_repo: string, path: string) => ({
 		content: Buffer.from(`// ${path}`).toString("base64"),
 	}));
 	const listDirectory = vi.fn(async () => entries);
-	const client = { git: { listDirectory, getContents } } as unknown as FetchConfigDirInput["client"];
-	return { client, getContents };
+	const listTree = vi.fn(async () => tree);
+	const client = { git: { listDirectory, listTree, getContents } } as unknown as FetchConfigDirInput["client"];
+	return { client, getContents, listDirectory, listTree };
 };
 
 const file = (path: string, size = 10): Entry => ({ path: `.holocron/${path}`, size, type: "file" });
@@ -59,5 +60,39 @@ describe("fetchConfigDir", () => {
 		const { client } = makeClient(many);
 
 		await expect(fetchConfigDir(input(client))).rejects.toThrow("the limit is 50");
+	});
+
+	it("lists the tree in one request when GitHub can answer that way, and then does not list level by level", async () => {
+		const { client, listDirectory, listTree, getContents } = makeClient(
+			[file("never-used.ts")],
+			[file("notifications.ts"), { path: ".holocron/media", size: 0, type: "dir" }, file("media/logo.png", 900)]
+		);
+
+		const result = await fetchConfigDir(input(client));
+
+		expect(listTree).toHaveBeenCalledWith("acme/demo", ".holocron", { ref: "feat" });
+		expect(listDirectory).not.toHaveBeenCalled();
+		expect(result.map((f) => f.path)).toEqual([".holocron/notifications.ts"]);
+		expect(getContents).toHaveBeenCalledTimes(1);
+	});
+
+	it("lists level by level, as before, when the single request cannot answer", async () => {
+		const { client, listDirectory, listTree } = makeClient([file("notifications.ts")], undefined);
+
+		const result = await fetchConfigDir(input(client));
+
+		expect(listTree).toHaveBeenCalledTimes(1);
+		expect(listDirectory).toHaveBeenCalledWith("acme/demo", ".holocron", { ref: "feat", recursive: true });
+		expect(result.map((f) => f.path)).toEqual([".holocron/notifications.ts"]);
+	});
+
+	it("applies the same caps to a tree listed in one request", async () => {
+		const { client, getContents } = makeClient(
+			[],
+			Array.from({ length: MAX_CONFIG_DIR_FILES + 1 }, (_, i) => file(`f${i}.ts`))
+		);
+
+		await expect(fetchConfigDir(input(client))).rejects.toThrow(/limit/);
+		expect(getContents).not.toHaveBeenCalled();
 	});
 });

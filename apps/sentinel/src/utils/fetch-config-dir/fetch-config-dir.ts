@@ -10,7 +10,9 @@ import {
 import type { FetchConfigDirInput, FetchConfigDirResult } from "./fetch-config-dir.type.js";
 
 /**
- * Lists a directory of the repo (every level) and fetches its files, for a config directory such as `.holocron/`.
+ * Lists a directory of the repo (every level) and fetches its files, for a config directory such as `.holocron/`. The
+ * listing is one request through the git trees API when GitHub can answer that way and one per level otherwise (which
+ * costs a GitHub call for every directory, so a tree with several levels is the expensive case, #2426).
  * A directory that is not there is `[]`. Symlinks and submodules are skipped (nothing outside the tree is followed),
  * and every file is fetched, except pictures ({@link MEDIA_EXTENSIONS}: a config cannot import one), not only the area files, because an area file may import a sibling; which of them is
  * evaluated is decided later by what the config and the area files import.
@@ -21,7 +23,11 @@ import type { FetchConfigDirInput, FetchConfigDirResult } from "./fetch-config-d
  */
 export async function fetchConfigDir(input: FetchConfigDirInput): Promise<FetchConfigDirResult> {
 	const { client, repo, dir, ref } = input;
-	const entries = await client.git.listDirectory(repo, dir, { ref, recursive: true });
+	// One request for the whole tree. When GitHub cannot answer that way (a branch name, a tree cut short, a directory
+	// it does not list) the directory is listed one request per level, which is authoritative.
+	const entries =
+		(await client.git.listTree(repo, dir, { ref })) ??
+		(await client.git.listDirectory(repo, dir, { ref, recursive: true }));
 	const files = entries.filter(
 		(entry) => entry.type === "file" && !MEDIA_EXTENSIONS.some((ext) => entry.path.toLowerCase().endsWith(ext))
 	);

@@ -21,7 +21,8 @@ describe("validateConfig — non-Error throw from loadConfigFromContent", () => 
 		const content = Buffer.from(JSON.stringify({ name: "demo", tasks: [] }), "utf8").toString("base64");
 		const { fetch } = stubFetch([
 			{ status: 200, body: { content } },
-			{ status: 404 }, // no .holocron/
+			{ status: 404 }, // no .holocron/: the tree request
+			{ status: 404 }, // and the per-level listing it falls back to
 		]);
 		const client = createGitHubClient({ token: "ghp_test", fetch });
 

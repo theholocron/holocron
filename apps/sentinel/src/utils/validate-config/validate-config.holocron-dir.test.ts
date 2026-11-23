@@ -33,18 +33,48 @@ const listing = (files: TreeFile[]) => ({
 	})),
 });
 
+/** The whole `.holocron/` tree as the git trees API answers it, in one response (paths relative to the directory). */
+const tree = (files: TreeFile[], truncated = false) => ({
+	status: 200,
+	body: {
+		sha: "t",
+		truncated,
+		tree: files.map((f) => ({
+			path: f.name,
+			type: f.type === "submodule" ? "commit" : "blob",
+			mode: f.type === "symlink" ? "120000" : f.type === "submodule" ? "160000" : "100644",
+			size: f.size ?? f.content.length,
+			sha: "abc",
+		})),
+	},
+});
+
 /**
- * holocron.config.ts at once (the first probe), the `.holocron/` listing, a fetch per plain file, and no
- * astromech.config.*.
+ * holocron.config.ts at once (the first probe), the whole `.holocron/` tree in one request, a fetch per plain file,
+ * and no astromech.config.*. A repo without the directory answers the tree with a 404, which sends the listing to
+ * the per-level request (also a 404). With `fallback: "after-404"` the tree request is refused and the directory is
+ * listed level by level, as before; with `"branch-ref"` (a ref that is not a commit SHA) no tree request is made at all.
  */
-function makeClient(config: string, files: TreeFile[] | "absent") {
+function makeClient(
+	config: string,
+	files: TreeFile[] | "absent",
+	options: { fallback?: "after-404" | "branch-ref" } = {}
+) {
 	const fetched =
 		files === "absent"
 			? []
 			: files.filter((f) => (f.type ?? "file") === "file" && !/\.(png|jpe?g|gif)$/.test(f.name));
+	const listed =
+		files === "absent"
+			? [{ status: 404 }, { status: 404 }]
+			: options.fallback === "after-404"
+				? [{ status: 404 }, listing(files)]
+				: options.fallback === "branch-ref"
+					? [listing(files)]
+					: [tree(files)];
 	const { fetch, calls } = stubFetch([
 		{ status: 200, body: { content: b64(config) } },
-		files === "absent" ? { status: 404 } : listing(files),
+		...listed,
 		...fetched.map((f) => ({ status: 200, body: { content: b64(f.content) } })),
 		...Array.from({ length: 5 }, () => ({ status: 404 })),
 	]);
@@ -80,7 +110,8 @@ describe("validateConfig with a .holocron/ directory", () => {
 		expect(validConfig(result).providers).toEqual({
 			notifications: ["discord", { guildId: "1" }],
 		});
-		expect(calls[1]?.url).toContain("/contents/.holocron");
+		expect(calls[1]?.url).toContain("/git/trees/HEAD:.holocron");
+		expect(calls[2]?.url).toContain("/contents/.holocron");
 	});
 
 	it("treats an empty .holocron/ like an absent one", async () => {
@@ -152,13 +183,36 @@ describe("validateConfig with a .holocron/ directory", () => {
 	});
 
 	it("lists and fetches the tree at the ref the config was read at", async () => {
+		const SHA = "0123456789abcdef0123456789abcdef01234567";
 		const { client, calls } = makeClient(WITH_DISCORD, [
 			{ name: "notifications.ts", content: "export default {};\n" },
 		]);
 
-		await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+		await validateConfig({ client, repo: "acme/demo", ref: SHA });
 
 		expect(calls.length).toBeGreaterThanOrEqual(3);
+		// The tree names the commit in its path; every other read carries it as `ref`.
+		expect(calls.filter((c) => c.url.includes("/git/trees/")).map((c) => c.url)).toEqual([
+			expect.stringContaining(`/git/trees/${SHA}:.holocron`),
+		]);
+		expect(
+			calls
+				.filter((c) => !c.url.includes("/git/trees/"))
+				.slice(0, 2)
+				.every((c) => c.url.includes(`ref=${SHA}`))
+		).toBe(true);
+	});
+
+	it("lists a branch ref level by level, because a branch name is not named in a trees request", async () => {
+		const { client, calls } = makeClient(
+			WITH_DISCORD,
+			[{ name: "notifications.ts", content: "export default {};\n" }],
+			{ fallback: "branch-ref" }
+		);
+
+		await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+
+		expect(calls.some((c) => c.url.includes("/git/trees/"))).toBe(false);
 		expect(calls.slice(0, 3).every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
 	});
 
@@ -273,5 +327,17 @@ describe("validateConfig with a .holocron/ directory", () => {
 			expect(result.status).toBe("load-error");
 			expect((result as { message: string }).message).toContain("in all");
 		});
+	});
+
+	it("lists the directory level by level, as before, when the tree cannot be read in one request", async () => {
+		const { client, calls } = makeClient(
+			WITH_DISCORD,
+			[{ name: "notifications.ts", content: "export default { guildId: '1' };" }],
+			{ fallback: "after-404" }
+		);
+		const result = await validateConfig({ client, repo: "acme/demo" });
+		expect(result.status).toBe("valid");
+		expect(calls.some((c) => c.url.includes("/git/trees/HEAD:.holocron"))).toBe(true);
+		expect(calls.some((c) => c.url.includes("/contents/.holocron") && !c.url.includes("notifications"))).toBe(true);
 	});
 });

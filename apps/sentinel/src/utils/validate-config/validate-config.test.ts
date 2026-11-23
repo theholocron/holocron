@@ -14,8 +14,11 @@ function b64(content: string): string {
 /** Every astromech.config.* extension 404s: the repo has no dedicated tasks layer (holocron#916). */
 const NO_DEDICATED = Array.from({ length: 5 }, () => ({ status: 404 }));
 
-/** The `.holocron/` listing 404s: the repo has no config directory (#1785). */
-const NO_TREE = [{ status: 404 }];
+/**
+ * The `.holocron/` tree 404s, and so does the per-level listing it falls back to: the repo has no config directory
+ * (#1785). The two requests are the tree attempt and the fallback.
+ */
+const NO_TREE = [{ status: 404 }, { status: 404 }];
 
 /**
  * Appends the `.holocron/` listing ({@link NO_TREE} unless `tree` overrides it) and then {@link NO_DEDICATED} unless
@@ -68,12 +71,19 @@ describe("validateConfig", () => {
 
 		expect(result.status).toBe("valid");
 		expect((result as { filepath: string }).filepath).toBe("holocron.config.json");
-		expect(calls.map((c) => c.url.split("/contents/")[1])).toEqual([
+		expect(
+			calls.map((c) =>
+				c.url.includes("/git/trees/")
+					? `tree ${c.url.split("/git/trees/")[1]?.split("?")[0]}`
+					: c.url.split("/contents/")[1]
+			)
+		).toEqual([
 			"holocron.config.ts",
 			"holocron.config.js",
 			"holocron.config.mjs",
 			"holocron.config.cjs",
 			"holocron.config.json",
+			"tree HEAD:.holocron",
 			".holocron",
 			"astromech.config.ts",
 			"astromech.config.js",
@@ -310,9 +320,11 @@ describe("validateConfig", () => {
 		];
 
 		it("merges its tasks on top of holocron.config's, the way loadTasksConfig does", async () => {
+			// A branch name is never named in a trees request, so only the per-level listing is asked for (one 404).
 			const { client, calls } = makeClient(
 				HOLOCRON_JSON,
-				dedicatedJson({ tasks: [{ name: "platform.repoValidation", required: true }], syncScripts: false })
+				dedicatedJson({ tasks: [{ name: "platform.repoValidation", required: true }], syncScripts: false }),
+				[{ status: 404 }]
 			);
 
 			const result = await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
