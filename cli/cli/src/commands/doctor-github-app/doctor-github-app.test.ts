@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../../config/index.js";
 import type { PluginLoader } from "../../plugin/index.js";
+import { appRows } from "./app-rows.js";
 import { runDoctorGitHubApp } from "./doctor-github-app.js";
 import type { GitHubAppApi, RunDoctorGitHubAppInput } from "./doctor-github-app.type.js";
 import { parseManifest } from "./parse-manifest.js";
@@ -112,6 +113,27 @@ const attempt = (id: number, guid: string, at: string, statusCode: number): GitH
 	event: "check_run",
 	action: "completed",
 	installationId: 7,
+});
+
+describe("suspension row", () => {
+	const manifest = { events: [], permissions: {} };
+	const rowOf = (installations: GitHubAppInstallation[]) =>
+		appRows("Sentinel - dev", manifest, app(), installations).find((r) => r.id === "Sentinel - dev:suspension")!;
+
+	it("says which installations are suspended, and never fails", () => {
+		const row = rowOf([
+			installation({ id: 1, suspended: true }),
+			installation({ id: 2, account: null, suspended: true }),
+			installation({ id: 3 }),
+		]);
+		expect(row.status).toBe("ok");
+		expect(row.detail).toBe("2 of 3 suspended, sent no webhooks (theholocron, installation 2); 1 active");
+	});
+
+	it("says all active, or that there are none", () => {
+		expect(rowOf([installation()]).detail).toBe("1 installation(s) active");
+		expect(rowOf([]).detail).toBe("no installations");
+	});
 });
 
 describe("runDoctorGitHubApp: the deliveries row", () => {
@@ -250,7 +272,8 @@ describe("runDoctorGitHubApp", () => {
 			}),
 		});
 		expect(report.status).toBe("ok");
-		expect(report.summary).toEqual({ ok: 5, fail: 0, skip: 0 });
+		expect(report.summary).toEqual({ ok: 6, fail: 0, skip: 0 });
+		expect(report.rows.find((r) => r.id === "Sentinel:suspension")?.detail).toBe("1 installation(s) active");
 		expect(text).toContain("info: 1 extra event(s) not in the manifest (star)");
 		expect(text).toContain("info: 1 extra permission(s) not in the manifest (issues)");
 		expect(text).not.toContain("SECRETKEYBODY");

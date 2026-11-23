@@ -18,6 +18,23 @@ const extrasNote = (noun: string, extras: string[]): string =>
 	extras.length > 0 ? `; info: ${extras.length} ${noun} not in the manifest (${extras.join(", ")})` : "";
 
 /**
+ * Whether each installation is active or suspended, as information only: a suspended one is sent no webhooks, which is
+ * what `dev.suspendWhenIdle` wants of a development App while `holocron dev` is not running, and a prod App that is
+ * suspended is for the person reading to notice. Never a failure.
+ */
+function suspensionRow(name: string, installations: GitHubAppInstallation[]): CheckRow {
+	const suspended = installations.filter((i) => i.suspended);
+	const who = (i: GitHubAppInstallation) => i.account?.login ?? `installation ${i.id}`;
+	const detail =
+		installations.length === 0
+			? "no installations"
+			: suspended.length === 0
+				? `${installations.length} installation(s) active`
+				: `${suspended.length} of ${installations.length} suspended, sent no webhooks (${suspended.map(who).join(", ")}); ${installations.length - suspended.length} active`;
+	return { id: `${name}:suspension`, title: `${name}: suspension`, status: "ok", detail, problems: [] };
+}
+
+/**
  * The events, permissions and installations rows of one App instance: the manifest against the live App, and the live
  * App against what each installation has accepted. A row that fails ends with the page that fixes it.
  */
@@ -62,5 +79,6 @@ export function appRows(
 			`all ${Object.keys(manifest.permissions).length} granted${extrasNote("extra permission(s)", extraPermissions)}`
 		),
 		row(name, "installations", installationProblems, `${installations.length} installation(s) up to date`),
+		suspensionRow(name, installations),
 	];
 }
