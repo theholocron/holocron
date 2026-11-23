@@ -1,0 +1,35 @@
+---
+title: "reconcile ci"
+description: Make the ci / Required checks check say what the checks on each open pull request call for. The manual recovery path and the sweep of spec process-sentinel-posts-ci.
+---
+
+```bash
+holocron reconcile ci [pull-request] [--max-age <minutes>] [--dry-run]
+```
+
+For each open pull request (or the one named), reads the check runs and commit statuses of its head commit through the `source` provider and makes the check named `ci / Required checks` say what they call for. It is the same computation Sentinel runs from webhooks (SPEC-0099, `process-sentinel-posts-ci`): `postAggregate()` in `@theholocron/astromech`, over the pure `evaluateAggregate()`.
+
+- A pull request whose check already says the verdict is left alone, so a healthy run writes nothing.
+- A pull request with no check, or one that disagrees with the verdict, is posted: in progress while a check can still change, completed `success` or `failure` once it is final.
+- **A pull request that was missing or wrong, and had waited longer than `--max-age` (default 10 minutes), is a failing row.** That is what a missed delivery looks like, so the run fails and, in the scheduled sweep, reaches `#alerts`. A check younger than that is only reported as in flight.
+
+```
+  ✗ #2545  repaired: the check was missing or wrong (now success); a delivery was missed
+  ✓ #2546  up to date (success)
+  ✓ #2547  posted pending (still in flight)
+
+1 ok, 1 fail, 0 skipped
+```
+
+`expected` and the status contexts come from `aggregateChecks()` over the config of the checkout the command runs in. The sweep runs from the default branch, which is the base of the pull requests it repairs, so a pull request cannot shrink its own gate.
+
+`--dry-run` reads everything and prints `would repair` or `would post`, and posts nothing. The `source` provider needs `listCheckRuns`, `listCommitStatuses`, `createCheckRun` and `updateCheckRun`; GitHub has them.
+
+## Token
+
+Posting a check run needs a token that may write checks. The scheduled sweep (a later phase of the spec) mints the Sentinel GitHub App's installation token narrowed to `checks: write`, `pull_requests: read` and `statuses: read`. By hand, use `--token` or the usual chain; a check posted with a personal token or `GITHUB_TOKEN` belongs to that identity, not to Sentinel's App, which matters once the ruleset pins the source of the required check.
+
+## Not verified
+
+- That GitHub shows a Re-run button on a check run created through the API, and sends `check_run.rerequested` for it.
+- Whether GitHub accepts `status: in_progress` on a check run that is already completed. When the provider refuses, the command creates a new run, which then is the newest and so the one that counts.

@@ -497,6 +497,30 @@ export interface Source extends ProviderIdentity, RelaySourceMethods {
 	getPullRequestChecks?(number: number, repo?: string): Promise<PullRequestChecks>;
 
 	/**
+	 * Every check run on a commit, whoever posted it, as the aggregate reads them (`reconcile ci`). Optional —
+	 * providers without checks omit this.
+	 */
+	listCheckRuns?(ref: string, repo?: string): Promise<SourceCheckRun[]>;
+
+	/**
+	 * The commit statuses on a commit, newest first (a context that posted twice appears twice). Optional — providers
+	 * without commit statuses omit this.
+	 */
+	listCommitStatuses?(ref: string, repo?: string): Promise<SourceCommitStatus[]>;
+
+	/**
+	 * Posts a check run on a commit and returns its id: in progress while the verdict can still change, completed
+	 * once it is final. Optional — providers that cannot post checks omit this.
+	 */
+	createCheckRun?(sha: string, name: string, write: SourceCheckRunWrite, repo?: string): Promise<number>;
+
+	/**
+	 * Changes a check run this caller posted. A provider that will not reopen a completed run throws. Optional —
+	 * providers that cannot post checks omit this.
+	 */
+	updateCheckRun?(id: number, write: SourceCheckRunWrite, repo?: string): Promise<void>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -590,6 +614,48 @@ export interface PullRequestResult {
 	draft: boolean;
 	/** What the provider could not apply (a milestone or board it does not have, a label it refused), by name. */
 	dropped: string[];
+}
+
+/** One check run on a commit, in the plain shape {@link Source.listCheckRuns} returns. */
+export interface SourceCheckRun {
+	/** The provider's id for the run, `null` when it gave none. */
+	id: number | null;
+	/** The run's name, such as `test:unit / Conclusion`. */
+	name: string;
+	/** `completed`, or `queued` / `in_progress` while it runs. */
+	status: string;
+	/** The run's result, `null` until it is completed. */
+	conclusion: string | null;
+	/** ISO time the run started, `null` when the provider set none. */
+	startedAt: string | null;
+	/** A link to the run, `null` when there is none. */
+	url: string | null;
+}
+
+/** One commit status, as {@link Source.listCommitStatuses} returns it. */
+export interface SourceCommitStatus {
+	/** The context that posted it, such as `codecov/patch`. */
+	context: string;
+	/** `success`, `pending`, `failure` or `error`. */
+	state: string;
+	/** A link to the status, `null` when there is none. */
+	url: string | null;
+}
+
+/** What {@link Source.createCheckRun} and {@link Source.updateCheckRun} write. */
+export interface SourceCheckRunWrite {
+	/** `in_progress` while the verdict can still change, `completed` once it is final. */
+	status: "in_progress" | "completed";
+	/** The verdict; only with `completed`. */
+	conclusion?: "success" | "failure" | "neutral";
+	/** The run's title. */
+	title: string;
+	/** The run's Markdown summary. */
+	summary: string;
+	/** Longer details; an empty string leaves them out. */
+	text: string;
+	/** ISO time the run began, set when the run is created. */
+	startedAt?: string;
 }
 
 /** Where the aggregate check of a pull request stands. */

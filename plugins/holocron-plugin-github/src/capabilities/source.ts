@@ -20,6 +20,9 @@ import {
 	type Ruleset,
 	type Source,
 	type SourceBranch,
+	type SourceCheckRun,
+	type SourceCheckRunWrite,
+	type SourceCommitStatus,
 	type SourceFile,
 	type SourceRepoInfo,
 	type SourceRulesetDetail,
@@ -36,6 +39,7 @@ import {
 	type UpdatePagesPayload,
 } from "@theholocron/github-client";
 
+import { patchCheckRun, postCheckRun, readCheckRuns, readCommitStatuses } from "./check-runs.js";
 import { readRepoFile, writeRepoFile } from "./files.js";
 import { ensureLabels, syncLabels } from "./labels.js";
 import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
@@ -424,6 +428,22 @@ export class GitHubSource implements Source {
 
 	async getPullRequestChecks(number: number, repo?: string): Promise<PullRequestChecks> {
 		return readPullRequestChecks(this.client, repo ?? this.repo, number);
+	}
+
+	async listCheckRuns(ref: string, repo?: string): Promise<SourceCheckRun[]> {
+		return readCheckRuns(this.client, repo ?? this.repo, ref);
+	}
+
+	async listCommitStatuses(ref: string, repo?: string): Promise<SourceCommitStatus[]> {
+		return readCommitStatuses(this.client, repo ?? this.repo, ref);
+	}
+
+	async createCheckRun(sha: string, name: string, write: SourceCheckRunWrite, repo?: string): Promise<number> {
+		return postCheckRun(this.client, repo ?? this.repo, sha, name, write);
+	}
+
+	async updateCheckRun(id: number, write: SourceCheckRunWrite, repo?: string): Promise<void> {
+		return patchCheckRun(this.client, repo ?? this.repo, id, write);
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {

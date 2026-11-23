@@ -71,6 +71,8 @@ export interface CreateCheckRunInput {
 	output?: CheckRunOutput;
 	/** URL for the "Details" link on the check run. GitHub defaults to the check suite's own summary page when omitted. */
 	details_url?: string;
+	/** When the run started, an ISO time; GitHub uses the time of the request when omitted. */
+	started_at?: string;
 }
 
 /** A check run as GitHub returns it, with only the fields this client reads. */
@@ -91,6 +93,8 @@ export interface GitHubCheckRun {
 	details_url?: string | null;
 	/** When the run started, an ISO time; absent while it is queued. */
 	started_at?: string | null;
+	/** The GitHub App that posted the run; absent from a payload that leaves it out. */
+	app?: { id: number; slug?: string } | null;
 }
 
 /** The body of an `updateCheckRun()` request; every field is optional. */
