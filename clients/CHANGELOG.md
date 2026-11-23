@@ -1,3 +1,10 @@
+## [1.58.0-alpha.53](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.52...clients-v1.58.0-alpha.53) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ holocron reconcile ci posts the ci aggregate from the state it reads ([#2555](https://github.com/theholocron/holocron/issues/2555)) ([dfeff83](https://github.com/theholocron/holocron/commit/dfeff83520414a6e99706d40e47be7eb6dc84e85)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **cli:** ✨ holocron redeliver webhooks and a deliveries row in doctor github-app ([#2560](https://github.com/theholocron/holocron/issues/2560)) ([2c644f9](https://github.com/theholocron/holocron/commit/2c644f98f51a6f29849970572c3d069c9611d1ce)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [1.58.0-alpha.52](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.51...clients-v1.58.0-alpha.52) (2026-11-23)
 
 ### Features
