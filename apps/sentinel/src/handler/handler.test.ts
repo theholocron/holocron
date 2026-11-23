@@ -393,7 +393,9 @@ describe("handler — the App's credentials", () => {
 			GITHUB_APP_PRIVATE_KEY: "old-key",
 		});
 
-		expect(createInstallationClient).toHaveBeenCalledWith({ appId: "7", privateKey: "old-key" }, 42);
+		expect(createInstallationClient).toHaveBeenCalledWith({ appId: "7", privateKey: "old-key" }, 42, {
+			fetch: expect.any(Function),
+		});
 	});
 
 	it("answers 500 and makes no client when neither spelling of the App id is set", async () => {
@@ -432,7 +434,8 @@ describe("handler — push.default-branch full pipeline", () => {
 
 		expect(createInstallationClient).toHaveBeenCalledWith(
 			{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
-			42
+			42,
+			{ fetch: expect.any(Function) }
 		);
 		expect(validateConfig).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo" });
 		expect(syncPropertiesFromConfig).toHaveBeenCalledWith({
@@ -1831,7 +1834,8 @@ describe("handleWebhookRequest — role sync (holocron#1595)", () => {
 		expect(await res.json()).toEqual({ handled: true, type: "team.membership", sync });
 		expect(createInstallationClient).toHaveBeenCalledWith(
 			{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
-			5
+			5,
+			{ fetch: expect.any(Function) }
 		);
 		expect(runRoleSync).toHaveBeenCalledWith({ client: FAKE_CLIENT, env, org: "acme", team: "gatekeepers" });
 		expect(validateConfig).not.toHaveBeenCalled();
@@ -1912,7 +1916,8 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 			expect(runPrFeed).toHaveBeenLastCalledWith({ client: FAKE_CLIENT, env: ENV, repo: "acme/demo", trigger });
 			expect(createInstallationClient).toHaveBeenLastCalledWith(
 				{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
-				7
+				7,
+				{ fetch: expect.any(Function) }
 			);
 			expect(validateConfig).not.toHaveBeenCalled();
 			expect(lintCommits).not.toHaveBeenCalled();

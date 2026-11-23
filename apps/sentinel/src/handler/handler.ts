@@ -226,6 +226,7 @@ import {
 	validateAdrs,
 	validateDocsPresence,
 } from "../actions/index.js";
+import { loggedFetch } from "../utils/github-call-log/index.js";
 import {
 	createErrorReporter,
 	declaresRepoValidation,
@@ -266,6 +267,8 @@ import type { Env, ResolutionContext } from "./handler.type.js";
 // log line in Axiom without leaving GitHub.
 const env = createEnvLookup();
 const { logger, runId } = createLogger(resolveAxiomConfig(env));
+// Every call to GitHub is logged once, with its quota headers, so what a day costs and why a call was refused can be read (utils/github-call-log).
+const githubFetch = loggedFetch(logger);
 // Error tracking (holocron#1045): `SENTINEL_SENTRY_DSN` unset means a no-op sink. Made on the first error and flushed
 // (so closed) at the end of each delivery, see `createErrorReporter()`.
 const errors = createErrorReporter(() => resolveErrorSink(env));
@@ -446,7 +449,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// it up (see RoleSyncEnv) answers `skipped`; a sync that runs and fails answers 500, so the delivery shows
 	// as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent).
 	if (event.type === "team.membership" || event.type === "organization.member-removed") {
-		const roleClient = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		const roleClient = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+			fetch: githubFetch,
+		});
 		const sync = await runRoleSync({ client: roleClient, env, org: event.org!, team: event.team });
 		const failed = sync.status === "fail" || sync.status === "partial";
 		if (failed) logger.error({ org: event.org, team: event.team, sync }, SENTINEL_ROLE_SYNC_LOG_MSG);
@@ -526,7 +531,9 @@ async function runCiAggregateFor(
 	let ciAggregate: CiAggregateOutcome;
 	let thrown: unknown;
 	try {
-		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+			fetch: githubFetch,
+		});
 		ciAggregate = await runCiAggregate({ client, env, repo, trigger });
 		// The real check was just posted by this very invocation, so the feed and the board that key off its completion run
 		// from here, in-process, instead of waiting for GitHub to deliver Sentinel's own `check_run` back (SPEC-0099).
@@ -604,7 +611,9 @@ async function runFeed(event: SentinelEvent, repo: string, trigger: PrFeedTrigge
 	let prFeed: RunPrFeedResult;
 	let thrown: unknown;
 	try {
-		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+			fetch: githubFetch,
+		});
 		prFeed = await runPrFeed({ client, env, repo, trigger });
 	} catch (err) {
 		thrown = err;
@@ -628,7 +637,9 @@ async function runBoard(event: SentinelEvent, repo: string, env: Env): Promise<R
 	let boardStatus: RunBoardStatusResult;
 	let thrown: unknown;
 	try {
-		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+			fetch: githubFetch,
+		});
 		boardStatus = await runBoardStatus({ client, env, repo, trigger });
 	} catch (err) {
 		thrown = err;
@@ -656,7 +667,9 @@ async function runAreas(event: SentinelEvent, repo: string, env: Env): Promise<R
 	let areaLabels: RunAreaLabelsResult;
 	let thrown: unknown;
 	try {
-		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+			fetch: githubFetch,
+		});
 		areaLabels = await runAreaLabels({ client, repo, trigger });
 	} catch (err) {
 		thrown = err;
@@ -705,7 +718,9 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 		throw err;
 	}
 
-	const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
+	const client = await createInstallationClient(githubAppCredentials(env), event.installationId, {
+		fetch: githubFetch,
+	});
 
 	// A PR title or description edit changes only what the docs-presence check
 	// reads (a `feat` in the title, a `[skip docs]` marker in the description),
