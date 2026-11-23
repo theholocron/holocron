@@ -1,3 +1,9 @@
+## [5.0.0-alpha.532](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.531...v5.0.0-alpha.532) (2026-11-23)
+
+### Features
+
+* **notifications:** ✨ declare the [#incidents](https://github.com/theholocron/holocron/issues/incidents) forum for the status page incident feed ([#2586](https://github.com/theholocron/holocron/issues/2586)) ([afb3077](https://github.com/theholocron/holocron/commit/afb307789e1a2b2f3253bc22ac2fdcee2d771596)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
 ## [5.0.0-alpha.531](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.530...v5.0.0-alpha.531) (2026-11-23)
 
 ### Features
