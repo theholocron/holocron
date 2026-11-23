@@ -90,9 +90,10 @@ describe("doctor repo — what is checked", () => {
 			["repo-capabilities-allowed", "ok"],
 			["repo-labels", "ok"],
 			["repo-security", "ok"],
+			["issue-types", "skip"],
 		]);
 		expect(report.status).toBe("ok");
-		expect(lines.at(-1)).toBe("4 ok, 0 fail, 0 skipped");
+		expect(lines.at(-1)).toBe("4 ok, 0 fail, 1 skipped");
 	});
 
 	it("checks every group the config declares", async () => {
@@ -121,6 +122,7 @@ describe("doctor repo — what is checked", () => {
 			"repo-teams",
 			"repo-protection",
 			"repo-security",
+			"issue-types",
 		]);
 	});
 });
@@ -150,7 +152,7 @@ describe("doctor repo — description, settings and topics", () => {
 			listLabels: async () => labels(),
 			getSecurity: async () => ALL_ON,
 		});
-		expect(report.rows.map((r) => r.status)).toEqual(Array(9).fill("ok"));
+		expect(report.rows.map((r) => r.status)).toEqual([...Array(9).fill("ok"), "skip"]);
 		expect(byId(report.rows, "repo-description").detail).toBe("2 of 2 match");
 	});
 
@@ -201,6 +203,7 @@ describe("doctor repo — description, settings and topics", () => {
 			"repo-capabilities-allowed",
 			"repo-labels",
 			"repo-security",
+			"issue-types",
 		]);
 	});
 });
@@ -656,9 +659,10 @@ describe("doctor repo — what cannot be read", () => {
 	it("skips every row with the reason when there is no source provider", async () => {
 		const { report, lines } = await run(loadedWith({ providers: {} }), null);
 		expect(report.status).toBe("skip");
-		expect(report.rows.every((r) => r.status === "skip" && r.detail.includes("source"))).toBe(true);
+		expect(report.rows.every((r) => r.status === "skip")).toBe(true);
+		expect(report.rows.filter((r) => r.id !== "issue-types").every((r) => r.detail.includes("source"))).toBe(true);
 		expect(report.reason).toContain("source");
-		expect(lines.at(-1)).toBe("0 ok, 0 fail, 4 skipped");
+		expect(lines.at(-1)).toBe("0 ok, 0 fail, 5 skipped");
 	});
 
 	it("skips a row whose read method the provider lacks, without hiding the rows it can read", async () => {
@@ -669,6 +673,7 @@ describe("doctor repo — what cannot be read", () => {
 			["repo-capabilities-allowed", "skip", "provider does not implement getOrgPropertyValues"],
 			["repo-labels", "skip", "provider does not implement listLabels"],
 			["repo-security", "ok", "6 of 6 match"],
+			["issue-types", "skip", "no `issueTypes` declared in the org area"],
 		]);
 		expect(report.status).toBe("ok");
 	});
@@ -686,5 +691,37 @@ describe("doctor repo — what cannot be read", () => {
 		expect(byId(report.rows, "repo-teams")).toMatchObject({ status: "skip", detail: "needs the org token" });
 		expect(byId(report.rows, "repo-labels")).toMatchObject({ status: "fail", detail: "boom" });
 		expect(report.status).toBe("fail");
+	});
+});
+
+describe("doctor repo — issue Types", () => {
+	it("reads the organization's Types through the issues provider and adds the issue-types row", async () => {
+		const loaded = loadedWith({
+			providers: { source: "github", issues: "github" },
+			issueTypes: [{ name: "Bug" }, { name: "Epic" }],
+		});
+		const importer = vi.fn(async () => ({
+			createPlugin: () => ({
+				name: "gh",
+				capabilities: {
+					source: () => ({ providerName: "github" }),
+					issues: () => ({
+						providerName: "github",
+						listTypes: async () => [{ id: 1, name: "Bug", enabled: true }],
+					}),
+				},
+			}),
+		})) as unknown as PluginImporter;
+		const loader = new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer);
+		const report = await runDoctorRepo({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+		const row = byId(report.rows, "issue-types");
+		expect(row.status).toBe("fail");
+		expect(row.problems[0]).toContain("Epic");
 	});
 });
