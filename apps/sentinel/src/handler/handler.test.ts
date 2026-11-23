@@ -2366,7 +2366,7 @@ describe("handler — the ci aggregate (SPEC-0099)", () => {
 	const SHADOW_ENV: Env = { ...ENV, SENTINEL_CI_AGGREGATE: "shadow" };
 	const OK = {
 		status: "ok" as const,
-		posted: [{ number: 12, action: "created", conclusion: "pending" as const }],
+		posted: [{ number: 12, action: "created", conclusion: "pending" as const, sha: "abc", runId: 99, real: false }],
 		skipped: [],
 	};
 	const leaf = {
@@ -2391,7 +2391,7 @@ describe("handler — the ci aggregate (SPEC-0099)", () => {
 		expect(await res.json()).toEqual({
 			handled: true,
 			type: "check_run.leaf",
-			ciAggregate: { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow" },
+			ciAggregate: { status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow or on" },
 		});
 		expect(createInstallationClient).not.toHaveBeenCalled();
 		expect(runCiAggregate).not.toHaveBeenCalled();
@@ -2496,5 +2496,79 @@ describe("handler — the ci aggregate (SPEC-0099)", () => {
 		vi.mocked(runCiAggregate).mockResolvedValue(OK);
 		const res = await handleWebhookRequest(req(), SHADOW_ENV);
 		expect(await res.json()).toMatchObject({ type: "pull_request.feed", ciAggregate: OK });
+	});
+
+	describe("the real check, posted in on mode", () => {
+		const ON_ENV: Env = { ...ENV, SENTINEL_CI_AGGREGATE: "on" };
+		const real = (conclusion: "success" | "failure" | "pending", over: Record<string, unknown> = {}) => ({
+			status: "ok" as const,
+			posted: [{ number: 12, action: "updated", conclusion, sha: "abc", runId: 99, real: true, ...over }],
+			skipped: [],
+		});
+
+		it("runs the #prs feed and the board for it in-process, as if GitHub had delivered the completed check run", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(leaf);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runCiAggregate).mockResolvedValue(real("success"));
+			vi.mocked(runPrFeed).mockResolvedValue({ status: "skipped", reason: "x" });
+			vi.mocked(runBoardStatus).mockResolvedValue({ status: "skipped", reason: "y" });
+			const res = await handleWebhookRequest(req(), ON_ENV);
+			const body = (await res.json()) as { ciAggregate: { followUps?: unknown } };
+			expect(res.status).toBe(200);
+			expect(body.ciAggregate.followUps).toEqual([
+				{
+					number: 12,
+					prFeed: { status: "skipped", reason: "x" },
+					boardStatus: { status: "skipped", reason: "y" },
+				},
+			]);
+			const check = {
+				name: "ci / Required checks",
+				headSha: "abc",
+				conclusion: "success",
+				url: "https://github.com/acme/demo/runs/99",
+			};
+			expect(runPrFeed).toHaveBeenCalledWith(
+				expect.objectContaining({ repo: "acme/demo", trigger: { kind: "check_run", numbers: [12], check } })
+			);
+			expect(runBoardStatus).toHaveBeenCalledWith(
+				expect.objectContaining({ repo: "acme/demo", trigger: { kind: "check_run", numbers: [12], check } })
+			);
+		});
+
+		it("follows a failure too, and never a pending verdict, the shadow, or a run with no id", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(leaf);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue({ status: "skipped", reason: "x" });
+			vi.mocked(runBoardStatus).mockResolvedValue({ status: "skipped", reason: "y" });
+			vi.mocked(runCiAggregate).mockResolvedValue(real("failure"));
+			await handleWebhookRequest(req(), ON_ENV);
+			expect(runPrFeed).toHaveBeenCalledTimes(1);
+			vi.mocked(runPrFeed).mockClear();
+			vi.mocked(runBoardStatus).mockClear();
+			for (const result of [
+				real("pending"),
+				real("success", { real: false }),
+				real("success", { runId: null }),
+			]) {
+				vi.mocked(runCiAggregate).mockResolvedValue(result);
+				const body = (await (await handleWebhookRequest(req(), ON_ENV)).json()) as {
+					ciAggregate: { followUps?: unknown };
+				};
+				expect(body.ciAggregate.followUps).toBeUndefined();
+			}
+			expect(runPrFeed).not.toHaveBeenCalled();
+			expect(runBoardStatus).not.toHaveBeenCalled();
+		});
+
+		it("does not follow a skipped or failed aggregate", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(leaf);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runCiAggregate).mockResolvedValue({ status: "skipped", reason: "nothing" });
+			await handleWebhookRequest(req(), ON_ENV);
+			vi.mocked(runCiAggregate).mockResolvedValue({ status: "fail", reason: "boom" });
+			await handleWebhookRequest(req(), ON_ENV);
+			expect(runPrFeed).not.toHaveBeenCalled();
+		});
 	});
 });

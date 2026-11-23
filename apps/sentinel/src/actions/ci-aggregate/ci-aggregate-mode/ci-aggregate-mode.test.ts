@@ -7,10 +7,14 @@ describe("ciAggregateMode", () => {
 		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "shadow" })).toBe("shadow");
 	});
 
+	it("is on only when SENTINEL_CI_AGGREGATE says on", () => {
+		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "on" })).toBe("on");
+	});
+
 	it("is off when unset, empty or anything else, so a typo fails quiet", () => {
 		expect(ciAggregateMode({})).toBe("off");
 		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "" })).toBe("off");
 		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "Shadow" })).toBe("off");
-		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "on" })).toBe("off");
+		expect(ciAggregateMode({ SENTINEL_CI_AGGREGATE: "ON" })).toBe("off");
 	});
 });

@@ -381,7 +381,7 @@ neither is generated, because Sentinel computes the check from webhooks and post
 fails on a `ci.ci.yml` or `ci.yml` the config no longer generates, and `holocron doctor ci` fails the `aggregate` row when a
 caller is left beside a `sentinel` setting, so a commit never has two posters.
 
-Sentinel reads the setting at the **head** ref of a pull request (the files that run for a commit and the word that says who
+Sentinel reads the setting at the **head** ref of a pull request (when its own `SENTINEL_CI_AGGREGATE` is `on`) (the files that run for a commit and the word that says who
 posts must match), and the list of checks it waits for at the **base** ref (so a pull request cannot shrink its own gate).
 Flipping it is one pull request that changes the setting and the generated files together; do it only after
 `holocron doctor ci --shadow` passes. This repository does not set it.

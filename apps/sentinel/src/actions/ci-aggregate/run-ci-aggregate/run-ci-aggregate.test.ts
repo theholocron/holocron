@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const readAggregateChecks = vi.hoisted(() => vi.fn());
 const postAggregate = vi.hoisted(() => vi.fn());
+const readAggregatePoster = vi.hoisted(() => vi.fn());
 vi.mock("../read-aggregate-checks/index.js", () => ({ readAggregateChecks }));
+vi.mock("../read-aggregate-poster/index.js", () => ({ readAggregatePoster }));
 vi.mock("@theholocron/astromech", () => ({ postAggregate }));
 
 import type { CiAggregateTrigger } from "../ci-aggregate.type.js";
@@ -11,6 +13,7 @@ import { runCiAggregate } from "./run-ci-aggregate.js";
 
 const CHECKS = { ok: true, expected: ["test:unit"], statuses: ["codecov/patch"] };
 const SHADOW = { SENTINEL_CI_AGGREGATE: "shadow" };
+const ON = { SENTINEL_CI_AGGREGATE: "on" };
 const pull = (number: number, over: Record<string, unknown> = {}) => ({
 	number,
 	state: "open",
@@ -47,14 +50,16 @@ beforeEach(() => {
 	readAggregateChecks.mockReset();
 	readAggregateChecks.mockResolvedValue(CHECKS);
 	postAggregate.mockReset();
-	postAggregate.mockResolvedValue({ action: "created", result: { conclusion: "pending" } });
+	postAggregate.mockResolvedValue({ action: "created", runId: 99, result: { conclusion: "pending" } });
+	readAggregatePoster.mockReset();
+	readAggregatePoster.mockResolvedValue({ poster: "actions" });
 });
 
 describe("runCiAggregate", () => {
 	it("does nothing, and reads nothing, unless the deployment turned the shadow on", async () => {
 		const client = setup({ 12: pull(12) });
 		const out = await run(client, { pullRequests: [{ number: 12 }] }, { env: {} });
-		expect(out).toEqual({ status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow" });
+		expect(out).toEqual({ status: "skipped", reason: "SENTINEL_CI_AGGREGATE is not shadow or on" });
 		expect(client.pulls.getPullRequest).not.toHaveBeenCalled();
 	});
 
@@ -63,7 +68,7 @@ describe("runCiAggregate", () => {
 		const out = await run(client, { pullRequests: [{ number: 12, baseRef: "alpha" }], sha: "abc" });
 		expect(out).toEqual({
 			status: "ok",
-			posted: [{ number: 12, action: "created", conclusion: "pending" }],
+			posted: [{ number: 12, action: "created", conclusion: "pending", sha: "abc", runId: 99, real: false }],
 			skipped: [],
 		});
 		expect(readAggregateChecks).toHaveBeenCalledWith(
@@ -79,6 +84,45 @@ describe("runCiAggregate", () => {
 				refreshOutput: true,
 			})
 		);
+	});
+
+	describe("which name it posts under", () => {
+		const posted = async (env: Record<string, string>, poster: "actions" | "sentinel" = "actions") => {
+			readAggregatePoster.mockResolvedValue({ poster });
+			const out = await run(setup({ 12: pull(12) }), { pullRequests: [{ number: 12 }] }, { env });
+			return { out, name: postAggregate.mock.calls[0]?.[0].name as string | undefined };
+		};
+
+		it("is always the shadow in shadow mode, and never reads the head's setting", async () => {
+			const { name } = await posted(SHADOW, "sentinel");
+			expect(name).toBe("ci / Required checks (sentinel)");
+			expect(readAggregatePoster).not.toHaveBeenCalled();
+		});
+
+		it("is the real check in on mode when the head says sentinel, read at the head commit", async () => {
+			const { out, name } = await posted(ON, "sentinel");
+			expect(name).toBe("ci / Required checks");
+			expect(out).toMatchObject({ posted: [{ number: 12, sha: "abc", runId: 99, real: true }] });
+			expect(readAggregatePoster).toHaveBeenCalledWith(
+				expect.objectContaining({ repo: "acme/demo", sha: "abc", now: 1_000 })
+			);
+		});
+
+		it("is the shadow in on mode when the head says actions, so a commit has one poster of the real check", async () => {
+			const { out, name } = await posted(ON, "actions");
+			expect(name).toBe("ci / Required checks (sentinel)");
+			expect(out).toMatchObject({ posted: [{ real: false }] });
+		});
+
+		it("leaves a commit alone where the Actions job already posts the real check", async () => {
+			postAggregate.mockResolvedValue({ action: "foreign", runId: null, result: { conclusion: "success" } });
+			const { out } = await posted(ON, "sentinel");
+			expect(out).toEqual({
+				status: "ok",
+				posted: [],
+				skipped: [{ number: 12, reason: "another app already posts this check on the commit" }],
+			});
+		});
 	});
 
 	it("takes the name and the time it is given, and the clock otherwise", async () => {

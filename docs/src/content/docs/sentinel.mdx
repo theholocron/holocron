@@ -46,9 +46,9 @@ It is off until three settings exist in Sentinel's environment:
 
 The GitHub App also needs the organization permission Members: read and the `membership` and `organization` events. A sync that fails or only partly works answers HTTP 500 and logs an error, so the delivery shows as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent). Design: `docs/wiki/specifications/tech-sentinel-role-sync.spec.md`.
 
-## The `ci` aggregate (shadow)
+## The `ci` aggregate
 
-Sentinel can post the required check `ci / Required checks` from webhooks instead of an Actions job that polls (spec `process-sentinel-posts-ci`, holocron#2426). The first step is a **shadow**: with `SENTINEL_CI_AGGREGATE=shadow` it posts the same verdict as `ci / Required checks (sentinel)`, which nothing requires, beside the Actions result. Unset, it does nothing. It needs the GitHub App subscribed to `status` with Commit statuses: read, which a person sets on each installed App. See `apps/sentinel/README.md` for the events it reads and the order of the human steps.
+Sentinel can post the required check `ci / Required checks` from webhooks instead of an Actions job that polls (spec `process-sentinel-posts-ci`, holocron#2426). The first step is a **shadow**: with `SENTINEL_CI_AGGREGATE=shadow` it posts the same verdict as `ci / Required checks (sentinel)`, which nothing requires, beside the Actions result. With `SENTINEL_CI_AGGREGATE=on` it also posts the **real** check for a pull request whose head config says `ci: { aggregate: "sentinel" }` (the shadow for every other), then runs the `#prs` feed and the board's status for it in the same invocation. Unset, it does nothing. It needs the GitHub App subscribed to `status` with Commit statuses: read, which a person sets on each installed App. See `apps/sentinel/README.md` for the events it reads and the order of the human steps.
 
 ## Key points
 

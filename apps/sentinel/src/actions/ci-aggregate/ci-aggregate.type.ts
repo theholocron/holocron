@@ -1,10 +1,12 @@
 /**
  * Whether Sentinel computes the `ci` aggregate (spec `process-sentinel-posts-ci`, SPEC-0099). `off` is the default and does
- * nothing; `shadow` posts under `ci / Required checks (sentinel)` beside the Actions poller, which is not required.
+ * nothing; `shadow` posts under `ci / Required checks (sentinel)` beside the Actions poller, which is not required; `on`
+ * posts the real `ci / Required checks` for a pull request whose head says `ci.aggregate: sentinel` and the shadow for
+ * every other, so a commit has exactly one poster of the real check.
  */
-export type CiAggregateMode = "off" | "shadow";
+export type CiAggregateMode = "off" | "shadow" | "on";
 
-/** The deployment binding that turns the aggregate on: `SENTINEL_CI_AGGREGATE=shadow`. Unset, or any other value, is `off`. */
+/** The deployment binding that turns the aggregate on: `SENTINEL_CI_AGGREGATE=shadow` or `=on`. Unset, or any other value, is `off`. */
 export interface CiAggregateEnv {
 	SENTINEL_CI_AGGREGATE?: string;
 }

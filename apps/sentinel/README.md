@@ -563,24 +563,25 @@ Sentinel moves the board item of each issue a pull request closes as the pull re
 
 It needs no secret of its own: it reads `providers.projects` from the repository `SENTINEL_ROLE_SYNC_REPO` names and writes with the installation's token, so it is off, with a quiet `skipped`, unless that is set and the config declares a `github` projects provider with a board on a built-in template (a repo's own template files are not fetched). A redelivery changes nothing, an item that cannot be moved is logged and never fails the delivery, and the hourly `reconcile-projects` run repairs a miss. The App must be granted the organization Projects write permission (`organization_projects` in `github-app.manifest.json`); a person accepts it on each installed App.
 
-### The `ci` aggregate, shadow (optional)
+### The `ci` aggregate (optional)
 
 Sentinel can compute the required check `ci / Required checks` itself (`.notes/process-sentinel-posts-ci.spec.md`, SPEC-0099, holocron#2426, phase 3). **Today the Actions poller (`ci/workflows/ci.yml`) is still the poster.** This is the shadow: Sentinel posts the same verdict under `ci / Required checks (sentinel)`, which no ruleset requires, so the two can be compared on the same commit before anything changes.
 
-It is **off unless `SENTINEL_CI_AGGREGATE=shadow` is set** in the deploy environment; unset, empty or any other value does nothing and fetches nothing, so deploying this changes no deployment. When it is on it reads, never from a webhook payload but from the API, the pull request (open, and the commit still its head), the pull request's **base** branch config for `expected` (so a pull request cannot shrink its own gate; a warm instance caches it for five minutes), and the head commit's check runs and commit statuses, and calls astromech's `postAggregate()`, the function `holocron reconcile ci` and the sweep use. It runs on:
+It is **off unless `SENTINEL_CI_AGGREGATE` is `shadow` or `on`** in the deploy environment; unset, empty or any other value does nothing and fetches nothing, so deploying this changes no deployment. `shadow` posts only the shadow. `on` posts the **real** `ci / Required checks` for a pull request whose **head** config says `ci: { aggregate: "sentinel" }` and the shadow for every other, so each commit has exactly one poster of the real check (the setting is read at the head because it must match the workflow files that run for that commit, and cached per commit for five minutes; a head with no usable config counts as `actions`). When it is on it reads, never from a webhook payload but from the API, the pull request (open, and the commit still its head), the pull request's **base** branch config for `expected` (so a pull request cannot shrink its own gate; a warm instance caches it for five minutes), and the head commit's check runs and commit statuses, and calls astromech's `postAggregate()`, the function `holocron reconcile ci` and the sweep use. It runs on:
 
 - `pull_request` opened, a push, reopened and ready for review: the check is posted at once, so it exists from the start;
 - a finished `check_run` that is one the aggregate waits for (an `expected` id before `/`, or a status context), dropped otherwise after the one cached config read;
 - `check_run` `rerequested` on `ci / Required checks` or its shadow (the Re-run button);
 - `status` for a context in `statuses` (Codecov's), looked up by the commit's branches.
 
-A failure answers HTTP 500 for the check-run, Re-run and status deliveries, so they show as failed and can be redelivered (the compute is idempotent); a pull request delivery's status is never changed by it. Phase 8 adds posting under the real name when the head's `ci.aggregate` is `sentinel`.
+A failure answers HTTP 500 for the check-run, Re-run and status deliveries, so they show as failed and can be redelivered (the compute is idempotent); a pull request delivery's status is never changed by it. In `on` mode, when it has recently finished a real check (a verdict, not `pending`), Sentinel runs the `#prs` feed and the board's status for it **in the same invocation**, as if GitHub had delivered the completed check run, instead of waiting for GitHub to deliver its own `check_run` back (not verified to happen). A commit where the Actions job already posts `ci / Required checks` is left alone (`foreign`): a check run belongs to the app that posted it, so Sentinel never updates the Actions job's.
 
 **Human steps, not done by the change:**
 
 1. **Subscribe the App to `status` and give it Commit statuses: read.** `github-app.manifest.json` lists both (`status` event, `statuses: read`), but the manifest drives only a new App. On each existing App (dev, then prod) a person edits the App's settings and an owner accepts the new permission; `holocron doctor github-app` reports the drift until then.
-2. Set `SENTINEL_CI_AGGREGATE=shadow` on the **dev** instance first (the `Sentinel` 1Password Environment, `holocron sync secrets`), then on prod after the agreement criterion of the spec (20 consecutive pull requests agree on dev).
-3. Deploy, then watch `ci / Required checks (sentinel)` beside `ci / Required checks`.
+2. Set `SENTINEL_CI_AGGREGATE=shadow` on the **dev** instance first (the `Sentinel` 1Password Environment, `holocron sync secrets`), then on prod after the agreement criterion of the spec (20 consecutive pull requests agree on dev; `holocron doctor ci --shadow` reports it).
+3. **Only for the flip (phase 9, not part of this stack):** deploy Sentinel with `SENTINEL_CI_AGGREGATE=on` _before_ the pull request that sets `ci.aggregate: sentinel` merges, back to back and not during a Sentinel deploy; the flip pull request's own head has the setting, so it is the first to test the live path. Rolling back is a revert of that pull request.
+4. Deploy, then watch `ci / Required checks (sentinel)` beside `ci / Required checks`.
 
 Not verified: that GitHub delivers `check_run` events for runs another app created to this App, and for its own, and that a check run created through the API shows Re-run and sends `rerequested`. The shadow on the dev instance is where that is learned.
 
