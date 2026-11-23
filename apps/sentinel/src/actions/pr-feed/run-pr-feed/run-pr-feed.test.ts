@@ -1,4 +1,5 @@
 import type { GitHubClient } from "@theholocron/github-client";
+import { ProviderApiError } from "@theholocron/http-client";
 import { describe, expect, it, vi } from "vitest";
 
 import type { LoadPrFeedResult } from "../load-pr-feed/index.js";
@@ -155,6 +156,30 @@ describe("runPrFeed", () => {
 		const result = await go(pr([1, 2]));
 		expect(result).toEqual({ status: "fail", reason: "acme/widgets#1: Missing Access" });
 		expect(n.ensureDiscussion).toHaveBeenCalledTimes(2);
+	});
+
+	it("puts Discord's own answer in the reason, so a 400 says why", async () => {
+		const { go, n } = setup();
+		const body = JSON.stringify({ message: "Thread is archived", code: 50083 });
+		n.updateDiscussion.mockRejectedValueOnce(
+			new ProviderApiError("Discord PATCH /channels/1574554070515974144 → 400", 400, body)
+		);
+		const result = await go(pr());
+		expect(result).toEqual({
+			status: "fail",
+			reason: `acme/widgets#1: Discord PATCH /channels/1574554070515974144 → 400 (${body})`,
+		});
+	});
+
+	it("puts the provider's answer in the reason when loading itself fails", async () => {
+		const { go, loadFeed } = setup();
+		loadFeed.mockRejectedValueOnce(
+			new ProviderApiError("Discord GET /guilds → 403", 403, '{"message":"Missing Access"}')
+		);
+		expect(await go(pr())).toEqual({
+			status: "fail",
+			reason: 'Discord GET /guilds → 403 ({"message":"Missing Access"})',
+		});
 	});
 
 	it("fails rather than throws when loading or the repository read throws", async () => {

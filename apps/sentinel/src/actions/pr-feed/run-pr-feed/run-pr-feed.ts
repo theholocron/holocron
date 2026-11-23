@@ -1,6 +1,5 @@
-import { errorMessage } from "@theholocron/misc-utils";
-
 import { SENTINEL_PR_FEED_CHECK_NAME } from "../../../utils/constants/index.js";
+import { describeFailure } from "../../ci-aggregate/describe-failure/index.js";
 import { loadPrFeed } from "../load-pr-feed/index.js";
 import type { PrFeedPullResult } from "../sync-pull-request/index.js";
 import { syncPullRequest } from "../sync-pull-request/index.js";
@@ -15,7 +14,8 @@ const VERDICTS = new Set(["success", "failure", "timed_out", "cancelled"]);
  * writes. Off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and the
  * layout has a forum with `feeds.prs`; also `skipped` for an excluded or archived repository. A check run that is not the
  * `ci / Required checks` verdict is dropped before anything is loaded or fetched. Never throws: a provider or network
- * error is a `fail` result, which the handler answers with a 500 (every step is an edit or an idempotent post, so a
+ * error is a `fail` result (its reason carries the response text the provider sent, so a Discord 400 says why), which
+ * the handler answers with a 500 (every step is an edit or an idempotent post, so a
  * redelivery is safe) without touching what Sentinel's other actions do.
  */
 export async function runPrFeed(input: RunPrFeedInput): Promise<RunPrFeedResult> {
@@ -46,11 +46,11 @@ export async function runPrFeed(input: RunPrFeedInput): Promise<RunPrFeedResult>
 			try {
 				pulls.push(await syncPullRequest({ client, notifications, channel, repo, number, trigger, now }));
 			} catch (err) {
-				errors.push(`${repo}#${number}: ${errorMessage(err)}`);
+				errors.push(`${repo}#${number}: ${describeFailure(err)}`);
 			}
 		}
 		return errors.length > 0 ? { status: "fail", reason: errors.join("; ") } : { status: "ok", pulls };
 	} catch (err) {
-		return { status: "fail", reason: errorMessage(err) };
+		return { status: "fail", reason: describeFailure(err) };
 	}
 }
