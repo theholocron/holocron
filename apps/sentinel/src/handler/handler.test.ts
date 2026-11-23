@@ -437,7 +437,8 @@ describe("handler — push.default-branch full pipeline", () => {
 			42,
 			{ fetch: expect.any(Function) }
 		);
-		expect(validateConfig).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo" });
+		// A push to the default branch writes properties from the result, so it reads the config again, never from the cache.
+		expect(validateConfig).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo", fresh: true });
 		expect(syncPropertiesFromConfig).toHaveBeenCalledWith({
 			client: FAKE_CLIENT,
 			repo: "acme/demo",

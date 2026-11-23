@@ -991,7 +991,8 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 		}
 	}
 
-	const configResult = await validateConfig({ client, repo });
+	// A push to the default branch writes properties from this result, so it is read again, never from the cache.
+	const configResult = await validateConfig({ client, repo, fresh: event.type === "push.default-branch" });
 	if (configResult.status !== "valid") {
 		logger.warn({ repo, result: configResult }, "validateConfig: not valid");
 		return json({

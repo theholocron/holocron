@@ -1,9 +1,9 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { MAX_CONFIG_DIR_BYTES, MAX_CONFIG_DIR_FILE_BYTES, MAX_CONFIG_DIR_FILES } from "../fetch-config-dir/index.js";
-import { validateConfig } from "./validate-config.js";
+import { resetValidateConfigCache, validateConfig } from "./validate-config.js";
 
 // The `.holocron/` directory beside the config (#1785): listed, fetched within caps, written to the sandbox, and its
 // area files placed on the config.
@@ -65,6 +65,10 @@ const WITH_DISCORD = [
 	"};",
 	"",
 ].join("\n");
+
+beforeEach(() => {
+	resetValidateConfigCache();
+});
 
 describe("validateConfig with a .holocron/ directory", () => {
 	it("is unchanged for a repo without .holocron/ (the listing 404s)", async () => {

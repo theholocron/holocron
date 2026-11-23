@@ -13,4 +13,8 @@ export interface ValidateConfigInput {
 	repo: string;
 	/** A specific commit/branch to validate instead of the default branch. See the module docstring for what a `ref`-based result may (and may not) be used for. */
 	ref?: string;
+	/** Read again even when a recent read is kept: for a caller that writes persistent state from the result. */
+	fresh?: boolean;
+	/** Epoch milliseconds; now when left out. For tests. */
+	now?: number;
 }
