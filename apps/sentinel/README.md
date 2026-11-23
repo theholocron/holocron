@@ -574,7 +574,7 @@ It is **off unless `SENTINEL_CI_AGGREGATE` is `shadow` or `on`** in the deploy e
 - `check_run` `rerequested` on `ci / Required checks` or its shadow (the Re-run button);
 - `status` for a context in `statuses` (Codecov's), looked up by the commit's branches.
 
-A failure answers HTTP 500 for the check-run, Re-run and status deliveries, so they show as failed and can be redelivered (the compute is idempotent); a pull request delivery's status is never changed by it. In `on` mode, when it has just finished a real check (a verdict, not `pending`), Sentinel runs the `#prs` feed and the board's status for it **in the same invocation**, as if GitHub had delivered the completed check run, instead of waiting for GitHub to deliver its own `check_run` back (not verified to happen). A commit where the Actions job already posts `ci / Required checks` is left alone (`foreign`): a check run belongs to the app that posted it, so Sentinel never updates the Actions job's.
+A failure answers HTTP 500 for the check-run, Re-run and status deliveries, so they show as failed and can be redelivered (the compute is idempotent); a pull request delivery's status is never changed by it. In `on` mode, when it has recently finished a real check (a verdict, not `pending`), Sentinel runs the `#prs` feed and the board's status for it **in the same invocation**, as if GitHub had delivered the completed check run, instead of waiting for GitHub to deliver its own `check_run` back (not verified to happen). A commit where the Actions job already posts `ci / Required checks` is left alone (`foreign`): a check run belongs to the app that posted it, so Sentinel never updates the Actions job's.
 
 **Human steps, not done by the change:**
 
