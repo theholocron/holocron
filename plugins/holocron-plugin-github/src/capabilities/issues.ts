@@ -33,6 +33,7 @@ import type {
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
 import { createFieldSetter, type FieldSetter } from "./issue-field-setter.js";
+import { type KindNames, kindNames } from "./issue-kind.js";
 import { exportIssues, importIssues } from "./issues-migration.js";
 import { syncIssues } from "./issues-sync.js";
 import { applyIssueFields, updateGitHubIssue } from "./issues-update.js";
@@ -46,6 +47,8 @@ export interface IssuesOptions {
 	 * `doctor` reports the two label-backed slots as unresolved.
 	 */
 	labels?: { inProgress: string; inReview: string };
+	/** The organization's issue Types (`issueTypes`), which `--type` and a record's kind are written as. */
+	issueTypes?: ReadonlyArray<{ name: string }>;
 }
 
 /** Issues read per request when `search` has a `text`; GitHub's largest page. */
@@ -64,6 +67,7 @@ export class GitHubIssues implements Issues {
 	private readonly repoName: string;
 	private readonly repo: string;
 	private readonly labels: { inProgress: string; inReview: string } | undefined;
+	private readonly kinds: KindNames;
 
 	constructor(
 		private readonly client: GitHubClient,
@@ -74,6 +78,7 @@ export class GitHubIssues implements Issues {
 		this.repoName = repoName;
 		this.repo = opts.repo;
 		this.labels = opts.labels;
+		this.kinds = kindNames(opts.issueTypes);
 	}
 
 	// ── identity ─────────────────────────────────────────────────────────
@@ -316,17 +321,17 @@ export class GitHubIssues implements Issues {
 
 	/** Reads issues with their comments, priority label, parent and blockers, for `holocron migrate`. */
 	export(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]> {
-		return exportIssues(this.client, this.repo, selector, info);
+		return exportIssues(this.client, this.repo, selector, info, this.kinds);
 	}
 
 	/** Makes the records as issues; one already made by an earlier run is skipped. */
 	import(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]> {
-		return importIssues(this.client, this.repo, records, options);
+		return importIssues(this.client, this.repo, records, options, this.kinds);
 	}
 
 	/** Like `import`, and it also updates what an earlier import or sync made, for `holocron sync issues`. */
 	sync(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]> {
-		return syncIssues(this.client, this.repo, records, options);
+		return syncIssues(this.client, this.repo, records, options, this.kinds);
 	}
 
 	// ── internals ────────────────────────────────────────────────────────
@@ -341,6 +346,7 @@ export class GitHubIssues implements Issues {
 			repo: this.repo,
 			parseKey: (k: string) => parseIssueNumber(k, this.owner, this.repoName),
 			fields: this.fieldSetter,
+			kinds: this.kinds,
 		};
 	}
 

@@ -12,21 +12,14 @@
  * Not verified against the live API: writing Type, Effort and the dates, the sub-issue and dependency endpoints.
  */
 
-import type {
-	IssueClearable,
-	IssueEffort,
-	IssueFields,
-	IssueKind,
-	IssuePatch,
-	IssueUpdateResult,
-} from "@theholocron/cli";
+import type { IssueClearable, IssueEffort, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
 import { createFieldSetter, fieldRefusal, type FieldSetter } from "./issue-field-setter.js";
+import { CORE_KIND_NAMES, type KindNames } from "./issue-kind.js";
 import { PRIORITY_OPTION_NAMES } from "./issue-priority.js";
 
-const KIND_NAMES: Record<IssueKind, string> = { bug: "Bug", feature: "Feature", task: "Task" };
 const EFFORT_NAMES: Record<IssueEffort, string> = { high: "High", medium: "Medium", low: "Low" };
 
 /** What the field writers need to know about the repository. */
@@ -38,6 +31,8 @@ export interface FieldContext {
 	parseKey: (key: string) => number;
 	/** Shared by the calls of one run, so the organization's field list is read once. */
 	fields?: FieldSetter;
+	/** The Type names of the kinds; the core three when it is absent. */
+	kinds?: KindNames;
 }
 
 /** What {@link applyIssueFields} did. */
@@ -82,7 +77,7 @@ export async function applyIssueFields(
 	const clear = new Set(input.clear ?? []);
 
 	if (input.kind) {
-		const name = KIND_NAMES[input.kind];
+		const name = (ctx.kinds ?? CORE_KIND_NAMES).nameOf(input.kind);
 		if (issue.type?.name?.toLowerCase() !== name.toLowerCase()) {
 			await guarded(`kind ${name}`, out, async () => {
 				await client.issues.updateIssue(repo, issue.number, { type: name });

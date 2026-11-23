@@ -255,7 +255,7 @@ and in the file is an error that names both (`vercel.teamId is set in providers.
 provider the config does not use is ignored. The org area is shared: a config in a subdirectory (`apps/sentinel`)
 also reads the repository root's `.holocron/org.ts` (the nearest ancestor with a `.git`), and its own
 `.holocron/org.ts` wins for a key set in both, option by option; that is not an error, so an identifier written in the
-root file needs no copy in the app. The other areas (`repo`, `notifications`) describe the repository and are not
+root file needs no copy in the app. `issueTypes` (#2512) is a top-level list in the same file, `[{ name, description?, color?, enabled?, label?, commit? }]`: the organization's issue Types, which `--type` on `new issue`, `update issue`, `new work`, `update work` and `start work` accepts as lower-case kinds beside `bug`, `feature` and `task` (`commit` is the commit type `start work` uses, `label` the Linear label); it is validated when the config loads and a subdirectory's own list replaces the root's. The other areas (`repo`, `notifications`) describe the repository and are not
 shared. Anything CI needs (`HOLOCRON_CLOUDFLARE_ACCOUNT_ID`,
 `HOLOCRON_TURBO_TEAM`, `HOLOCRON_AXIOM_DATASET`) stays out: it lives in 1Password and syncs to a GitHub variable (`repo.variables.sync`),
 and nothing else carries a copy. `.holocron/org.md` (the agent contract the CLI embeds) is not an area: only

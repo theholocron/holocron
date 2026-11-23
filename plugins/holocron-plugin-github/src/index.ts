@@ -51,6 +51,8 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 	};
 	/** `repo.labels` (the area map), handed in by the loader for the `issue-types` probe. */
 	areaLabels?: LabelsConfig;
+	/** The organization's issue Types (`issueTypes`, #2512), handed in by the loader: the names a kind is written as. */
+	issueTypes?: ReadonlyArray<{ name: string }>;
 	/** Override base URL for tests. Defaults to https://api.github.com. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. Defaults to global `fetch`. */
@@ -102,6 +104,7 @@ export function ci(ctx: PluginContext): Ci {
 export function issues(ctx: PluginContext): Issues {
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
+	if (ctx.options.issueTypes !== undefined) opts.issueTypes = ctx.options.issueTypes;
 	return new GitHubIssues(ctx.client, opts);
 }
 

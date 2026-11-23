@@ -857,8 +857,14 @@ export type IssuePriority = "none" | "urgent" | "high" | "medium" | "low";
 /** How much work an issue is, in words no tracker owns. GitHub holds it in the `Effort` issue field, Linear as an estimate. */
 export type IssueEffort = "high" | "medium" | "low";
 
-/** What kind of issue it is. GitHub holds it as the issue Type (Bug, Feature, Task); Linear has no Type, so the kind is a label. */
-export type IssueKind = "bug" | "feature" | "task";
+/** The kinds the CLI always knows: GitHub's default issue Types (Bug, Feature, Task). */
+export type CoreIssueKind = "bug" | "feature" | "task";
+
+/**
+ * What kind of issue it is: a core kind or the lower-cased name of a Type the organization declares (`issueTypes`,
+ * spec `tech-org-issue-types`, #2512). GitHub holds it as the issue Type; Linear has no Type, so the kind is a label.
+ */
+export type IssueKind = CoreIssueKind | (string & {});
 
 /** An issue field that `Issues.update` can clear: the value is removed, never replaced by a default. */
 export type IssueClearable =

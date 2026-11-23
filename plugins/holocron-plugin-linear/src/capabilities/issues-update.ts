@@ -10,23 +10,15 @@
  * `dropped` line, not a failure (how Linear answers is not verified).
  */
 
-import type {
-	IssueClearable,
-	IssueEffort,
-	IssueFields,
-	IssueKind,
-	IssuePatch,
-	IssueUpdateResult,
-} from "@theholocron/cli";
+import type { IssueClearable, IssueEffort, IssueFields, IssuePatch, IssueUpdateResult } from "@theholocron/cli";
 import type { LinearIssue, LinearIssueUpdate } from "@theholocron/linear-client";
 
+import { CORE_KIND_LABELS } from "./issue-kind.js";
 import { normalizeKey, pickState, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
 /** Linear's estimate for each effort, on the usual 1-3-5 scale. */
 const ESTIMATE: Record<IssueEffort, number> = { low: 1, medium: 3, high: 5 };
-/** The canonical label that stands for each kind where there is no Type. */
-export const KIND_LABELS: Record<IssueKind, string> = { bug: "bug", feature: "enhancement", task: "chore" };
 
 /** A person can read why a call failed. */
 const why = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -154,15 +146,13 @@ export async function updateLinearIssue(
 		changed.push("parent cleared");
 	}
 
-	const kindLabel = patch.kind ? KIND_LABELS[patch.kind] : undefined;
+	const kinds = scope.kinds ?? CORE_KIND_LABELS;
+	const kindLabel = patch.kind ? kinds.labelOf(patch.kind) : undefined;
 	const have = new Map(issue.labels.nodes.map((l) => [l.name.toLowerCase(), l]));
 	const add = [...(patch.addLabels ?? []), ...(kindLabel ? [kindLabel] : [])].filter(
 		(l) => !have.has(l.toLowerCase())
 	);
-	const remove = [
-		...(patch.removeLabels ?? []),
-		...(clear.has("kind") && !patch.kind ? Object.values(KIND_LABELS) : []),
-	]
+	const remove = [...(patch.removeLabels ?? []), ...(clear.has("kind") && !patch.kind ? kinds.labels() : [])]
 		.map((l) => have.get(l.toLowerCase()))
 		.filter((l): l is { id: string; name: string } => l !== undefined);
 	if (add.length > 0 || remove.length > 0) {

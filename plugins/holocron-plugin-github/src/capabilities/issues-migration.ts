@@ -28,7 +28,7 @@ import {
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
-import { kindOfIssue, writeKind } from "./issue-kind.js";
+import { CORE_KIND_NAMES, type KindNames, kindOfIssue, writeKind } from "./issue-kind.js";
 import { createPrioritySetter } from "./issue-priority.js";
 
 export const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
@@ -106,9 +106,10 @@ export async function exportIssues(
 	client: GitHubClient,
 	repo: string,
 	selector: IssueSelector,
-	info: ExportInfo = {}
+	info: ExportInfo = {},
+	kinds: KindNames = CORE_KIND_NAMES
 ): Promise<IssueRecord[]> {
-	return readIssues(client, repo, selector, info).catch((err: unknown) => {
+	return readIssues(client, repo, selector, info, kinds).catch((err: unknown) => {
 		throw explainSecondaryLimit(err);
 	});
 }
@@ -117,7 +118,8 @@ async function readIssues(
 	client: GitHubClient,
 	repo: string,
 	selector: IssueSelector,
-	info: ExportInfo
+	info: ExportInfo,
+	kinds: KindNames
 ): Promise<IssueRecord[]> {
 	const [owner = "", name = ""] = repo.split("/", 2);
 	const since = selector.since ? Date.parse(selector.since) : undefined;
@@ -169,7 +171,7 @@ async function readIssues(
 		const { labels, priority } = splitLabels(issue.labels.map((l) => l.name));
 		const body = issue.body?.replace(MARKER, "").trimEnd();
 		const migratedFrom = issue.body ? MARKER.exec(issue.body)?.[1] : undefined;
-		const kind = kindOfIssue(issue);
+		const kind = kindOfIssue(issue, kinds);
 		records.push({
 			key: `#${issue.number}`,
 			url: issue.html_url,
@@ -211,7 +213,8 @@ export async function importIssues(
 	client: GitHubClient,
 	repo: string,
 	records: IssueRecord[],
-	options: ImportOptions = {}
+	options: ImportOptions = {},
+	kinds: KindNames = CORE_KIND_NAMES
 ): Promise<ImportResult[]> {
 	const existing = new Map<string, number>();
 	for (const issue of await listAll(client, repo, {})) {
@@ -238,7 +241,7 @@ export async function importIssues(
 		const number = await createFromRecord(client, repo, record, options);
 		const field = await priority.set(number, record.priority, { isNew: true });
 		if (field.note) dropped.push(field.note);
-		const kindNote = record.kind ? await writeKind(client, repo, number, record.kind) : undefined;
+		const kindNote = record.kind ? await writeKind(client, repo, number, record.kind, kinds) : undefined;
 		if (kindNote) dropped.push(kindNote);
 		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
 		tick();

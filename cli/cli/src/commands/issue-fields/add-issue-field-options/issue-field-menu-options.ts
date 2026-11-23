@@ -8,7 +8,9 @@ export const ISSUE_FIELD_MENU_OPTIONS: MenuOption[] = [
 		key: "type",
 		flag: "--type",
 		type: "select",
-		choices: ["bug", "feature", "task"],
+		// The menu cannot read the config here, so it names the two Types the organization declares (#2512); `--type`
+		// itself accepts whatever `issueTypes` declares.
+		choices: ["bug", "feature", "task", "epic", "spike"],
 		message: "Kind of issue:",
 	},
 	{

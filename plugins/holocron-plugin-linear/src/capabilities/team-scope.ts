@@ -1,6 +1,7 @@
 import type { LinearTeam } from "@theholocron/linear-client";
 
 import type { LinearClient } from "../rest.js";
+import type { KindLabels } from "./issue-kind.js";
 
 /** The client and the team a capability works in. */
 export interface TeamScope {
@@ -8,16 +9,19 @@ export interface TeamScope {
 	client: LinearClient;
 	/** The configured team key, e.g. `ENG`. */
 	teamKey: string;
+	/** The kind labels (the core three plus the declared Types'); the core three when absent. */
+	kinds?: KindLabels;
 	/** The team, looked up once. Throws when the token cannot see a team with that key. */
 	team(): Promise<LinearTeam>;
 }
 
 /** Binds a client to a team key; the team is read on first use and kept. */
-export function createTeamScope(client: LinearClient, teamKey: string): TeamScope {
+export function createTeamScope(client: LinearClient, teamKey: string, kinds?: KindLabels): TeamScope {
 	let found: Promise<LinearTeam> | undefined;
 	return {
 		client,
 		teamKey,
+		...(kinds ? { kinds } : {}),
 		team: () =>
 			(found ??= client.teams.find(teamKey).then((team) => {
 				if (!team)

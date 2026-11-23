@@ -67,11 +67,15 @@ describe("GitHubIssues export, the issue kind (#2485)", () => {
 		expect((await exported({ type: { name: "Task" } }))?.kind).toBe("task");
 	});
 
-	it("falls back to the one kind label, and names none for two kinds, an unknown Type or no label", async () => {
+	it("falls back to the one kind label, and names none for two kinds or no label", async () => {
 		expect((await exported({ type: null, labels: [{ name: "enhancement" }] }))?.kind).toBe("feature");
 		expect((await exported({ labels: [{ name: "Chore" }, { name: "chore" }] }))?.kind).toBe("task");
 		expect((await exported({ labels: [{ name: "bug" }, { name: "chore" }] }))?.kind).toBeUndefined();
-		expect((await exported({ type: { name: "Epic" } }))?.kind).toBeUndefined();
+		expect((await exported({ type: null }))?.kind).toBeUndefined();
+	});
+
+	it("reads a Type outside the core three as its lower-case name, so an Epic is not lost", async () => {
+		expect((await exported({ type: { name: "Epic" } }))?.kind).toBe("epic");
 	});
 });
 

@@ -66,6 +66,8 @@ const system = createPluginSystem<
 			...(config.repoValidation?.docsCoverage ? { docsCoverage: config.repoValidation.docsCoverage } : {}),
 			// The `issue-types` backfill of the GitHub plugin maps titles and folders to areas through the same map.
 			...(config.repo?.labels ? { areaLabels: config.repo.labels } : {}),
+			// The organization's issue Types (#2512): the issues plugins map a kind to a Type name or a Linear label with them.
+			...(config.issueTypes ? { issueTypes: config.issueTypes } : {}),
 			...context,
 			...(effectiveToken !== undefined ? { cliToken: effectiveToken } : {}),
 			cliTokens: undefined,

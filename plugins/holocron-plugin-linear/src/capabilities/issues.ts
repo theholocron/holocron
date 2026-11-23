@@ -30,9 +30,10 @@ import type {
 } from "@theholocron/cli";
 import type { LinearIssue, LinearUser, LinearWorkflowState } from "@theholocron/linear-client";
 
+import { CORE_KIND_LABELS } from "./issue-kind.js";
 import { exportIssues, importIssues } from "./issues-migration.js";
 import { syncIssues } from "./issues-sync.js";
-import { applyNewIssueFields, KIND_LABELS, updateLinearIssue } from "./issues-update.js";
+import { applyNewIssueFields, updateLinearIssue } from "./issues-update.js";
 import { normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
@@ -102,7 +103,9 @@ export class LinearIssues implements Issues {
 			if (extra.length > 0) dropped.push(`assignee (Linear holds one): ${extra.join(", ")}`);
 		}
 		const team = await this.scope.team();
-		const names = [...(input.labels ?? []), ...(input.kind ? [KIND_LABELS[input.kind]] : [])];
+		const kindLabel = input.kind ? (this.scope.kinds ?? CORE_KIND_LABELS).labelOf(input.kind) : undefined;
+		if (input.kind && kindLabel === undefined) dropped.push(`kind ${input.kind} (not carried: no Linear label)`);
+		const names = [...(input.labels ?? []), ...(kindLabel ? [kindLabel] : [])];
 		const labelIds = names.length > 0 ? await this.labelIds(team.id, [...new Set(names)]) : [];
 		const projectId = input.milestone ? await this.projectId(input.milestone) : undefined;
 		let parentId: string | undefined;
