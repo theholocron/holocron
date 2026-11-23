@@ -100,12 +100,17 @@ Run `pnpm install` once to activate it; bypass one push with `git push --no-veri
 | ------------------ | ---------------------------------------------- |
 | `ensureWebhookApp` | Idempotent provisioning of the webhook backend |
 
+### Issue types (`issues` capability, only when `issueTypes` is declared)
+
+When the org area declares `issueTypes` (`.holocron/org.ts`), `setup` adds an `issue types` section after `dns` that makes each declared Type the organization lacks, through the same function as [`apply issue-types`](/holocron/commands/apply-issue-types/). It only adds: it never updates a Type's description or colour, renames, turns off or deletes one (use `apply issue-types --update` for that). It asks once before writing unless `--yes` is given. A refused token, an unreadable list, the 25-Type limit, no `issues` provider, or no terminal without `--yes` is a skipped row, not a failure, so a contributor without the organization permission still gets a passing run. A repo that declares no Types gets no section.
+
 ## Options
 
 | Option                   | Description                                                            |
 | ------------------------ | ---------------------------------------------------------------------- |
 | `--repo owner/name`      | Override the repo coordinate                                           |
 | `--hooks` / `--no-hooks` | Force git-hook installation on or off (default: on for strict repos)   |
+| `--yes`                  | Make the declared issue Types without asking                           |
 | `--dry-run`              | Print "would" lines for all mutating steps; read-only probes still run |
 
 ## Example

@@ -32,6 +32,7 @@ export const setupCommand: CommandModule<GlobalArgs, SetupArgs> = {
 				org: resolveOrg(argv, loaded.resolved),
 			},
 			...(argv.hooks !== undefined ? { hooks: argv.hooks } : {}),
+			...(argv.yes ? { yes: true } : {}),
 		});
 		if (report.summary.fail > 0) {
 			process.exitCode = 1;

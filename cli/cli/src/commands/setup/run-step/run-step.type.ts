@@ -43,6 +43,12 @@ export interface RunSetupInput {
 	 * stack detection uses. Tests inject one that throws to cover the fall-back to the root manifest.
 	 */
 	workspacePackages?: (repoRoot: string) => ReturnType<typeof readWorkspacePackages>;
+	/** `--yes`: change the organization's issue Types without asking. */
+	yes?: boolean;
+	/** Whether a terminal can be asked about the issue Types. Tests set it; defaults to whether stdin is one. */
+	interactive?: boolean;
+	/** Asks the yes/no question for the issue Types. Defaults to an inquirer prompt. */
+	confirm?: (message: string) => Promise<boolean>;
 	/** Replaces the hand-off of heartbeat ping URLs to the private import file. Tests inject one; it never sees a terminal. */
 	handOffHeartbeats?: (input: HandOffHeartbeatsInput) => Promise<HandOffHeartbeatsResult>;
 }
