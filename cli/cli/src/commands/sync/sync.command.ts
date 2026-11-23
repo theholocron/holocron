@@ -9,6 +9,7 @@ import { resolveOrg } from "../resolve-org/index.js";
 import { secretsSyncCommand } from "../secrets-sync/secrets-sync.command.js";
 import { specsSyncCommand } from "../specs-sync/specs-sync.command.js";
 import { syncGithubCommand } from "../sync-github/sync-github.command.js";
+import { syncIncidentsCommand } from "../sync-incidents/index.js";
 import { syncIssuesCommand } from "../sync-issues/index.js";
 import { syncReadmeCommand } from "../sync-readme/sync-readme.command.js";
 import { syncRequestsCommand } from "../sync-requests/index.js";
@@ -25,6 +26,7 @@ export const syncCommand: CommandModule<GlobalArgs, SyncArgs> = {
 		syncArgs(y)
 			.command(syncGithubCommand as never)
 			.command(syncIssuesCommand as never)
+			.command(syncIncidentsCommand as never)
 			.command(syncReadmeCommand as never)
 			.command(ideasSyncCommand as never)
 			.command(syncToolingCommand as never)

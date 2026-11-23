@@ -79,6 +79,7 @@ import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
 import { startWorkEntry } from "../../commands/start-work/start-work.entry.js";
 import { syncEntry } from "../../commands/sync/sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
+import { syncIncidentsEntry } from "../../commands/sync-incidents/sync-incidents.entry.js";
 import { syncIssuesEntry } from "../../commands/sync-issues/sync-issues.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
 import { syncRequestsEntry } from "../../commands/sync-requests/sync-requests.entry.js";
@@ -150,6 +151,7 @@ const registry = createCommandRegistry(
 		runCiEntry,
 		syncGithubEntry,
 		syncIssuesEntry,
+		syncIncidentsEntry,
 		ideasSyncEntry,
 		syncToolingEntry,
 		syncRequestsEntry,
