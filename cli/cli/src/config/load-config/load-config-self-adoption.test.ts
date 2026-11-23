@@ -170,6 +170,8 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				{ name: "resolved", emoji: "✅", moderated: true },
 				{ name: "maintenance", emoji: "🛠️", moderated: true },
 			],
+			defaultReaction: "👀",
+			starterReactions: ["👀", "👍", "❓"],
 			feeds: { incidents: "The Holocron" },
 		});
 		// And (#1822): the ideas forum gained a default reaction and starter reactions.

@@ -129,6 +129,10 @@ export default {
 						{ name: "resolved", emoji: "✅", moderated: true },
 						{ name: "maintenance", emoji: "🛠️", moderated: true },
 					],
+					// One default reaction (Discord takes one per forum); the bot adds the starters to the first message of each
+					// post, so an incident opens with "seen", "thanks" and a question to hand.
+					defaultReaction: "👀",
+					starterReactions: ["👀", "👍", "❓"],
 					feeds: { incidents: "The Holocron" },
 				},
 			],
