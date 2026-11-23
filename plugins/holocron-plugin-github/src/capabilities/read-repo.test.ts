@@ -67,6 +67,27 @@ describe("toRulesetDetail", () => {
 		});
 	});
 
+	it("reads the app a required check is pinned to, and only when one is", () => {
+		const detail = toRulesetDetail({
+			id: 1,
+			name: "r",
+			enforcement: "active",
+			rules: [
+				{
+					type: "required_status_checks",
+					parameters: {
+						required_status_checks: [
+							{ context: "DCO" },
+							{ context: "ci / Required checks", integration_id: 42 },
+						],
+					},
+				},
+			],
+		});
+		expect(detail.requiredChecks).toEqual(["DCO", "ci / Required checks"]);
+		expect(detail.requiredCheckSources).toEqual({ "ci / Required checks": 42 });
+	});
+
 	it("has no rules and no checks when there are none", () => {
 		expect(toRulesetDetail({ id: 1, name: "r", enforcement: "disabled" })).toEqual({
 			name: "r",

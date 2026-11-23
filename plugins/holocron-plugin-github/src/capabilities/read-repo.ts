@@ -33,15 +33,21 @@ export async function readRepoInfo(client: GitHubClient, repo: string): Promise<
 	};
 }
 
-/** A ruleset reduced to what `setup` writes: its enforcement, rule types and required status checks. */
+/** A ruleset reduced to what `setup` writes: its enforcement, rule types, required status checks and the app a check is pinned to. */
 export function toRulesetDetail(data: GitHubRulesetDetail): SourceRulesetDetail {
 	const rules = data.rules ?? [];
 	const checks = rules.find((r) => r.type === "required_status_checks")?.parameters?.required_status_checks;
+	const entries = Array.isArray(checks) ? (checks as Array<{ context?: unknown; integration_id?: unknown }>) : [];
+	const sources: Record<string, number> = {};
+	for (const entry of entries) {
+		if (typeof entry.integration_id === "number") sources[String(entry.context)] = entry.integration_id;
+	}
 	return {
 		name: data.name,
 		enforcement: data.enforcement as SourceRulesetDetail["enforcement"],
 		ruleTypes: rules.map((r) => r.type),
-		requiredChecks: Array.isArray(checks) ? checks.map((c) => String((c as { context?: unknown }).context)) : [],
+		requiredChecks: entries.map((c) => String(c.context)),
+		...(Object.keys(sources).length > 0 ? { requiredCheckSources: sources } : {}),
 	};
 }
 

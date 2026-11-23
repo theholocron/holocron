@@ -9,5 +9,5 @@ export { defineConfig } from "./define/index.js";
 export type { TasksInput } from "./load/index.js";
 export { loadTasksConfig } from "./load/index.js";
 export { releaseGroups } from "./release-groups/index.js";
-export type { CiAggregatePoster, CiConfig, TaskConfigItem, TaskEntry, TasksConfig } from "./schema/index.js";
+export type { CiAggregatePoster, CiConfig, CiPin, TaskConfigItem, TaskEntry, TasksConfig } from "./schema/index.js";
 export { normalizeTaskEntry } from "./schema/index.js";

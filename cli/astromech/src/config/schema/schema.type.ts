@@ -101,6 +101,17 @@ export interface TasksConfig {
 /** Who posts the required `ci / Required checks` check: the Actions poller (`ci.yml`) or Sentinel, from webhooks. */
 export type CiAggregatePoster = "actions" | "sentinel";
 
+/** Who may satisfy the required `ci / Required checks` context: one GitHub App, by its integration id. */
+export interface CiPin {
+	/**
+	 * The numeric id of the GitHub App (the ruleset's `integration_id`) whose check runs may satisfy
+	 * `ci / Required checks`. For Sentinel's production App, use its App id (the one `githubApps` and
+	 * `SENTINEL_GITHUB_APP_ID` hold); a dev instance has another id and does not count. Setting it changes who can merge,
+	 * so turn it on only once the outage runbook's bypass is settled (spec `process-sentinel-posts-ci`, phase 10).
+	 */
+	integrationId: number;
+}
+
 /** The `ci` block of the manifest. */
 export interface CiConfig {
 	/**
@@ -110,4 +121,10 @@ export interface CiConfig {
 	 * request, which `probe generated check` enforces.
 	 */
 	aggregate?: CiAggregatePoster;
+	/**
+	 * Opt in to pinning the required `ci / Required checks` context to one GitHub App. Off when omitted: the ruleset names
+	 * the context only, so any app (or a workflow) can satisfy it. `holocron setup` writes `integration_id` on that one
+	 * entry of a `strict` repo's ruleset; `holocron doctor repo` compares it. Other required checks are never pinned.
+	 */
+	pin?: CiPin;
 }

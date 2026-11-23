@@ -411,6 +411,89 @@ describe("doctor repo — labels and teams", () => {
 	});
 });
 
+describe("doctor repo — the ci pin", () => {
+	const RULESET = { id: 7, name: "holocron-default-branch", enforcement: "active" as const };
+	const withPin = (ci?: Record<string, unknown>) =>
+		loadedWith({ tasks: ["verification.unitTests"], repo: { protection: "strict" }, ...(ci ? { ci } : {}) });
+	const sourceWith = (requiredCheckSources?: Record<string, number>) => ({
+		listLabels: async () => labels(),
+		getSecurity: async () => ALL_ON,
+		getProperties: async () => ({}),
+		listRulesets: async () => [RULESET],
+		getRulesetDetail: async () => ({
+			name: RULESET.name,
+			enforcement: "active",
+			ruleTypes: [],
+			requiredChecks: [],
+			...(requiredCheckSources ? { requiredCheckSources } : {}),
+		}),
+	});
+	const hosting = () => {
+		const dir = mkdtempSync(join(tmpdir(), "doctor-pin-"));
+		mkdirSync(join(dir, "ci"));
+		writeFileSync(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
+		return dir;
+	};
+
+	it("is a skipped row that says the option is off when nothing is pinned", async () => {
+		const { report } = await run(withPin(), sourceWith());
+		expect(byId(report.rows, "repo-ci-pin")).toMatchObject({ status: "skip" });
+		expect(byId(report.rows, "repo-ci-pin").detail).toMatch(/ci\.pin is off/);
+	});
+
+	it("is not a row at all outside a strict preset", async () => {
+		const { report } = await run(loadedWith({ repo: { protection: "balanced" } }), sourceWith());
+		expect(report.rows.map((r) => r.id)).not.toContain("repo-ci-pin");
+	});
+
+	it("fails when the pin is declared and the ruleset does not hold it, and passes when it does", async () => {
+		const dir = hosting();
+		const declared = withPin({ pin: { integrationId: 42 } });
+		const missing = await run(declared, sourceWith(), dir);
+		expect(byId(missing.report.rows, "repo-ci-pin").problems).toEqual([
+			"ci / Required checks is not pinned (declared app 42; any app may satisfy it)",
+		]);
+		const other = await run(declared, sourceWith({ "ci / Required checks": 7 }), dir);
+		expect(byId(other.report.rows, "repo-ci-pin").problems).toEqual([
+			"ci / Required checks is pinned to app 7, declared app 42",
+		]);
+		const same = await run(declared, sourceWith({ "ci / Required checks": 42 }), dir);
+		rmSync(dir, { recursive: true, force: true });
+		expect(byId(same.report.rows, "repo-ci-pin").status).toBe("ok");
+	});
+
+	it("fails a pin the ruleset holds while the option is off", async () => {
+		const { report } = await run(withPin(), sourceWith({ "ci / Required checks": 42 }));
+		expect(byId(report.rows, "repo-ci-pin").problems).toEqual([
+			"ci / Required checks is pinned to app 42 but ci.pin does not declare it",
+		]);
+	});
+
+	it("fails when ci.pin is set but ci / Required checks is not a required check here", async () => {
+		const { report } = await run(withPin({ pin: { integrationId: 42 } }), sourceWith());
+		expect(byId(report.rows, "repo-ci-pin").problems[0]).toMatch(/not a required check/);
+	});
+
+	it("skips when the ruleset is missing or rulesets are not available", async () => {
+		const gone = await run(withPin(), { ...sourceWith(), listRulesets: async () => [] });
+		expect(byId(gone.report.rows, "repo-ci-pin").status).toBe("skip");
+		const forbidden = await run(withPin(), {
+			...sourceWith(),
+			listRulesets: async () => {
+				throw new ProviderApiError("no", 403);
+			},
+		});
+		expect(byId(forbidden.report.rows, "repo-ci-pin").status).toBe("skip");
+		const broken = await run(withPin(), {
+			...sourceWith(),
+			listRulesets: async () => {
+				throw new ProviderApiError("boom", 500);
+			},
+		});
+		expect(byId(broken.report.rows, "repo-ci-pin").status).toBe("fail");
+	});
+});
+
 describe("doctor repo — branch protection", () => {
 	const RULESET = { id: 7, name: "holocron-default-branch", enforcement: "active" as const };
 	const base = { listLabels: async () => labels(), getSecurity: async () => ALL_ON };

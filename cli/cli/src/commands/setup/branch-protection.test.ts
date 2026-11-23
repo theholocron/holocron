@@ -37,6 +37,42 @@ describe("buildRulesetPayload", () => {
 	});
 });
 
+describe("buildRulesetPayload pins", () => {
+	const entries = (payload: Record<string, unknown>) =>
+		(payload.rules as Array<{ type: string; parameters?: { required_status_checks?: unknown[] } }>).find(
+			(r) => r.type === "required_status_checks"
+		)?.parameters?.required_status_checks;
+
+	it("writes no integration_id without a pin", () => {
+		expect(entries(buildRulesetPayload(["DCO", "ci / Required checks"]))).toEqual([
+			{ context: "DCO" },
+			{ context: "ci / Required checks" },
+		]);
+	});
+
+	it("writes integration_id on the pinned context only", () => {
+		expect(entries(buildRulesetPayload(["DCO", "ci / Required checks"], { "ci / Required checks": 42 }))).toEqual([
+			{ context: "DCO" },
+			{ context: "ci / Required checks", integration_id: 42 },
+		]);
+	});
+
+	it("hands the pins to a created and an updated ruleset", async () => {
+		const sent: unknown[] = [];
+		const source = {
+			listRulesets: async () => [{ id: 1, name: "holocron-default-branch" }],
+			createRuleset: async (p: unknown) => void sent.push(p),
+			updateRuleset: async (_id: number, p: unknown) => void sent.push(p),
+		};
+		await upsertBranchProtection(source as never, false, ["a"], { a: 7 });
+		await upsertBranchProtection({ ...source, listRulesets: async () => [] } as never, false, ["a"], { a: 7 });
+		expect(sent.map((p) => entries(p as Record<string, unknown>))).toEqual([
+			[{ context: "a", integration_id: 7 }],
+			[{ context: "a", integration_id: 7 }],
+		]);
+	});
+});
+
 describe("buildClassicProtectionPayload", () => {
 	it("sets required_status_checks when checks are provided", () => {
 		const payload = buildClassicProtectionPayload(["DCO"]);

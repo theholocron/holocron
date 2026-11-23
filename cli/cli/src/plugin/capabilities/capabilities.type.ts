@@ -146,6 +146,11 @@ export interface SourceRulesetDetail {
 	ruleTypes: string[];
 	/** The status check contexts the ruleset requires. */
 	requiredChecks: string[];
+	/**
+	 * For each required context that names a source app, that app's integration id (GitHub's `integration_id`). A context
+	 * that any app may satisfy has no entry; the field is left out when no context names one.
+	 */
+	requiredCheckSources?: Record<string, number>;
 }
 
 /** Which security features are on, as {@link Source.getSecurity} reports them. A feature left out was not reported. */

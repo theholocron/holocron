@@ -6,6 +6,7 @@ import { AREA_PREFIX, areaLabelDefs } from "../../area-labels/index.js";
 import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
+import { aggregatePin } from "../aggregate-pin/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { CAPABILITIES_PROPERTY, capabilityValues } from "../repo-properties/capability-property/index.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
@@ -13,6 +14,7 @@ import { deriveCapabilities } from "../setup/derived-properties/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
 import type { RepoCheck } from "./doctor-repo.type.js";
+import { comparePinnedSources } from "./pinned-sources.js";
 import { compareRequiredContexts } from "./required-contexts.js";
 
 const quote = (value: unknown): string => JSON.stringify(value);
@@ -281,6 +283,37 @@ export function repoChecks(
 					...compareRequiredContexts(required, detail.requiredChecks),
 				];
 				return { problems, checked: 1 + rules.length + required.length };
+			},
+		});
+	}
+
+	if (preset === "strict") {
+		checks.push({
+			id: "repo-ci-pin",
+			title: "ci / Required checks is pinned to the declared app",
+			needs: "getRulesetDetail",
+			async run(source) {
+				const plan = aggregatePin(config.ci, strictChecks(config, repoRoot, statusContexts));
+				if (plan.problem) return { problems: [plan.problem], checked: 1 };
+				let rulesets;
+				try {
+					rulesets = await source.listRulesets();
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 403)
+						return { skip: "rulesets are not available on this plan" };
+					throw err;
+				}
+				const found = rulesets.find((r) => r.name === RULESET_NAME);
+				if (!found) return { skip: `no ruleset ${RULESET_NAME} (see repo-protection)` };
+				const detail = await source.getRulesetDetail!(found.id);
+				const actual = detail.requiredCheckSources ?? {};
+				if (Object.keys(plan.pins).length === 0 && Object.keys(actual).length === 0) {
+					return { skip: "not pinned: ci.pin is off, so any app may satisfy ci / Required checks" };
+				}
+				return {
+					problems: comparePinnedSources(plan.pins, actual),
+					checked: Math.max(Object.keys(plan.pins).length, 1),
+				};
 			},
 		});
 	}

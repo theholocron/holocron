@@ -20,7 +20,14 @@ export function buildClassicProtectionPayload(requiredChecks: string[] = []): Re
 	};
 }
 
-export function buildRulesetPayload(requiredChecks: string[] = []): Record<string, unknown> {
+/**
+ * The ruleset `setup` writes. `pins` maps a required context to the integration id of the one GitHub App whose check
+ * may satisfy it (written as `integration_id` on that entry); a context with no entry may be satisfied by any app.
+ */
+export function buildRulesetPayload(
+	requiredChecks: string[] = [],
+	pins: Readonly<Record<string, number>> = {}
+): Record<string, unknown> {
 	const rules: Record<string, unknown>[] = [
 		{ type: "deletion" },
 		{ type: "non_fast_forward" },
@@ -45,7 +52,9 @@ export function buildRulesetPayload(requiredChecks: string[] = []): Record<strin
 		rules.push({
 			type: "required_status_checks",
 			parameters: {
-				required_status_checks: requiredChecks.map((context) => ({ context })),
+				required_status_checks: requiredChecks.map((context) =>
+					pins[context] === undefined ? { context } : { context, integration_id: pins[context] }
+				),
 				strict_required_status_checks_policy: false,
 			},
 		});
@@ -68,7 +77,8 @@ export function buildRulesetPayload(requiredChecks: string[] = []): Record<strin
 export async function upsertBranchProtection(
 	source: Source,
 	dryRun: boolean,
-	requiredChecks: string[]
+	requiredChecks: string[],
+	pins: Readonly<Record<string, number>> = {}
 ): Promise<SetupStepResult> {
 	const step = `upsert ruleset ${RULESET_NAME}`;
 	if (dryRun) return { capability: "source", step, status: "dry-run" };
@@ -78,10 +88,10 @@ export async function upsertBranchProtection(
 		const existing = await source.listRulesets();
 		const found = existing.find((r) => r.name === RULESET_NAME);
 		if (found) {
-			await source.updateRuleset(found.id, buildRulesetPayload(requiredChecks));
+			await source.updateRuleset(found.id, buildRulesetPayload(requiredChecks, pins));
 			return { capability: "source", step, status: "ok", message: "updated" };
 		}
-		await source.createRuleset(buildRulesetPayload(requiredChecks));
+		await source.createRuleset(buildRulesetPayload(requiredChecks, pins));
 		return { capability: "source", step, status: "ok", message: "created" };
 	} catch (err) {
 		if (!(err instanceof ProviderApiError) || err.status !== 403) {

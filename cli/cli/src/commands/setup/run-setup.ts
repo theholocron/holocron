@@ -33,6 +33,7 @@ import { areaLabelDefs } from "../../area-labels/index.js";
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "../../plugin/index.js";
+import { aggregatePin } from "../aggregate-pin/index.js";
 import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
 import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
@@ -172,8 +173,18 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 							...(statusContexts ? { statusContexts } : {}),
 						}).requiredChecks(hostsReusables(input.context.repoRoot))
 					: [];
-			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
+			const pinPlan = aggregatePin(config.ci, requiredChecks);
+			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks, pinPlan.pins));
 			print(formatStep(steps[steps.length - 1]));
+			if (pinPlan.problem) {
+				steps.push({
+					capability: "source",
+					step: "pin ci / Required checks",
+					status: "skip",
+					message: pinPlan.problem,
+				});
+				print(formatStep(steps[steps.length - 1]));
+			}
 		}
 	}
 

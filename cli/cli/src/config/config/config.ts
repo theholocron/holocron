@@ -257,6 +257,16 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		);
 	}
 
+	const pin = raw.ci?.pin;
+	if (
+		pin !== undefined &&
+		(typeof pin !== "object" || pin === null || !Number.isSafeInteger(pin.integrationId) || pin.integrationId <= 0)
+	) {
+		throw new ConfigError(
+			`\`ci.pin.integrationId\` must be a positive integer (the GitHub App's id), got ${JSON.stringify(pin)}`
+		);
+	}
+
 	if (raw.credentials !== undefined) {
 		const environment = raw.credentials.environment;
 		if (typeof environment !== "string" || environment.trim() === "") {
