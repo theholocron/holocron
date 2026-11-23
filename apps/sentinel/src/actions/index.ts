@@ -2,6 +2,7 @@ export * from "./area-labels/index.js";
 export * from "./auto-fix-loop/index.js";
 export * from "./board-status/index.js";
 export * from "./capability-compliance/index.js";
+export * from "./ci-aggregate/index.js";
 export * from "./commit-standards/index.js";
 export * from "./dco/index.js";
 export * from "./editorconfig/index.js";

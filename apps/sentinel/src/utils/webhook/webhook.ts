@@ -49,7 +49,7 @@ import {
 } from "@theholocron/github-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { SENTINEL_PR_FEED_CHECK_NAME } from "../constants/index.js";
+import { SENTINEL_CI_AGGREGATE_SHADOW_NAME, SENTINEL_PR_FEED_CHECK_NAME } from "../constants/index.js";
 import type {
 	GitHubCheckRunWebhookPayload,
 	GitHubIssuesWebhookPayload,
@@ -57,6 +57,7 @@ import type {
 	GitHubOrganizationWebhookPayload,
 	GitHubPullRequestNumberPayload,
 	GitHubPullRequestReviewWebhookPayload,
+	GitHubStatusWebhookPayload,
 	ParseWebhookEventInput,
 	ParseWebhookResult,
 } from "./webhook.type.js";
@@ -72,6 +73,20 @@ const PR_FEED_ACTIONS: ReadonlySet<string> = new Set([
 	"edited",
 	"closed",
 ]);
+
+/** A `pull_request` delivery's head commit and base branch, as the `ci` aggregate needs them. */
+function pullRequestHead(
+	payload: Record<string, unknown>,
+	number: number | undefined
+): { headSha?: string; pullRequests?: Array<{ number: number; baseRef?: string }> } {
+	const pull = payload["pull_request"] as { head?: { sha?: string }; base?: { ref?: string } } | undefined;
+	return {
+		...(pull?.head?.sha ? { headSha: pull.head.sha } : {}),
+		...(number === undefined
+			? {}
+			: { pullRequests: [{ number, ...(pull?.base?.ref ? { baseRef: pull.base.ref } : {}) }] }),
+	};
+}
 
 export class WebhookVerificationError extends Error {
 	override name = "WebhookVerificationError";
@@ -142,6 +157,7 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 				installationId: p.installation?.id ?? 0,
 				action: p.action,
 				...(pullNumber === undefined ? {} : { pullNumbers: [pullNumber] }),
+				...pullRequestHead(payload, pullNumber),
 				...(deliveryId ? { deliveryId } : {}),
 				raw: payload,
 			};
@@ -194,7 +210,34 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 			// so they cost no installation token, config read or fetch.
 			const p = payload as unknown as GitHubCheckRunWebhookPayload;
 			const run = p.check_run;
-			if (p.action !== "completed" || run.name !== SENTINEL_PR_FEED_CHECK_NAME) {
+			const isAggregate = run.name === SENTINEL_PR_FEED_CHECK_NAME;
+			const isShadow = run.name === SENTINEL_CI_AGGREGATE_SHADOW_NAME;
+			// Every other completed check run, and a Re-run on the aggregate, is for the `ci` aggregate (SPEC-0099): the
+			// handler decides from the config whether a leaf is one it waits for, and drops it before any fetch if not.
+			if (
+				(p.action === "rerequested" && (isAggregate || isShadow)) ||
+				(p.action === "completed" && !isAggregate && !isShadow)
+			) {
+				return {
+					handled: true,
+					event: {
+						type: p.action === "rerequested" ? "check_run.rerequested" : "check_run.leaf",
+						repo: p.repository.full_name,
+						installationId: p.installation?.id ?? 0,
+						action: p.action,
+						headSha: run.head_sha,
+						checkName: run.name,
+						pullNumbers: run.pull_requests.map((pr) => pr.number),
+						pullRequests: run.pull_requests.map((pr) => ({
+							number: pr.number,
+							...(pr.base?.ref ? { baseRef: pr.base.ref } : {}),
+						})),
+						...(deliveryId ? { deliveryId } : {}),
+						raw: payload,
+					},
+				};
+			}
+			if (p.action !== "completed" || !isAggregate) {
 				return { handled: false, reason: `check_run "${run.name}" ${p.action} is not handled`, githubEvent };
 			}
 			return {
@@ -212,6 +255,23 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 						url: run.html_url,
 						...(run.details_url ? { detailsUrl: run.details_url } : {}),
 					},
+					...(deliveryId ? { deliveryId } : {}),
+					raw: payload,
+				},
+			};
+		}
+		case "status": {
+			// A commit status (Codecov's) is an input of the `ci` aggregate when its context is one the aggregate waits for.
+			const p = payload as unknown as GitHubStatusWebhookPayload;
+			return {
+				handled: true,
+				event: {
+					type: "status",
+					repo: p.repository.full_name,
+					installationId: p.installation?.id ?? 0,
+					headSha: p.sha,
+					checkName: p.context,
+					branches: (p.branches ?? []).map((branch) => branch.name),
 					...(deliveryId ? { deliveryId } : {}),
 					raw: payload,
 				},

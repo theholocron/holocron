@@ -10,7 +10,17 @@
     "metadata": "read",
     "organization_projects": "write",
     "pull_requests": "write",
-    "repository_custom_properties": "write"
+    "repository_custom_properties": "write",
+    "statuses": "read"
   },
-  "default_events": ["check_run", "issues", "membership", "organization", "pull_request", "pull_request_review", "push"]
+  "default_events": [
+    "check_run",
+    "issues",
+    "membership",
+    "organization",
+    "pull_request",
+    "pull_request_review",
+    "push",
+    "status"
+  ]
 }
