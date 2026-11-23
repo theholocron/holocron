@@ -1,3 +1,9 @@
+## [5.0.0-alpha.527](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.526...v5.0.0-alpha.527) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ suspend the development GitHub App's installations while holocron dev is not running ([#2580](https://github.com/theholocron/holocron/issues/2580)) ([95dce76](https://github.com/theholocron/holocron/commit/95dce76ac140b9991e688a0c472b4445946d92b5)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+
 ## [5.0.0-alpha.526](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.525...v5.0.0-alpha.526) (2026-11-23)
 
 ### Bug Fixes
