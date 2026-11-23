@@ -89,6 +89,7 @@ export default defineConfig({
 		defaultBranch: "alpha",
 		// teams, topics, variables and secrets live in .holocron/repo.ts; the loader adds them to `repo` here.
 	},
+	ci: { aggregate: "sentinel" }, // who posts `ci / Required checks`: Sentinel, SPEC-0099 (#2426)
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron setup` appends these to the task-derived contexts from
 	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong
