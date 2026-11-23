@@ -1,6 +1,6 @@
 ---
 id: SPEC-0106
-status: draft
+status: accepted
 issue: theholocron/holocron#2512
 blocked-by: []
 related:
@@ -97,13 +97,13 @@ interface OrgIssueType {
 
 All five are declared so the declaration is complete (an existing Type is declared too and is only compared, never rewritten, unless `--update`). The three existing rows copy what the organization has today, which this spec could not read, so their description and colour are placeholders until a read of `apply issue-types --dry-run` replaces them:
 
-| Name    | Description                                              | Colour                 | `label`       | `commit` |
-| ------- | -------------------------------------------------------- | ---------------------- | ------------- | -------- |
-| Bug     | An unexpected problem or behavior                        | `red` (placeholder)    | `bug`         | `fix`    |
-| Feature | A request, idea, or new functionality                    | `blue` (placeholder)   | `enhancement` | `feat`   |
-| Task    | A specific piece of work                                 | `yellow` (placeholder) | `chore`       | `chore`  |
-| Epic    | A body of work made of several issues                    | `purple`               | `epic`        | none     |
-| Spike   | Time-boxed research that ends in a finding, not a change | `orange`               | `spike`       | none     |
+| Name    | Description                                              | Colour   | `label`       | `commit` |
+| ------- | -------------------------------------------------------- | -------- | ------------- | -------- |
+| Bug     | An unexpected problem or behavior                        | `red`    | `bug`         | `fix`    |
+| Feature | A request, idea, or new functionality                    | `blue`   | `enhancement` | `feat`   |
+| Task    | A specific piece of work                                 | `yellow` | `chore`       | `chore`  |
+| Epic    | A body of work made of several issues                    | `purple` | `epic`        | none     |
+| Spike   | Time-boxed research that ends in a finding, not a change | `orange` | `spike`       | none     |
 
 `commit` for Epic and Spike is absent on purpose (Decision 8): `start work` falls back to `chore` unless the issue's title already carries a Conventional Commit prefix, which then wins.
 
@@ -231,7 +231,7 @@ The rules also go into the agent guidance, next to `skills/src/work-effort/SKILL
 
 ### 8. The `epic` label once an Epic Type exists
 
-`epic` is a synced stock label (`CANONICAL_LABELS`: colour `5319e7`, "A body of work made of several issues"; 1 issue, 0 pull requests per `tech-github-area-labels`) and, once `label` is declared, Linear's kind label for an Epic. It is retired only after all three are true (Decision 10): the Epic Type exists (`doctor repo`'s `issue-types` row is `ok`), `.holocron/repo.ts` maps `epic` to Epic in `repo.labels.kinds`, and the maintainer-run backfill has typed the issue that carries `epic`. Then it is removed from `CANONICAL_LABELS` and stays out of `STALE_LABELS`; **it is never deleted**, and every attachment stays. Until then nothing changes, so no run is red between steps.
+`epic` is a synced stock label (`CANONICAL_LABELS`: colour `5319e7`, "A body of work made of several issues"; `tech-github-area-labels` counted 1 issue, but a search on 2026-11-23 finds about ten, open and closed, so the backfill types several) and, once `label` is declared, Linear's kind label for an Epic. It is retired only after all three are true (Decision 10): the Epic Type exists (`doctor repo`'s `issue-types` row is `ok`), `.holocron/repo.ts` maps `epic` to Epic in `repo.labels.kinds`, and the maintainer-run backfill has typed the issue that carries `epic`. Then it is removed from `CANONICAL_LABELS` and stays out of `STALE_LABELS`; **it is never deleted**, and every attachment stays. Until then nothing changes, so no run is red between steps.
 
 Linear is unaffected: Linear's `epic` label is made by `provider linear setup` from the Epic Type's `label`, and its colour falls back to the declaration when `colorOf()` no longer finds `epic` in `CANONICAL_LABELS`. The labels `epic` already on issues are never stripped (the same rule as the other kind labels). `docs` names the retirement in the stock-label table.
 
@@ -262,16 +262,23 @@ Pull request 6 is held until the maintainer has the permission; 1 to 5 do not ne
 
 None are open. All twelve questions of the first draft (Decisions 1 to 12) and the three that followed (Decisions 13 to 15) are answered.
 
-## Not verified
+## Verified, and what is still not
 
-- **No call to GitHub was made.** The endpoints, the body fields (`name` and `is_enabled` required, `description` and `color` optional, `color` one of eight words or null) and the `DELETE` are from GitHub's REST documentation, not a call. Whether `PUT` is a full replace (hence the "send the current name and enabled flag back" rule) or accepts a partial body is unknown.
-- **The fine-grained permission.** The documentation lists the classic scopes (`read:org` for list, `admin:org` for create, update and delete, plus being an organization administrator). That a fine-grained token has an organization permission "Issue types" with read and write, and that it satisfies these calls, comes from the issue and #2514, not the documentation page read. The `tokens.mdx` wording is drafted on that assumption; the first real `apply issue-types` is the proof.
-- **The limit.** The documentation says an organization can have up to 25 issue types and that the defaults (Task, Bug, Feature) are "in addition to these"; the REST page states no limit. Whether the 25 includes the defaults, and the error GitHub returns past it, is not verified.
-- **What the three existing Types look like** (their descriptions, colours, whether each is enabled). The table in section 1 uses GitHub's defaults from memory; they are placeholders until `apply issue-types --dry-run` reads them.
-- **Case sensitivity of `type` on an issue update.** `writeKind()` sends the declared spelling; whether GitHub matches a Type name case-insensitively is not verified.
-- **What a create answers for a name that already exists** (409 or 422), and a rate-limit shape; the design reads either as "exists" after a `list`.
-- **Whether `GET /orgs/{org}/issue-types` (REST) is readable with the Issue types: read permission** that the GraphQL read in the backfill already uses.
-- **Whether the plugin's feature resolver can route three `Issues` methods to `HOLOCRON_ORG_TOKEN`** while the rest of `Issues` uses `HOLOCRON_ISSUES_TOKEN`; the plugin's `auth.ts` was read for the token list only.
-- **Whether the interactive menu can compute a `choices` list from the loaded config at run time.** The fallback in section 6 does not need it.
-- **That Sentinel's `resolveConfig()` and remote check accept an unknown top-level key**, or reject it; rollout 1 adds the key either way.
-- **Linear.** Whether Linear accepts `spike` and `epic` as label names and how `epic` interacts with a Linear project concept is not verified; no Linear call was made.
+Built as parts 1 to 8 (#2544, #2547 to #2553) and run for real on 2026-11-23: `holocron apply issue-types --yes` found Bug, Feature and Task, and made Epic and Spike; `apply issue-types --update --dry-run` then planned no change, so the declared descriptions and colours of the three existing Types match the organization.
+
+Verified by that run:
+
+- The REST list and create endpoints and their bodies (`name`, `is_enabled`, `description`, `color`).
+- The fine-grained token permission (organization **Issue types: read and write** on `HOLOCRON_ORG_TOKEN`, by an organization administrator) is enough to list and create.
+- The plugin routes the three `Issues` Type methods to `HOLOCRON_ORG_TOKEN` while the rest of `Issues` keeps the issues token.
+- The three existing Types' descriptions and colours were the ones the table lists (they were GitHub's defaults).
+
+Not verified:
+
+- **The limit.** The documentation says up to 25 issue types; five exist, so the pre-write check (existing plus new, defaults included) has not been near it, and the error past it is unknown.
+- **`PUT` semantics.** `updateType` sends the current name and enabled flag back; no update has been written, so whether `PUT` is a full replace or accepts a partial body is untested.
+- **Case sensitivity of `type` on an issue update.** `writeKind()` sends the declared spelling.
+- **What a create answers for a name that already exists** (409 or 422), and a rate-limit shape; the code reads a conflict as "exists" after one more list.
+- **The read-only `ci` token** (Issue types: read) was not exercised by this run.
+- **Interactive menu choices.** The menu names `epic` and `spike` in the entry (Decision 15); it does not read the declaration at run time.
+- **Linear.** Whether Linear accepts `spike` and `epic` as label names, and how `epic` interacts with a Linear project; no Linear call was made.
