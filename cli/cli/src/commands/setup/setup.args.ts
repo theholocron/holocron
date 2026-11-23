@@ -10,6 +10,11 @@ export const setupArgs = (y: Argv<GlobalArgs>) =>
 			global: false,
 			describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 		})
+		.option("yes", {
+			type: "boolean",
+			global: false,
+			describe: "Change the organization's issue Types without asking (only when the org area declares some).",
+		})
 		.option("hooks", {
 			type: "boolean",
 			global: false,

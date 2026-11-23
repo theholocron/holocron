@@ -41,6 +41,13 @@ describe("setup", () => {
 		expect("hooks" in bare || "repo" in bare.context).toBe(false);
 	});
 
+	it("passes --yes through, and leaves it out when it is not given", async () => {
+		await go(["--yes"]);
+		expect(runSetup.mock.calls[0]![0]).toMatchObject({ yes: true });
+		await go([]);
+		expect("yes" in runSetup.mock.calls[1]![0]).toBe(false);
+	});
+
 	it("exits 1 when a step failed, and stops when --token cannot be parsed", async () => {
 		runSetup.mockResolvedValue(summary(2));
 		await go([]);
