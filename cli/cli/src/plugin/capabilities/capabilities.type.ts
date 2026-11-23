@@ -630,6 +630,8 @@ export interface SourceCheckRun {
 	startedAt: string | null;
 	/** A link to the run, `null` when there is none. */
 	url: string | null;
+	/** The slug of the app that posted the run (`github-actions` for a workflow's), `null` or absent when unknown. */
+	appSlug?: string | null;
 }
 
 /** One commit status, as {@link Source.listCommitStatuses} returns it. */

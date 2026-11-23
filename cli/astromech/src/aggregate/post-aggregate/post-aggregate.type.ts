@@ -7,6 +7,9 @@ import type {
 /** The name of the aggregate check run, the one context the ruleset requires. */
 export const AGGREGATE_CHECK_NAME = "ci / Required checks";
 
+/** The name Sentinel posts the aggregate under while it runs beside the Actions poller (the shadow), which nothing requires. */
+export const AGGREGATE_SHADOW_CHECK_NAME = `${AGGREGATE_CHECK_NAME} (sentinel)`;
+
 /** How long the aggregate waits for a check that has not finished or not posted, as the polling job does. */
 export const AGGREGATE_TIMEOUT_MS = 30 * 60_000;
 
@@ -63,12 +66,20 @@ export interface PostAggregateInput {
 	refreshOutput?: boolean;
 	/** An `in_progress` run older than this many milliseconds counts as stale; defaults to 10 minutes. */
 	graceMs?: number;
+	/**
+	 * Slugs of apps whose runs under this name are not ours: such a run is never updated, and when one is there and none of ours
+	 * is, nothing is posted (`foreign`). Defaults to `github-actions`, the Actions poller.
+	 */
+	foreignAppSlugs?: string[];
 }
 
 /** What {@link postAggregate} did. */
 export interface PostAggregateResult {
-	/** `created` or `updated` a run, `recreated` when the provider refused to reopen one, `unchanged`, or `would-...` on a dry run. */
-	action: "created" | "updated" | "recreated" | "unchanged" | "would-create" | "would-update";
+	/**
+	 * `created` or `updated` a run, `recreated` when the provider refused to reopen one, `unchanged`, `foreign` when another
+	 * app (the Actions poller) already posts this check on the commit and nothing was written, or `would-...` on a dry run.
+	 */
+	action: "created" | "updated" | "recreated" | "unchanged" | "foreign" | "would-create" | "would-update";
 	/** The verdict the state calls for. */
 	result: AggregateResult;
 	/** True when the stored run was missing or disagreed with the verdict, and had been waiting longer than the grace. */

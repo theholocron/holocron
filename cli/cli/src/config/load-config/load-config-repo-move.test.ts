@@ -145,6 +145,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 			keys: [
 				"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
 				"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
+				"HOLOCRON_HEARTBEAT_RECONCILE_CI",
 				"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
 				"HOLOCRON_HEARTBEAT_SYNC_SPECS",
 			],

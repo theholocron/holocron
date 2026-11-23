@@ -145,6 +145,12 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"remind-doctor": { id: "doctor-reminder", name: "Doctor reminder" },
 		},
 	},
+	"reconcile-ci": {
+		name: "Reconcile ci",
+		jobs: {
+			"reconcile-ci": { id: "reconcile-ci", name: "Reconcile ci" },
+		},
+	},
 	"reconcile-projects": {
 		name: "Platform",
 		jobs: {

@@ -278,4 +278,52 @@ describe("postAggregate", () => {
 		await postAggregate({ ...input, name: "ci / Required checks (sentinel)", timeoutMs: 60_000 });
 		expect(api.runs.some((r) => r.name === "ci / Required checks (sentinel)")).toBe(true);
 	});
+
+	describe("a check run of the same name that another app posted", () => {
+		const actionsRun = {
+			id: 50,
+			name: AGGREGATE_CHECK_NAME,
+			status: "completed",
+			conclusion: "success",
+			startedAt: T(1),
+			url: null,
+			appSlug: "github-actions",
+		};
+
+		it("is left alone, and nothing is posted when none of ours is there: a commit has one poster", async () => {
+			const { api, input } = setup(green());
+			api.runs.push({ ...actionsRun });
+			const out = await postAggregate(input);
+			expect(out).toMatchObject({ action: "foreign", runId: null, stale: false, closed: [], rewritten: false });
+			expect(api.writes).toEqual([]);
+			expect(api.runs.filter((r) => r.name === AGGREGATE_CHECK_NAME)).toHaveLength(1);
+		});
+
+		it("does not count as ours: our own run is the one updated, and theirs stays as it was", async () => {
+			const { api, input } = setup(green());
+			api.runs.push({ ...actionsRun, conclusion: "failure" });
+			api.runs.push({
+				id: 60,
+				name: AGGREGATE_CHECK_NAME,
+				status: "in_progress",
+				conclusion: null,
+				startedAt: T(2),
+				url: null,
+				appSlug: "sentinel",
+			});
+			const out = await postAggregate(input);
+			expect(out).toMatchObject({ action: "updated", runId: 60 });
+			expect(api.runs.find((r) => r.id === 50)?.conclusion).toBe("failure");
+		});
+
+		it("reads which apps are foreign from the input, and a run with no slug is ours", async () => {
+			const { api, input } = setup(green());
+			api.runs.push({ ...actionsRun, appSlug: "other-app" });
+			expect((await postAggregate({ ...input, foreignAppSlugs: ["other-app"] })).action).toBe("foreign");
+			expect((await postAggregate({ ...input, foreignAppSlugs: [] })).action).toBe("unchanged");
+			const bare = setup(green());
+			bare.api.runs.push({ ...actionsRun, appSlug: null });
+			expect((await postAggregate(bare.input)).action).toBe("unchanged");
+		});
+	});
 });

@@ -8,12 +8,23 @@
  * disagrees, is posted. A pull request that was missing or wrong and had waited longer than `--max-age` is a failing
  * row, because that is what a missed delivery looks like; one younger than that is still in flight and only reported.
  *
+ * It posts the real `ci / Required checks` only where the checkout's `ci.aggregate` is `sentinel`: while it is
+ * `actions` the Actions job is the poster and a second writer would be a second poster, so the command does nothing
+ * unless `--shadow` asks it to repair Sentinel's shadow check. A run on a commit where another app (the Actions
+ * job) already posts the check leaves it alone.
+ *
  * `expected` comes from the config of the checkout it runs in. The sweep runs from the default branch, which is the
  * base of the pull requests it repairs, so a pull request cannot shrink its own gate. `--dry-run` reads and prints what
  * it would do and posts nothing.
  */
 
-import { aggregateChecks, postAggregate } from "@theholocron/astromech";
+import {
+	AGGREGATE_CHECK_NAME,
+	AGGREGATE_SHADOW_CHECK_NAME,
+	aggregateChecks,
+	aggregatePoster,
+	postAggregate,
+} from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import {
 	type CheckRow,
@@ -69,6 +80,18 @@ export async function runReconcileCi(input: RunReconcileCiInput): Promise<Reconc
 
 	if (input.maxAgeMinutes !== undefined && !(input.maxAgeMinutes > 0)) {
 		return fail("max-age", "--max-age is a number of minutes above zero");
+	}
+	// A commit has one poster. While `ci.aggregate` is `actions` (the default) the Actions job posts the real check, and a
+	// second writer under the same name would be a second poster, so only the shadow may be repaired.
+	if (!input.shadow && aggregatePoster({ ci: input.loaded.resolved.ci }) === "actions") {
+		rows.push(
+			row(
+				"ci.aggregate",
+				"skip",
+				`ci.aggregate is actions here, so the Actions job posts ${AGGREGATE_CHECK_NAME} and nothing is posted; --shadow repairs Sentinel's shadow check`
+			)
+		);
+		return finish();
 	}
 	const providers = input.loaded.resolved.providers;
 	if (!providers.source)
@@ -150,9 +173,14 @@ export async function runReconcileCi(input: RunReconcileCiInput): Promise<Reconc
 				now: now(),
 				graceMs,
 				dryRun,
+				name: input.shadow ? AGGREGATE_SHADOW_CHECK_NAME : AGGREGATE_CHECK_NAME,
 			});
 			const verdict = out.result.conclusion;
-			if (out.action === "unchanged") {
+			if (out.action === "foreign") {
+				rows.push(
+					row(id, "skip", "another app (the Actions job) already posts this check on the commit; left alone")
+				);
+			} else if (out.action === "unchanged") {
 				rows.push(row(id, "ok", `up to date (${verdict})`));
 			} else if (out.stale) {
 				const what = dryRun ? "would repair" : "repaired";

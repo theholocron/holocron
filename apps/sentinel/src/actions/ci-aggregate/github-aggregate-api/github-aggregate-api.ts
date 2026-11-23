@@ -21,6 +21,7 @@ export function githubAggregateApi(client: GitHubClient, repo: string): Aggregat
 				conclusion: run.conclusion,
 				startedAt: run.started_at ?? null,
 				url: run.details_url ?? run.html_url,
+				appSlug: run.app?.slug ?? null,
 			})),
 		listCommitStatuses: async (sha) =>
 			(await client.statuses.listCommitStatuses(repo, sha)).map((status) => ({

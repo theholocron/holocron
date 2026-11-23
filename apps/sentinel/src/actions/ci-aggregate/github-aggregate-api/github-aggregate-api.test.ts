@@ -16,6 +16,7 @@ function fakeClient() {
 					html_url: "https://x/1",
 					details_url: "https://x/d1",
 					started_at: "2026-11-22T10:00:00Z",
+					app: { id: 7, slug: "github-actions" },
 				},
 				{
 					id: 2,
@@ -49,6 +50,7 @@ describe("githubAggregateApi", () => {
 				conclusion: "success",
 				startedAt: "2026-11-22T10:00:00Z",
 				url: "https://x/d1",
+				appSlug: "github-actions",
 			},
 			{
 				id: 2,
@@ -57,6 +59,7 @@ describe("githubAggregateApi", () => {
 				conclusion: null,
 				startedAt: null,
 				url: "https://x/2",
+				appSlug: null,
 			},
 		]);
 		expect(await api.listCommitStatuses("abc")).toEqual([

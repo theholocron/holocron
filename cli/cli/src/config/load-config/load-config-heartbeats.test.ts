@@ -20,6 +20,7 @@ describe("this repo's heartbeats (#2359)", () => {
 		expect(heartbeats.map((h) => h.name).sort()).toEqual([
 			"check-tokens",
 			"doctor-tokens",
+			"reconcile-ci",
 			"reconcile-projects",
 			"sync-specs",
 		]);

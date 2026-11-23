@@ -11,6 +11,7 @@ export async function readCheckRuns(client: GitHubClient, repo: string, ref: str
 		conclusion: run.conclusion,
 		startedAt: run.started_at ?? null,
 		url: run.details_url ?? run.html_url,
+		appSlug: run.app?.slug ?? null,
 	}));
 }
 

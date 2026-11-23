@@ -11,6 +11,9 @@ import {
 
 const DEFAULT_GRACE_MS = 10 * 60_000;
 
+/** The app whose runs are the Actions poller's: `ci / Required checks` posted by a workflow belongs to `github-actions`. */
+const DEFAULT_FOREIGN_APP_SLUGS: readonly string[] = ["github-actions"];
+
 const asWrite = (result: AggregateResult, startedAt?: string): AggregateWrite => ({
 	status: result.conclusion === "pending" ? "in_progress" : "completed",
 	...(result.conclusion === "pending" ? {} : { conclusion: result.conclusion }),
@@ -48,13 +51,18 @@ export async function postAggregate(input: PostAggregateInput): Promise<PostAggr
 	const timeoutMs = input.timeoutMs ?? AGGREGATE_TIMEOUT_MS;
 	const graceMs = input.graceMs ?? DEFAULT_GRACE_MS;
 	const expected = input.expected.filter((id) => id !== "ci");
+	const foreignSlugs = input.foreignAppSlugs ?? DEFAULT_FOREIGN_APP_SLUGS;
+	const isForeign = (run: AggregateCheckRun): boolean => run.appSlug != null && foreignSlugs.includes(run.appSlug);
 
 	const read = async () => {
 		const [runs, commitStatuses] = await Promise.all([
 			input.api.listCheckRuns(input.sha),
 			input.api.listCommitStatuses(input.sha),
 		]);
-		const own = runs.filter((run) => run.name === name);
+		// A run another app posted under this name (the Actions poller's) is not ours to update or to answer for.
+		const named = runs.filter((run) => run.name === name);
+		const own = named.filter((run) => !isForeign(run));
+		const foreign = named.length - own.length;
 		const first = own
 			.map(startMs)
 			.filter((ms) => !Number.isNaN(ms))
@@ -69,11 +77,16 @@ export async function postAggregate(input: PostAggregateInput): Promise<PostAggr
 			startedAt,
 			timeoutMs,
 		});
-		return { own, stored: newestCheckRuns(own)[0], startedAt, result };
+		return { own, foreign, stored: newestCheckRuns(own)[0], startedAt, result };
 	};
 
 	const state = await read();
 	const { stored, result } = state;
+	// The Actions poller already posts this check on the commit and nothing of ours is there: two posters would be worse
+	// than none, so say so and write nothing (SPEC-0099: a commit has exactly one poster).
+	if (stored === undefined && state.foreign > 0) {
+		return { action: "foreign", result, stale: false, runId: null, closed: [], rewritten: false };
+	}
 	const waited = input.now - state.startedAt;
 	const stale =
 		stored === undefined

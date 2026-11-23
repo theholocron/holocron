@@ -31,7 +31,18 @@ describe("GitHubSource check runs", () => {
 		const { source, calls } = makeSource([
 			{
 				status: 200,
-				body: { check_runs: [RAW_RUN, { ...RAW_RUN, id: 8, details_url: null, started_at: undefined }] },
+				body: {
+					check_runs: [
+						RAW_RUN,
+						{
+							...RAW_RUN,
+							id: 8,
+							details_url: null,
+							started_at: undefined,
+							app: { id: 15368, slug: "github-actions" },
+						},
+					],
+				},
 			},
 		]);
 		const runs = await source.listCheckRuns("abc");
@@ -44,6 +55,7 @@ describe("GitHubSource check runs", () => {
 				conclusion: "success",
 				startedAt: "2026-11-22T10:01:00Z",
 				url: "https://x/details/7",
+				appSlug: null,
 			},
 			{
 				id: 8,
@@ -52,6 +64,7 @@ describe("GitHubSource check runs", () => {
 				conclusion: "success",
 				startedAt: null,
 				url: "https://x/runs/7",
+				appSlug: "github-actions",
 			},
 		]);
 	});

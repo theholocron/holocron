@@ -74,6 +74,14 @@ export default function monitoring(description: string) {
 				graceUnit: "hours",
 				tags: ["scheduled"],
 			},
+			{
+				name: "reconcile-ci",
+				period: 1,
+				periodUnit: "hours",
+				grace: 2,
+				graceUnit: "hours",
+				tags: ["scheduled"],
+			},
 		],
 		dashboards: [
 			{
