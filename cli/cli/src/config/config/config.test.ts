@@ -231,6 +231,26 @@ describe("resolveConfig", () => {
 		expect(resolveConfig({ ...minimal, repoValidation: {} }).repoValidation).toEqual({});
 	});
 
+	it("passes ci.aggregate through, and leaves ci unset by default", () => {
+		for (const aggregate of ["actions", "sentinel"] as const) {
+			expect(resolveConfig({ ...minimal, ci: { aggregate } }).ci).toEqual({ aggregate });
+		}
+		expect(resolveConfig(minimal).ci).toBeUndefined();
+		expect(resolveConfig({ ...minimal, ci: {} }).ci).toEqual({});
+	});
+
+	it("rejects a ci.aggregate that is not actions or sentinel, naming the value", () => {
+		const err = (() => {
+			try {
+				resolveConfig({ ...minimal, ci: { aggregate: "Sentinel" as never } });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as ConfigError).message).toMatch(/ci\.aggregate.*"actions", "sentinel".*"Sentinel"/);
+	});
+
 	it("passes the credentials environment through, and leaves it unset by default", () => {
 		expect(resolveConfig({ ...minimal, credentials: { environment: "Demo" } }).credentials).toEqual({
 			environment: "Demo",

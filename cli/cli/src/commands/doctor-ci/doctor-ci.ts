@@ -8,7 +8,7 @@
  * check's.
  */
 
-import { aggregateChecks, legacyGate } from "@theholocron/astromech";
+import { aggregateChecks, aggregatePoster, legacyGate } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 
@@ -32,12 +32,13 @@ export async function runDoctorCi(input: RunDoctorCiInput): Promise<DoctorCiRepo
 	const callers = io.workflows().flatMap(({ file, text }) => parseCaller(file, text) ?? []);
 	const tasksConfig: TasksConfig = { tasks: tasks };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
+	if (config.ci) tasksConfig.ci = config.ci;
 	const names = tasks.map((entry) => (typeof entry === "string" ? entry : entry.name));
 
 	const rows = [
 		tasksRow(names),
 		callersRow(callers),
-		aggregateRow(callers, aggregateChecks(tasksConfig).expected),
+		aggregateRow(callers, aggregateChecks(tasksConfig).expected, aggregatePoster(tasksConfig)),
 		homeRow(callers, input.legacyGate ?? legacyGate()),
 		...(input.shadow ? await shadowRows(input) : []),
 	];

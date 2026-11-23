@@ -630,6 +630,23 @@ describe("createAstromech().aggregateCaller", () => {
 		}).aggregateCaller();
 		expect(caller).toContain(`statuses: '[]'`);
 	});
+
+	it("is null when the manifest says Sentinel posts the check, whatever it waits on", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["codecov/patch"], ci: { aggregate: "sentinel" } },
+		});
+		expect(astromech.aggregatePoster()).toBe("sentinel");
+		expect(astromech.aggregateCaller()).toBeNull();
+	});
+
+	it("keeps the Actions caller for `actions`, and for no `ci` block", () => {
+		const config = { extraRequiredChecks: ["codecov/patch"] };
+		expect(createAstromech({ cwd: "/repo", config }).aggregatePoster()).toBe("actions");
+		expect(createAstromech({ cwd: "/repo" }).aggregatePoster()).toBe("actions");
+		const explicit = createAstromech({ cwd: "/repo", config: { ...config, ci: { aggregate: "actions" } } });
+		expect(explicit.aggregateCaller()).toContain(`statuses: '["codecov/patch"]'`);
+	});
 });
 
 describe("createAstromech() with the statuses a coverage provider reports", () => {

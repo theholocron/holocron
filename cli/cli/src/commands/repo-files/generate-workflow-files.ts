@@ -46,7 +46,11 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	const tasks = withAutoPreviewDeployPaths(config.tasks, gitRoot);
 	const astromech = createAstromech({
 		cwd: input.repoRoot,
-		config: { tasks: tasks, extraRequiredChecks: config.extraRequiredChecks },
+		config: {
+			tasks: tasks,
+			extraRequiredChecks: config.extraRequiredChecks,
+			...(config.ci === undefined ? {} : { ci: config.ci }),
+		},
 		orgContext: { org: config.org, domain: config.domain },
 		...(input.statusContexts ? { statusContexts: input.statusContexts } : {}),
 		logger: input.logger ?? getLogger(),
@@ -128,6 +132,8 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 			});
 		}
 		for (const [id, content] of hostedReusableWorkflows()) {
+			// Sentinel posts the `ci` aggregate for this manifest, so the reusable that polls for it is not generated either.
+			if (id === "ci" && astromech.aggregatePoster() === "sentinel") continue;
 			const filename = workflowFile(id);
 			entries.push({
 				kind: "file",

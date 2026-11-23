@@ -230,6 +230,16 @@ describe("loadConfig", () => {
 
 	// ── astromech.config.* task-manifest layering ─────────────────────────
 
+	it("carries ci.aggregate from holocron.config, and lets the dedicated astromech.config set it", async () => {
+		await writeFile(
+			join(cwd, "holocron.config.json"),
+			JSON.stringify({ name: "demo", providers: { source: "github" }, ci: { aggregate: "sentinel" } })
+		);
+		expect((await loadConfig(cwd)).resolved.ci).toEqual({ aggregate: "sentinel" });
+		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ ci: { aggregate: "actions" } }));
+		expect((await loadConfig(cwd)).resolved.ci).toEqual({ aggregate: "actions" });
+	});
+
 	it("merges a dedicated astromech.config on top of holocron.config's tasks", async () => {
 		await writeFile(
 			join(cwd, "holocron.config.json"),

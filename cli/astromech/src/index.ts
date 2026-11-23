@@ -38,6 +38,7 @@ export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { AggregateChecks } from "./generators/aggregate-checks/index.js";
 export { aggregateChecks } from "./generators/aggregate-checks/index.js";
+export { aggregatePoster } from "./generators/aggregate-poster/index.js";
 export {
 	DEFAULT_ORG,
 	DOT_GITHUB_REPO,

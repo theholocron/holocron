@@ -1,4 +1,5 @@
 import type { DocsCoverageMode } from "@theholocron/astromech";
+import type { CiConfig } from "@theholocron/astromech/config";
 import type { LogLevel } from "@theholocron/observability/core";
 
 import type { EnvironmentLayer } from "../../credentials-environments/layer-environment/index.js";
@@ -802,6 +803,13 @@ export interface HolocronConfig {
 	 */
 	extraRequiredChecks?: string[];
 	/**
+	 * Settings of the repo's CI as a whole. `ci.aggregate` (`"actions"`, the default, or `"sentinel"`) says who posts the
+	 * required `ci / Required checks`: with `"sentinel"` no `ci.ci.yml` caller and no `ci.yml` reusable are generated,
+	 * because Sentinel posts the check for a commit whose own config says so (spec `process-sentinel-posts-ci`, SPEC-0099).
+	 * Flip it in one pull request, after Sentinel's shadow agrees with the Actions aggregate (`holocron doctor ci --shadow`).
+	 */
+	ci?: CiConfig;
+	/**
 	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
 	 * `.husky/pre-push` (runs `holocron run ci` before every push); `false` /
 	 * `{ prePush: false }` opts out. Omitted → on for `protection: "strict"`,
@@ -978,6 +986,8 @@ export interface ResolvedHolocronConfig {
 	holocronScript?: string;
 	/** Required status checks not backed by a task. */
 	extraRequiredChecks?: string[];
+	/** Who posts the `ci / Required checks` check (`ci.aggregate`); not set means the Actions poller. */
+	ci?: CiConfig;
 	/** Git hooks `holocron setup` installs. */
 	hooks?: boolean | { prePush?: boolean };
 	/** Resolved provider entries by capability. */

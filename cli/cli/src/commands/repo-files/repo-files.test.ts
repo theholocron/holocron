@@ -281,6 +281,43 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(entry.content).toContain(`      statuses: '["cov/project"]'\n`);
 		});
 
+		it("is not written, and neither is the reusable that polls, when ci.aggregate says Sentinel posts it", () => {
+			host();
+			const entries = generateWorkflowFiles({
+				loaded: loadedFrom({
+					name: "x",
+					tasks: ["stale", { name: "typecheck", required: true }],
+					extraRequiredChecks: ["codecov/patch"],
+					ci: { aggregate: "sentinel" },
+				}),
+				repoRoot: root,
+				logger: getLogger(),
+			});
+			const paths = entries.flatMap((e) => (e.kind === "file" ? [e.path] : []));
+			expect(paths).not.toContain(".github/workflows/ci.ci.yml");
+			expect(paths).not.toContain(".github/workflows/ci.yml");
+			// every other reusable and caller is still written
+			expect(paths).toContain(".github/workflows/test-unit.yml");
+			expect(paths).toContain(".github/workflows/mark-stale.yml");
+		});
+
+		it("keeps the caller and the reusable when ci.aggregate says actions, as when it is not set", () => {
+			host();
+			const entries = generateWorkflowFiles({
+				loaded: loadedFrom({
+					name: "x",
+					tasks: ["stale", { name: "typecheck", required: true }],
+					extraRequiredChecks: ["codecov/patch"],
+					ci: { aggregate: "actions" },
+				}),
+				repoRoot: root,
+				logger: getLogger(),
+			});
+			const paths = entries.flatMap((e) => (e.kind === "file" ? [e.path] : []));
+			expect(paths).toContain(".github/workflows/ci.ci.yml");
+			expect(paths).toContain(".github/workflows/ci.yml");
+		});
+
 		it("is not written when nothing is required", () => {
 			host();
 			expect(generate().some((e) => e.kind === "file" && e.path.endsWith("ci.ci.yml"))).toBe(false);

@@ -1,4 +1,4 @@
-import type { TasksConfig } from "./config/schema/index.js";
+import type { CiAggregatePoster, TasksConfig } from "./config/schema/index.js";
 import type {
 	EnsureRootWorkspaceMemberResult,
 	EnsureTurboDependencyResult,
@@ -139,6 +139,11 @@ export interface Astromech {
 	 * nothing to wait on. Only a repo that hosts the reusable `ci.yml` writes it; the others have no `ci` yet.
 	 */
 	aggregateCaller(): string | null;
+	/**
+	 * Who posts the `ci / Required checks` check for this manifest, from `ci.aggregate` (`"actions"` when it is not set). With
+	 * `"sentinel"`, {@link aggregateCaller} is `null` and the repo that hosts the reusables does not write `ci.yml`.
+	 */
+	aggregatePoster(): CiAggregatePoster;
 	/**
 	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
 	 * write directly, no merge. In a pnpm workspace it also holds the suite aggregator tasks and a `//#<id>` root task

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { loadedWith } from "../migrate/migrate.testing.js";
 import { aggregateRow } from "./aggregate-row.js";
 import { callerProblems } from "./caller-problems.js";
 import { callersRow } from "./callers-row.js";
@@ -395,5 +396,52 @@ describe("runDoctorCi", () => {
 		];
 		const { report } = await run([], legacy);
 		expect(report.rows.find((r) => r.id === "home")?.detail).toContain("theholocron/.github");
+	});
+});
+
+describe("aggregateRow when ci.aggregate names the poster", () => {
+	const actionsCaller = () => caller("ci.ci.yml", { ...flat("ci"), expected: ["typecheck"] });
+
+	it("passes for sentinel with no caller, and says where the expected list comes from", () => {
+		const row = aggregateRow([], ["typecheck", "test:unit"], "sentinel");
+		expect(row.status).toBe("ok");
+		expect(row.detail).toContain("Sentinel posts the aggregate");
+		expect(row.detail).toContain("2 ids");
+	});
+
+	it("fails for sentinel when a caller is still there, because that is two posters", () => {
+		const row = aggregateRow([actionsCaller()], ["typecheck"], "sentinel");
+		expect(row.status).toBe("fail");
+		expect(row.problems.join("\n")).toContain("ci.ci.yml is still there");
+		const hosted = caller("ci.yml", { ...flat("ci"), expected: ["typecheck"] });
+		expect(aggregateRow([hosted], [], "sentinel").status).toBe("fail");
+	});
+
+	it("keeps the old behaviour for actions and for no setting", () => {
+		expect(aggregateRow([], ["typecheck"], "actions").status).toBe("skip");
+		expect(aggregateRow([], ["typecheck"]).status).toBe("skip");
+		expect(aggregateRow([actionsCaller()], ["typecheck"], "actions").status).toBe("ok");
+	});
+});
+
+describe("runDoctorCi with ci.aggregate set", () => {
+	it("reads the setting from the config", async () => {
+		const loaded = loadedWith({});
+		const lines: string[] = [];
+		const report = await runDoctorCi({
+			loaded: {
+				...loaded,
+				resolved: {
+					...loaded.resolved,
+					ci: { aggregate: "sentinel" },
+					extraRequiredChecks: ["typecheck / Conclusion"],
+				},
+			},
+			context: { repoRoot: "/tmp/repo" },
+			io: { workflows: () => [] },
+			legacyGate: false,
+			print: (line) => lines.push(line),
+		});
+		expect(report.rows.find((r) => r.id === "aggregate")).toMatchObject({ status: "ok" });
 	});
 });
