@@ -1,3 +1,9 @@
+## [5.0.0-alpha.525](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.524...v5.0.0-alpha.525) (2026-11-23)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 keep the ci aggregate's GitHub reads cheap in a burst of finished checks ([#2577](https://github.com/theholocron/holocron/issues/2577)) ([8493277](https://github.com/theholocron/holocron/commit/8493277757269c6683f4adde0d466b82baf37ba2)), closes [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.524](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.523...v5.0.0-alpha.524) (2026-11-23)
 
 ### Features
