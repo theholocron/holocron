@@ -1,3 +1,9 @@
+## [5.0.0-alpha.530](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.529...v5.0.0-alpha.530) (2026-11-23)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 answer the webhook first and run the work after the response ([#2584](https://github.com/theholocron/holocron/issues/2584)) ([742d68a](https://github.com/theholocron/holocron/commit/742d68aad850eb350224ef813a555f8f62689824))
+
 ## [5.0.0-alpha.529](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.528...v5.0.0-alpha.529) (2026-11-23)
 
 ### Bug Fixes
