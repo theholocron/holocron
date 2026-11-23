@@ -5,6 +5,14 @@ export const doctorCiEntry: MenuEntry = {
 	description:
 		"Check the repo against the flat task vocabulary: aliases, caller names, the ci aggregate, home (read-only)",
 	positionals: [],
-	skipOptions: ["all", "repo"],
+	options: [
+		{
+			key: "shadow",
+			flag: "--shadow",
+			type: "confirm",
+			message: "Also compare Sentinel's shadow aggregate with the Actions one?",
+		},
+	],
+	skipOptions: ["all", "repo", "limit"],
 	supportsDryRun: false,
 };
