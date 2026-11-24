@@ -5,8 +5,10 @@ name: Open incident
 # id in the job summary, which `holocron update incident` and `holocron close incident` take. `sync-incidents` then
 # mirrors the incident to Discord on its next run.
 #
-# It writes to a live, public page with the Checkly key, so it runs only from the default branch: a dispatch from another
-# branch could carry a changed copy of this file that prints the key. Anyone who can dispatch workflows in the repository
+# It writes to a live, public page with the Checkly key, so it runs only from the default branch itself (the full ref, so a
+# tag named like the branch does not count): a dispatch from another ref could carry a changed copy of this file that
+# prints the key. The key is in the environment of the one step that opens the incident, not of the checkout, the setup
+# action or the build. Anyone who can dispatch workflows in the repository
 # can run it, which is the maintainer alone today; an Environment with required reviewers is the next step when that
 # changes. Every input goes in through `env`, never into the script text, so a title cannot inject a command.
 #
@@ -53,8 +55,9 @@ on: # yamllint disable-line rule:truthy
 jobs:
   open-incident:
     name: Open a status page incident
-    if: github.repository == format('{0}/holocron', github.repository_owner) && github.ref_name == github.event.repository.default_branch
-    # One run at a time: two at once could each open the same incident.
+    if: github.repository == format('{0}/holocron', github.repository_owner) && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    # One run at a time. GitHub keeps one running and one pending run per group, so a third dispatch while one is running
+    # replaces the pending one: open incidents one at a time, and look at the status page if a run shows as cancelled.
     concurrency:
       group: open-incident
       cancel-in-progress: false
@@ -63,7 +66,9 @@ jobs:
     permissions:
       contents: read
     env:
-      HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}
+      # Only whether the key is set is at job scope; the key itself is in the one step that opens the incident, so the
+      # checkout, the setup action and the build never see it.
+      HAS_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN != '' }}
       TITLE: ${{ inputs.title }}
       PAGE: ${{ inputs.page }}
       STATUS: ${{ inputs.status }}
@@ -72,25 +77,34 @@ jobs:
       NOTIFY: ${{ inputs.notify && 'true' || 'false' }}
     steps:
       - name: Warn that the token is missing
-        if: env.HOLOCRON_CHECKLY_TOKEN == ''
+        if: env.HAS_TOKEN != 'true'
         run: |
           echo "::warning::HOLOCRON_CHECKLY_TOKEN is not set, so no incident was opened. Add it as an Actions secret."
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
-        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        if: env.HAS_TOKEN == 'true'
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
-        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        if: env.HAS_TOKEN == 'true'
 
       - name: Build the CLI
-        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        if: env.HAS_TOKEN == 'true'
         run: pnpm turbo run build --filter=@theholocron/cli...
 
       - name: Open the incident
-        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        if: env.HAS_TOKEN == 'true'
+        env:
+          HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}
         run: |
+          # A title that starts with a dash would be read as an option, so it is refused here.
+          case "$TITLE" in
+            -*)
+              echo "::error::The title must not start with a dash."
+              exit 1
+              ;;
+          esac
           args=(new incident "$TITLE" --yes --status "$STATUS")
           if [ -n "$PAGE" ]; then args+=(--page "$PAGE"); fi
           if [ -n "$COMPONENTS" ]; then args+=(--component "$COMPONENTS"); fi

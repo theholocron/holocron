@@ -1228,11 +1228,20 @@ describe("REUSABLE_WORKFLOWS['open-incident'] — the manual status page inciden
 	it("opens with --yes, only from the default branch, one run at a time, with read-only repository access", () => {
 		expect(wf).toContain("new incident");
 		expect(wf).toContain("--yes");
-		expect(wf).toContain("github.ref_name == github.event.repository.default_branch");
+		expect(wf).toContain("github.ref == format('refs/heads/{0}', github.event.repository.default_branch)");
+		expect(wf).not.toContain("github.ref_name");
 		expect(wf).toContain("group: open-incident");
 		expect(wf).toContain("cancel-in-progress: false");
 		expect(wf).toContain("contents: read");
 		expect(wf).not.toContain("contents: write");
+	});
+
+	it("keeps the key out of the checkout, the setup and the build, and refuses a title that starts with a dash", () => {
+		expect(wf).toContain("HAS_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN != '' }}");
+		const open = wf.indexOf("- name: Open the incident");
+		expect(wf.slice(0, open)).not.toContain("HOLOCRON_CHECKLY_TOKEN: ${{ secrets");
+		expect(wf.slice(open)).toContain("HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}");
+		expect(wf.slice(open)).toContain("must not start with a dash");
 	});
 
 	it("does nothing but warn without the token, passes --no-notify only when asked and prints the id in the summary", () => {
