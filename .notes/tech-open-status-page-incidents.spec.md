@@ -33,13 +33,16 @@ Verb first, like `new issue`, `update issue` and `close work`:
 | Command                                                                                          | Does                                                            |
 | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | `holocron new incident <title> [--page] [--status] [--component <name>=<impact>...] [--message]` | opens an incident with its first update                         |
-| `holocron update incident <id> --status <status> --message <text>`                               | appends an update (`identified`, `monitoring`, `investigating`) |
-| `holocron close incident <id> [--message]`                                                       | appends a `resolved` update                                     |
+| `holocron update incident <id> [--page] --status <status> --message <text>`                      | appends an update (`identified`, `monitoring`, `investigating`) |
+| `holocron close incident <id> [--page] [--message]`                                              | appends a `resolved` update                                     |
 
 - **The page** is the status page the config declares (`statusPages`); with one declared it is the default, and `--page`
-  names one otherwise. A component is a declared component's name, never an id, and its impact is one of Checkly's
-  (`UNDER_MAINTENANCE`, `DEGRADED_PERFORMANCE`, `PARTIAL_OUTAGE`, `MAJOR_OUTAGE`), written in lower case with hyphens
-  (`major-outage`). An unknown component or impact fails before anything is written, naming the valid ones.
+  names one otherwise. All three commands take `--page`, because Checkly's incident calls are scoped to a page and an id
+  alone does not say which. A page other than the one `feeds.incidents` mirrors is allowed, with an `info` row saying the
+  incident will not reach `#incidents`. A component is a declared component's name, never an id, and its impact is one of
+  the neutral words `listIncidents` already returns (`MonitoringIncidentImpact`: `maintenance`, `degraded`, `partial`,
+  `major`); the Checkly plugin translates them (`UNDER_MAINTENANCE`, `DEGRADED_PERFORMANCE`, `PARTIAL_OUTAGE`,
+  `MAJOR_OUTAGE`). An unknown component or impact fails before anything is written, naming the valid ones.
 - **Status** words are the incident statuses `sync incidents` already knows (`INVESTIGATING`, `IDENTIFIED`, `MONITORING`,
   `RESOLVED`), so a post's tag and the command agree.
 - **Safe by default.** Each asks first unless `--yes` or `--dry-run`, and with no terminal and no `--yes` it is a
@@ -50,23 +53,37 @@ Verb first, like `new issue`, `update issue` and `close work`:
 - **No duplicates, by title.** `new incident` reads the page's open incidents first and refuses when one has the same
   title (trimmed, lower case, spaces collapsed); `--allow-duplicate` overrides. A rerun after a timeout never opens two,
   and the same title may be opened again once the first is resolved. There is no marker in the message: Checkly shows an
-  HTML comment as plain text on the public page (step 0, 2026-11-24), so a hidden marker is not hidden.
-- **Provider-neutral.** The optional `Monitoring.openIncident`, `updateIncident` and `resolveIncident` take the neutral
-  `MonitoringIncident` vocabulary `listIncidents` already returns, so another status page provider is a plugin and not a
-  new command. The Checkly plugin implements them over `@theholocron/checkly-client`'s `statusPages.incidents`
-  (new `create`, `update` calls beside `list` and `get`). A provider without them is a skipped row, never a failure.
+  HTML comment as plain text on the public page (step 0, 2026-11-24), so a hidden marker is not hidden. Checkly has no
+  atomic create-if-absent, so two commands started at the same moment could both pass the check; one maintainer does not
+  do that, and the workflow serializes its own runs (below).
+- **A retry never repeats an update.** Before it writes, `update incident` and `close incident` read the incident: one
+  whose newest update has the same status and message is a no-op row (a response lost after the write is the case), `close`
+  on a resolved incident is a no-op, and `update` on a resolved incident is refused (the newest status must not go back
+  from `resolved`). Two commands racing on one incident are not serialized; the check is what a person's retry needs.
+- **A bounded wait.** Each write has a timeout (30 seconds, an abort signal on the request). A timeout is reported as
+  "may or may not have been written", naming the list command to check, never as a failure to write.
+- **Provider-neutral.** The optional `Monitoring.openIncident`, `updateIncident` and `resolveIncident` take their own
+  input types (`MonitoringIncidentInput`: title, status, message, notify, impacts as `{ component, impact }`;
+  `MonitoringIncidentUpdateInput`: incident id, status, message, notify), not `MonitoringIncident`, which carries the
+  provider's `id`, `startedAt` and `updates`. They return the incident id. Another status page provider is a plugin and not
+  a new command. The Checkly plugin implements them over `@theholocron/checkly-client`'s `statusPages.incidents` (new
+  `create`, `update` calls beside `list` and `get`). A provider without them is a failing row for these commands (the
+  person asked for a write that cannot happen); only a doctor or a listing treats a missing method as a skip.
 
 ### The trigger
 
 A `workflow_dispatch` workflow, the registry task `open-incident` (reusable `ci/workflows/open-incident.yml`, thin caller,
-`local: null`), with inputs `title`, `status`, `components`, `message` and `notify` (default true) that run
-`new incident --yes`. It is manual: GitHub's Actions page, the GitHub mobile app or `gh workflow run`. It holds
-`HOLOCRON_CHECKLY_TOKEN` in `ci` as `sync-incidents` does, so it can write and nothing new is granted. A run's job summary
-links the incident's id for `update incident`.
+`local: null`), with inputs `title`, `page` (optional, as `--page`), `status`, `components`, `message` and `notify` (default
+true) that run `new incident --yes`. `components` is one `name=impact` per line (commas also split), parsed into repeated
+`--component` options, and an input that does not parse fails the run before anything is written. It is manual: GitHub's
+Actions page, the GitHub mobile app or `gh workflow run`. It holds `HOLOCRON_CHECKLY_TOKEN` in `ci` as `sync-incidents`
+does, so it can write and nothing new is granted. A run's job summary links the incident's id for `update incident`.
+Its job runs only on the default branch (an `if` on `github.ref`) and has a `concurrency` group so two runs never overlap,
+so a dispatch from another branch, whose workflow file could be changed to print the key, does nothing.
 
-Anyone who can dispatch workflows in the repository can run it, which is the maintainer alone today (decided below); it is
-revisited when that stops being true. An automated trigger is out of this spec. The code does not care how the command is
-reached, so a later trigger calls the same function.
+Anyone who can dispatch workflows in the repository can run it, which is the maintainer alone today (decided below); an
+Environment with required reviewers is revisited when that stops being true. An automated trigger is out of this spec.
+The code does not care how the command is reached, so a later trigger calls the same function.
 
 ## Not building
 
