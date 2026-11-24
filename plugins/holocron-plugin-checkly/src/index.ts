@@ -48,6 +48,9 @@ export interface PluginContext {
 	client: () => ChecklyClient;
 }
 
+/** A request that has not answered after this long is abandoned, so a stalled API never hangs a command. */
+const REQUEST_TIMEOUT_MS = 30_000;
+
 /** Builds the plugin context from its options; the API key is resolved lazily on the first client use. */
 export function createContext(options: ChecklyPluginOptions): PluginContext {
 	let client: ChecklyClient | undefined;
@@ -55,9 +58,16 @@ export function createContext(options: ChecklyPluginOptions): PluginContext {
 		options,
 		client: () => {
 			if (client) return client;
-			const clientOpts: { token: string; accountId: string; baseUrl?: string; fetch?: typeof fetch } = {
+			const clientOpts: {
+				token: string;
+				accountId: string;
+				timeoutMs: number;
+				baseUrl?: string;
+				fetch?: typeof fetch;
+			} = {
 				token: resolveToken(options),
 				accountId: options.accountId,
+				timeoutMs: REQUEST_TIMEOUT_MS,
 			};
 			if (options.baseUrl !== undefined) clientOpts.baseUrl = options.baseUrl;
 			if (options.fetch !== undefined) clientOpts.fetch = options.fetch;

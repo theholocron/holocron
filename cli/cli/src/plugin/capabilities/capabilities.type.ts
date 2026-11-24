@@ -2460,6 +2460,47 @@ export interface MonitoringIncident {
 	updates: MonitoringIncidentUpdate[];
 }
 
+/** What {@link Monitoring.openIncident} opens: no provider-made field (id, start time, updates) is in it. */
+export interface MonitoringIncidentInput {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** The incident's name. */
+	title: string;
+	/** The status the opening update carries. */
+	status: MonitoringIncidentStatus;
+	/** What the opening update says. */
+	message: string;
+	/** Whether the page's subscribers are told. */
+	notify: boolean;
+	/** The components to mark, by their name on the page, and how badly; one left out is untouched. */
+	impacts: { component: string; impact: MonitoringIncidentImpact }[];
+}
+
+/** What {@link Monitoring.updateIncident} appends. */
+export interface MonitoringIncidentUpdateInput {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** The provider's id for the incident. */
+	id: string;
+	/** The status the update puts the incident in. */
+	status: MonitoringIncidentStatus;
+	/** What the update says. */
+	message: string;
+	/** Whether the page's subscribers are told. */
+	notify: boolean;
+}
+
+/** What {@link Monitoring.resolveIncident} appends: an update whose status is always `resolved`, so it carries none. */
+export type MonitoringIncidentResolveInput = Omit<MonitoringIncidentUpdateInput, "status">;
+
+/** What a write to an incident answers: its id and the status it is in now. */
+export interface MonitoringIncidentWrite {
+	/** The provider's id for the incident. */
+	id: string;
+	/** The status of the newest update after the write. */
+	status: MonitoringIncidentStatus;
+}
+
 /** What {@link Monitoring.listIncidents} reads. */
 export interface MonitoringIncidentQuery {
 	/** The declared name of the status page. */
@@ -2554,6 +2595,18 @@ export interface Monitoring extends ProviderIdentity {
 	 * since then; updates oldest first. Read-only. Optional: a provider with no status page incidents omits it.
 	 */
 	listIncidents?(query: MonitoringIncidentQuery): Promise<MonitoringIncident[]>;
+	/**
+	 * Opens an incident on the status page `input.statusPage` with its first update and the components it marks.
+	 * Writes to the live service and is repeatable, so the caller checks for an open incident of the same title first.
+	 * Optional: a provider with no status page incidents omits it.
+	 */
+	openIncident?(input: MonitoringIncidentInput): Promise<MonitoringIncidentWrite>;
+	/** Appends an update to an incident (never rewrites one). Optional, like {@link Monitoring.openIncident}. */
+	updateIncident?(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite>;
+	/**
+	 * Appends a `resolved` update, which closes the incident. Optional, like {@link Monitoring.openIncident}.
+	 */
+	resolveIncident?(input: MonitoringIncidentResolveInput): Promise<MonitoringIncidentWrite>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

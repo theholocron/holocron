@@ -24,7 +24,11 @@ import {
 	type MonitoringHeartbeatInput,
 	type MonitoringHeartbeatResult,
 	type MonitoringIncident,
+	type MonitoringIncidentInput,
 	type MonitoringIncidentQuery,
+	type MonitoringIncidentResolveInput,
+	type MonitoringIncidentUpdateInput,
+	type MonitoringIncidentWrite,
 	type MonitoringStatusPageInput,
 	type MonitoringStatusPageResult,
 	type MonitoringStatusPageState,
@@ -46,6 +50,7 @@ import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 import { ensureDashboard, inspectDashboard } from "./dashboards.js";
 import { ensureChecklyHeartbeat, fromChecklyHeartbeat } from "./heartbeats.js";
+import { openChecklyIncident, resolveChecklyIncident, updateChecklyIncident } from "./incident-writes.js";
 import { listChecklyIncidents } from "./incidents.js";
 import { ensureStatusPage, inspectStatusPage } from "./status-pages.js";
 
@@ -482,6 +487,21 @@ export class ChecklyMonitoring implements Monitoring {
 	/** The incidents of a status page, with their updates; see `capabilities/incidents.ts`. */
 	listIncidents(query: MonitoringIncidentQuery): Promise<MonitoringIncident[]> {
 		return listChecklyIncidents(this.client(), query);
+	}
+
+	/** Opens an incident with its first update; see `capabilities/incident-writes.ts`. */
+	openIncident(input: MonitoringIncidentInput): Promise<MonitoringIncidentWrite> {
+		return openChecklyIncident(this.client(), input);
+	}
+
+	/** Appends an update to an incident. */
+	updateIncident(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite> {
+		return updateChecklyIncident(this.client(), input);
+	}
+
+	/** Appends a `resolved` update, which closes the incident. */
+	resolveIncident(input: MonitoringIncidentResolveInput): Promise<MonitoringIncidentWrite> {
+		return resolveChecklyIncident(this.client(), input);
 	}
 
 	/** Checkly's `search` param is a case-insensitive partial match — narrow to the exact name ourselves. */
