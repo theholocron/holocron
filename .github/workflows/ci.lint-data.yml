@@ -6,6 +6,8 @@
 
 name: lint:data
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Lint Data: {0}', github.event.pull_request.title) || github.event_name == 'push' && format('Lint Data: {0}', github.event.head_commit.message) || 'Lint Data' }}"
+
 on: # yamllint disable-line rule:truthy
   push:
     branches: [main, alpha]

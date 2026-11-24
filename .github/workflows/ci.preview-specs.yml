@@ -6,6 +6,8 @@
 
 name: preview-specs
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Preview Specs: {0}', github.event.pull_request.title) || 'Preview Specs' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
     types: [opened, synchronize, reopened, closed]

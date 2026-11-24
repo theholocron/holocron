@@ -6,6 +6,8 @@
 
 name: mark-stale
 
+run-name: "${{ github.event_name == 'schedule' && 'Mark Stale (scheduled)' || 'Mark Stale' }}"
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "30 1 * * *"

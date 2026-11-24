@@ -6,6 +6,8 @@
 
 name: build
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Build: {0}', github.event.pull_request.title) || github.event_name == 'push' && format('Build: {0}', github.event.head_commit.message) || 'Build' }}"
+
 on: # yamllint disable-line rule:truthy
   push:
     branches-ignore:

@@ -6,6 +6,8 @@
 
 name: update-deps
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Update Deps: {0}', github.event.pull_request.title) || 'Update Deps' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
 

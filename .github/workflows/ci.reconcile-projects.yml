@@ -6,6 +6,8 @@
 
 name: reconcile-projects
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Reconcile Projects (manual)' || github.event_name == 'schedule' && 'Reconcile Projects (scheduled)' || 'Reconcile Projects' }}"
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "23 * * * *"

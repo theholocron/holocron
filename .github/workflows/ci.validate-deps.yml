@@ -6,6 +6,8 @@
 
 name: validate:deps
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Validate Deps: {0}', github.event.pull_request.title) || 'Validate Deps' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
 

@@ -12,6 +12,7 @@ import { rehomeAll, reusableWorkflowRef } from "../ci-ref/index.js";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 import { groupedPublishCaller } from "./grouped-publish/index.js";
 import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
+import { withRunName } from "./with-run-name/index.js";
 
 /** The thin-caller template sources by their path from this file (`../../templates/workflows/lint/code.yml`). */
 const TEMPLATE_SOURCES = import.meta.glob<string>("../../templates/workflows/**/*.yml", {
@@ -25,7 +26,12 @@ const TEMPLATE_SOURCES = import.meta.glob<string>("../../templates/workflows/**/
  * the id (see `legacyCaller` for the names they had before).
  */
 export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll(
-	Object.fromEntries(Object.entries(TEMPLATE_SOURCES).map(([path, text]) => [idFromSource(path), text]))
+	Object.fromEntries(
+		Object.entries(TEMPLATE_SOURCES).map(([path, text]) => {
+			const id = idFromSource(path);
+			return [id, withRunName(text, id, workflowTriggers(text))];
+		})
+	)
 );
 
 /** The task names that have a thin-caller workflow template. */
@@ -277,46 +283,50 @@ export function generateCombinedDeployContent(
 	// previewWith always has at least cloudflare-project, so the block is never empty.
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
-	return [
-		`name: ${id}`,
-		``,
-		`on: # yamllint disable-line rule:truthy`,
-		`  push:`,
-		`    branches: [main]`,
-		...(pathsBlock ? [`${pathsBlock}`] : []),
-		`  pull_request:`,
-		`    branches: [main]`,
-		`    types: [opened, synchronize, reopened, closed]`,
-		...(pathsBlock ? [`${pathsBlock}`] : []),
-		`  workflow_dispatch:`,
-		``,
-		`concurrency:`,
-		`  group: $\{{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}`,
-		`  cancel-in-progress: $\{{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
-		``,
-		`permissions:`,
-		`  contents: read`,
-		`  deployments: write`,
-		`  pages: write`,
-		`  id-token: write`,
-		`  pull-requests: write`,
-		``,
-		`jobs:`,
-		`  ${id}:`,
-		`    name: ${id}`,
-		`    if: \${{ github.event_name != 'pull_request' }}`,
-		`    uses: ${reusableWorkflowRef("deploy.yml")}`,
-		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
-		`    secrets: inherit`,
-		``,
-		`  ${id}-preview:`,
-		`    name: ${id}`,
-		`    if: \${{ github.event_name == 'pull_request' }}`,
-		`    uses: ${reusableWorkflowRef("preview.yml")}`,
-		previewWithBlock.trimEnd(),
-		`    secrets: inherit`,
-		``,
-	].join("\n");
+	return withRunName(
+		[
+			`name: ${id}`,
+			``,
+			`on: # yamllint disable-line rule:truthy`,
+			`  push:`,
+			`    branches: [main]`,
+			...(pathsBlock ? [`${pathsBlock}`] : []),
+			`  pull_request:`,
+			`    branches: [main]`,
+			`    types: [opened, synchronize, reopened, closed]`,
+			...(pathsBlock ? [`${pathsBlock}`] : []),
+			`  workflow_dispatch:`,
+			``,
+			`concurrency:`,
+			`  group: $\{{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}`,
+			`  cancel-in-progress: $\{{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
+			``,
+			`permissions:`,
+			`  contents: read`,
+			`  deployments: write`,
+			`  pages: write`,
+			`  id-token: write`,
+			`  pull-requests: write`,
+			``,
+			`jobs:`,
+			`  ${id}:`,
+			`    name: ${id}`,
+			`    if: \${{ github.event_name != 'pull_request' }}`,
+			`    uses: ${reusableWorkflowRef("deploy.yml")}`,
+			...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
+			`    secrets: inherit`,
+			``,
+			`  ${id}-preview:`,
+			`    name: ${id}`,
+			`    if: \${{ github.event_name == 'pull_request' }}`,
+			`    uses: ${reusableWorkflowRef("preview.yml")}`,
+			previewWithBlock.trimEnd(),
+			`    secrets: inherit`,
+			``,
+		].join("\n"),
+		id,
+		["push", "pull_request", "workflow_dispatch"]
+	);
 }
 
 /**

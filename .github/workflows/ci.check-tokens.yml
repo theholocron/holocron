@@ -6,6 +6,8 @@
 
 name: check-tokens
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Check Tokens (manual)' || github.event_name == 'schedule' && 'Check Tokens (scheduled)' || 'Check Tokens' }}"
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "17 6 * * *"
