@@ -1,4 +1,5 @@
 ---
+id: SPEC-0108
 status: draft
 issue: theholocron/holocron#2591
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2366
   - theholocron/holocron#2302
   - theholocron/holocron#2324
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1574828444594995251
 ---
 
 # Open status page incidents from a command or a trigger
