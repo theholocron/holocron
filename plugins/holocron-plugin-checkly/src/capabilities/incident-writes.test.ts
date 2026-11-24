@@ -117,15 +117,15 @@ describe("updateIncident and resolveIncident", () => {
 		expect(stub.calls[1]?.body).toEqual({ description: "Looking", status: "MONITORING", notifySubscribers: true });
 	});
 
-	it("resolves with a RESOLVED update whatever status the input carries", async () => {
+	it("resolves with a RESOLVED update, the input carrying no status", async () => {
 		const { capability, stub } = make([pages, { status: 201, body: { id: "i1", lastUpdateStatus: "RESOLVED" } }]);
-		const written = await capability.resolveIncident({ ...base, id: "i1", status: "investigating" });
+		const written = await capability.resolveIncident({ ...base, id: "i1" });
 		expect(written).toEqual({ id: "i1", status: "resolved" });
 		expect(stub.calls[1]?.body).toMatchObject({ status: "RESOLVED" });
 	});
 
 	it("answers the status it sent when Checkly returns none", async () => {
 		const { capability } = make([pages, { status: 201, body: { id: "i1" } }]);
-		expect((await capability.resolveIncident({ ...base, id: "i1", status: "resolved" })).status).toBe("resolved");
+		expect((await capability.resolveIncident({ ...base, id: "i1" })).status).toBe("resolved");
 	});
 });

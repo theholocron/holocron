@@ -2476,19 +2476,22 @@ export interface MonitoringIncidentInput {
 	impacts: { component: string; impact: MonitoringIncidentImpact }[];
 }
 
-/** What {@link Monitoring.updateIncident} and {@link Monitoring.resolveIncident} append. */
+/** What {@link Monitoring.updateIncident} appends. */
 export interface MonitoringIncidentUpdateInput {
 	/** The declared name of the status page. */
 	statusPage: string;
 	/** The provider's id for the incident. */
 	id: string;
-	/** The status the update puts the incident in; {@link Monitoring.resolveIncident} sets `resolved` itself. */
+	/** The status the update puts the incident in. */
 	status: MonitoringIncidentStatus;
 	/** What the update says. */
 	message: string;
 	/** Whether the page's subscribers are told. */
 	notify: boolean;
 }
+
+/** What {@link Monitoring.resolveIncident} appends: an update whose status is always `resolved`, so it carries none. */
+export type MonitoringIncidentResolveInput = Omit<MonitoringIncidentUpdateInput, "status">;
 
 /** What a write to an incident answers: its id and the status it is in now. */
 export interface MonitoringIncidentWrite {
@@ -2601,10 +2604,9 @@ export interface Monitoring extends ProviderIdentity {
 	/** Appends an update to an incident (never rewrites one). Optional, like {@link Monitoring.openIncident}. */
 	updateIncident?(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite>;
 	/**
-	 * Appends a `resolved` update, which closes the incident; `input.status` is ignored. Optional, like
-	 * {@link Monitoring.openIncident}.
+	 * Appends a `resolved` update, which closes the incident. Optional, like {@link Monitoring.openIncident}.
 	 */
-	resolveIncident?(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite>;
+	resolveIncident?(input: MonitoringIncidentResolveInput): Promise<MonitoringIncidentWrite>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

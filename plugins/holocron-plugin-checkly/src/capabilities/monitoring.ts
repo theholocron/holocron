@@ -26,6 +26,7 @@ import {
 	type MonitoringIncident,
 	type MonitoringIncidentInput,
 	type MonitoringIncidentQuery,
+	type MonitoringIncidentResolveInput,
 	type MonitoringIncidentUpdateInput,
 	type MonitoringIncidentWrite,
 	type MonitoringStatusPageInput,
@@ -499,7 +500,7 @@ export class ChecklyMonitoring implements Monitoring {
 	}
 
 	/** Appends a `resolved` update, which closes the incident. */
-	resolveIncident(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite> {
+	resolveIncident(input: MonitoringIncidentResolveInput): Promise<MonitoringIncidentWrite> {
 		return resolveChecklyIncident(this.client(), input);
 	}
 

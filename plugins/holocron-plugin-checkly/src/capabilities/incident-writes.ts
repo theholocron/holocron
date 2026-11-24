@@ -9,6 +9,7 @@
 import type {
 	MonitoringIncidentImpact,
 	MonitoringIncidentInput,
+	MonitoringIncidentResolveInput,
 	MonitoringIncidentStatus,
 	MonitoringIncidentUpdateInput,
 	MonitoringIncidentWrite,
@@ -92,7 +93,7 @@ export async function updateChecklyIncident(
 /** Appends a `RESOLVED` update, which is how Checkly closes an incident. */
 export function resolveChecklyIncident(
 	client: ChecklyClient,
-	input: MonitoringIncidentUpdateInput
+	input: MonitoringIncidentResolveInput
 ): Promise<MonitoringIncidentWrite> {
 	return updateChecklyIncident(client, { ...input, status: "resolved" });
 }
