@@ -13,7 +13,7 @@ export interface ChecklyClientOptions {
 	baseUrl?: string;
 	/** Override fetch for testing. Defaults to globalThis.fetch. */
 	fetch?: typeof fetch;
-	/** Abort a request that has not answered after this many milliseconds. Defaults to no limit. */
+	/** Abort a request attempt that has not answered after this many milliseconds. Defaults to no limit. A write is never repeated, so it is also the whole wait for one. */
 	timeoutMs?: number;
 	/** Structured logger for request/response diagnostics. Defaults to a no-op. */
 	logger?: Logger;

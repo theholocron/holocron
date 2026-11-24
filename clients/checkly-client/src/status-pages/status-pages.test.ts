@@ -133,6 +133,20 @@ describe("statusPages", () => {
 		expect(calls[0]?.body).toEqual(patch);
 	});
 
+	it("encodes an id as one path segment, so it cannot reach another endpoint", async () => {
+		const { statusPages, calls } = client([{ body: { id: "x" } }, { body: { id: "x" } }]);
+		await statusPages.incidents.get("p1/../../accounts", "../i 1");
+		await statusPages.incidents.addUpdate("p/1", "i?1", {
+			description: "d",
+			status: "MONITORING",
+			notifySubscribers: false,
+		});
+		expect(calls.map((c) => c.url)).toEqual([
+			`${V3}/status-pages/p1%2F..%2F..%2Faccounts/incidents/..%2Fi%201`,
+			`${V3}/status-pages/p%2F1/incidents/i%3F1/incident-updates`,
+		]);
+	});
+
 	it("reads and rechecks the custom domain verification", async () => {
 		const verification = {
 			status: "pending",
