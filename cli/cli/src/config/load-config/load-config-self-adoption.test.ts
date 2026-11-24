@@ -162,6 +162,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		alertsCategory!.channels!.splice(uptimeAt + 1, 0, {
 			name: "incidents",
 			kind: "forum",
+			access: { post: [] },
 			topic: "One post for each status page incident, tagged with its status and kept up to date. Updates are appended; comment on the status page, not here.",
 			tags: [
 				{ name: "investigating", emoji: "🔍", moderated: true },

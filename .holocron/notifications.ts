@@ -121,6 +121,9 @@ export default {
 				{
 					name: "incidents",
 					kind: "forum",
+					// Only the bot starts a post (Send Messages is what starts one in a forum); members can still reply in a
+					// post (Send Messages in Threads) and react.
+					access: { post: [] },
 					topic: "One post for each status page incident, tagged with its status and kept up to date. Updates are appended; comment on the status page, not here.",
 					tags: [
 						{ name: "investigating", emoji: "🔍", moderated: true },
