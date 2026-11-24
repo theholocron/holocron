@@ -6,7 +6,7 @@
 
 name: measure:bundle
 
-run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Measure Bundle: {0}', github.event.pull_request.title) || github.event_name == 'push' && format('Measure Bundle: {0}', github.event.head_commit.message) || 'Measure Bundle' }}"
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Measure Bundle: {0}', github.event.pull_request.title) || 'Measure Bundle' }}"
 
 on: # yamllint disable-line rule:truthy
   push:

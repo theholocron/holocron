@@ -6,7 +6,7 @@
 
 name: publish-wiki
 
-run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Publish Wiki: {0}', github.event.pull_request.title) || github.event_name == 'push' && format('Publish Wiki: {0}', github.event.head_commit.message) || 'Publish Wiki' }}"
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Publish Wiki: {0}', github.event.pull_request.title) || 'Publish Wiki' }}"
 
 on: # yamllint disable-line rule:truthy
   push:

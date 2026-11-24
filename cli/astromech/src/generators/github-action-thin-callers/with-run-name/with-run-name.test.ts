@@ -11,10 +11,10 @@ describe("withRunName", () => {
 		expect(out.endsWith("\n\non:\n  push:\n")).toBe(true);
 	});
 
-	it("titles a push run with the commit message", () => {
-		expect(withRunName(yaml, "deploy-sentinel", ["push"])).toContain(
-			`run-name: "\${{ github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel' }}"\n`
-		);
+	it("titles a push run with the title alone, never the commit message", () => {
+		const out = withRunName(yaml, "deploy-sentinel", ["push"]);
+		expect(out).toContain("\nrun-name: Deploy Sentinel\n");
+		expect(out).not.toContain("head_commit");
 	});
 
 	it("titles a manual run and a scheduled run, and falls back to the title", () => {

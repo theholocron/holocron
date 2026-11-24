@@ -6,7 +6,7 @@
 
 name: release
 
-run-name: "${{ github.event_name == 'workflow_dispatch' && 'Release (manual)' || github.event_name == 'push' && format('Release: {0}', github.event.head_commit.message) || 'Release' }}"
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Release (manual)' || 'Release' }}"
 
 on: # yamllint disable-line rule:truthy
   push:
