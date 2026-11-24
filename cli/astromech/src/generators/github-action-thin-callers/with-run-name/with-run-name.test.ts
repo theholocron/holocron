@@ -29,6 +29,11 @@ describe("withRunName", () => {
 		);
 	});
 
+	it("leaves a caller that already has a run-name as it is, so the key is never twice", () => {
+		const own = "name: x\n\nrun-name: Mine\n\non:\n  push:\n";
+		expect(withRunName(own, "x", ["push"])).toBe(own);
+	});
+
 	it("is the title alone when no trigger has a branch", () => {
 		expect(withRunName(yaml, "reconcile-ci", ["workflow_run"])).toContain("\nrun-name: Reconcile CI\n");
 	});

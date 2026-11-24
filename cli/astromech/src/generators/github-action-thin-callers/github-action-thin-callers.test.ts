@@ -40,6 +40,18 @@ describe("the deploy-sentinel caller", () => {
 	});
 });
 
+describe("every thin caller", () => {
+	it("has exactly one run-name, after its name", () => {
+		const bad = Object.entries(WORKFLOW_TEMPLATES)
+			.filter(
+				([, text]) =>
+					(text.match(/^run-name:/gm) ?? []).length !== 1 || !/^name: [^\n]*\n\nrun-name: /m.test(text)
+			)
+			.map(([id]) => id);
+		expect(bad).toEqual([]);
+	});
+});
+
 describe("WORKFLOW_TEMPLATES", () => {
 	it("KNOWN_WORKFLOWS mirrors the template keys", () => {
 		expect([...KNOWN_WORKFLOWS].sort()).toEqual(Object.keys(WORKFLOW_TEMPLATES).sort());

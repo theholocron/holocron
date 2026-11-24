@@ -8,6 +8,8 @@ import { workflowTitle } from "../workflow-title/index.js";
  * check names are not touched.
  */
 export function withRunName(yaml: string, id: string, triggers: readonly string[]): string {
+	// A caller that already names its runs keeps its own; a second `run-name:` would be a duplicate key.
+	if (/^run-name:/m.test(yaml)) return yaml;
 	const title = workflowTitle(id);
 	const branches: string[] = [];
 	if (triggers.includes("workflow_dispatch")) {
