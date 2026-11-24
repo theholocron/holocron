@@ -34,8 +34,9 @@ describe("the deploy-sentinel caller", () => {
 
 	it("titles a push run with the commit message and a manual run as manual, and keeps the id as its name", () => {
 		expect(yaml).toContain("name: deploy-sentinel\n");
-		expect(yaml).toContain("format('Deploy Sentinel: {0}', github.event.head_commit.message)");
-		expect(yaml).toContain("'Deploy Sentinel (manual)'");
+		expect(yaml).toContain(
+			`run-name: "\${{ github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel (manual)' }}"\n`
+		);
 	});
 });
 
