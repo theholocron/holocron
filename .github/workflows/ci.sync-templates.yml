@@ -6,7 +6,7 @@
 
 name: sync-templates
 
-run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Templates (manual)' || github.event_name == 'push' && format('Sync Templates: {0}', github.event.head_commit.message) || 'Sync Templates' }}"
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Templates (manual)' || 'Sync Templates' }}"
 
 # Bootstrap note: this `uses:` a reusable workflow that must already exist
 # on theholocron/.github's main branch to resolve at all — a brand-new

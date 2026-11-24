@@ -6,7 +6,7 @@
 
 name: sync-specs
 
-run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Specs (manual)' || github.event_name == 'schedule' && 'Sync Specs (scheduled)' || github.event_name == 'push' && format('Sync Specs: {0}', github.event.head_commit.message) || 'Sync Specs' }}"
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Specs (manual)' || github.event_name == 'schedule' && 'Sync Specs (scheduled)' || 'Sync Specs' }}"
 
 on: # yamllint disable-line rule:truthy
   schedule:

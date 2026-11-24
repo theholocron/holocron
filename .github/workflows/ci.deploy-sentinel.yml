@@ -6,7 +6,7 @@
 
 name: deploy-sentinel
 
-run-name: "${{ github.event_name == 'workflow_dispatch' && 'Deploy Sentinel (manual)' || github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel' }}"
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Deploy Sentinel (manual)' || 'Deploy Sentinel' }}"
 
 on: # yamllint disable-line rule:truthy
   push:

@@ -6,7 +6,7 @@
 
 name: deploy-docs
 
-run-name: "${{ github.event_name == 'workflow_dispatch' && 'Deploy Docs (manual)' || (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Deploy Docs: {0}', github.event.pull_request.title) || github.event_name == 'push' && format('Deploy Docs: {0}', github.event.head_commit.message) || 'Deploy Docs' }}"
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Deploy Docs (manual)' || (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Deploy Docs: {0}', github.event.pull_request.title) || 'Deploy Docs' }}"
 
 on: # yamllint disable-line rule:truthy
   push:
