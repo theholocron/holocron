@@ -84,11 +84,13 @@ A registry task (`local: null`) with a reusable `ci/workflows/sync-incidents.yml
 | Discord bot token | `HOLOCRON_DISCORD_BOT_TOKEN`                          | `ci`, already synced for `sync-specs`                                                  |
 
 The key lives in the `ci` layer's 1Password Environment and reaches GitHub only through `holocron sync secrets --env ci`;
-nothing is read from the `dev` or `local` layers by the workflow. It is the same key `setup` uses, so it can also write
-(checks, pages, rules). Whether Checkly issues a read-only key is not verified, so this is an open question; if it does, a
-second token is declared with its `expect` in the plugin's `tokens`, the permission table in
-`docs/src/content/docs/tokens.mdx` and the `probe checkly token` checks change together, as the token rules say. Whichever
-token is used, a `ci` declaration of the Checkly token is added to the plugin's `tokens` in the same change.
+nothing is read from the `dev` or `local` layers by the workflow. The `ci` key is the same kind of key `setup` uses, so it
+can also write (checks, pages, rules). No narrower key is available (open question 1), so the workflow holds a key that
+can write and the decision is to accept that. The `ci` layer's copy is the workflow's alone: `setup` runs on a maintainer's
+machine with its own key, so replacing the `ci` copy with a Read Only key later leaves `setup` as it is. When that is
+possible, the `ci` token's declaration (`expect`, `tokens.mdx`'s table, the `probe checkly token` checks) changes with it.
+The `ci` declaration of the Checkly token is in the plugin's `tokens` (it declares the layer and no permissions, because a
+key reports none).
 
 ### Capability shape
 
@@ -211,8 +213,12 @@ tracked in #2591.
 
 ## Open questions
 
-1. **Read-only key.** May the workflow hold `HOLOCRON_CHECKLY_TOKEN` in `ci` even though it can also write the status page,
-   or is a separate read-only key needed (and does Checkly offer one)?
+1. **Read-only key.** Answered (2026-11-24): the workflow holds `HOLOCRON_CHECKLY_TOKEN` in `ci` and the key can also write.
+   A personal key carries no role of its own, the account has one user, and a Read Only service key needs a plan with roles,
+   so no narrower key is available. The decision is to accept it: the key is a repository secret read only by this
+   repository's workflows. `probe checkly token --environment ci` checks the key reads a status page and its incidents, and
+   says it cannot tell a Read Only key from a writing one. When the plan allows a Read Only key, put it in the `ci`
+   Environment only; `setup` keeps using the maintainer's own key, which must stay able to write.
 2. **Actions minutes.** Is a 15-minute schedule (about 96 runs a day) acceptable, or should it be 30 minutes or hourly?
 3. **`maintenance` tag.** Is a fifth tag worth it, or should maintenance share `investigating`'s or `monitoring`'s tag?
 4. **Paid plan.** Is it acceptable to build and test against hand-opened incidents only, leaving rule-opened ones unverified?
@@ -226,7 +232,7 @@ tracked in #2591.
 - **The statuses an update can have:** not named on the incidents page; `INVESTIGATING`, `IDENTIFIED`, `MONITORING` and
   `RESOLVED` come from the OpenAPI document.
 - Whether `created_at` and `updated_at` carry a time of day (the schema says `date`).
-- Whether Checkly can issue a read-only key, and what the free plan's key may read.
+- Whether a Read Only key can read a status page's incidents: no such key was available to try. The key in use reads them.
 - That the read API answers on this account's plan, and what a real hand-opened incident looks like.
 - The URL of one incident on the public page (no field shows it, so messages link the page).
 - That Checkly has no push feed of its own (RSS, Slack-format webhook); a web search summary mentioned some and it was not

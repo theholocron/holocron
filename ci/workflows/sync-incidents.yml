@@ -11,9 +11,10 @@ name: Sync incidents
 # heartbeat is more lenient than the cron) is acceptable. The first run posts only what is open or recent, so a page with
 # history is not dumped into the forum.
 #
-# It needs two secrets in the `ci` layer: `HOLOCRON_CHECKLY_TOKEN` (the same key `setup` uses, which can also write the
-# status page; whether Checkly issues a read-only one is not known) and `HOLOCRON_DISCORD_BOT_TOKEN` (the Holonet bot,
-# which must be able to post in the forum and manage its threads). Without either the job warns and does nothing.
+# It needs two secrets in the `ci` layer: `HOLOCRON_CHECKLY_TOKEN` (it only reads; the key held today can also write the
+# status page, because no narrower key is available, and a Read Only key would be enough here) and
+# `HOLOCRON_DISCORD_BOT_TOKEN` (the Holonet bot, which must be able to post in the forum and manage its threads). Without
+# either the job warns and does nothing.
 
 on: # yamllint disable-line rule:truthy
   workflow_call:
