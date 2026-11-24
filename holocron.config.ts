@@ -110,9 +110,9 @@ export default defineConfig({
 		"validate:deps / Check dependency catalogs",
 		"validate:generated / Check generated files",
 	],
-	// Doc-comment coverage of the public API (#1368): the `documentation` Codecov flag fails a PR that adds or
-	// changes an export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation` is a required check (`extraRequiredChecks` above); the value
-	// itself never touches the ruleset.
+	// Doc-comment coverage of the public API (#1368): the `documentation` Codecov flag fails a PR that adds or changes an
+	// export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation`
+	// is a required check (`extraRequiredChecks` above); the value itself never touches the ruleset.
 	repoValidation: { docsCoverage: "required" },
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
@@ -144,14 +144,14 @@ export default defineConfig({
 		"update-deps",
 		"label",
 		"reconcile-projects",
+		"sync-incidents",
 		"remind-doctor",
 		"measure:docs",
 		"validate:deps",
 		"validate:generated",
 		{ name: "typecheck", required: true, with: { affected: true } },
-		// deploy-docs implies docs: true — this repo has no Storybook, so
-		// the dedicated task is more idiomatic than deploy + with:
-		// { docs: true } now that the two mean the same thing (astromech.ts).
+		// deploy-docs implies docs: true — this repo has no Storybook, so the dedicated task is more idiomatic than
+		// deploy + with: { docs: true } now that the two mean the same thing (astromech.ts).
 		{ name: "deploy-docs", with: { preview: true } },
 	],
 	providers: {

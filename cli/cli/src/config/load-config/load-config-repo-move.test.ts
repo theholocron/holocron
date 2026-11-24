@@ -138,6 +138,8 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		// And (#2210): the daily `check-tokens` workflow reads `HOLOCRON_USER_SYNC_TOKEN`, so the repository-scoped entry syncs it.
 		const repoEntry = sync.find((entry) => entry.scope === undefined)!;
 		repoEntry.keys = [...repoEntry.keys!, "HOLOCRON_USER_SYNC_TOKEN"].sort();
+		// And (#2366): the `sync-incidents` workflow reads the Checkly key that lists the status page's incidents.
+		repoEntry.keys = [...repoEntry.keys, "HOLOCRON_CHECKLY_TOKEN"].sort();
 		// And (#2359): the ping URLs of the scheduled workflows' heartbeats, one repository secret each, before the last entry.
 		sync.splice(sync.length - 1, 0, {
 			environment: "theholocron/holocron - ci",
@@ -146,6 +148,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 				"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
 				"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
 				"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
+				"HOLOCRON_HEARTBEAT_SYNC_INCIDENTS",
 				"HOLOCRON_HEARTBEAT_SYNC_SPECS",
 			],
 		});

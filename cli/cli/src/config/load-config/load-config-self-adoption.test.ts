@@ -295,6 +295,8 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// syncs it too; before, the job got an empty value and never checked it.
 		const repoEntry = secretEntries.find((entry) => (entry as { scope?: string }).scope === undefined)!;
 		repoEntry.keys = [...repoEntry.keys, "HOLOCRON_USER_SYNC_TOKEN"].sort();
+		// And (#2366): the `sync-incidents` workflow reads the Checkly key that lists the status page's incidents.
+		repoEntry.keys = [...repoEntry.keys, "HOLOCRON_CHECKLY_TOKEN"].sort();
 		// And (#2359): the heartbeats' ping URLs, one repository secret each, in an entry before the unscoped one.
 		secretEntries.splice(secretEntries.indexOf(repoEntry), 0, {
 			environment: `${SLUG} - ci`,
@@ -303,6 +305,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				"HOLOCRON_HEARTBEAT_CHECK_TOKENS",
 				"HOLOCRON_HEARTBEAT_DOCTOR_TOKENS",
 				"HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS",
+				"HOLOCRON_HEARTBEAT_SYNC_INCIDENTS",
 				"HOLOCRON_HEARTBEAT_SYNC_SPECS",
 			],
 		} as (typeof secretEntries)[number]);
@@ -361,6 +364,14 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			{ name: "check-tokens", period: 1, periodUnit: "days", grace: 6, graceUnit: "hours", tags: ["scheduled"] },
 			{ name: "doctor-tokens", period: 1, periodUnit: "days", grace: 6, graceUnit: "hours", tags: ["scheduled"] },
 			{ name: "sync-specs", period: 1, periodUnit: "hours", grace: 2, graceUnit: "hours", tags: ["scheduled"] },
+			{
+				name: "sync-incidents",
+				period: 10,
+				periodUnit: "minutes",
+				grace: 30,
+				graceUnit: "minutes",
+				tags: ["scheduled"],
+			},
 			{
 				name: "reconcile-projects",
 				period: 1,
@@ -548,6 +559,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// in `lint:code`), so the second ReviewDog run is not needed.
 		const expectedTasks = (expected as unknown as { tasks: unknown[] }).tasks;
 		expectedTasks.splice(0, expectedTasks.length, ...expectedTasks.filter((task) => task !== "annotate"));
+
+		// And (#2366): the `sync-incidents` task follows `reconcile-projects` in the list.
+		expectedTasks.splice(expectedTasks.indexOf("reconcile-projects") + 1, 0, "sync-incidents");
 
 		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
 		// "claude", and the option is kept beside it.

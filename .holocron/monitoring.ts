@@ -67,6 +67,14 @@ export default function monitoring(description: string) {
 				tags: ["scheduled"],
 			},
 			{
+				name: "sync-incidents",
+				period: 10,
+				periodUnit: "minutes",
+				grace: 30,
+				graceUnit: "minutes",
+				tags: ["scheduled"],
+			},
+			{
 				name: "reconcile-projects",
 				period: 1,
 				periodUnit: "hours",
