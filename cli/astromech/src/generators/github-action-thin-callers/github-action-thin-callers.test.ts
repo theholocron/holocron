@@ -29,6 +29,17 @@ describe("the deploy-preview caller", () => {
 	});
 });
 
+describe("the deploy-sentinel caller", () => {
+	const yaml = WORKFLOW_TEMPLATES["deploy-sentinel"]!;
+
+	it("titles a push run with the commit message and a manual run as manual, and keeps the id as its name", () => {
+		expect(yaml).toContain("name: deploy-sentinel\n");
+		expect(yaml).toContain(
+			`run-name: "\${{ github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel (manual)' }}"\n`
+		);
+	});
+});
+
 describe("WORKFLOW_TEMPLATES", () => {
 	it("KNOWN_WORKFLOWS mirrors the template keys", () => {
 		expect([...KNOWN_WORKFLOWS].sort()).toEqual(Object.keys(WORKFLOW_TEMPLATES).sort());
