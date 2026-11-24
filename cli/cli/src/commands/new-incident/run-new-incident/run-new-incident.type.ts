@@ -23,6 +23,8 @@ export interface RunNewIncidentInput {
 	allowDuplicate?: boolean;
 	/** Open it without asking (a workflow needs it). */
 	yes?: boolean;
+	/** The moment the duplicate check counts from; tests pass one. */
+	now?: Date;
 	/** Builds the loader; tests pass one. */
 	loader?: PluginLoader;
 	/** Whether a terminal can be asked. Defaults to whether stdin is one. */

@@ -75,12 +75,20 @@ describe("runUpdateIncident (update)", () => {
 		expect(same).toMatchObject({ status: "skip", reason: expect.stringMatching(/already has this update \(u1\)/) });
 		expect(updateIncident).not.toHaveBeenCalled();
 		expect((await runUpdateIncident({ ...base, status: "identified", message: "Different" })).status).toBe("ok");
+		expect(updateIncident).toHaveBeenLastCalledWith(
+			expect.objectContaining({ status: "identified", message: "Different" })
+		);
 		expect((await runUpdateIncident({ ...base, status: "monitoring", message: "Found it" })).status).toBe("ok");
+		expect(updateIncident).toHaveBeenLastCalledWith(
+			expect.objectContaining({ status: "monitoring", message: "Found it" })
+		);
+		expect(updateIncident).toHaveBeenCalledTimes(2);
 	});
 
 	it("writes on an incident with no updates yet", async () => {
-		const { base } = setup({}, [{ ...open, updates: [] }]);
+		const { base, updateIncident } = setup({}, [{ ...open, updates: [] }]);
 		expect((await runUpdateIncident(base)).status).toBe("ok");
+		expect(updateIncident).toHaveBeenCalledWith(expect.objectContaining({ id: "i1", status: "monitoring" }));
 	});
 
 	it("refuses an update to a resolved incident, and fails for an unknown one", async () => {
@@ -101,6 +109,7 @@ describe("runUpdateIncident (update)", () => {
 		const many = setup({ statusPages: [page, { ...page, name: "B" }] });
 		expect((await runUpdateIncident(many.base)).reason).toMatch(/name one with --page/);
 		expect((await runUpdateIncident({ ...many.base, page: "B" })).status).toBe("ok");
+		expect(many.updateIncident).toHaveBeenCalledWith(expect.objectContaining({ statusPage: "B" }));
 		const broken = setup();
 		broken.listIncidents.mockRejectedValue(new Error("down"));
 		expect((await runUpdateIncident(broken.base)).reason).toMatch(/reading the incidents of "The Holocron": down/);
@@ -132,6 +141,7 @@ describe("runUpdateIncident (update)", () => {
 		expect(
 			(await runUpdateIncident({ ...base, yes: false, interactive: true, confirm: async () => true })).status
 		).toBe("ok");
+		expect(updateIncident).toHaveBeenCalledTimes(1);
 		await expect(runUpdateIncident({ ...base, yes: false, interactive: false })).rejects.toThrow(/--yes/);
 	});
 

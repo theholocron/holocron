@@ -67,7 +67,9 @@ export async function runNewIncident(input: RunNewIncidentInput): Promise<RunNew
 	if (monitoring.listIncidents && !input.allowDuplicate) {
 		try {
 			const key = incidentTitleKey(title);
-			const open = (await monitoring.listIncidents({ statusPage: page.name })).find(
+			// An open incident is always listed whatever `since` is, so the cut-off only keeps the page's resolved history out.
+			const since = (input.now ?? new Date()).toISOString();
+			const open = (await monitoring.listIncidents({ statusPage: page.name, since })).find(
 				(i) => i.status !== "resolved" && incidentTitleKey(i.title) === key
 			);
 			if (open) {

@@ -19,6 +19,15 @@ describe("incidentMirrorNote", () => {
 	it("says so when no forum follows incidents", () => {
 		expect(incidentMirrorNote([layout(undefined, false)], "P", 1)).toMatch(/no forum has `feeds.incidents`/);
 		expect(incidentMirrorNote([{} as Notifications], "P", 1)).toMatch(/no forum has/);
+		const bare = { layout: { categories: [{ name: "no channels" }] } } as unknown as Notifications;
+		expect(incidentMirrorNote([bare], "P", 1)).toMatch(/no forum has/);
+	});
+
+	it("says so when several forums follow incidents, even one that matches the page", () => {
+		expect(incidentMirrorNote([layout("The Holocron", "The Holocron")], "The Holocron", 1)).toMatch(
+			/several forums have `feeds.incidents`/
+		);
+		expect(incidentMirrorNote([layout("A"), layout("B")], "A", 2)).toMatch(/several forums/);
 	});
 
 	it("says so when the forum follows another page, or `true` with several pages declared", () => {

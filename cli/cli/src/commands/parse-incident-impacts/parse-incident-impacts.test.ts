@@ -12,7 +12,13 @@ describe("parseIncidentImpacts", () => {
 			{ component: "Sentinel", impact: "major" },
 			{ component: "Docs", impact: "degraded" },
 		]);
-		expect(parseIncidentImpacts(["Sentinel=partial, Docs=maintenance"], known).impacts).toHaveLength(2);
+		expect(parseIncidentImpacts(["Sentinel=partial, Docs=maintenance"], known)).toEqual({
+			impacts: [
+				{ component: "Sentinel", impact: "partial" },
+				{ component: "Docs", impact: "maintenance" },
+			],
+			problems: [],
+		});
 	});
 
 	it("reads nothing as no impacts and skips blank lines", () => {

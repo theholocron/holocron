@@ -16,6 +16,9 @@ export function incidentMirrorNote(
 		.map((c) => c.feeds?.incidents)
 		.filter((f) => f !== undefined && f !== false);
 	if (feeds.length === 0) return "no forum has `feeds.incidents`, so this incident will not be mirrored to Discord";
+	if (feeds.length > 1) {
+		return "several forums have `feeds.incidents`, so `sync incidents` refuses to run and this incident will not be mirrored to Discord";
+	}
 	const named = feeds.filter((f): f is string => typeof f === "string");
 	const mirrored = feeds.includes(true) ? pageCount === 1 : named.includes(pageName);
 	if (mirrored) return undefined;

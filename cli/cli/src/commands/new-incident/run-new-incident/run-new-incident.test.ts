@@ -27,6 +27,7 @@ function setup(over: Record<string, unknown> = {}, notifications: unknown[] = []
 		loader,
 		print: (l: string) => lines.push(l),
 		yes: true,
+		now: new Date("2026-11-24T12:00:00Z"),
 	};
 	return { openIncident, listIncidents, lines, base };
 }
@@ -79,6 +80,7 @@ describe("runNewIncident", () => {
 		const many = setup({ statusPages: [page, { ...page, name: "Other" }] });
 		expect((await runNewIncident(many.base)).reason).toMatch(/2 status pages are declared/);
 		expect((await runNewIncident({ ...many.base, page: "Other" })).status).toBe("ok");
+		expect(many.openIncident).toHaveBeenCalledWith(expect.objectContaining({ statusPage: "Other" }));
 		const bad = setup();
 		const report = await runNewIncident({ ...bad.base, components: ["Nope=major", "Docs=huge"] });
 		expect(report.status).toBe("fail");
@@ -94,20 +96,26 @@ describe("runNewIncident", () => {
 		] as never);
 		const refused = await runNewIncident(base);
 		expect(refused.reason).toMatch(/already open on "The Holocron" \(x\)/);
+		// Only the open incidents (and today's) are read, never the whole history.
+		expect(listIncidents).toHaveBeenCalledWith({ statusPage: "The Holocron", since: "2026-11-24T12:00:00.000Z" });
 		expect(openIncident).not.toHaveBeenCalled();
 		expect((await runNewIncident({ ...base, allowDuplicate: true })).status).toBe("ok");
+		expect(openIncident).toHaveBeenCalledTimes(1);
+		expect(openIncident).toHaveBeenCalledWith(expect.objectContaining({ title: "Sentinel down" }));
 		expect(listIncidents).toHaveBeenCalledTimes(1);
 	});
 
 	it("opens again when only a resolved incident has the title", async () => {
-		const { base, listIncidents } = setup();
+		const { base, listIncidents, openIncident } = setup();
 		listIncidents.mockResolvedValue([{ id: "y", title: "Sentinel down", status: "resolved" }] as never);
 		expect((await runNewIncident(base)).status).toBe("ok");
+		expect(openIncident).toHaveBeenCalledWith(expect.objectContaining({ title: "Sentinel down" }));
 	});
 
 	it("says the duplicate check was not possible when the provider cannot list, and fails when the list fails", async () => {
 		const noList = setup({ listIncidents: undefined });
 		expect((await runNewIncident(noList.base)).status).toBe("ok");
+		expect(noList.openIncident).toHaveBeenCalledTimes(1);
 		expect(noList.lines.join("\n")).toMatch(/cannot list incidents/);
 		const broken = setup();
 		broken.listIncidents.mockRejectedValue(new Error("down"));
@@ -136,6 +144,7 @@ describe("runNewIncident", () => {
 		expect(openIncident).not.toHaveBeenCalled();
 		const yes = await runNewIncident({ ...base, yes: false, interactive: true, confirm: async () => true });
 		expect(yes.status).toBe("ok");
+		expect(openIncident).toHaveBeenCalledTimes(1);
 	});
 
 	it("refuses to run without a terminal and without --yes", async () => {
@@ -155,7 +164,7 @@ describe("runNewIncident", () => {
 		const { base } = setup();
 		promptConfirm.mockResolvedValueOnce(true);
 		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-		const { print: _print, ...rest } = base;
+		const { print: _print, now: _now, ...rest } = base;
 		const report = await runNewIncident({ ...rest, yes: false, interactive: true });
 		expect(report.status).toBe("ok");
 		expect(promptConfirm).toHaveBeenCalledWith(expect.objectContaining({ default: false }));
