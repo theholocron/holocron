@@ -1,3 +1,19 @@
+## [5.0.0-alpha.537](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.536...v5.0.0-alpha.537) (2026-11-24)
+
+### Features
+
+* **cli:** ✨ new, update and close incident ([#2604](https://github.com/theholocron/holocron/issues/2604)) ([9a7dbb3](https://github.com/theholocron/holocron/commit/9a7dbb3e473948ec2f19389d69620990828b7975)), closes [#2591](https://github.com/theholocron/holocron/issues/2591)
+* **monitoring:** ✨ Monitoring.openIncident, updateIncident and resolveIncident ([#2603](https://github.com/theholocron/holocron/issues/2603)) ([0255246](https://github.com/theholocron/holocron/commit/025524634035fdde5b5532b15adc4e854fcb06d8)), closes [#2591](https://github.com/theholocron/holocron/issues/2591)
+
+### Documentation
+
+* **specs:** 📝 answer the incidents spec's read-only key question ([#2596](https://github.com/theholocron/holocron/issues/2596)) ([966c7fd](https://github.com/theholocron/holocron/commit/966c7fd20f3398f0070e4e9ee82f70f879d99d99)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+* **specs:** 📝 draft opening status page incidents from a command or a trigger ([#2600](https://github.com/theholocron/holocron/issues/2600)) ([502b4e9](https://github.com/theholocron/holocron/commit/502b4e9dcc81a6c4ba476c026656b41fe7a9e6bd)), closes [#2591](https://github.com/theholocron/holocron/issues/2591)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2601](https://github.com/theholocron/holocron/issues/2601)) ([d039b5c](https://github.com/theholocron/holocron/commit/d039b5cb81e64f1cc8bdebf9d3235d1dce53cb65))
+
 ## [5.0.0-alpha.536](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.535...v5.0.0-alpha.536) (2026-11-24)
 
 ### Features
