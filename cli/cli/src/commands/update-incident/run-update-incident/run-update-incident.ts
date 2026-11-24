@@ -97,13 +97,11 @@ export async function runUpdateIncident(input: RunUpdateIncidentInput): Promise<
 	}
 
 	try {
-		const written = await write.call(monitoring, {
-			statusPage: page.name,
-			id: input.id,
-			status: status!,
-			message,
-			notify,
-		});
+		const common = { statusPage: page.name, id: input.id, message, notify };
+		const written =
+			input.mode === "close"
+				? await monitoring.resolveIncident!(common)
+				: await monitoring.updateIncident!({ ...common, status: status! });
 		row("ok", `appended a ${what}; it is now ${written.status}; ${told}`);
 		return { status: "ok" };
 	} catch (err) {

@@ -164,14 +164,13 @@ describe("runUpdateIncident (update)", () => {
 });
 
 describe("runUpdateIncident (close)", () => {
-	it("resolves with the default message, whatever status is passed, and uses resolveIncident", async () => {
+	it("resolves with the default message and uses resolveIncident, which takes no status", async () => {
 		const { base, resolveIncident, updateIncident, lines } = setup();
 		const report = await runUpdateIncident({ ...base, mode: "close", status: undefined, message: undefined });
 		expect(report).toEqual({ status: "ok" });
 		expect(resolveIncident).toHaveBeenCalledWith({
 			statusPage: "The Holocron",
 			id: "i1",
-			status: "resolved",
 			message: "This incident is resolved.",
 			notify: true,
 		});

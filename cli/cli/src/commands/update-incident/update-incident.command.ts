@@ -10,8 +10,8 @@ import { runUpdateIncident } from "./run-update-incident/index.js";
 type Args = GlobalArgs & {
 	id: string;
 	page?: string;
-	status?: "investigating" | "identified" | "monitoring";
-	message?: string;
+	status: "investigating" | "identified" | "monitoring";
+	message: string;
 	notify?: boolean;
 	yes?: boolean;
 };
@@ -51,8 +51,8 @@ export const updateIncidentCommand: CommandModule<GlobalArgs, Args> = {
 			loaded,
 			context: { repoRoot: argv.cwd, dryRun: argv.dryRun, ...tokens, org: resolveOrg(argv, loaded.resolved) },
 			...(argv.page ? { page: argv.page } : {}),
-			...(argv.status ? { status: argv.status } : {}),
-			...(argv.message !== undefined ? { message: argv.message } : {}),
+			status: argv.status,
+			message: String(argv.message),
 			notify: argv.notify !== false,
 			...(argv.yes ? { yes: true } : {}),
 		});
