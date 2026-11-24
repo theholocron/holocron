@@ -231,11 +231,58 @@ export interface Incident extends IncidentSummary {
 	incidentUpdates?: IncidentUpdate[];
 }
 
+/** How badly a component is marked by an incident write; `OPERATIONAL` clears a component. */
+export type IncidentImpactStatus = StatusRuleImpact | "OPERATIONAL";
+
+/** One component an incident write marks (`componentImpacts` of a create or an update). */
+export interface IncidentComponentImpactInput {
+	/** The id of the component to mark. */
+	componentId: string;
+	/** How badly it is marked. */
+	status: IncidentImpactStatus;
+}
+
+/** The update an incident write carries: what the people running the page say, and the status it puts the incident in. */
+export interface IncidentUpdateInput {
+	/** What the people running the page say. */
+	description: string;
+	/** The status the update puts the incident in; `RESOLVED` closes it. */
+	status: IncidentUpdateStatus;
+	/** Whether the page's subscribers are told. Required: Checkly's API defaults it to `false`, so a caller always says which. */
+	notifySubscribers: boolean;
+}
+
+/** What opens an incident: its name, the one update that opens it and the components it marks. */
+export interface IncidentInput {
+	/** The incident's name, at most 255 characters. */
+	name: string;
+	/** Exactly one update opens an incident. */
+	incidentUpdates: [IncidentUpdateInput];
+	/** The components the incident marks; a component left out is operational. */
+	componentImpacts?: IncidentComponentImpactInput[];
+}
+
+/**
+ * What a rename or a change of component impacts carries; the updates are appended with `addUpdate`. It is a PUT, which
+ * replaces, so both fields are required and the caller sends the whole state it wants: a rename alone could clear the
+ * incident's impacts. Checkly offers no conditional write, so two callers changing one incident at once are not
+ * serialized and the later PUT wins.
+ */
+export interface IncidentPatch {
+	/** The incident's name after the change (the API requires it). */
+	name: string;
+	/** The components the incident marks after the change: all of them, not only the ones that changed. */
+	componentImpacts: IncidentComponentImpactInput[];
+}
+
 interface Page<T> {
 	length: number;
 	entries: T[];
 	nextId?: string | null;
 }
+
+/** An id as one path segment, so a `/` or `..` in it cannot reach another endpoint with the client's credentials. */
+const segment = encodeURIComponent;
 
 const LIMIT = 100;
 const MAX_PAGES = 50;
@@ -295,10 +342,25 @@ export function statusPages(rest: RestClient) {
 		incidents: {
 			/** The page's incidents, most recently updated first, with no updates. */
 			list: (pageId: string): Promise<IncidentSummary[]> =>
-				readAll<IncidentSummary>(rest, `/status-pages/${pageId}/incidents`),
+				readAll<IncidentSummary>(rest, `/status-pages/${segment(pageId)}/incidents`),
 			/** One incident with its updates. */
 			get: (pageId: string, id: string): Promise<Incident> =>
-				rest.request<Incident>(`/status-pages/${pageId}/incidents/${id}`),
+				rest.request<Incident>(`/status-pages/${segment(pageId)}/incidents/${segment(id)}`),
+			/** Opens an incident with its first update. */
+			create: (pageId: string, input: IncidentInput): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${segment(pageId)}/incidents`, { method: "POST", body: input }),
+			/** Renames an incident or sets its component impacts; the updates stay as they are. */
+			update: (pageId: string, id: string, input: IncidentPatch): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${segment(pageId)}/incidents/${segment(id)}`, {
+					method: "PUT",
+					body: input,
+				}),
+			/** Appends an update; one with status `RESOLVED` closes the incident, there is no resolve endpoint. */
+			addUpdate: (pageId: string, id: string, input: IncidentUpdateInput): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${segment(pageId)}/incidents/${segment(id)}/incident-updates`, {
+					method: "POST",
+					body: input,
+				}),
 		},
 		customDomain: {
 			/** The DNS record Checkly asks for and whether it has been found. */

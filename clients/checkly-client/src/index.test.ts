@@ -38,4 +38,40 @@ describe("createChecklyClient", () => {
 		await client.checks.list();
 		expect(calls[0]?.url).toContain("https://checkly.test/v1");
 	});
+
+	it("aborts a request that outlasts timeoutMs", async () => {
+		const stalled: typeof fetch = (_input, init) =>
+			new Promise((_resolve, reject) => {
+				init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+			});
+		const client = createChecklyClient({ token: TOKEN, accountId: "acct-1", fetch: stalled, timeoutMs: 20 });
+		await expect(client.statusPages.incidents.list("p1")).rejects.toThrow();
+	});
+
+	it("gives a request no signal when no timeout is set", async () => {
+		let seen: AbortSignal | null | undefined = null;
+		const spy: typeof fetch = async (_input, init) => {
+			seen = init?.signal;
+			return new Response("[]", { headers: { "content-type": "application/json" } });
+		};
+		const client = createChecklyClient({ token: TOKEN, accountId: "acct-1", fetch: spy });
+		await client.checks.list();
+		expect(seen).toBeFalsy();
+	});
+
+	it("puts the timeout on the global fetch when no fetch is given", async () => {
+		const original = globalThis.fetch;
+		let seen: AbortSignal | null | undefined;
+		globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+			seen = init?.signal;
+			return new Response("[]", { headers: { "content-type": "application/json" } });
+		}) as typeof fetch;
+		try {
+			const client = createChecklyClient({ token: TOKEN, accountId: "acct-1", timeoutMs: 5000 });
+			await client.checks.list();
+		} finally {
+			globalThis.fetch = original;
+		}
+		expect(seen).toBeInstanceOf(AbortSignal);
+	});
 });
