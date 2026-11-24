@@ -18,6 +18,7 @@ import { connectionProbe } from "@theholocron/cli";
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ChecklyMonitoring } from "./capabilities/monitoring.js";
 import { checklyProbes } from "./probes/index.js";
+import { tokenProbe } from "./probes/token/token.js";
 import { type ChecklyClient, createChecklyClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -82,6 +83,7 @@ export function createPlugin(options: ChecklyPluginOptions) {
 		name: "@theholocron/holocron-plugin-checkly",
 		probes: {
 			...checklyProbes({ client: ctx.client, checks: options.checks }),
+			token: tokenProbe({ token: () => resolveToken(options), client: ctx.client }),
 			connection: connectionProbe({
 				provider: "Checkly",
 				url: options.baseUrl ?? "https://api.checklyhq.com",
