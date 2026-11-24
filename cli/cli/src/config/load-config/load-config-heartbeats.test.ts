@@ -21,6 +21,7 @@ describe("this repo's heartbeats (#2359)", () => {
 			"check-tokens",
 			"doctor-tokens",
 			"reconcile-projects",
+			"sync-incidents",
 			"sync-specs",
 		]);
 
