@@ -1,3 +1,13 @@
+## [5.0.0-alpha.536](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.535...v5.0.0-alpha.536) (2026-11-24)
+
+### Features
+
+* **checkly:** ✨ declare the ci layer for the Checkly key and add a token probe ([#2595](https://github.com/theholocron/holocron/issues/2595)) ([f7926fe](https://github.com/theholocron/holocron/commit/f7926fefe58b5db574721f4a955b2d5cc5685620)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
+### Documentation
+
+* **specs:** 📚️ 📝 accept the incidents-to-Discord spec and record what ran ([#2594](https://github.com/theholocron/holocron/issues/2594)) ([eda4886](https://github.com/theholocron/holocron/commit/eda48861e1b81e01e8bc018859c7d802b87d80b6)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
 ## [5.0.0-alpha.535](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.534...v5.0.0-alpha.535) (2026-11-24)
 
 ### Features
