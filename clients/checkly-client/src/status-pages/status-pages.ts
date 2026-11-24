@@ -231,6 +231,47 @@ export interface Incident extends IncidentSummary {
 	incidentUpdates?: IncidentUpdate[];
 }
 
+/** How badly a component is marked by an incident write; `OPERATIONAL` clears a component. */
+export type IncidentImpactStatus = StatusRuleImpact | "OPERATIONAL";
+
+/** One component an incident write marks (`componentImpacts` of a create or an update). */
+export interface IncidentComponentImpactInput {
+	/** The id of the component to mark. */
+	componentId: string;
+	/** How badly it is marked. */
+	status: IncidentImpactStatus;
+}
+
+/** The update an incident write carries: what the people running the page say, and the status it puts the incident in. */
+export interface IncidentUpdateInput {
+	/** What the people running the page say. */
+	description: string;
+	/** The status the update puts the incident in; `RESOLVED` closes it. */
+	status: IncidentUpdateStatus;
+	/** Whether the page's subscribers are told. Checkly's API defaults to `false`, so a caller says so either way. */
+	notifySubscribers?: boolean;
+	/** The date the page shows for the update; Checkly uses now when it is left out. */
+	publicIncidentUpdateDate?: string;
+}
+
+/** What opens an incident: its name, the one update that opens it and the components it marks. */
+export interface IncidentInput {
+	/** The incident's name, at most 255 characters. */
+	name: string;
+	/** Exactly one update opens an incident. */
+	incidentUpdates: [IncidentUpdateInput];
+	/** The components the incident marks; a component left out is operational. */
+	componentImpacts?: IncidentComponentImpactInput[];
+}
+
+/** What a rename or a change of component impacts carries; the updates are appended with `addUpdate`. */
+export interface IncidentPatch {
+	/** The incident's new name. */
+	name: string;
+	/** The components the incident marks after the change. */
+	componentImpacts?: IncidentComponentImpactInput[];
+}
+
 interface Page<T> {
 	length: number;
 	entries: T[];
@@ -299,6 +340,18 @@ export function statusPages(rest: RestClient) {
 			/** One incident with its updates. */
 			get: (pageId: string, id: string): Promise<Incident> =>
 				rest.request<Incident>(`/status-pages/${pageId}/incidents/${id}`),
+			/** Opens an incident with its first update. */
+			create: (pageId: string, input: IncidentInput): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${pageId}/incidents`, { method: "POST", body: input }),
+			/** Renames an incident or sets its component impacts; the updates stay as they are. */
+			update: (pageId: string, id: string, input: IncidentPatch): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${pageId}/incidents/${id}`, { method: "PUT", body: input }),
+			/** Appends an update; one with status `RESOLVED` closes the incident, there is no resolve endpoint. */
+			addUpdate: (pageId: string, id: string, input: IncidentUpdateInput): Promise<Incident> =>
+				rest.request<Incident>(`/status-pages/${pageId}/incidents/${id}/incident-updates`, {
+					method: "POST",
+					body: input,
+				}),
 		},
 		customDomain: {
 			/** The DNS record Checkly asks for and whether it has been found. */

@@ -103,6 +103,36 @@ describe("statusPages", () => {
 		]);
 	});
 
+	it("opens an incident with one update and its component impacts", async () => {
+		const { statusPages, calls } = client([{ status: 201, body: { id: "i1", name: "Down" } }]);
+		const input = {
+			name: "Down",
+			incidentUpdates: [
+				{ description: "Looking", status: "INVESTIGATING" as const, notifySubscribers: false },
+			] as [{ description: string; status: "INVESTIGATING"; notifySubscribers: boolean }],
+			componentImpacts: [{ componentId: "c1", status: "MAJOR_OUTAGE" as const }],
+		};
+		expect((await statusPages.incidents.create("p1", input)).id).toBe("i1");
+		expect(calls[0]).toMatchObject({ method: "POST", url: `${V3}/status-pages/p1/incidents` });
+		expect(calls[0]?.body).toEqual(input);
+	});
+
+	it("appends an update, and a RESOLVED one closes the incident", async () => {
+		const { statusPages, calls } = client([{ status: 201, body: { id: "i1" } }]);
+		const update = { description: "Fixed", status: "RESOLVED" as const, notifySubscribers: true };
+		await statusPages.incidents.addUpdate("p1", "i1", update);
+		expect(calls[0]).toMatchObject({ method: "POST", url: `${V3}/status-pages/p1/incidents/i1/incident-updates` });
+		expect(calls[0]?.body).toEqual(update);
+	});
+
+	it("renames an incident and sets its impacts with a PUT", async () => {
+		const { statusPages, calls } = client([{ body: { id: "i1", name: "New" } }]);
+		const patch = { name: "New", componentImpacts: [{ componentId: "c1", status: "OPERATIONAL" as const }] };
+		await statusPages.incidents.update("p1", "i1", patch);
+		expect(calls[0]).toMatchObject({ method: "PUT", url: `${V3}/status-pages/p1/incidents/i1` });
+		expect(calls[0]?.body).toEqual(patch);
+	});
+
 	it("reads and rechecks the custom domain verification", async () => {
 		const verification = {
 			status: "pending",
