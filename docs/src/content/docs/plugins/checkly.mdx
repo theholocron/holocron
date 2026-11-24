@@ -133,6 +133,8 @@ holocron check token checkly
 
 `check token` verifies the key with `GET /v1/accounts`, the one Checkly endpoint that does not require `x-checkly-account`. It works before any `accountId` is in scope.
 
+`holocron probe checkly token [--environment <layer>]` is read-only: it lists the account's status pages and the first one's incidents with the key (what `sync-incidents` reads) and fails on a refusal. The key is declared for the `ci` layer. Checkly reports no role for a key, so the probe cannot tell a Read Only key from a Read & Write one; `sync-incidents` only reads, so a Read Only key is enough.
+
 Or via env var:
 
 ```bash
