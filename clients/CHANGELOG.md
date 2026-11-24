@@ -1,3 +1,9 @@
+## [1.58.0-alpha.56](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.55...clients-v1.58.0-alpha.56) (2026-11-24)
+
+### Features
+
+* **checkly-client:** ✨ create and update status page incidents ([#2602](https://github.com/theholocron/holocron/issues/2602)) ([4f8fe0d](https://github.com/theholocron/holocron/commit/4f8fe0d907b93c76f3eaf9342da50031d5d249f4)), closes [#2591](https://github.com/theholocron/holocron/issues/2591)
+
 ## [1.58.0-alpha.55](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.54...clients-v1.58.0-alpha.55) (2026-11-23)
 
 ### Features
