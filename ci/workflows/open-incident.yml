@@ -1,0 +1,103 @@
+name: Open incident
+
+# Opens an incident on the status page from a manual run, for a phone or another system (#2591, spec
+# `tech-open-status-page-incidents`). It runs `holocron new incident --yes` with the inputs below and prints the incident's
+# id in the job summary, which `holocron update incident` and `holocron close incident` take. `sync-incidents` then
+# mirrors the incident to Discord on its next run.
+#
+# It writes to a live, public page with the Checkly key, so it runs only from the default branch: a dispatch from another
+# branch could carry a changed copy of this file that prints the key. Anyone who can dispatch workflows in the repository
+# can run it, which is the maintainer alone today; an Environment with required reviewers is the next step when that
+# changes. Every input goes in through `env`, never into the script text, so a title cannot inject a command.
+#
+# It needs `HOLOCRON_CHECKLY_TOKEN` in the `ci` layer, the key `sync-incidents` already holds (it can write; no narrower
+# key is available). Without it the job warns and does nothing.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      title:
+        description: The incident's name, at most 255 characters.
+        type: string
+        required: true
+      page:
+        description: The declared status page, when several are declared.
+        type: string
+        required: false
+        default: ""
+      status:
+        description: The status the opening update carries (investigating, identified or monitoring).
+        type: string
+        required: false
+        default: investigating
+      components:
+        description: Components to mark, one <name>=<impact> per line (impact is maintenance, degraded, partial or major).
+        type: string
+        required: false
+        default: ""
+      message:
+        description: What the opening update says; empty is a line for the status.
+        type: string
+        required: false
+        default: ""
+      notify:
+        description: Tell the page's subscribers.
+        type: boolean
+        required: false
+        default: true
+    secrets:
+      HOLOCRON_CHECKLY_TOKEN:
+        description: The Checkly API key that writes the status page's incidents. Without it the job warns and does nothing.
+        required: false
+
+jobs:
+  open-incident:
+    name: Open a status page incident
+    if: github.repository == format('{0}/holocron', github.repository_owner) && github.ref_name == github.event.repository.default_branch
+    # One run at a time: two at once could each open the same incident.
+    concurrency:
+      group: open-incident
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      HOLOCRON_CHECKLY_TOKEN: ${{ secrets.HOLOCRON_CHECKLY_TOKEN }}
+      TITLE: ${{ inputs.title }}
+      PAGE: ${{ inputs.page }}
+      STATUS: ${{ inputs.status }}
+      COMPONENTS: ${{ inputs.components }}
+      MESSAGE: ${{ inputs.message }}
+      NOTIFY: ${{ inputs.notify && 'true' || 'false' }}
+    steps:
+      - name: Warn that the token is missing
+        if: env.HOLOCRON_CHECKLY_TOKEN == ''
+        run: |
+          echo "::warning::HOLOCRON_CHECKLY_TOKEN is not set, so no incident was opened. Add it as an Actions secret."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+
+      - name: Build the CLI
+        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        run: pnpm turbo run build --filter=@theholocron/cli...
+
+      - name: Open the incident
+        if: env.HOLOCRON_CHECKLY_TOKEN != ''
+        run: |
+          args=(new incident "$TITLE" --yes --status "$STATUS")
+          if [ -n "$PAGE" ]; then args+=(--page "$PAGE"); fi
+          if [ -n "$COMPONENTS" ]; then args+=(--component "$COMPONENTS"); fi
+          if [ -n "$MESSAGE" ]; then args+=(--message "$MESSAGE"); fi
+          if [ "$NOTIFY" = "false" ]; then args+=(--no-notify); fi
+          # The output goes in the job summary whether the run worked or not; its exit status is the step's.
+          code=0
+          out=$(node cli/cli/dist/cli.mjs "${args[@]}" 2>&1) || code=$?
+          printf '### Open incident\n\n```\n%s\n```\n' "$out" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "$code"

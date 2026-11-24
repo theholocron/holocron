@@ -206,6 +206,12 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"sync-incidents": { id: "sync-incidents", name: "Sync incidents" },
 		},
 	},
+	"open-incident": {
+		name: "Open incident",
+		jobs: {
+			"open-incident": { id: "open-incident", name: "Open incident" },
+		},
+	},
 	"sync-specs": {
 		name: "Spec discussions",
 		jobs: {

@@ -297,6 +297,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// `feeds.incidents`, one post each (#2366, spec `tech-incidents-to-discord`). It posts with the bot token, so it is
 	// never part of `holocron run ci`; a repo with no status page never lists it.
 	"sync-incidents": { group: "Platform", scope: "repo", local: { command: "sync incidents --yes" } },
+	// `holocron new incident --yes` from a manual run, for a phone or another system (#2591, spec
+	// `tech-open-status-page-incidents`). It writes to the public status page, so it is only ever dispatched by hand, never
+	// part of `holocron run ci`, and a repo with no status page never lists it.
+	"open-incident": { group: "Platform", scope: "repo", local: null },
 
 	// ── Knowledge — published content, not software ───────────────────────
 	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull

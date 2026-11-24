@@ -1202,6 +1202,47 @@ describe("REUSABLE_WORKFLOWS['sync-incidents'] — the status page incident mirr
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['open-incident'] — the manual status page incident (#2591)", () => {
+	const wf = REUSABLE_WORKFLOWS["open-incident"]!;
+
+	it("is a reusable workflow with the incident inputs and one optional token", () => {
+		expect(wf).toContain("workflow_call:");
+		expect(wf).toMatch(/title:\n\s+description: .+\n\s+type: string\n\s+required: true/);
+		for (const name of ["page", "status", "components", "message"]) {
+			expect(wf).toMatch(new RegExp(`\\n      ${name}:\\n\\s+description: .+\\n\\s+type: string`));
+		}
+		expect(wf).toMatch(/notify:\n\s+description: .+\n\s+type: boolean/);
+		expect(wf).toMatch(/HOLOCRON_CHECKLY_TOKEN:\n\s+description: .+\n\s+required: false/);
+	});
+
+	it("hands every input over in the environment, never in the script text", () => {
+		for (const name of ["TITLE", "PAGE", "STATUS", "COMPONENTS", "MESSAGE", "NOTIFY"]) {
+			expect(wf).toContain(`${name}: \${{ inputs.`);
+		}
+		const script = wf.slice(wf.indexOf("- name: Open the incident"));
+		expect(script).not.toContain("${{ inputs");
+		expect(script).toContain('"$TITLE"');
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("opens with --yes, only from the default branch, one run at a time, with read-only repository access", () => {
+		expect(wf).toContain("new incident");
+		expect(wf).toContain("--yes");
+		expect(wf).toContain("github.ref_name == github.event.repository.default_branch");
+		expect(wf).toContain("group: open-incident");
+		expect(wf).toContain("cancel-in-progress: false");
+		expect(wf).toContain("contents: read");
+		expect(wf).not.toContain("contents: write");
+	});
+
+	it("does nothing but warn without the token, passes --no-notify only when asked and prints the id in the summary", () => {
+		expect(wf).toContain("Warn that the token is missing");
+		expect(wf).toContain('if [ "$NOTIFY" = "false" ]; then args+=(--no-notify); fi');
+		expect(wf).toContain("GITHUB_STEP_SUMMARY");
+		expect(wf).toContain('exit "$code"');
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['sync-issues'] — the scheduled issue sync", () => {
 	const wf = REUSABLE_WORKFLOWS["sync-issues"]!;
 
