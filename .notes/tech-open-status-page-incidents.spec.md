@@ -47,12 +47,10 @@ Verb first, like `new issue`, `update issue` and `close work`:
 - **Subscribers.** Each incident update carries `notifySubscribers`, which the API defaults to `false` (the UI announces
   an incident, the API does not unless asked). The commands send it explicitly: `true` unless `--no-notify` (the way to
   try one out), and the confirmation says whether subscribers will be told.
-- **No duplicates, by a hidden marker.** The first update of an incident the command opens ends with
-  `<!-- holocron:incident <key> -->`, where `<key>` is the first 12 hex characters of the SHA-256 of the page id and the
-  title (trimmed, lower case, spaces collapsed). `new incident` reads the page's open incidents first and refuses when one
-  carries the same key (`--allow-duplicate` overrides), so a rerun after a timeout never opens two while the same title may
-  be opened again once the first is resolved. A hash and not the title, so the marker is the same length whatever the title
-  and shows nothing a reader would mind. `sync incidents` strips the marker from the post it writes.
+- **No duplicates, by title.** `new incident` reads the page's open incidents first and refuses when one has the same
+  title (trimmed, lower case, spaces collapsed); `--allow-duplicate` overrides. A rerun after a timeout never opens two,
+  and the same title may be opened again once the first is resolved. There is no marker in the message: Checkly shows an
+  HTML comment as plain text on the public page (step 0, 2026-11-24), so a hidden marker is not hidden.
 - **Provider-neutral.** The optional `Monitoring.openIncident`, `updateIncident` and `resolveIncident` take the neutral
   `MonitoringIncident` vocabulary `listIncidents` already returns, so another status page provider is a plugin and not a
   new command. The Checkly plugin implements them over `@theholocron/checkly-client`'s `statusPages.incidents`
@@ -100,7 +98,8 @@ reached, so a later trigger calls the same function.
    wanted.
 3. **Who may run it.** Anyone who can dispatch workflows in the repository. The maintainer is the only one today; an
    Environment with required reviewers is revisited when that changes (it would slow an incident down).
-4. **Duplicates.** A hidden marker holding a hash of the page and the title (above), not the bare title.
+4. **Duplicates.** First a hidden marker holding a hash of the page and the title; step 0 showed Checkly displays the
+   comment as text, so the decision is now the open incidents' titles compared (above), with nothing added to the message.
 5. **A key that can write.** Accepted: the `ci` key can write and no narrower key is available (SPEC-0100, open question 1).
 
 Checkly's own CLI has `checkly incidents create` (CLI 7.5.0 and later: `--status-page-id`, `--title`, `--services`,
@@ -121,7 +120,7 @@ components from the config, speak a provider-neutral vocabulary, keep the marker
   `publicIncidentUpdateDate`), and a `RESOLVED` update closes the incident: there is no resolve endpoint, so `close
 incident` posts one. `PUT .../incidents/{incidentId}` renames the incident and sets its component impacts. The CLI's
   `checkly incidents create` works on the older "services" model, so it refuses this page ("no services").
-- **The marker.** Whether Checkly shows an HTML comment in an update's message as text, hides it or strips it; if it shows
-  it, the marker is written some other way (a trailing line of its own, or the incident's name). `sync incidents` must
-  strip it either way.
+- **Verified in step 0 (2026-11-24):** `POST /v3/status-pages/{id}/incidents` with one `INVESTIGATING` update and no
+  component impacts answers `201`; the description is stored verbatim. Whether `notifySubscribers: true` emails a subscriber is not tried.
+  An HTML comment in the description shows as plain text on the public page, so no marker is used.
 - Whether a created incident appears in the list `sync incidents` reads with the fields it expects (`impacts`, `updates`).
