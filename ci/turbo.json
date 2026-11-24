@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "src/**",
+        "workflows/**",
+        "actions/**",
+        "matchers/**",
+        "package.json",
+        "tsdown.config.ts",
+        "$TURBO_ROOT$/tsdown.config.ts",
+        "tsconfig.json"
+      ]
+    }
+  }
+}

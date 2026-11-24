@@ -121,6 +121,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"sync-secrets": ["sync-secrets / Sync 1Password to Vercel"],
 	"sync-issues": ["sync-issues / Sync issues between trackers"],
 	"sync-incidents": ["sync-incidents / Sync status page incidents"],
+	"open-incident": ["open-incident / Open a status page incident"],
 	"sync-specs": ["sync-specs / Sync spec discussions"],
 	"preview-specs": ["preview-specs / Sync spec discussions for the pull request"],
 	"sync-templates": ["sync-templates / Discover consumer repos", "sync-templates / Sync templates"],

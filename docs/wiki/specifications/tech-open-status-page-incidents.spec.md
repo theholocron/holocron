@@ -1,6 +1,6 @@
 ---
 id: SPEC-0108
-status: draft
+status: accepted
 issue: theholocron/holocron#2591
 blocked-by: []
 related:
@@ -97,6 +97,8 @@ The code does not care how the command is reached, so a later trigger calls the 
 - Making the page's automation rules work on a plan that refuses them (#2324).
 
 ## Rollout
+
+Built in four stacked pull requests (#2591): the client calls, the `Monitoring` methods and the Checkly plugin, the three commands, and the `open-incident` task. This repo lists `open-incident` in `tasks:` after the release that carries it has deployed (Sentinel's config check reads the deployed registry).
 
 | #   | Change                                                                                                                          | Size |
 | --- | ------------------------------------------------------------------------------------------------------------------------------- | ---- |
