@@ -119,5 +119,6 @@ jobs:
           # The output goes in the job summary whether the run worked or not; its exit status is the step's.
           code=0
           out=$(node cli/cli/dist/cli.mjs "${args[@]}" 2>&1) || code=$?
-          printf '### Open incident\n\n```\n%s\n```\n' "$out" | tee -a "$GITHUB_STEP_SUMMARY"
+          fence=$(printf '\140\140\140')
+          printf '### Open incident\n\n%s\n%s\n%s\n' "$fence" "$out" "$fence" | tee -a "$GITHUB_STEP_SUMMARY"
           exit "$code"
