@@ -6,6 +6,8 @@
 
 name: sync-repo
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Repo (manual)' || github.event_name == 'push' && format('Sync Repo: {0}', github.event.head_commit.message) || 'Sync Repo' }}"
+
 on: # yamllint disable-line rule:truthy
   push:
     branches: [main]

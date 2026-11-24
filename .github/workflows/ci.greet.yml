@@ -6,6 +6,8 @@
 
 name: greet
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Greet: {0}', github.event.pull_request.title) || 'Greet' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
   issues:

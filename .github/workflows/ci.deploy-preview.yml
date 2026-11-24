@@ -6,6 +6,8 @@
 
 name: deploy-preview
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Deploy Preview: {0}', github.event.pull_request.title) || 'Deploy Preview' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
     # `closed` runs the reusable's cleanup job, which deletes the PR's previews; its deploy and report jobs skip it.

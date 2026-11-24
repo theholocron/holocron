@@ -6,6 +6,8 @@
 
 name: sync-incidents
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Incidents (manual)' || github.event_name == 'schedule' && 'Sync Incidents (scheduled)' || 'Sync Incidents' }}"
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "7,17,27,37,47,57 * * * *"

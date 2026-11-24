@@ -6,6 +6,8 @@
 
 name: remind-doctor
 
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Remind Doctor (manual)' || github.event_name == 'schedule' && 'Remind Doctor (scheduled)' || 'Remind Doctor' }}"
+
 on: # yamllint disable-line rule:truthy
   schedule:
     - cron: "0 14 * * 1"

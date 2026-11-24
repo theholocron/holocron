@@ -35,8 +35,20 @@ describe("the deploy-sentinel caller", () => {
 	it("titles a push run with the commit message and a manual run as manual, and keeps the id as its name", () => {
 		expect(yaml).toContain("name: deploy-sentinel\n");
 		expect(yaml).toContain(
-			`run-name: "\${{ github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel (manual)' }}"\n`
+			`run-name: "\${{ github.event_name == 'workflow_dispatch' && 'Deploy Sentinel (manual)' || github.event_name == 'push' && format('Deploy Sentinel: {0}', github.event.head_commit.message) || 'Deploy Sentinel' }}"\n`
 		);
+	});
+});
+
+describe("every thin caller", () => {
+	it("has exactly one run-name, after its name", () => {
+		const bad = Object.entries(WORKFLOW_TEMPLATES)
+			.filter(
+				([, text]) =>
+					(text.match(/^run-name:/gm) ?? []).length !== 1 || !/^name: [^\n]*\n\nrun-name: /m.test(text)
+			)
+			.map(([id]) => id);
+		expect(bad).toEqual([]);
 	});
 });
 

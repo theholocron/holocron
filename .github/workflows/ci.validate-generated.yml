@@ -6,6 +6,8 @@
 
 name: validate:generated
 
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Validate Generated: {0}', github.event.pull_request.title) || 'Validate Generated' }}"
+
 on: # yamllint disable-line rule:truthy
   pull_request:
 
