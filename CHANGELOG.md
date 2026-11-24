@@ -1,3 +1,9 @@
+## [5.0.0-alpha.535](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.534...v5.0.0-alpha.535) (2026-11-24)
+
+### Features
+
+* **ci:** ✨ run sync-incidents every ten minutes ([#2592](https://github.com/theholocron/holocron/issues/2592)) ([daf670b](https://github.com/theholocron/holocron/commit/daf670bc44524a04fc918025726df749f6e0e291)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
 ## [5.0.0-alpha.534](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.533...v5.0.0-alpha.534) (2026-11-24)
 
 ### Features
