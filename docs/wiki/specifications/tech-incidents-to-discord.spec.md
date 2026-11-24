@@ -1,6 +1,6 @@
 ---
 id: SPEC-0100
-status: draft
+status: accepted
 issue: theholocron/holocron#2366
 blocked-by: []
 related:
@@ -200,6 +200,15 @@ Small issues, in order; each ships its tests and docs.
 
 Issues 1 and 3 can start together; 5 and 6 should not be merged before 0 has confirmed the API.
 
+## Status
+
+Built and running (2026-11-23, #2592). The task polls every 10 minutes (not 15; question 2), with the heartbeat
+`HOLOCRON_HEARTBEAT_SYNC_INCIDENTS` (10 minute period, 30 minute grace). A manual `sync incidents` run against the live
+account and the `#incidents` forum worked: the post, its tag, the starter and default reactions, a rerun that changed
+nothing. A manual run of the scheduled workflow on `alpha`
+passed and the heartbeat recorded the ping. Creating incidents (a local command or a trigger) is out of scope here and is
+tracked in #2591.
+
 ## Open questions
 
 1. **Read-only key.** May the workflow hold `HOLOCRON_CHECKLY_TOKEN` in `ci` even though it can also write the status page,
@@ -210,10 +219,9 @@ Issues 1 and 3 can start together; 5 and 6 should not be merged before 0 has con
 
 ## Not verified
 
-- **The list and get incident endpoints were not exercised.** The earlier draft read them from the OpenAPI document, and for
-  this revision the API reference page for list incidents (a guessed URL) returned 404. The paths, the paging, and every
-  field and status name above are from the OpenAPI document and the incidents page, not from a live call. `@theholocron/checkly-client`
-  has no incident methods.
+- **The list and get incident endpoints** were first read from the OpenAPI document and the incidents page. A live run
+  (2026-11-23) has since read a real incident, with its updates, through them (`@theholocron/checkly-client`'s
+  `statusPages.incidents`); a rule-opened incident and paging past one page are still unexercised.
 - **Incident updates as separate objects:** the incidents page does not say so; only the OpenAPI document does.
 - **The statuses an update can have:** not named on the incidents page; `INVESTIGATING`, `IDENTIFIED`, `MONITORING` and
   `RESOLVED` come from the OpenAPI document.
