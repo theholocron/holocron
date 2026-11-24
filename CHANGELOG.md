@@ -1,3 +1,9 @@
+## [5.0.0-alpha.534](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.533...v5.0.0-alpha.534) (2026-11-24)
+
+### Features
+
+* **notifications:** ✨ [#incidents](https://github.com/theholocron/holocron/issues/incidents) forum reactions and bot-only new posts ([#2588](https://github.com/theholocron/holocron/issues/2588)) ([6d77d6e](https://github.com/theholocron/holocron/commit/6d77d6e20755ea02e110fd800d3c29772d1c181b)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
 ## [5.0.0-alpha.533](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.532...v5.0.0-alpha.533) (2026-11-24)
 
 ### Bug Fixes
