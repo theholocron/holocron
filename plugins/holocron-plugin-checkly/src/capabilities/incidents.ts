@@ -15,14 +15,14 @@ import type {
 
 import type { ChecklyClient, Incident, IncidentSummary, StatusRuleImpact } from "../rest.js";
 
-const IMPACTS: Record<StatusRuleImpact, MonitoringIncidentImpact> = {
+export const IMPACTS: Record<StatusRuleImpact, MonitoringIncidentImpact> = {
 	UNDER_MAINTENANCE: "maintenance",
 	DEGRADED_PERFORMANCE: "degraded",
 	PARTIAL_OUTAGE: "partial",
 	MAJOR_OUTAGE: "major",
 };
 
-function statusOf(status: string | undefined): MonitoringIncidentStatus {
+export function statusOf(status: string | undefined): MonitoringIncidentStatus {
 	const lower = (status ?? "investigating").toLowerCase();
 	return lower === "identified" || lower === "monitoring" || lower === "resolved" ? lower : "investigating";
 }
