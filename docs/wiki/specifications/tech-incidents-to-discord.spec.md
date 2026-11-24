@@ -211,8 +211,11 @@ tracked in #2591.
 
 ## Open questions
 
-1. **Read-only key.** May the workflow hold `HOLOCRON_CHECKLY_TOKEN` in `ci` even though it can also write the status page,
-   or is a separate read-only key needed (and does Checkly offer one)?
+1. **Read-only key.** Answered (2026-11-24): the workflow holds `HOLOCRON_CHECKLY_TOKEN` in `ci` and the key can also write.
+   A personal key carries no role of its own, the account has one user, and a Read Only service key needs a plan with roles,
+   so no narrower key is available. The decision is to accept it: the key is a repository secret read only by this
+   repository's workflows. `probe checkly token --environment ci` checks the key reads a status page and its incidents, and
+   says it cannot tell a Read Only key from a writing one; swap in a Read Only key when the plan allows one.
 2. **Actions minutes.** Is a 15-minute schedule (about 96 runs a day) acceptable, or should it be 30 minutes or hourly?
 3. **`maintenance` tag.** Is a fifth tag worth it, or should maintenance share `investigating`'s or `monitoring`'s tag?
 4. **Paid plan.** Is it acceptable to build and test against hand-opened incidents only, leaving rule-opened ones unverified?
@@ -226,7 +229,7 @@ tracked in #2591.
 - **The statuses an update can have:** not named on the incidents page; `INVESTIGATING`, `IDENTIFIED`, `MONITORING` and
   `RESOLVED` come from the OpenAPI document.
 - Whether `created_at` and `updated_at` carry a time of day (the schema says `date`).
-- Whether Checkly can issue a read-only key, and what the free plan's key may read.
+- Whether a Read Only key can read a status page's incidents: no such key was available to try. The key in use reads them.
 - That the read API answers on this account's plan, and what a real hand-opened incident looks like.
 - The URL of one incident on the public page (no field shows it, so messages link the page).
 - That Checkly has no push feed of its own (RSS, Slack-format webhook); a web search summary mentioned some and it was not
