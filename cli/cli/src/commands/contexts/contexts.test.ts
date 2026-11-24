@@ -104,6 +104,9 @@ const EVERY_COMMAND = [
 	"start work",
 	"update work",
 	"close work",
+	"new incident",
+	"update incident",
+	"close incident",
 ];
 
 /**

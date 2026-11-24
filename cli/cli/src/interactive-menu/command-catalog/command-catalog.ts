@@ -8,6 +8,7 @@ import { authUnsetEntry } from "../../commands/auth/auth-unset.entry.js";
 import { authExportEntry } from "../../commands/auth-export/auth-export.entry.js";
 import { cleanupPreviewEntry } from "../../commands/cleanup-preview/cleanup-preview.entry.js";
 import { cloneEntry } from "../../commands/clone/clone.entry.js";
+import { closeIncidentEntry } from "../../commands/close-incident/close-incident.entry.js";
 import { closeWorkEntry } from "../../commands/close-work/close-work.entry.js";
 import { configShowEntry } from "../../commands/config-show/config-show.entry.js";
 import { deployEntry } from "../../commands/deploy/deploy.entry.js";
@@ -41,6 +42,7 @@ import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring
 import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
 import { newDomainEntry } from "../../commands/new-domain/new-domain.entry.js";
+import { newIncidentEntry } from "../../commands/new-incident/new-incident.entry.js";
 import { newWorkEntry } from "../../commands/new-work/new-work.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
@@ -85,6 +87,7 @@ import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js
 import { syncRequestsEntry } from "../../commands/sync-requests/sync-requests.entry.js";
 import { syncToolingEntry } from "../../commands/sync-tooling/sync-tooling.entry.js";
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
+import { updateIncidentEntry } from "../../commands/update-incident/update-incident.entry.js";
 import { updateWorkEntry } from "../../commands/update-work/update-work.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
 import { upgradeNodeEntry } from "../../commands/upgrade-node/upgrade-node.entry.js";
@@ -162,6 +165,9 @@ const registry = createCommandRegistry(
 		startWorkEntry,
 		updateWorkEntry,
 		closeWorkEntry,
+		newIncidentEntry,
+		updateIncidentEntry,
+		closeIncidentEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,
