@@ -164,6 +164,9 @@ export const COMMAND_CONTEXTS = {
 	"update work": "workspace",
 	// Finds and readies the pull request (`source`), reads blockers and closes the issue (`issues`), withdraws the spec's post (`notifications`) and runs git, so those packages must resolve.
 	"close work": "workspace",
+	"new incident": "workspace",
+	"update incident": "workspace",
+	"close incident": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**
