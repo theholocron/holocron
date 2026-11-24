@@ -121,6 +121,7 @@ components from the config, speak a provider-neutral vocabulary, keep the marker
 incident` posts one. `PUT .../incidents/{incidentId}` renames the incident and sets its component impacts. The CLI's
   `checkly incidents create` works on the older "services" model, so it refuses this page ("no services").
 - **Verified in step 0 (2026-11-24):** `POST /v3/status-pages/{id}/incidents` with one `INVESTIGATING` update and no
-  component impacts answers `201`; the description is stored verbatim. Whether `notifySubscribers: true` emails a subscriber is not tried.
-  An HTML comment in the description shows as plain text on the public page, so no marker is used.
+  component impacts answers `201`; the description is stored verbatim. The maintainer reports that an email reached a subscribed address (which update carried
+  `notifySubscribers: true` was not recorded). A `RESOLVED` update posted to the incident closed it, and `sync incidents` then
+  showed the update and closed the `#incidents` post; the first scheduled run also fired. An HTML comment in the description shows as plain text on the public page, so no marker is used.
 - Whether a created incident appears in the list `sync incidents` reads with the fields it expects (`impacts`, `updates`).
