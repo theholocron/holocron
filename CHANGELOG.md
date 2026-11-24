@@ -1,3 +1,9 @@
+## [5.0.0-alpha.533](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.532...v5.0.0-alpha.533) (2026-11-24)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 put the provider's answer in the PR feed's failure reason ([#2587](https://github.com/theholocron/holocron/issues/2587)) ([2912f8e](https://github.com/theholocron/holocron/commit/2912f8ea00947c33f0ca4dffb0b19f4031cb5b7e)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
 ## [5.0.0-alpha.532](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.531...v5.0.0-alpha.532) (2026-11-23)
 
 ### Features
