@@ -44,9 +44,9 @@ Verb first, like `new issue`, `update issue` and `close work`:
   `RESOLVED`), so a post's tag and the command agree.
 - **Safe by default.** Each asks first unless `--yes` or `--dry-run`, and with no terminal and no `--yes` it is a
   `NonInteractiveError`. `--dry-run` prints the incident it would open and writes nothing.
-- **Subscribers.** Checkly's incident update carries `notifySubscribers`, and an incident is announced to the page's
-  subscribers unless it is turned off. The commands follow that: they notify, `--no-notify` turns it off (the way to try
-  one out), and the confirmation says whether subscribers will be told.
+- **Subscribers.** Each incident update carries `notifySubscribers`, which the API defaults to `false` (the UI announces
+  an incident, the API does not unless asked). The commands send it explicitly: `true` unless `--no-notify` (the way to
+  try one out), and the confirmation says whether subscribers will be told.
 - **No duplicates, by a hidden marker.** The first update of an incident the command opens ends with
   `<!-- holocron:incident <key> -->`, where `<key>` is the first 12 hex characters of the SHA-256 of the page id and the
   title (trimmed, lower case, spaces collapsed). `new incident` reads the page's open incidents first and refuses when one
@@ -92,10 +92,10 @@ reached, so a later trigger calls the same function.
 
 ## Decisions (2026-11-24)
 
-1. **Subscribers.** Checkly's reference for opening an incident on a v3 page takes one update with `notifySubscribers`, and
-   the incident guide says subscribers are told unless it is turned off, so the commands notify by default and take
-   `--no-notify`. Read from the documentation, not tried: step 0 opens a throwaway incident with `--no-notify` and then one
-   that notifies, on a page with a subscriber of the maintainer's own.
+1. **Subscribers.** Checkly's reference for opening an incident on a v3 page takes one update with `notifySubscribers`
+   (default `false` in the API), so the commands send it explicitly, `true` unless `--no-notify`. Read from the
+   documentation, not tried: step 0 opens a throwaway incident that does not notify and then one that does, on a page with
+   a subscriber of the maintainer's own.
 2. **Automated trigger.** None for now. The hard part is when to close the incident again, so it is its own spec if it is
    wanted.
 3. **Who may run it.** Anyone who can dispatch workflows in the repository. The maintainer is the only one today; an
@@ -112,9 +112,15 @@ components from the config, speak a provider-neutral vocabulary, keep the marker
 - **Every write.** `@theholocron/checkly-client` has only `list` and `get` for incidents. The create and update paths, their
   bodies, the incident statuses an update may carry and the response are not exercised.
 - Whether a free-plan key may create incidents at all (the rules answer `403`).
-- **The create request.** From Checkly's reference, not a call: the body takes a `name` (at most 255 characters), exactly
-  one update that opens the incident and the component impacts (a component left out is `OPERATIONAL`); the response gives
-  the incident's id and its last update status. The default of `notifySubscribers` when the field is left out is not stated.
+- **The create request.** From Checkly's reference, not a call: `POST /v3/status-pages/{id}/incidents` takes a `name` (at
+  most 255 characters), exactly one update that opens the incident (`description`, `status`, `notifySubscribers`,
+  optional `publicIncidentUpdateDate`) and an optional array of component impacts (`componentId`, `status`; a component left
+  out is `OPERATIONAL`); the response (201) gives the incident's id, its last update status and its updates. The impact
+  word in this spec is the API's `status` of a component impact, and the message is the update's `description`. An update
+  is `POST .../incidents/{incidentId}/incident-updates` (`description`, `status`, `notifySubscribers`, optional
+  `publicIncidentUpdateDate`), and a `RESOLVED` update closes the incident: there is no resolve endpoint, so `close
+incident` posts one. `PUT .../incidents/{incidentId}` renames the incident and sets its component impacts. The CLI's
+  `checkly incidents create` works on the older "services" model, so it refuses this page ("no services").
 - **The marker.** Whether Checkly shows an HTML comment in an update's message as text, hides it or strips it; if it shows
   it, the marker is written some other way (a trailing line of its own, or the incident's name). `sync incidents` must
   strip it either way.
