@@ -9,6 +9,8 @@ export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	// What Codecov's own uploader reads; the vite-config preset falls back to it after `HOLOCRON_CODECOV_UPLOAD_TOKEN`.
 	// It cannot go through `holocronEnv()`, which would also read the prefixed name of a different credential.
 	"CODECOV_TOKEN",
+	// What Vercel sends as `Authorization: Bearer <value>` on a cron call when the project has the variable; Sentinel's `/api/scheduled` checks it.
+	"CRON_SECRET",
 	"DEBUG",
 	// A convention many tools set for their own reasons; `environment.get()` reads it only after the Holocron names.
 	"ENV",

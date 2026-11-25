@@ -6,7 +6,7 @@
  *
  * Output:
  *   .vercel-deploy/
- *     api/webhook.mjs   — the Vercel Function entry point (checked in, copied verbatim)
+ *     api/webhook.mjs   — the Vercel Function entry point (checked in, copied verbatim; any other api/*.mjs too)
  *     dist/index.mjs    — the package's built library (run `delivery.build` first)
  *     vercel.json       — checked in, copied verbatim: `functions["api/webhook.mjs"]
  *                         .includeFiles: "node_modules/**"` forces Vercel to ship the
@@ -50,7 +50,7 @@
  * instead (`pinAlphaReleases()`); the lookup fails when npm cannot be reached, rather than staging the stale version.
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { stringifyJson } from "@theholocron/json-utils";
@@ -136,6 +136,12 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 		mkdirSync(join(outDir, "api"), { recursive: true });
 		mkdirSync(join(outDir, "dist"), { recursive: true });
 		copyFileSync(join(packageDir, "api", "webhook.mjs"), join(outDir, "api", "webhook.mjs"));
+		// Any other function entry beside the webhook one (Sentinel's `scheduled.mjs`, which a cron entry calls) ships too.
+		for (const entry of readdirSync(join(packageDir, "api")).filter(
+			(f) => f.endsWith(".mjs") && f !== "webhook.mjs"
+		)) {
+			copyFileSync(join(packageDir, "api", entry), join(outDir, "api", entry));
+		}
 		copyFileSync(distIndex, join(outDir, "dist", "index.mjs"));
 		copyFileSync(join(packageDir, "vercel.json"), join(outDir, "vercel.json"));
 

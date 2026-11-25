@@ -5,6 +5,16 @@
     "api/webhook.mjs": {
       "includeFiles": "node_modules/**",
       "maxDuration": 300
+    },
+    "api/scheduled.mjs": {
+      "includeFiles": "node_modules/**",
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/scheduled?task=sync-incidents",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }
