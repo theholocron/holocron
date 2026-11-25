@@ -172,7 +172,58 @@ describe("CloudflareDns.ensureRelaySource", () => {
 	});
 });
 
+const masked = { ...destination, url: "https://comlink.example.dev/..." };
+
+describe("CloudflareDns.ensureRelaySource, masked destinations", () => {
+	it("finds a destination whose URL Cloudflare masked, and creates nothing on a rerun", async () => {
+		const { dns, calls } = make([cfOk([masked]), cfOk([policy])]);
+		const result = await dns.ensureRelaySource(input);
+		expect(result).toEqual({ created: false, updated: [] });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("does not match a destination on another host or with another name", async () => {
+		const { dns, calls } = make([
+			cfOk([
+				{ ...masked, url: "https://else.example.dev/..." },
+				{ ...masked, id: "d2", name: "Other" },
+			]),
+			cfOk({ id: "d3" }),
+			cfOk([]),
+			cfOk({ id: "p1" }),
+		]);
+		const result = await dns.ensureRelaySource(input);
+		expect(result.created).toBe(true);
+		expect(calls[1]?.method).toBe("POST");
+	});
+
+	it("uses the newest of several matching destinations and says the others exist", async () => {
+		const old = { ...masked, id: "old", created_at: "2026-01-01T00:00:00Z" };
+		const newest = { ...masked, id: "new", created_at: "2026-03-01T00:00:00Z" };
+		const mid = { ...masked, id: "mid", created_at: "2026-02-01T00:00:00Z" };
+		const { dns, calls } = make([cfOk([old, newest, mid]), cfOk([]), cfOk({ id: "p1" })]);
+		const result = await dns.ensureRelaySource(input);
+		expect(result.created).toBe(false);
+		expect(result).not.toHaveProperty("secret");
+		expect(result.todo).toHaveLength(1);
+		expect(result.todo?.[0]).toMatch(/old, new, mid/);
+		expect(result.todo?.[0]).toMatch(/newest \(new\)/);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "POST"]);
+		expect((calls[2]?.body as { mechanisms: unknown }).mechanisms).toEqual({ webhooks: [{ id: "new" }] });
+	});
+});
+
 describe("CloudflareDns.inspectRelaySource", () => {
+	it("finds the masked destination and a policy attached to any matching id", async () => {
+		const second = { ...masked, id: "d2" };
+		const { dns } = make([cfOk([masked, second]), cfOk([{ ...policy, mechanisms: { webhooks: [{ id: "d2" }] } }])]);
+		expect(await dns.inspectRelaySource(input)).toEqual({
+			exists: true,
+			enabled: true,
+			events: ["incident_alert"],
+		});
+	});
+
 	it("says there is no webhook when none has the URL", async () => {
 		const { dns } = make([cfOk([])]);
 		expect(await dns.inspectRelaySource(input)).toEqual({ exists: false });
