@@ -243,16 +243,26 @@ export async function redeliverAppDelivery(
  * when the App is not installed there (404). A caller with no webhook to read the installation id from (a scheduled
  * job) finds it here before it asks for an installation token. Needs only the App's own JWT.
  *
+ * `repo` must be exactly `owner/name`: anything else (extra segments, an empty segment, `.` or `..`) throws before a
+ * request is made, and each segment is URL-encoded, so a malformed value can never reach another route.
+ *
  * https://docs.github.com/en/rest/apps/apps#get-a-repository-installation-for-the-authenticated-app
+ *
+ * @throws Error when `repo` is not `owner/name`.
  */
 export async function getRepoInstallation(
 	creds: GitHubAppCredentials,
 	repo: string,
 	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
 ): Promise<GitHubAppInstallation | undefined> {
+	const parts = repo.split("/");
+	if (parts.length !== 2 || parts.some((p) => p === "" || p === "." || p === "..")) {
+		throw new Error(`a repository is "owner/name", not "${repo}"`);
+	}
+	const [owner, name] = parts.map(encodeURIComponent);
 	let raw: Raw;
 	try {
-		raw = (await appGet(creds, `/repos/${repo}/installation`, opts)) as Raw;
+		raw = (await appGet(creds, `/repos/${owner}/${name}/installation`, opts)) as Raw;
 	} catch (err) {
 		if (err instanceof ProviderApiError && err.status === 404) return undefined;
 		throw err;

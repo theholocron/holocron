@@ -315,6 +315,7 @@ describe("getRepoInstallation", () => {
 			},
 		]);
 		const found = await getRepoInstallation(CREDS, "theholocron/holocron", { baseUrl: BASE, fetch });
+		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.url).toBe(`${BASE}/repos/theholocron/holocron/installation`);
 		expect(calls[0]?.headers.authorization).toMatch(/^Bearer /);
 		expect(found).toEqual({
@@ -335,6 +336,17 @@ describe("getRepoInstallation", () => {
 			events: [],
 			suspended: false,
 		});
+	});
+
+	it("encodes each segment and refuses anything that is not exactly owner/name, without a request", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: 1 } }]);
+		await getRepoInstallation(CREDS, "my org/re po", { baseUrl: BASE, fetch });
+		expect(calls[0]?.url).toBe(`${BASE}/repos/my%20org/re%20po/installation`);
+		for (const bad of ["", "owner", "a/b/c", "/repo", "owner/", "../x", "owner/..", "./repo", "owner/."]) {
+			const err = await getRepoInstallation(CREDS, bad, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
+			expect((err as Error).message).toBe(`a repository is "owner/name", not "${bad}"`);
+		}
+		expect(calls).toHaveLength(1);
 	});
 
 	it("answers undefined when the App is not installed there, and rethrows any other failure", async () => {
