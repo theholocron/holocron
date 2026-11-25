@@ -1,3 +1,9 @@
+## [5.0.0-alpha.538](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.537...v5.0.0-alpha.538) (2026-11-25)
+
+### Chores
+
+* **deps:** bump the all-actions group across 4 directories with 6 updates ([#2627](https://github.com/theholocron/holocron/issues/2627)) ([327ca6f](https://github.com/theholocron/holocron/commit/327ca6ff5a880ce527dac374e995620cb58f428a))
+
 ## [5.0.0-alpha.537](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.536...v5.0.0-alpha.537) (2026-11-24)
 
 ### Features
