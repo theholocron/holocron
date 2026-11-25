@@ -14,6 +14,7 @@ function gated() {
 	return { run, gates, count: () => runs };
 }
 
+// Throwaway change to exercise the shadow `ci / Required checks (sentinel)` run. Close this PR unmerged.
 describe("coalesce", () => {
 	it("runs once for a lone call and forgets the key afterwards", async () => {
 		const flights = new Map();
