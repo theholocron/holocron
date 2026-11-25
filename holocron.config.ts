@@ -145,6 +145,7 @@ export default defineConfig({
 		"label",
 		"reconcile-projects",
 		"sync-incidents",
+		"open-incident",
 		"remind-doctor",
 		"measure:docs",
 		"validate:deps",
