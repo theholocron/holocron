@@ -237,3 +237,31 @@ export async function redeliverAppDelivery(
 ): Promise<void> {
 	await appFetch(creds, `/app/hook/deliveries/${deliveryId}/attempts`, opts, "POST");
 }
+
+/**
+ * The installation of the App this JWT identifies on one repository (`GET /repos/{repo}/installation`), or `undefined`
+ * when the App is not installed there (404). A caller with no webhook to read the installation id from (a scheduled
+ * job) finds it here before it asks for an installation token. Needs only the App's own JWT.
+ *
+ * https://docs.github.com/en/rest/apps/apps#get-a-repository-installation-for-the-authenticated-app
+ */
+export async function getRepoInstallation(
+	creds: GitHubAppCredentials,
+	repo: string,
+	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
+): Promise<GitHubAppInstallation | undefined> {
+	let raw: Raw;
+	try {
+		raw = (await appGet(creds, `/repos/${repo}/installation`, opts)) as Raw;
+	} catch (err) {
+		if (err instanceof ProviderApiError && err.status === 404) return undefined;
+		throw err;
+	}
+	return {
+		id: Number(raw.id),
+		account: account(raw.account),
+		permissions: (raw.permissions as Record<string, string> | undefined) ?? {},
+		events: (raw.events as string[] | undefined) ?? [],
+		suspended: typeof raw.suspended_at === "string",
+	};
+}

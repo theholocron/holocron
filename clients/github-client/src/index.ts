@@ -31,6 +31,7 @@ export {
 } from "./app-auth/app-auth.js";
 export {
 	getApp,
+	getRepoInstallation,
 	type GitHubApp,
 	type GitHubAppAccount,
 	type GitHubAppDelivery,
