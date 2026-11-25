@@ -20,7 +20,7 @@ describe("environmentLayers", () => {
 		expect(environmentLayers(slug, layer)).toEqual([{ name: `${slug} - ${suffix}`, optional: false }]);
 	});
 
-	it("reads none in the test layer", () => {
-		expect(environmentLayers(slug, "test")).toEqual([]);
+	it.each(["test", "preview"] as const)("reads none in the %s layer", (layer) => {
+		expect(environmentLayers(slug, layer)).toEqual([]);
 	});
 });

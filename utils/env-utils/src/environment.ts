@@ -1,11 +1,11 @@
 import type { EnvLogger } from "./types.js";
 
 /** The canonical environment names. */
-export const ENVIRONMENTS = ["local", "development", "ci", "test", "production"] as const;
+export const ENVIRONMENTS = ["local", "development", "ci", "test", "preview", "production"] as const;
 /** The environment used when none is set or the value is not recognised: `"production"`. */
 export const DEFAULT_ENVIRONMENT: Environment = "production";
-/** The environments that count as deployed: `test` and `production`. */
-export const DEPLOYED_ENVIRONMENTS = new Set<Environment>(["test", "production"]);
+/** The environments that count as deployed: `test`, `preview` and `production`. */
+export const DEPLOYED_ENVIRONMENTS = new Set<Environment>(["test", "preview", "production"]);
 
 /**
  * Normalize a string into a canonical Environment.
@@ -25,6 +25,8 @@ function normalizeEnvironment(value: string): Environment | undefined {
 		stg: "test",
 		staging: "test",
 		qa: "test",
+
+		preview: "preview",
 
 		prod: "production",
 		prd: "production",
@@ -63,9 +65,9 @@ export const environment = {
 	get: getEnvironment,
 	/** Maps a string or alias (`prod`, `prd`, `staging`, `qa`, `dev`, ...) to its canonical {@link Environment}, or `undefined` when it is not recognised. */
 	normalize: normalizeEnvironment,
-	/** Whether the current environment is a deployed one (`test` or `production`). */
+	/** Whether the current environment is a deployed one (`test`, `preview` or `production`). */
 	isDeployed: (logger?: Pick<EnvLogger, "warn">) => DEPLOYED_ENVIRONMENTS.has(getEnvironment(logger)),
 };
 
-/** A canonical environment name: `"local"`, `"development"`, `"ci"`, `"test"` or `"production"`. */
+/** A canonical environment name: `"local"`, `"development"`, `"ci"`, `"test"`, `"preview"` or `"production"`. */
 export type Environment = (typeof ENVIRONMENTS)[number];

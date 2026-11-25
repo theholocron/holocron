@@ -42,7 +42,7 @@ export default defineConfig({
 });
 ```
 
-A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` layer reads none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
+A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` and `preview` layers read none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
 
 The rest of the config names a layer the same way (`layer: "ci"` on a sync entry, `vault: ["1password", { layer: "prod" }]`, `holocron sync secrets --env prod`; see [sync secrets](/holocron/commands/sync-secrets/)), through the same derivation.
 

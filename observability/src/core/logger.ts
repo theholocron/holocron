@@ -52,11 +52,11 @@ export const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"
 
 /**
  * Runtime environment a logger was constructed in: `local` (a laptop), `development` (a development instance), `ci`,
- * `test` (a deployed pre-production instance) or `production`. It is bound on every line as `env`, so one Axiom dataset can hold all of them and a query filters by it.
+ * `test` (a deployed pre-production instance), `preview` (a preview deployment) or `production`. It is bound on every line as `env`, so one Axiom dataset can hold all of them and a query filters by it.
  * Detection lives in `@theholocron/env-utils` (`detectEnvironment`); this union is written out here because `/core`
  * has no dependencies, and a type test keeps it equal to env-utils' `Environment`.
  */
-export type LogEnv = "local" | "development" | "ci" | "test" | "production";
+export type LogEnv = "local" | "development" | "ci" | "test" | "preview" | "production";
 
 /**
  * The disabled-logging path made explicit — one shared no-op instead of a

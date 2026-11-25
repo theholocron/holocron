@@ -3,8 +3,8 @@ import type { Environment } from "@theholocron/env-utils/lookup";
 import { type EnvironmentLayer, layerEnvironment } from "../layer-environment/index.js";
 import type { EnvironmentCandidate } from "./environment-layers.type.js";
 
-/** The suffix each layer's Environment carries: `<org/repo> - <suffix>`. `test` has none. */
-const SUFFIX: Record<Exclude<Environment, "test">, EnvironmentLayer> = {
+/** The suffix each layer's Environment carries: `<org/repo> - <suffix>`. `test` and `preview` have none. */
+const SUFFIX: Record<Exclude<Environment, "test" | "preview">, EnvironmentLayer> = {
 	local: "local",
 	development: "dev",
 	ci: "ci",
@@ -14,11 +14,11 @@ const SUFFIX: Record<Exclude<Environment, "test">, EnvironmentLayer> = {
 /**
  * The Environments a layer reads, in the order they are tried (#2063, #2058). A machine (`local`) reads
  * `<slug> - local` and then `<slug> - dev`: that is the only fallback there is. `development` reads `- dev`, `ci`
- * reads `- ci` and `production` reads `- prod`; a missing name is a missing name. `test` reads none. Only `- local`
+ * reads `- ci` and `production` reads `- prod`; a missing name is a missing name. `test` and `preview` read none (a preview deployment gets its values from the deployment, not from a vault). Only `- local`
  * is optional.
  */
 export function environmentLayers(slug: string, layer: Environment): EnvironmentCandidate[] {
-	if (layer === "test") return [];
+	if (layer === "test" || layer === "preview") return [];
 	const candidate = (suffix: EnvironmentLayer, optional: boolean): EnvironmentCandidate => ({
 		name: layerEnvironment(slug, suffix),
 		optional,
