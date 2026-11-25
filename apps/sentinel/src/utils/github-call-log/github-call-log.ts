@@ -1,4 +1,5 @@
 import { githubDeliveryFields, recordGitHubCall } from "../github-delivery-calls/index.js";
+import { recordQuota } from "../github-quota/index.js";
 import type { GitHubCallLogger } from "./github-call-log.type.js";
 
 /** The message every call is logged under, so a query can count them. */
@@ -57,14 +58,19 @@ export function loggedFetch(logger: GitHubCallLogger, base: typeof fetch = globa
 			const refused = res.status === 403 || res.status === 429;
 			const route = githubRoute(url);
 			recordGitHubCall(route.startsWith("/repos/:owner/:repo/contents"));
+			const remaining = numeric(res, "x-ratelimit-remaining");
+			const reset = numeric(res, "x-ratelimit-reset");
+			// Only the installation's own calls say how much of its quota is left: the call that makes its token is
+			// counted against the App, not the installation.
+			if (route.startsWith("/repos/")) recordQuota(remaining, reset);
 			const fields = {
 				...githubDeliveryFields(),
 				method: init?.method ?? "GET",
 				route,
 				status: res.status,
-				remaining: numeric(res, "x-ratelimit-remaining"),
+				remaining,
 				limit: numeric(res, "x-ratelimit-limit"),
-				reset: numeric(res, "x-ratelimit-reset"),
+				reset,
 				resource: res.headers.get("x-ratelimit-resource") ?? undefined,
 				retryAfter: numeric(res, "retry-after"),
 			};

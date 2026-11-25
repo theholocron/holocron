@@ -228,6 +228,7 @@ import {
 } from "../actions/index.js";
 import { loggedFetch } from "../utils/github-call-log/index.js";
 import { describeGitHubDelivery, logGitHubDelivery, runWithGitHubCalls } from "../utils/github-delivery-calls/index.js";
+import { currentQuota, quotaIsLow } from "../utils/github-quota/index.js";
 import {
 	createErrorReporter,
 	declaresRepoValidation,
@@ -528,6 +529,20 @@ async function dispatch(event: SentinelEvent, env: Env): Promise<Response> {
 		// always repo-scoped (webhook.ts sets `repo` for both) — kept as a
 		// defensive guard rather than a non-null assertion.
 		return json({ handled: false, reason: `${event.type}: no repo in event` });
+	}
+
+	// When the installation's quota is below the reserve, only the checks that gate a merge run; everything that merely
+	// reports (the feed, the board, area labels, the `ci` aggregate) waits for the window to reset, because a burst of it
+	// once used the whole quota and left DCO and the other required checks unposted.
+	if (quotaIsLow()) {
+		logger.warn({ repo, type: event.type, quota: currentQuota() }, "quotaReserve: only the required checks run");
+		const gating = !(
+			event.type === "issues.area" ||
+			CI_AGGREGATE_ONLY_EVENTS.has(event.type) ||
+			FEED_ONLY_EVENTS.has(event.type)
+		);
+		if (!gating) return json({ handled: false, reason: "quota is reserved for the required checks" });
+		if (toPrFeedTrigger(event)) return handleChecks(event, repo, env);
 	}
 
 	// The #prs feed (holocron#1833). A review, a completed `ci / Required checks` and the pull_request actions only the

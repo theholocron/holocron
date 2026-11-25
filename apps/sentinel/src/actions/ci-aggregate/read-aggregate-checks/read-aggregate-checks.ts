@@ -3,8 +3,12 @@ import { aggregateChecks } from "@theholocron/astromech";
 import { validateConfig as defaultValidateConfig } from "../../../utils/validate-config/index.js";
 import type { ReadAggregateChecksInput, ReadAggregateChecksResult } from "./read-aggregate-checks.type.js";
 
-/** How long a successful read is reused. A config merged a minute ago waits at most this long to take effect. */
-export const AGGREGATE_CHECKS_TTL_MS = 5 * 60_000;
+/**
+ * How long a successful read is reused. A config merged a minute ago waits at most this long to take effect. It is
+ * longer than the config's own cache because a burst of finished checks lands on many cold instances, and each one's
+ * first read costs about 18 calls: in the first shadow run 95 cold reads were 47% of all the calls of the leaf checks.
+ */
+export const AGGREGATE_CHECKS_TTL_MS = 30 * 60_000;
 
 const processCache = new Map<string, { at: number; value: ReadAggregateChecksResult }>();
 
