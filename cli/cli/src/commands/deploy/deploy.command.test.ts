@@ -8,8 +8,10 @@ const runDeployFromFiles = vi.hoisted(() => vi.fn());
 const runCleanupPreview = vi.hoisted(() => vi.fn());
 const deployOnRelease = vi.hoisted(() => vi.fn());
 const recordDeploys = vi.hoisted(() => vi.fn());
+const deployApp = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./index.js", () => ({ runDeploy, runDeployFromFiles }));
+vi.mock("./deploy-app.js", () => ({ deployApp }));
 vi.mock("../cleanup-preview/index.js", () => ({ runCleanupPreview }));
 vi.mock("@theholocron/astromech", () => ({ deployOnRelease, recordDeploys }));
 vi.mock("../../observability/logger/index.js", async (importActual) => ({
@@ -44,6 +46,7 @@ beforeEach(() => {
 	runCleanupPreview.mockResolvedValue({ status: "ok" });
 	deployOnRelease.mockResolvedValue({ status: "ok" });
 	recordDeploys.mockReturnValue({ status: "ok" });
+	deployApp.mockResolvedValue(false);
 });
 afterEach(() => void (process.exitCode = undefined));
 
@@ -102,6 +105,37 @@ describe("deploy", () => {
 		tokenContext.mockReturnValue(null);
 		await go(["deploy", "main", "--project-id", "p1"]);
 		expect(runDeploy).not.toHaveBeenCalled();
+	});
+});
+
+describe("deploy <app>", () => {
+	it("hands an app name, or --env, to the app path and stops when it handled the run", async () => {
+		deployApp.mockResolvedValue(true);
+		await go(["deploy", "sentinel", "--env", "prod"]);
+		expect(deployApp.mock.calls[0]![0]).toMatchObject({ branch: "sentinel", env: ["prod"], cwd: "/repo" });
+		await go(["deploy", "--environment", "production", "--env", "preview"]);
+		expect(deployApp.mock.calls[1]![0]).toMatchObject({ env: ["production", "preview"] });
+		// One value per flag: the app's name after --env is the name, not a second environment.
+		await go(["deploy", "--env", "production", "sentinel"]);
+		expect(deployApp.mock.calls[2]![0]).toMatchObject({ branch: "sentinel", env: ["production"] });
+		await go(["deploy", "sentinel"]);
+		expect(deployApp).toHaveBeenCalledTimes(4);
+		expect(runDeploy).not.toHaveBeenCalled();
+		expect(reportError).not.toHaveBeenCalled();
+	});
+
+	it("goes on to deploy the branch when the value is not an app", async () => {
+		await go(["deploy", "main", "--project-id", "p1"]);
+		expect(deployApp).not.toHaveBeenCalled();
+		await go(["deploy", "main"]);
+		expect(deployApp).toHaveBeenCalledTimes(1);
+		expect(reportError).toHaveBeenCalledWith("deploy: missing required argument --project-id");
+	});
+
+	it("does not look for an app when deploying from files, or with no branch and no --env", async () => {
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		await go(["deploy"]);
+		expect(deployApp).not.toHaveBeenCalled();
 	});
 });
 

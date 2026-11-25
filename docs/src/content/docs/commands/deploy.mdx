@@ -5,6 +5,7 @@ description: Trigger a deployment via the configured deployment capability.
 
 ```bash
 holocron deploy <branch> --project-id <id> [--target production|staging] [--dry-run]
+holocron deploy <app> --env <environment>... [--dry-run]
 ```
 
 Triggers a deployment of a git branch via the configured `deployment` capability (e.g. Vercel). Omit `--target` for a branch preview deployment.
@@ -30,6 +31,36 @@ holocron deploy main --project-id prj_xxx --target production
 # Staging deploy (dry-run)
 holocron deploy main --project-id prj_xxx --target staging --dry-run
 ```
+
+## Deploying an app by name
+
+`holocron deploy <app> --env prod` deploys one of the workspace's apps (a package under `apps/`) without its identifiers
+written out (spec `tool-app-deploy-sync`, #2608). Run it from the repository root, or from inside the app's folder and
+leave the name off.
+
+```bash
+holocron deploy sentinel --env prod
+cd apps/sentinel && holocron deploy --env production
+holocron deploy sentinel --env production --env preview --dry-run
+```
+
+| Option                   | Description                                                                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `--env`, `--environment` | An environment to deploy to: `production` (or `prod`) or `preview`. Repeat the flag for more than one; production goes first. Required. |
+
+The values are the standard environments of `@theholocron/env-utils`, with their aliases. `local`, `development`, `ci` and `test` are refused: an app is never deployed to them.
+
+Nothing is written into the command. The app is found under the workspace by its folder's name, the project takes that
+name, and the app's own `holocron.config` says which `deployment` provider it uses and the `domain` it serves. Before
+anything is built, the project must serve that domain (`Deployment.listDomains()`); if it does not, the command fails
+with both names and writes nothing. The app is then built (`pnpm run build`), staged (`deploy stage`) and its files
+deployed (`deploy --files`), so the result is what the app's `deploy` script did.
+
+An app with no `deployment` provider has nothing to deploy, and the command says so and exits 0: Comlink's Worker is
+made by `setup notifications`, which has the channel webhooks it needs, and
+Council is an Obsidian plugin installed by hand. `--dry-run` runs the domain check, then lists what it would do.
+
+A first value that is not an app's name is a branch, exactly as before.
 
 ## Authentication
 

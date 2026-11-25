@@ -12,6 +12,7 @@ import { type GlobalArgs } from "../global-args/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { type DeployArgs, deployArgs } from "./deploy.args.js";
+import { deployApp } from "./deploy-app.js";
 import { deployOnReleaseCommand } from "./deploy-on-release.command.js";
 import { runDeploy, runDeployFromFiles } from "./index.js";
 
@@ -26,6 +27,12 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 			.command(deployOnReleaseCommand as never)
 			.command(deployStageCommand as never),
 	handler: async (argv) => {
+		// `deploy <app> --env prod`: an app of the workspace by name, or the one the working folder is in (spec
+		// `tool-app-deploy-sync`). Only when `--env` is given or the value is an app's name, so a branch deploys as before.
+		if (!argv.files && !argv.projectId && (argv.env !== undefined || argv.branch !== undefined)) {
+			const handled = await deployApp(argv);
+			if (handled) return;
+		}
 		if (!argv.projectId) {
 			reportError("deploy: missing required argument --project-id");
 			process.exitCode = 1;
