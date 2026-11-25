@@ -1,0 +1,57 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: open-incident
+
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Open Incident (manual)' || 'Open Incident' }}"
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "The incident's name (at most 255 characters)"
+        type: string
+        required: true
+      page:
+        description: "The declared status page, when several are declared"
+        type: string
+        default: ""
+      status:
+        description: "The status the opening update carries"
+        type: choice
+        options:
+          - investigating
+          - identified
+          - monitoring
+        default: investigating
+      components:
+        description: "Components to mark, one <name>=<impact> per line (maintenance, degraded, partial or major)"
+        type: string
+        default: ""
+      message:
+        description: "What the opening update says (empty: a line for the status)"
+        type: string
+        default: ""
+      notify:
+        description: "Tell the page's subscribers"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  open-incident:
+    name: open-incident
+    uses: ./.github/workflows/open-incident.yml
+    with:
+      title: ${{ inputs.title }}
+      page: ${{ inputs.page }}
+      status: ${{ inputs.status }}
+      components: ${{ inputs.components }}
+      message: ${{ inputs.message }}
+      notify: ${{ inputs.notify }}
+    secrets: inherit
