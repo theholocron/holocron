@@ -76,7 +76,9 @@ run count watched for a day against the 144 expected.
 ## Rollout, in small stacked pull requests
 
 1. This spec.
-2. Sentinel: `scheduled-dispatch` action, `api/scheduled.mjs`, the `vercel.json` cron, the manifest permission, tests and the
-   docs (`docs/src/content/docs/` Sentinel page, `AGENTS.md`).
-3. Human steps: add `Actions: read and write` to each App, set `CRON_SECRET` and `SENTINEL_SCHEDULE_REPO` in the `prod`
+2. `@theholocron/github-client`: `getRepoInstallation()`, which finds the App's installation on a repository with the App's
+   JWT (a scheduled call has no webhook to read the id from).
+3. Sentinel: `scheduled-dispatch` action, `api/scheduled.mjs`, the `vercel.json` cron, the manifest permission, `holocron
+deploy stage` shipping every `api/*.mjs`, tests and the docs (`docs/src/content/docs/` Sentinel page, `AGENTS.md`).
+4. Human steps: add `Actions: read and write` to each App, set `CRON_SECRET` and `SENTINEL_SCHEDULE_REPO` in the `prod`
    Environment, `holocron sync secrets --env prod`, deploy, watch the run count.
