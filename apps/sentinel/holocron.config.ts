@@ -171,13 +171,19 @@ export default defineConfig({
 	repo: {
 		secrets: {
 			// What the Vercel deployment may receive from a `sync secrets` (#2061): the `SENTINEL_` names, and the three
-			// `HOLOCRON_` names the app reads for role sync and log shipping (apps/sentinel/src reads no others).
+			// `HOLOCRON_` names the app reads for role sync and log shipping (apps/sentinel/src reads no others), and `CRON_SECRET`,
+			// the name Vercel reads to authenticate its cron calls to `/api/scheduled` (#2609); it has no prefix to match.
 			// Anything else the Environment holds stays in it. With no entry the sync stops with a ConfigError.
 			deploy: [
 				{
 					layer: "prod",
 					prefix: "SENTINEL_",
-					keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+					keys: [
+						"CRON_SECRET",
+						"HOLOCRON_AXIOM_ORG",
+						"HOLOCRON_DISCORD_BOT_TOKEN",
+						"HOLOCRON_USER_SYNC_TOKEN",
+					],
 				},
 			],
 		},

@@ -90,7 +90,7 @@ describe("the org area in this repo (#1820)", () => {
 			{
 				environment: "theholocron/holocron - prod",
 				prefix: "SENTINEL_",
-				keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+				keys: ["CRON_SECRET", "HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
 			},
 		]);
 		delete resolved.repo;
