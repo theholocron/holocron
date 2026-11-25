@@ -496,6 +496,20 @@ equivalent, is skipped with a note — `--required` makes that a failure. For a 
 job execute the same thing — at a turbo root both are
 `turbo run <task>`. `test:unit` always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag.
 
+### `holocron sync <app>`
+
+```bash
+holocron sync <app> --env <environment>... [--dry-run]
+```
+
+`sync secrets` with an app's identifiers filled in from its own config (spec `tool-app-deploy-sync`, #2608). The app is
+found like `deploy <app>`'s (`resolveApp()`); `--env` (repeated for more than one; `production`, `preview`) is `parseAppEnv()`'s. An app with a `deployment` provider has its
+secrets sent to the project named like it, after `checkProjectDomain()`; one with a `workers` provider has them set on
+the Worker script named like it; one with neither (Council) reports nothing to sync and exits 0. `runAppSync()` passes
+`runSecretsSync()` the routes and the `repo.secrets.deploy` filter that `sync secrets --env <layer>` would take from the
+app's config, so the fail-closed key allow-list is unchanged; an app with a destination and no `repo.secrets.deploy`
+fails naming it. A first value that is not an app's name is a step, as before.
+
 ### `holocron deploy <app>`
 
 ```bash

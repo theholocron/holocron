@@ -7,8 +7,10 @@ const runSyncGithub = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const report = vi.hoisted(() => vi.fn());
 const resolveToken = vi.hoisted(() => vi.fn());
+const syncApp = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./sync.js", () => ({ runSync }));
+vi.mock("./sync-app.js", () => ({ syncApp }));
 vi.mock("../sync-readme/index.js", () => ({ runSyncReadme }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({
@@ -39,8 +41,37 @@ beforeEach(() => {
 	tokenContext.mockReturnValue({ cliToken: "t" });
 	resolveToken.mockReturnValue("sync-token");
 	runSyncGithub.mockResolvedValue({ status: "ok" });
+	syncApp.mockResolvedValue(false);
 });
 afterEach(() => void (process.exitCode = undefined));
+
+describe("sync <app>", () => {
+	it("hands --env, or a first value, to the app path and stops when it handled the run", async () => {
+		syncApp.mockResolvedValue(true);
+		await runCommand(syncCommand, ["sync", "sentinel", "--env", "prod"]);
+		expect(syncApp.mock.calls[0]![0]).toMatchObject({ steps: ["sentinel"], env: ["prod"] });
+		await runCommand(syncCommand, ["sync", "--environment", "production", "--env", "preview"]);
+		expect(syncApp.mock.calls[1]![0]).toMatchObject({ env: ["production", "preview"] });
+		// One value per flag: the app's name after --env is the name, not a second environment.
+		await runCommand(syncCommand, ["sync", "--env", "production", "sentinel"]);
+		expect(syncApp.mock.calls[2]![0]).toMatchObject({ steps: ["sentinel"], env: ["production"] });
+		await runCommand(syncCommand, ["sync", "sentinel"]);
+		expect(syncApp).toHaveBeenCalledTimes(4);
+		expect(runSync).not.toHaveBeenCalled();
+	});
+
+	it("runs the steps when the value is not an app", async () => {
+		await runCommand(syncCommand, ["sync", "labels"]);
+		expect(syncApp).toHaveBeenCalledTimes(1);
+		expect(runSync).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not look for an app when no step and no --env were given", async () => {
+		await runCommand(syncCommand, ["sync"]);
+		expect(syncApp).not.toHaveBeenCalled();
+		expect(runSync).toHaveBeenCalledTimes(1);
+	});
+});
 
 describe("sync github", () => {
 	it("is `sync github`, under `sync`", () => {
