@@ -13,16 +13,34 @@ import { isCronAuthorized } from "../is-cron-authorized/index.js";
 import { runScheduledDispatch } from "../run-scheduled-dispatch/index.js";
 import type { HandleScheduledOptions, ScheduledDispatchEnv } from "../scheduled-dispatch.type.js";
 
-const processEnv = createEnvLookup();
-const { logger } = createLogger(resolveAxiomConfig(processEnv));
-const errors = createErrorReporter(() => resolveErrorSink(processEnv));
+interface Observability {
+	logger: ReturnType<typeof createLogger>["logger"];
+	errors: ReturnType<typeof createErrorReporter>;
+}
+
+let observability: Observability | undefined;
+
+/**
+ * The logger and the error reporter, made on the first request and not at import: the webhook handler builds the one
+ * logger a test of its own counts, and this module is imported with the rest of the actions.
+ */
+function observe(): Observability {
+	if (!observability) {
+		const processEnv = createEnvLookup();
+		observability = {
+			logger: createLogger(resolveAxiomConfig(processEnv)).logger,
+			errors: createErrorReporter(() => resolveErrorSink(processEnv)),
+		};
+	}
+	return observability;
+}
 
 function json(body: unknown, status: number): Response {
 	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
 /** Flushes the logger and the error sink: Vercel can freeze the function right after the response. */
-async function finish(): Promise<void> {
+async function finish({ logger, errors }: Observability): Promise<void> {
 	await Promise.all([
 		(async () => {
 			try {
@@ -47,19 +65,25 @@ export async function handleScheduledRequest(
 	env: ScheduledDispatchEnv,
 	options: HandleScheduledOptions = {}
 ): Promise<Response> {
-	errors.begin();
+	const seen = observe();
+	seen.errors.begin();
 	try {
-		return await handle(request, env, options);
+		return await handle(request, env, options, seen);
 	} catch (err) {
-		logger.error({ err: errorMessage(err) }, "handleScheduledRequest: unhandled error");
-		errors.capture(err);
+		seen.logger.error({ err: errorMessage(err) }, "handleScheduledRequest: unhandled error");
+		seen.errors.capture(err);
 		return json({ handled: false, reason: "internal error" }, 500);
 	} finally {
-		await finish();
+		await finish(seen);
 	}
 }
 
-async function handle(request: Request, env: ScheduledDispatchEnv, options: HandleScheduledOptions): Promise<Response> {
+async function handle(
+	request: Request,
+	env: ScheduledDispatchEnv,
+	options: HandleScheduledOptions,
+	{ logger, errors }: Observability
+): Promise<Response> {
 	if (request.method !== "GET") return json({ handled: false, reason: "use GET" }, 405);
 	const lookup = createEnvLookup(env as Record<string, string | undefined>);
 	const secret = lookup.get("CRON_SECRET");
