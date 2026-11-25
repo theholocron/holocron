@@ -563,6 +563,9 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		// And (#2366): the `sync-incidents` task follows `reconcile-projects` in the list.
 		expectedTasks.splice(expectedTasks.indexOf("reconcile-projects") + 1, 0, "sync-incidents");
 
+		// And (#2591): the manual `open-incident` task follows `sync-incidents`.
+		expectedTasks.splice(expectedTasks.indexOf("sync-incidents") + 1, 0, "open-incident");
+
 		// And (#374): the agent carries the destructive command guard option, `["claude", { dcg: true }]`; its name is still
 		// "claude", and the option is kept beside it.
 		expect((expected as { agentOptions?: unknown }).agentOptions).toBeUndefined();

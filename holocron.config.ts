@@ -9,9 +9,8 @@ import monitoring from "./.holocron/monitoring.js";
 import orgArea from "./.holocron/org.js";
 
 // docsPreset() provides: org, docs, strict repo protection, the base
-// providers (source, ci, issues, deployment, dns, workers). Its `tasks` speak the
-// flat ids (`lint:code`, `test:unit`, ...), but this repo declares its own tasks
-// directly below, with repo-specific `with:` inputs, instead of spreading them.
+// providers (source, ci, issues, deployment, dns, workers). Its `tasks` speak the flat ids (`lint:code`, `test:unit`),
+// but this repo declares its own tasks directly below, with repo-specific `with:` inputs, instead of spreading them.
 // Its `domain` is not taken: the org's zone is spelled once, in `.holocron/org.ts`, and the loader sets `domain` on
 // this config from it (an inline `domain` here would be an error). The hostnames built below import it from there,
 // which is safe for Sentinel's remote loader because it writes the whole `.holocron/` tree beside this file.
