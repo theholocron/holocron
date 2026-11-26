@@ -1,3 +1,23 @@
+## [5.0.0-alpha.539](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.538...v5.0.0-alpha.539) (2026-11-26)
+
+### Features
+
+* **cli:** ✨ deploy an app by name with --env ([#2612](https://github.com/theholocron/holocron/issues/2612)) ([ffd0447](https://github.com/theholocron/holocron/commit/ffd04479563d01c5b27b871a99c231c6dceec3db)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+* **cli:** ✨ sync an app's secrets by name with --env ([#2613](https://github.com/theholocron/holocron/issues/2613)) ([3ec931e](https://github.com/theholocron/holocron/commit/3ec931e48a6e950e2766ad0f102f32dc8fb2723b)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+* **env-utils:** ✨ add preview to the standard environments ([#2620](https://github.com/theholocron/holocron/issues/2620)) ([e81c217](https://github.com/theholocron/holocron/commit/e81c217d5adfbd6643e79c849e170ac21bc929e4)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+
+### Bug Fixes
+
+* **cloudflare:** 🐛 find a relay destination by name and masked URL ([#2615](https://github.com/theholocron/holocron/issues/2615)) ([c9fcbb8](https://github.com/theholocron/holocron/commit/c9fcbb8fd2ebc8dba06279f439d81c84fcf732d4)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+### Documentation
+
+* **specs:** 📝 deploy and sync an app by name ([#2611](https://github.com/theholocron/holocron/issues/2611)) ([5c9435f](https://github.com/theholocron/holocron/commit/5c9435f6c1022dc325aa7e60ba8c0cfc94203e45)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2628](https://github.com/theholocron/holocron/issues/2628)) ([ff9bca4](https://github.com/theholocron/holocron/commit/ff9bca488a1f00fed3753243c1bcdaa6a8dc19f8))
+
 ## [5.0.0-alpha.538](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.537...v5.0.0-alpha.538) (2026-11-25)
 
 ### Chores
