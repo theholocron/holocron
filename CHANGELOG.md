@@ -1,3 +1,17 @@
+## [5.0.0-alpha.541](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.540...v5.0.0-alpha.541) (2026-11-26)
+
+### Features
+
+* **sentinel:** ✨ start scheduled workflows from a Vercel cron ([#2618](https://github.com/theholocron/holocron/issues/2618)) ([a16c275](https://github.com/theholocron/holocron/commit/a16c275a8ef30b43187cd86775e75a805dc3dd04)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+### Documentation
+
+* **specs:** 📝 start scheduled workflows from Sentinel ([#2616](https://github.com/theholocron/holocron/issues/2616)) ([2dbba8c](https://github.com/theholocron/holocron/commit/2dbba8cbb584e4a77c26f7afe2d2adf1e947a9bf)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2635](https://github.com/theholocron/holocron/issues/2635)) ([16d876e](https://github.com/theholocron/holocron/commit/16d876e6a2fa6bbab53f1573546835f5f96a9feb))
+
 ## [5.0.0-alpha.540](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.539...v5.0.0-alpha.540) (2026-11-26)
 
 ### Features
