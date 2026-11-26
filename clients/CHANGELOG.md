@@ -1,3 +1,9 @@
+## [1.58.0-alpha.59](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.58...clients-v1.58.0-alpha.59) (2026-11-26)
+
+### Features
+
+* **sentinel:** ✨ list the config tree in one request through the git trees API ([#2581](https://github.com/theholocron/holocron/issues/2581)) ([9d6c0c2](https://github.com/theholocron/holocron/commit/9d6c0c292c0914d4aa487a69b6e52e77a82c837e)), references [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [1.58.0-alpha.58](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.57...clients-v1.58.0-alpha.58) (2026-11-26)
 
 ### Features
