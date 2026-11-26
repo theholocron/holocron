@@ -663,7 +663,9 @@ check` (`pnpm exec holocron probe generated check`, the required check `validate
   Commits since the last tag on the branch's channel, computes the
   next version, bumps all 9 public packages in lockstep via
   `scripts/bump-versions.mjs`, publishes via OIDC, creates a GitHub
-  Release, commits `CHANGELOG.md`.
+  Release, commits `CHANGELOG.md`. semantic-release 26 needs Node 26.13 or later, so CI runs
+  Node 26 (`.node-version`, and the `22.x` default of the setup actions is now `26.x`); the
+  packages' `engines.node` stays `>=22`, so a consumer on an older Node is not cut off.
 - **npm Trusted Publishing.** OIDC token exchange at publish time —
   no `NPM_TOKEN` secret anywhere. Each package has a Trusted
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
