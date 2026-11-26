@@ -10,6 +10,8 @@ export interface CfWebhookDestination {
 	url: string;
 	/** The kind of webhook (`generic` for a plain one). */
 	type?: string;
+	/** When the destination was made (RFC 3339), when Cloudflare returns it. */
+	created_at?: string;
 	/** When a delivery last succeeded. */
 	last_success?: string | null;
 	/** When a delivery last failed. */
