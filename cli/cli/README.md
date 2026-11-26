@@ -496,6 +496,23 @@ equivalent, is skipped with a note — `--required` makes that a failure. For a 
 job execute the same thing — at a turbo root both are
 `turbo run <task>`. `test:unit` always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag.
 
+### `holocron deploy <app>`
+
+```bash
+holocron deploy <app> --env <environment>... [--dry-run]
+```
+
+Deploys a workspace app (a package under `apps/`) by name, from the repository root or, with the name left off, from
+inside the app's folder (spec `tool-app-deploy-sync`, #2608). `--env` (alias `--environment`, repeated for more
+than one) names the standard environments (`parseAppEnv()`, over `environment.normalize()`) to deploy to, `production` and
+`preview`; `local`, `development`, `ci` and `test` are refused. Nothing is
+written into the command: the app is found by its folder's name (`resolveApp()`), the project takes that name, and the
+app's own `holocron.config` names the `deployment` provider and the `domain` the project must serve
+(`checkProjectDomain()`, over `Deployment.listDomains()`; a wrong project stops the run before anything is built). It
+then does what the app's `deploy` script did: `pnpm run build`, `deploy stage`, `deploy --files`. An app with no
+`deployment` provider (Comlink's Worker is made by `setup notifications`, Council is installed by hand) is reported and
+exits 0. A first value that is not an app's name is a branch, as before.
+
 ### `holocron deploy on-release`
 
 ```bash

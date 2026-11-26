@@ -22,6 +22,7 @@ export const deployEntry: MenuEntry = {
 			message: "Named environment to deploy into (leave the option off for a branch preview):",
 		},
 	],
-	skipOptions: ["files"],
+	// `--env` deploys an app by name: this entry prompts for a branch and a project id instead.
+	skipOptions: ["files", "env", "environment"],
 	supportsDryRun: true,
 };
