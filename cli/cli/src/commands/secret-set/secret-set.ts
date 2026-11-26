@@ -22,7 +22,9 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type SecretScope } from "../../plugin/index.js";
+import { generateSecretValue } from "../generated-secrets/index.js";
 import type { RunSecretSetInput, SecretSetReport } from "./secret-set.type.js";
+import { runSecretToFile } from "./secret-to-file/index.js";
 
 const env = createEnvLookup();
 
@@ -30,6 +32,18 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+
+	// A value is either made (a name in the generated table) or taken from the caller, never both.
+	if (input.generate && (input.value || input.fromStdin || input.fromEnv)) {
+		throw new Error("--generate makes the value: do not also pass a value, --from-stdin or --from-env");
+	}
+	if (input.target === "file") {
+		const value = input.generate ? generateSecretValue(input.name, input.random) : await resolveValue(input);
+		if (!value) throw new Error(noValueMessage(input.name));
+		return runSecretToFile(input, value, print, loader, logger);
+	}
+	if (input.environment) throw new Error("--env belongs to --target file: a GitHub secret is named by --scope");
+
 	await loader.load();
 	assertPluginsResolvable(loader, "new secret");
 
@@ -41,12 +55,9 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 	}
 
 	// Resolve the value to push, surfacing a clear error when none can be sourced.
-	const value = await resolveValue(input);
-	if (!value) {
-		throw new Error(
-			`no value for secret \`${input.name}\` — pass it positionally, via --from-stdin, --from-env <NAME>, or set $${input.name} in the environment`
-		);
-	}
+	const value = input.generate ? generateSecretValue(input.name, input.random) : await resolveValue(input);
+	if (!value) throw new Error(noValueMessage(input.name));
+	if (input.generate) print("  the value is made now and not shown, so it cannot be copied anywhere else");
 
 	print(`Holocron secret set — ${input.name} (${describeScope(scope)})${dryRun ? " (dry-run)" : ""}`);
 
@@ -75,6 +86,10 @@ export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetR
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
+
+function noValueMessage(name: string): string {
+	return `no value for secret \`${name}\` — pass it positionally, via --from-stdin, --from-env <NAME>, or set $${name} in the environment`;
+}
 
 async function resolveValue(input: RunSecretSetInput): Promise<string | undefined> {
 	if (input.value) return input.value;
