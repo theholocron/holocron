@@ -1,3 +1,9 @@
+## [1.17.0-alpha.6](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.5...utils-v1.17.0-alpha.6) (2026-11-26)
+
+### Features
+
+* **env-utils:** ✨ add preview to the standard environments ([#2620](https://github.com/theholocron/holocron/issues/2620)) ([e81c217](https://github.com/theholocron/holocron/commit/e81c217d5adfbd6643e79c849e170ac21bc929e4)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+
 ## [1.17.0-alpha.5](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.4...utils-v1.17.0-alpha.5) (2026-11-17)
 
 ### Features
