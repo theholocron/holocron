@@ -132,8 +132,8 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 			});
 		}
 		for (const [id, content] of hostedReusableWorkflows()) {
-			// Sentinel posts the `ci` aggregate for this manifest, so the reusable that polls for it is not generated either.
-			if (id === "ci" && astromech.aggregatePoster() === "sentinel") continue;
+			// Sentinel posts the `ci` aggregate for this manifest, or there is none, so the reusable that polls for it is not generated either.
+			if (id === "ci" && astromech.aggregatePoster() !== "actions") continue;
 			const filename = workflowFile(id);
 			entries.push({
 				kind: "file",

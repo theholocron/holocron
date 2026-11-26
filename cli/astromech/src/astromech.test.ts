@@ -640,6 +640,21 @@ describe("createAstromech().aggregateCaller", () => {
 		expect(astromech.aggregateCaller()).toBeNull();
 	});
 
+	it("is null, and the ruleset lists each check, when the manifest says there is no aggregate", () => {
+		const tasks = [{ name: "typecheck", required: true }];
+		const none = createAstromech({
+			cwd: "/repo",
+			config: { tasks, extraRequiredChecks: ["codecov/patch"], ci: { aggregate: "none" } },
+		});
+		expect(none.aggregatePoster()).toBe("none");
+		expect(none.aggregateCaller()).toBeNull();
+		// the repo that hosts the reusables would require the aggregate; `none` takes it out
+		expect(none.requiredChecks(true)).not.toContain("ci / Required checks");
+		expect(none.requiredChecks(true)).toEqual(none.requiredChecks(false));
+		const actions = createAstromech({ cwd: "/repo", config: { tasks, extraRequiredChecks: ["codecov/patch"] } });
+		expect(actions.requiredChecks(true)).toContain("ci / Required checks");
+	});
+
 	it("keeps the Actions caller for `actions`, and for no `ci` block", () => {
 		const config = { extraRequiredChecks: ["codecov/patch"] };
 		expect(createAstromech({ cwd: "/repo", config }).aggregatePoster()).toBe("actions");

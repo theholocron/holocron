@@ -7,6 +7,11 @@ describe("aggregatePoster", () => {
 		expect(aggregatePoster({ ci: { aggregate: "sentinel" } })).toBe("sentinel");
 	});
 
+	it("is none only when ci.aggregate says exactly that", () => {
+		expect(aggregatePoster({ ci: { aggregate: "none" } })).toBe("none");
+		expect(aggregatePoster({ ci: { aggregate: "None" as never } })).toBe("actions");
+	});
+
 	it("is actions when it is not set, says actions, or is misspelled, so a typo keeps today's poster", () => {
 		expect(aggregatePoster({})).toBe("actions");
 		expect(aggregatePoster({ ci: {} })).toBe("actions");

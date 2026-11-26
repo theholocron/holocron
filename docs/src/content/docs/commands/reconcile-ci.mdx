@@ -23,7 +23,7 @@ For each open pull request (or the one named), reads the check runs and commit s
 
 ## Who it posts for
 
-A commit has exactly one poster of `ci / Required checks`. The command posts the real check **only where the checkout's `ci.aggregate` is `sentinel`**. While it is `actions` (the default), the Actions job is the poster and a second writer under the same name would be a second poster, so the command does nothing and the run is green. `--shadow` repairs Sentinel's shadow check, `ci / Required checks (sentinel)`, whatever `ci.aggregate` says, because nothing requires it.
+A commit has exactly one poster of `ci / Required checks`. The command posts the real check **only where the checkout's `ci.aggregate` is `sentinel`**. While it is `actions` (the default), the Actions job is the poster and a second writer under the same name would be a second poster, so the command does nothing and the run is green. With `ci.aggregate: none` there is no such check at all, and it does nothing either. `--shadow` repairs Sentinel's shadow check, `ci / Required checks (sentinel)`, whatever `ci.aggregate` says, because nothing requires it.
 
 On a commit where the Actions job already posted `ci / Required checks` (a pull request whose head predates the flip), the command leaves it alone: a check run belongs to the app that posted it, and the run is a `skip` row.
 

@@ -14,6 +14,7 @@ import { splitAgent } from "../split-agent/index.js";
 import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 import { validateIssueTypes } from "../validate-issue-types/index.js";
 import { validateRepoLabels } from "../validate-repo-labels/index.js";
+import { validateRequiredChecks } from "../validate-required-checks/index.js";
 import { validateSecretsDeploy } from "../validate-secrets-deploy/index.js";
 import { validateSecretsSync } from "../validate-secrets-sync/index.js";
 import { validateVariablesSync } from "../validate-variables-sync/index.js";
@@ -209,7 +210,7 @@ function validateVaultLayer(entry: ResolvedProviderEntry | undefined): void {
 const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
 
 /** The values `ci.aggregate` accepts. */
-const CI_AGGREGATE_POSTERS: readonly string[] = ["actions", "sentinel"];
+const CI_AGGREGATE_POSTERS: readonly string[] = ["actions", "sentinel", "none"];
 
 /**
  * The environment a `credentials` provider reads: its own `environment` option when it has one, else the shared
@@ -289,6 +290,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (raw.ideas !== undefined) validateIdeas(raw.ideas);
 	if (raw.issueTypes !== undefined) validateIssueTypes(raw.issueTypes);
 	validateRepoLabels(raw.repo?.labels);
+	validateRequiredChecks(raw.repo?.requiredChecks);
 	validateVariablesSync(raw.repo?.variables);
 	validateSecretsDeploy(raw.repo?.secrets);
 	validateSecretsSync(raw.repo?.secrets);

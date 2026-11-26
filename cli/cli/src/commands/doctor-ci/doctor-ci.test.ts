@@ -417,6 +417,18 @@ describe("aggregateRow when ci.aggregate names the poster", () => {
 		expect(aggregateRow([hosted], [], "sentinel").status).toBe("fail");
 	});
 
+	it("passes for none with no caller, and says each check is required on its own", () => {
+		const row = aggregateRow([], ["typecheck"], "none");
+		expect(row.status).toBe("ok");
+		expect(row.detail).toContain("no aggregate");
+	});
+
+	it("fails for none when a caller is still there, because it posts a check nobody requires", () => {
+		const row = aggregateRow([actionsCaller()], ["typecheck"], "none");
+		expect(row.status).toBe("fail");
+		expect(row.problems.join("\n")).toContain("ci.ci.yml is still there");
+	});
+
 	it("keeps the old behaviour for actions and for no setting", () => {
 		expect(aggregateRow([], ["typecheck"], "actions").status).toBe("skip");
 		expect(aggregateRow([], ["typecheck"]).status).toBe("skip");

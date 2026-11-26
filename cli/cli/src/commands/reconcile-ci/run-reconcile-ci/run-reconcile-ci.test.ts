@@ -265,6 +265,17 @@ describe("runReconcileCi", () => {
 			expect(source.createCheckRun).not.toHaveBeenCalled();
 		});
 
+		it("does nothing while ci.aggregate is none, because there is no such check to post", async () => {
+			const source = sourceFake({ sha1: green(1) });
+			const loaded = loadedWithTasks();
+			const { report, text } = await run(source, {
+				loaded: { ...loaded, resolved: { ...loaded.resolved, ci: { aggregate: "none" as const } } },
+			});
+			expect(report.status).toBe("ok");
+			expect(text).toContain("ci.aggregate is none here");
+			expect(source.createCheckRun).not.toHaveBeenCalled();
+		});
+
 		it("with --shadow, repairs Sentinel's shadow check under its own name, whatever ci.aggregate says", async () => {
 			const source = sourceFake({ sha1: green(1) });
 			const { report } = await run(source, { loaded: actionsConfig(), shadow: true });

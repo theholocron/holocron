@@ -70,7 +70,8 @@ export default defineConfig({
     //              `{ required: true }` task, the hand-written checks and the
     //              codecov statuses in `extraRequiredChecks`. In any other repo it
     //              is `DCO`, every required task's check context (in CI order) and
-    //              `extraRequiredChecks`. No hand-maintained list.
+    //              `extraRequiredChecks`. Or write the list yourself in `repo.requiredChecks`
+    //              (`.holocron/repo.ts`): then it is exactly that list, nothing derived or added.
     // "none"     — no protection applied.
     protection: "balanced",
 
@@ -374,12 +375,22 @@ works the same way); a re-run uses the old description.
 
 ### Who posts the `ci` aggregate (`ci.aggregate`)
 
-`ci: { aggregate: "actions" | "sentinel" }` says who posts the one required check, `ci / Required checks`. Left out, it is
-`"actions"`: the thin caller `ci.ci.yml` and the reusable `ci.yml` that polls the Checks API, as today. With `"sentinel"`
-neither is generated, because Sentinel computes the check from webhooks and posts it under that name (spec
-`process-sentinel-posts-ci`, SPEC-0099). A value other than the two is a config error. `holocron probe generated check`
+`ci: { aggregate: "actions" | "sentinel" | "none" }` says who posts the one required check, `ci / Required checks`. Left
+out, it is `"actions"`: the thin caller `ci.ci.yml` and the reusable `ci.yml` that polls the Checks API, as today. With
+`"sentinel"` neither is generated, because Sentinel computes the check from webhooks and posts it under that name (spec
+`process-sentinel-posts-ci`, SPEC-0099). With `"none"` neither is generated either and there is no such check: the
+ruleset requires each check on its own (`repo.requiredChecks`, below). A value other than the three is a config error. `holocron probe generated check`
 fails on a `ci.ci.yml` or `ci.yml` the config no longer generates, and `holocron doctor ci` fails the `aggregate` row when a
-caller is left beside a `sentinel` setting, so a commit never has two posters.
+caller is left beside a `sentinel` or `none` setting, so a commit never has two posters.
+
+### The required checks, written down (`repo.requiredChecks`)
+
+`repo: { requiredChecks: ["typecheck / Run tsc --noEmit", ...] }`, usually in `.holocron/repo.ts`, is the list of status-check
+contexts a `strict` ruleset requires. When it is set it is the **whole list**: `holocron setup` writes exactly these and
+`holocron doctor repo` compares the ruleset with them, so the DCO check and each task's context are listed too, and a task
+that is not listed is not required. Each entry is the context as GitHub shows it, `<workflow or task> / <job>`. A blank
+entry, a repeat and an empty list are config errors. Left out, the list is derived from the tasks and `extraRequiredChecks`
+as before. It does not change what runs, only what the ruleset waits for, so keep it in step when a task is added.
 
 Sentinel reads the setting at the **head** ref of a pull request (when its own `SENTINEL_CI_AGGREGATE` is `on`) (the files that run for a commit and the word that says who
 posts must match), and the list of checks it waits for at the **base** ref (so a pull request cannot shrink its own gate).
