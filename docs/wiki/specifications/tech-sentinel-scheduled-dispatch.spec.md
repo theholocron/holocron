@@ -1,4 +1,5 @@
 ---
+id: SPEC-0111
 status: accepted
 issue: theholocron/holocron#2609
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2302
   - theholocron/holocron#2366
   - theholocron/holocron#2359
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1575029181165604975
 ---
 
 # Start scheduled workflows from Sentinel
