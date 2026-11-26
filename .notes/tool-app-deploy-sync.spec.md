@@ -1,10 +1,13 @@
 ---
+id: SPEC-0109
 status: draft
 issue: theholocron/holocron#2608
 blocked-by: []
 related:
   - theholocron/holocron#2061
   - theholocron/holocron#930
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1575026858209058858
 ---
 
 # Deploy and sync an app by name
