@@ -237,3 +237,41 @@ export async function redeliverAppDelivery(
 ): Promise<void> {
 	await appFetch(creds, `/app/hook/deliveries/${deliveryId}/attempts`, opts, "POST");
 }
+
+/**
+ * The installation of the App this JWT identifies on one repository (`GET /repos/{repo}/installation`), or `undefined`
+ * when the App is not installed there (404). A caller with no webhook to read the installation id from (a scheduled
+ * job) finds it here before it asks for an installation token. Needs only the App's own JWT.
+ *
+ * `repo` must be exactly `owner/name`: anything else (extra segments, an empty segment, `.` or `..`) throws before a
+ * request is made, and each segment is URL-encoded, so a malformed value can never reach another route.
+ *
+ * https://docs.github.com/en/rest/apps/apps#get-a-repository-installation-for-the-authenticated-app
+ *
+ * @throws Error when `repo` is not `owner/name`.
+ */
+export async function getRepoInstallation(
+	creds: GitHubAppCredentials,
+	repo: string,
+	opts: Pick<GitHubClientOptions, "baseUrl" | "fetch"> = {}
+): Promise<GitHubAppInstallation | undefined> {
+	const parts = repo.split("/");
+	if (parts.length !== 2 || parts.some((p) => p === "" || p === "." || p === "..")) {
+		throw new Error(`a repository is "owner/name", not "${repo}"`);
+	}
+	const [owner, name] = parts.map(encodeURIComponent);
+	let raw: Raw;
+	try {
+		raw = (await appGet(creds, `/repos/${owner}/${name}/installation`, opts)) as Raw;
+	} catch (err) {
+		if (err instanceof ProviderApiError && err.status === 404) return undefined;
+		throw err;
+	}
+	return {
+		id: Number(raw.id),
+		account: account(raw.account),
+		permissions: (raw.permissions as Record<string, string> | undefined) ?? {},
+		events: (raw.events as string[] | undefined) ?? [],
+		suspended: typeof raw.suspended_at === "string",
+	};
+}

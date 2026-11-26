@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { stubFetch } from "../test-helpers.js";
 import {
 	getApp,
+	getRepoInstallation,
 	listAppDeliveries,
 	listAppInstallations,
 	redeliverAppDelivery,
@@ -297,5 +298,64 @@ describe("redeliverAppDelivery", () => {
 		const err = await redeliverAppDelivery(CREDS, 42, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
 		expect((err as Error).message).toMatch(/POST \/app\/hook\/deliveries\/42\/attempts.*422/);
 		expect((err as { status: number }).status).toBe(422);
+	});
+});
+
+describe("getRepoInstallation", () => {
+	it("GETs the repository's installation with the App JWT and maps it", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: {
+					id: 42,
+					account: { login: "theholocron", type: "Organization" },
+					permissions: { actions: "write" },
+					events: ["push"],
+					suspended_at: "2026-11-23T10:00:00Z",
+				},
+			},
+		]);
+		const found = await getRepoInstallation(CREDS, "theholocron/holocron", { baseUrl: BASE, fetch });
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toBe(`${BASE}/repos/theholocron/holocron/installation`);
+		expect(calls[0]?.headers.authorization).toMatch(/^Bearer /);
+		expect(found).toEqual({
+			id: 42,
+			account: { login: "theholocron", type: "Organization" },
+			permissions: { actions: "write" },
+			events: ["push"],
+			suspended: true,
+		});
+	});
+
+	it("defaults the lists and says not suspended", async () => {
+		const { fetch } = stubFetch([{ body: { id: 7 } }]);
+		expect(await getRepoInstallation(CREDS, "o/r", { baseUrl: BASE, fetch })).toEqual({
+			id: 7,
+			account: null,
+			permissions: {},
+			events: [],
+			suspended: false,
+		});
+	});
+
+	it("encodes each segment and refuses anything that is not exactly owner/name, without a request", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: 1 } }]);
+		await getRepoInstallation(CREDS, "my org/re po", { baseUrl: BASE, fetch });
+		expect(calls[0]?.url).toBe(`${BASE}/repos/my%20org/re%20po/installation`);
+		for (const bad of ["", "owner", "a/b/c", "/repo", "owner/", "../x", "owner/..", "./repo", "owner/."]) {
+			const err = await getRepoInstallation(CREDS, bad, { baseUrl: BASE, fetch }).catch((e: unknown) => e);
+			expect((err as Error).message).toBe(`a repository is "owner/name", not "${bad}"`);
+		}
+		expect(calls).toHaveLength(1);
+	});
+
+	it("answers undefined when the App is not installed there, and rethrows any other failure", async () => {
+		const missing = stubFetch([{ status: 404, text: "Not Found" }]);
+		expect(await getRepoInstallation(CREDS, "o/r", { baseUrl: BASE, fetch: missing.fetch })).toBeUndefined();
+		const broken = stubFetch([{ status: 500, text: "boom" }]);
+		const err = await getRepoInstallation(CREDS, "o/r", { baseUrl: BASE, fetch: broken.fetch }).catch(
+			(e: unknown) => e
+		);
+		expect((err as { status: number }).status).toBe(500);
 	});
 });
