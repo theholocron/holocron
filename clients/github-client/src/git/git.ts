@@ -85,6 +85,13 @@ export interface GitDirectoryEntry {
 	sha: string;
 }
 
+/** What a git tree entry is, in the words of the contents API: a blob is a file, unless its mode says symlink. */
+function treeEntryType(item: GitTreeItem): GitDirectoryEntry["type"] {
+	if (item.type === "tree") return "dir";
+	if (item.type === "commit") return "submodule";
+	return item.mode === "120000" ? "symlink" : "file";
+}
+
 /** Options for `listDirectory()`. */
 export interface ListDirectoryOptions {
 	/** A branch, tag or commit SHA; defaults to the repo's default branch. */
@@ -213,6 +220,43 @@ export function git(rest: RestClient) {
 				return [...entries, ...nested.flat()];
 			};
 			return list(path.replace(/^\/+|\/+$/g, ""));
+		},
+
+		/**
+		 * Lists a directory and everything under it in ONE request, through the git trees API
+		 * (`GET /repos/:repo/git/trees/<ref>:<path>?recursive=1`), as the same flat list of full paths
+		 * `listDirectory(..., { recursive: true })` returns, which makes one request per directory. It answers
+		 * `undefined`, so the caller can list the directory the other way, when it cannot answer for certain:
+		 * a `ref` that is not the default branch, a full commit SHA or a branch name with no slash (a name with a
+		 * slash is ambiguous in this form and GitHub answers 404), a tree GitHub cut short (`truncated`), a directory GitHub says it does not have (404) or a
+		 * request it cannot read (422). Any other failure throws. Checked against the live API with `HEAD`, a
+		 * commit SHA and a plain branch name, and a missing directory.
+		 */
+		listTree: async (
+			repo: string,
+			path: string,
+			options: Pick<ListDirectoryOptions, "ref"> = {}
+		): Promise<GitDirectoryEntry[] | undefined> => {
+			const dir = path.replace(/^\/+|\/+$/g, "");
+			const ref = options.ref ?? "HEAD";
+			if (!/^(HEAD|[0-9a-f]{40}|[\w.-]+)$/i.test(ref)) return undefined;
+			let tree: GitTree;
+			try {
+				tree = await rest.request<GitTree>(`${repoBase(repo)}/git/trees/${ref}:${filePath(dir)}`, {
+					query: { recursive: "1" },
+				});
+			} catch (err) {
+				if (err instanceof ProviderApiError && (err.status === 404 || err.status === 422)) return undefined;
+				throw err;
+			}
+			if (tree.truncated) return undefined;
+			return tree.tree.map((item) => ({
+				name: item.path.slice(item.path.lastIndexOf("/") + 1),
+				path: `${dir}/${item.path}`,
+				type: treeEntryType(item),
+				size: item.size ?? 0,
+				sha: item.sha,
+			}));
 		},
 
 		/**

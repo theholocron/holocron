@@ -37,6 +37,11 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 // (one request each) and returns a flat list of full paths.
 const entries = await client.git.listDirectory("owner/name", ".holocron", { recursive: true });
 // [{ name, path, type: "file" | "dir" | "symlink" | "submodule", size, sha }]
+
+// The same list in ONE request, through the git trees API. It answers `undefined`, and the caller lists the
+// directory the other way, when it cannot answer for certain: a `ref` that is not the default branch, a full
+// commit SHA or a branch name with no slash, a tree GitHub cut short, a 404 or a 422.
+const tree = await client.git.listTree("owner/name", ".holocron", { ref: commitSha });
 ```
 
 ## Namespaces
@@ -55,7 +60,7 @@ const entries = await client.git.listDirectory("owner/name", ".holocron", { recu
 | `labels`       | `listLabels`, `createLabel`, `updateLabel`, `deleteLabel`                                                                                                                                               |
 | `topics`       | `setTopics`                                                                                                                                                                                             |
 | `properties`   | `setProperties`                                                                                                                                                                                         |
-| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `listDirectory`, `putContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                     |
+| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `listDirectory`, `listTree`, `putContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                         |
 | `checks`       | `createCheckRun`                                                                                                                                                                                        |
 
 GitHub accepts at most 50 annotations per check-run request. Slice with the
