@@ -49,7 +49,14 @@ describe("detectEnv and isCI", () => {
 	it("name the same environments as the LogEnv type", () => {
 		const same: Equal<LogEnv, Environment> = true;
 		expect(same).toBe(true);
-		expect(([...ENVIRONMENTS] as string[]).sort()).toEqual(["ci", "development", "local", "production", "test"]);
+		expect(([...ENVIRONMENTS] as string[]).sort()).toEqual([
+			"ci",
+			"development",
+			"local",
+			"preview",
+			"production",
+			"test",
+		]);
 	});
 });
 

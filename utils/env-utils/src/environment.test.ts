@@ -10,6 +10,7 @@ describe("environment", () => {
 			expect(environment.normalize("ci")).toBe("ci");
 			expect(environment.normalize("test")).toBe("test");
 			expect(environment.normalize("production")).toBe("production");
+			expect(environment.normalize("preview")).toBe("preview");
 		});
 
 		it("normalizes aliases", () => {
@@ -91,6 +92,7 @@ describe("environment", () => {
 			["staging", true],
 			["prod", true],
 			["production", true],
+			["preview", true],
 			["local", false],
 			["ci", false],
 			["dev", false],

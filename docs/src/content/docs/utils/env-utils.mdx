@@ -18,8 +18,8 @@ Detects the current runtime environment from `HOLOCRON_ENVIRONMENT`, `ENVIRONMEN
 ```ts
 import { environment } from "@theholocron/env-utils";
 
-environment.get(); // "local" | "development" | "ci" | "test" | "production"
-environment.isDeployed(); // true when env is "test" or "production"
+environment.get(); // "local" | "development" | "ci" | "test" | "preview" | "production"
+environment.isDeployed(); // true when env is "test", "preview" or "production"
 environment.normalize("prod"); // "production"
 ```
 
@@ -28,9 +28,9 @@ environment.normalize("prod"); // "production"
 ```ts
 import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS } from "@theholocron/env-utils";
 
-ENVIRONMENTS; // ["local", "development", "ci", "test", "production"]
+ENVIRONMENTS; // ["local", "development", "ci", "test", "preview", "production"]
 DEFAULT_ENVIRONMENT; // "production"
-DEPLOYED_ENVIRONMENTS; // Set { "test", "production" }
+DEPLOYED_ENVIRONMENTS; // Set { "test", "preview", "production" }
 ```
 
 The five names are `local` (a laptop), `development` (a development instance), `ci`, `test` (a deployed pre-production instance) and `production`. They are the long forms Node's `NODE_ENV` and Vercel use. Short and vendor spellings are read as aliases, in any case: `dev` as `development`, `stage`, `stg`, `staging` and `qa` as `test`, `prod` and `prd` as `production`. Unit tests under CI are `ci`, not `test`.
