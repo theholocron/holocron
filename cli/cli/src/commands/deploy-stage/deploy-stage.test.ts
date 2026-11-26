@@ -50,6 +50,16 @@ describe("stageDeploy", () => {
 		expect(lines.join("\n")).toContain("yaml@9.9.9-yaml");
 	});
 
+	it("ships every other function entry beside the webhook one, and leaves a file that is not an entry out", () => {
+		makePackage("export {};");
+		write("api/scheduled.mjs", "export default {};");
+		write("api/webhook.collection.json", "{}");
+		stageDeploy({ packageDir: dir, resolveVersion });
+		const out = join(dir, ".vercel-deploy", "api");
+		expect(existsSync(join(out, "scheduled.mjs"))).toBe(true);
+		expect(existsSync(join(out, "webhook.collection.json"))).toBe(false);
+	});
+
 	it("also pins the required peers of each dependency, which legacy-peer-deps would not install", () => {
 		makePackage('import YAML from "yaml";');
 		const report = stageDeploy({

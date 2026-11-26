@@ -46,6 +46,7 @@ export {
 	postCommitStandardsCheck,
 	SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME,
 } from "./actions/commit-standards/post-commit-standards-check/index.js";
+export { handleScheduledRequest } from "./actions/scheduled-dispatch/index.js";
 export type { Env } from "./handler/index.js";
 export { handleWebhookRequest } from "./handler/index.js";
 export { SENTINEL_APP_NAME } from "./utils/constants/index.js";
