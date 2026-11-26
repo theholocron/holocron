@@ -1,3 +1,17 @@
+## [5.0.0-alpha.540](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.539...v5.0.0-alpha.540) (2026-11-26)
+
+### Features
+
+* **cli:** ✨ new secret --target file makes a secret and hands it to a vault by file ([#2631](https://github.com/theholocron/holocron/issues/2631)) ([896bf93](https://github.com/theholocron/holocron/commit/896bf93274e4ffdae0f74b83d97a5ce8d5b831c3)), closes [#2629](https://github.com/theholocron/holocron/issues/2629)
+
+### Documentation
+
+* **specs:** 📚️ 📝 rotate a generated secret with new secret --target file ([#2630](https://github.com/theholocron/holocron/issues/2630)) ([41d422c](https://github.com/theholocron/holocron/commit/41d422c79df9434b0d6875773d58e21a63ce5774)), closes [#2629](https://github.com/theholocron/holocron/issues/2629)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2633](https://github.com/theholocron/holocron/issues/2633)) ([32441fa](https://github.com/theholocron/holocron/commit/32441fafe65f599c7f2b2c88ca1da88664f9508e))
+
 ## [5.0.0-alpha.539](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.538...v5.0.0-alpha.539) (2026-11-26)
 
 ### Features
