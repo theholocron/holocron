@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { describeGitHubDelivery, runWithGitHubCalls } from "../github-delivery-calls/index.js";
+import { currentQuota, quotaIsLow, resetQuota } from "../github-quota/index.js";
 import { GITHUB_CALL_LOG_MSG, GITHUB_CALL_MESSAGE_CHARS, githubRoute, loggedFetch } from "./github-call-log.js";
 
 const SHA = "a".repeat(40);
@@ -141,5 +142,25 @@ describe("loggedFetch", () => {
 			}),
 			GITHUB_CALL_LOG_MSG
 		);
+	});
+});
+
+describe("loggedFetch and the quota reserve", () => {
+	const headers = { "x-ratelimit-remaining": "1200", "x-ratelimit-reset": "9999999999" };
+
+	it("records the quota an installation's own call reports", async () => {
+		resetQuota();
+		await loggedFetch(loggers(), answering(200, "{}", headers))("https://api.github.com/repos/acme/demo/pulls/1");
+		expect(currentQuota(1000)).toEqual({ remaining: 1200, reset: 9999999999 });
+		expect(quotaIsLow(1000)).toBe(true);
+	});
+
+	it("does not take the quota of the call that makes the installation token, which is the App's", async () => {
+		resetQuota();
+		await loggedFetch(loggers(), answering(201, "{}", headers))(
+			"https://api.github.com/app/installations/42/access_tokens",
+			{ method: "POST" }
+		);
+		expect(currentQuota(1000)).toBeUndefined();
 	});
 });

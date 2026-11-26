@@ -127,6 +127,7 @@ import {
 	validateAdrs,
 	validateDocsPresence,
 } from "../actions/index.js";
+import { QUOTA_RESERVE, recordQuota, resetQuota } from "../utils/github-quota/index.js";
 import { parseWebhookEvent, validateConfig, WebhookVerificationError } from "../utils/index.js";
 import { handleWebhookRequest } from "./handler.js";
 import type { Env } from "./handler.type.js";
@@ -2645,5 +2646,99 @@ describe("handler — the ci aggregate (SPEC-0099)", () => {
 			await handleWebhookRequest(req(), ON_ENV);
 			expect(runPrFeed).not.toHaveBeenCalled();
 		});
+	});
+});
+
+describe("handler — the quota reserve for the required checks", () => {
+	const SHADOW_ENV: Env = { ...ENV, SENTINEL_CI_AGGREGATE: "shadow" };
+	const RESET = Date.now() / 1000 + 600;
+	const prOpened = {
+		type: "pull_request.opened",
+		repo: "acme/demo",
+		installationId: 42,
+		action: "opened",
+		pullNumbers: [9],
+		raw: { repository: { default_branch: "main" }, pull_request: { number: 9, head: { sha: "pr-head-sha" } } },
+	};
+	const leaf = {
+		type: "check_run.leaf",
+		repo: "acme/demo",
+		installationId: 7,
+		action: "completed",
+		headSha: "abc",
+		checkName: "test:unit / Conclusion",
+		pullNumbers: [12],
+		pullRequests: [{ number: 12, baseRef: "alpha" }],
+		raw: {},
+	};
+
+	beforeEach(() => {
+		resetQuota();
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: { tasks: [] } });
+		vi.mocked(syncPropertiesFromConfig).mockResolvedValue({ properties: { holocron_capabilities: [] } });
+		vi.mocked(postCheckRun).mockResolvedValue({ checkRunId: 1, conclusion: "success", htmlUrl: "" });
+		vi.mocked(lintCommits).mockResolvedValue({ valid: true, commitCount: 1, violations: [] });
+		vi.mocked(postCommitStandardsCheck).mockResolvedValue({ checkRunId: 5, conclusion: "success", htmlUrl: "" });
+		vi.mocked(runPrFeed).mockResolvedValue({ status: "skipped", reason: "x" });
+		vi.mocked(runCiAggregate).mockResolvedValue({ status: "ok", posted: [], skipped: [] });
+	});
+
+	it("runs everything while the quota is above the reserve", async () => {
+		recordQuota(QUOTA_RESERVE, RESET);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: leaf as never });
+		await handleWebhookRequest(req(), SHADOW_ENV);
+		expect(runCiAggregate).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		["a finished check run", leaf],
+		["a feed-only pull request delivery", { ...leaf, type: "pull_request.feed", pullRequests: [{ number: 12 }] }],
+		["an issue's area labels", { type: "issues.area", repo: "acme/demo", installationId: 7, raw: {} }],
+	])("runs nothing for %s below the reserve, and makes no client", async (_name, event) => {
+		recordQuota(QUOTA_RESERVE - 1, RESET);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: event as never });
+		const res = await handleWebhookRequest(req(), SHADOW_ENV);
+		expect(await res.json()).toEqual({ handled: false, reason: "quota is reserved for the required checks" });
+		expect(createInstallationClient).not.toHaveBeenCalled();
+		expect(runCiAggregate).not.toHaveBeenCalled();
+		expect(runPrFeed).not.toHaveBeenCalled();
+	});
+
+	it("still runs the checks that gate a merge for a pull request, and none of the reporting", async () => {
+		recordQuota(10, RESET);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prOpened as never });
+		const res = await handleWebhookRequest(req(), SHADOW_ENV);
+		expect(res.status).toBe(200);
+		expect(lintCommits).toHaveBeenCalledTimes(1);
+		expect(postCommitStandardsCheck).toHaveBeenCalledTimes(1);
+		expect(runPrFeed).not.toHaveBeenCalled();
+		expect(runBoardStatus).not.toHaveBeenCalled();
+		expect(runAreaLabels).not.toHaveBeenCalled();
+		expect(runCiAggregate).not.toHaveBeenCalled();
+	});
+
+	it("still runs a delivery that has no reporting at all (a push to the default branch)", async () => {
+		recordQuota(10, RESET);
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				type: "push.default-branch",
+				repo: "acme/demo",
+				installationId: 42,
+				raw: { repository: { default_branch: "main" }, after: "sha-after" },
+			} as never,
+		});
+		vi.mocked(validateConfig).mockResolvedValue({ status: "missing" } as never);
+		const res = await handleWebhookRequest(req(), SHADOW_ENV);
+		expect(res.status).toBe(200);
+		expect(validateConfig).toHaveBeenCalled();
+	});
+
+	it("runs everything again once the window has reset", async () => {
+		recordQuota(0, Date.now() / 1000 - 1);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: leaf as never });
+		await handleWebhookRequest(req(), SHADOW_ENV);
+		expect(runCiAggregate).toHaveBeenCalledTimes(1);
 	});
 });

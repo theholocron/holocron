@@ -8,6 +8,7 @@ export * from "./decode-contents/index.js";
 export * from "./error-reporter/index.js";
 export * from "./fetch-config-dir/index.js";
 export * from "./github-app-credentials/index.js";
+export * from "./github-quota/index.js";
 export * from "./is-ignored/index.js";
 export * from "./line-hunks/index.js";
 export * from "./package-root/index.js";
