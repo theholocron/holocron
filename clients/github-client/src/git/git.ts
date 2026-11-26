@@ -227,10 +227,10 @@ export function git(rest: RestClient) {
 		 * (`GET /repos/:repo/git/trees/<ref>:<path>?recursive=1`), as the same flat list of full paths
 		 * `listDirectory(..., { recursive: true })` returns, which makes one request per directory. It answers
 		 * `undefined`, so the caller can list the directory the other way, when it cannot answer for certain:
-		 * a `ref` that is not the default branch or a full commit SHA (a branch name with a slash is ambiguous in
-		 * this form), a tree GitHub cut short (`truncated`), a directory GitHub says it does not have (404) or a
-		 * request it cannot read (422). Any other failure throws. Not verified against the live API: the
-		 * `<ref>:<path>` form is read from git's own revision syntax.
+		 * a `ref` that is not the default branch, a full commit SHA or a branch name with no slash (a name with a
+		 * slash is ambiguous in this form and GitHub answers 404), a tree GitHub cut short (`truncated`), a directory GitHub says it does not have (404) or a
+		 * request it cannot read (422). Any other failure throws. Checked against the live API with `HEAD`, a
+		 * commit SHA and a plain branch name, and a missing directory.
 		 */
 		listTree: async (
 			repo: string,
@@ -239,7 +239,7 @@ export function git(rest: RestClient) {
 		): Promise<GitDirectoryEntry[] | undefined> => {
 			const dir = path.replace(/^\/+|\/+$/g, "");
 			const ref = options.ref ?? "HEAD";
-			if (ref !== "HEAD" && !/^[0-9a-f]{40}$/i.test(ref)) return undefined;
+			if (!/^(HEAD|[0-9a-f]{40}|[\w.-]+)$/i.test(ref)) return undefined;
 			let tree: GitTree;
 			try {
 				tree = await rest.request<GitTree>(`${repoBase(repo)}/git/trees/${ref}:${filePath(dir)}`, {

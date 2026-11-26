@@ -333,7 +333,14 @@ describe("git.getTree without recursion", () => {
 			expect(calls[0]?.url).toContain(`/git/trees/${SHA}:.holocron`);
 		});
 
-		it("makes no request for a branch name, which it cannot name reliably", async () => {
+		it("names a branch that has no slash, such as the base branch the aggregate reads at", async () => {
+			const { fetch, calls } = stubFetch([{ body: { sha: "t", truncated: false, tree: [] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: "alpha" })).toEqual([]);
+			expect(calls[0]?.url).toContain("/git/trees/alpha:.holocron");
+		});
+
+		it("makes no request for a branch name with a slash, which it cannot name reliably", async () => {
 			const { fetch, calls } = stubFetch([]);
 			const client = createGitHubClient({ token: TOKEN, fetch });
 			expect(await client.git.listTree(REPO, ".holocron", { ref: "feat/x" })).toBeUndefined();

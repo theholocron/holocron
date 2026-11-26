@@ -39,8 +39,8 @@ const entries = await client.git.listDirectory("owner/name", ".holocron", { recu
 // [{ name, path, type: "file" | "dir" | "symlink" | "submodule", size, sha }]
 
 // The same list in ONE request, through the git trees API. It answers `undefined`, and the caller lists the
-// directory the other way, when it cannot answer for certain: a `ref` that is not the default branch or a full
-// commit SHA, a tree GitHub cut short, a 404 or a 422.
+// directory the other way, when it cannot answer for certain: a `ref` that is not the default branch, a full
+// commit SHA or a branch name with no slash, a tree GitHub cut short, a 404 or a 422.
 const tree = await client.git.listTree("owner/name", ".holocron", { ref: commitSha });
 ```
 
