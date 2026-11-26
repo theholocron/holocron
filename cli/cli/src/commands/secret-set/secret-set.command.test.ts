@@ -52,6 +52,11 @@ describe("new secret", () => {
 		});
 	});
 
+	it("passes --from-stdin and --from-env", async () => {
+		await go("DEPLOY_HOOK", "--from-stdin", "--from-env", "VERCEL_HOOK_URL");
+		expect(runSecretSet.mock.calls[0]![0]).toMatchObject({ fromStdin: true, fromEnv: "VERCEL_HOOK_URL" });
+	});
+
 	it("offers a question only on a terminal, and asks with a default of no", async () => {
 		process.stdin.isTTY = true;
 		confirm.mockResolvedValue(true);

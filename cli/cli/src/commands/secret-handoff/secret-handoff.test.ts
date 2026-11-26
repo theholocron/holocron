@@ -1,4 +1,6 @@
-import { openSync } from "node:fs";
+import { mkdtempSync, openSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import type { FileIdentity } from "@theholocron/kyber/secrets";
 import { describe, expect, it, vi } from "vitest";
@@ -71,6 +73,24 @@ describe("handOffSecret", () => {
 		const { result, writeFile } = run({ platform: "win32" });
 		expect(await result).toMatchObject({ status: "fail", reason: "windows" });
 		expect(writeFile).not.toHaveBeenCalled();
+	});
+
+	it("takes the platform, git's answer and the file writer from the process when none are given, and never prints the value", async () => {
+		const base = mkdtempSync(join(tmpdir(), "secret-handoff-"));
+		try {
+			const { result, printed } = run({
+				base,
+				platform: undefined,
+				isIgnored: undefined,
+				writeFile: undefined,
+				makeDir: undefined,
+				interactive: false,
+			});
+			expect(["ok", "fail"]).toContain((await result).status);
+			expect(printed.join("\n")).not.toContain(FAKE);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+		}
 	});
 
 	it("refuses a value a dotenv file cannot carry, writing nothing", async () => {

@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
@@ -179,6 +183,80 @@ describe("runSecretSet --target file environment and value sourcing", () => {
 		const { result, handOff } = run({ generate: false });
 		await expect(result).rejects.toThrow(/no value for secret `CRON_SECRET`/);
 		expect(handOff).not.toHaveBeenCalled();
+	});
+});
+
+describe("runSecretSet --target file defaults and edge answers", () => {
+	it("goes ahead when the question is answered yes", async () => {
+		const { result, handOff } = run({ yes: false, confirm: async () => true });
+		expect((await result).status).toBe("ok");
+		expect(handOff).toHaveBeenCalledOnce();
+	});
+
+	it("asks the process whether there is a terminal when `interactive` says nothing", async () => {
+		const { result, handOff } = run({ interactive: undefined, environment: undefined });
+		expect((await result).status).toBe("ok");
+		expect(handOff).toHaveBeenCalledWith(
+			expect.objectContaining({ base: "/tmp/test", interactive: process.stdin.isTTY === true })
+		);
+	});
+
+	it("skips the check, saying why, when no vault provider is configured", async () => {
+		const noVault: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { secrets: "github" } }),
+			filepath: "/tmp/test/holocron.config.json",
+		};
+		const made = makeLoader([OLD]);
+		const loader = new PluginLoader(
+			noVault.resolved,
+			{ repoRoot: "/tmp/test", repo: "theholocron/holocron" },
+			(async (pkg: string) => {
+				throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+			}) as unknown as PluginImporter
+		);
+		const { result, printed } = run({ loaded: noVault, loader });
+		expect((await result).status).toBe("ok");
+		expect(printed.join("\n")).toContain("no vault provider is configured");
+		expect(made.readEnvironmentEntries).not.toHaveBeenCalled();
+	});
+
+	it("prints to the console and builds its own loader when none are given (a dry run, so nothing is written)", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			const { result } = run({
+				print: undefined,
+				logger: undefined,
+				loader: undefined,
+				environment: undefined,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+			});
+			expect((await result).status).toBe("dry-run");
+			expect(log).toHaveBeenCalled();
+			expect(log.mock.calls.flat().join("\n")).not.toContain(GENERATED);
+		} finally {
+			log.mockRestore();
+		}
+	});
+
+	it("names a failed hand-off even when it gave no reason", async () => {
+		const { result } = run({ handOff: async () => ({ status: "fail" as const }) });
+		expect((await result).message).toBe("CRON_SECRET was not handed over (failed)");
+	});
+
+	it("uses the real hand-off when none is injected, and refuses a directory git does not vouch for", async () => {
+		const base = mkdtempSync(join(tmpdir(), "secret-to-file-"));
+		try {
+			const { result, printed } = run({
+				handOff: undefined,
+				environment: undefined,
+				context: { repoRoot: base },
+			});
+			const report = await result;
+			expect(["ok", "fail"]).toContain(report.status);
+			expect(printed.join("\n")).not.toContain(GENERATED);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
+		}
 	});
 });
 

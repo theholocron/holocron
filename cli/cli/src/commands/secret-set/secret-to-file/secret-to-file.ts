@@ -23,7 +23,7 @@ export async function runSecretToFile(
 ): Promise<SecretSetReport> {
 	const { name } = input;
 	const dryRun = input.context.dryRun ?? false;
-	const repoRoot = input.context.repoRoot ?? process.cwd();
+	const { repoRoot } = input.context;
 	const interactive = input.interactive ?? process.stdin.isTTY === true;
 	const environment = input.environment
 		? await (input.resolveEnvironment ?? ((id, root) => resolveEnvironmentId(id, { repoRoot: root })))(
