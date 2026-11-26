@@ -1,3 +1,13 @@
+## [5.0.0-alpha.542](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.541...v5.0.0-alpha.542) (2026-11-26)
+
+### Bug Fixes
+
+* **cli:** 🐛 new secret --target file names sync <app> for a workspace app ([#2634](https://github.com/theholocron/holocron/issues/2634)) ([28a12d6](https://github.com/theholocron/holocron/commit/28a12d6d2e3d8c67f44f4865e8a86ab0c5f6446e)), closes [#2629](https://github.com/theholocron/holocron/issues/2629)
+
+### Chores
+
+* **deps:** bump the all-dependencies group across 1 directory with 15 updates ([#2623](https://github.com/theholocron/holocron/issues/2623)) ([77fad9e](https://github.com/theholocron/holocron/commit/77fad9e6c6e57d72cb514f1f80261ed543d4a702))
+
 ## [5.0.0-alpha.541](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.540...v5.0.0-alpha.541) (2026-11-26)
 
 ### Features
