@@ -96,7 +96,7 @@ describe("runSecretSet --target file --generate", () => {
 		);
 		const text = printed.join("\n");
 		expect(text).toContain("holds a new CRON_SECRET");
-		expect(text).toContain("holocron sync secrets --env prod");
+		expect(text).toContain("holocron sync <app> --env prod");
 		expect(text).toContain("redeploy");
 		// the value reaches the file writer only
 		expect(text).not.toContain(GENERATED);
@@ -109,7 +109,7 @@ describe("runSecretSet --target file --generate", () => {
 		const report = await result;
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/still holds the old value/);
-		expect(printed.join("\n")).not.toContain("holocron sync secrets");
+		expect(printed.join("\n")).not.toContain("next: send it where it runs");
 	});
 
 	it("is not a failure when the Environment cannot be read afterwards, and says so", async () => {
@@ -126,7 +126,7 @@ describe("runSecretSet --target file --generate", () => {
 		expect(handOff).toHaveBeenCalledOnce();
 		expect(importer).not.toHaveBeenCalled();
 		expect(readEnvironmentEntries).not.toHaveBeenCalled();
-		expect(printed.join("\n")).toContain("holocron sync secrets --env <environment>");
+		expect(printed.join("\n")).toContain("holocron sync <app> --env <environment>");
 	});
 
 	it("writes nothing on --dry-run and reads no vault", async () => {
@@ -157,7 +157,7 @@ describe("runSecretSet --target file --generate", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/not handed over \(not-ignored\)/);
 		expect(readEnvironmentEntries).toHaveBeenCalledTimes(1);
-		expect(printed.join("\n")).not.toContain("holocron sync secrets");
+		expect(printed.join("\n")).not.toContain("next: send it where it runs");
 	});
 
 	it("refuses a name the CLI does not generate, before anything is written", async () => {
