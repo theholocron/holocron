@@ -1,3 +1,9 @@
+## [8.9.0-alpha.23](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.22...configs-v8.9.0-alpha.23) (2026-11-26)
+
+### Bug Fixes
+
+* 🐛 make the release notes work with semantic-release 26 ([#2641](https://github.com/theholocron/holocron/issues/2641)) ([6afb215](https://github.com/theholocron/holocron/commit/6afb21528705ce56feefa32b39fb5fd2e0618a48)), references [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [8.9.0-alpha.22](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.21...configs-v8.9.0-alpha.22) (2026-11-22)
 
 ### Chores
