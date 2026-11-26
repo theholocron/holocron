@@ -179,8 +179,12 @@ jobs:
           # built-in github.token cannot push through branch protection rulesets.
           token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
 
+      # semantic-release 26 needs Node 26.13 or later. The frozen setup action ignores `.node-version` (its expression
+      # always falls through to this input, default 22.x), so the version is passed here.
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
+        with:
+          node-version: "26.x"
 
       # By path: the action is new and `theholocron/.github` is frozen (see the `format` action in lint/code.yml).
       - uses: ./ci/actions/git-identity
