@@ -168,6 +168,20 @@ describe("runSecretSet --target file --generate", () => {
 	});
 });
 
+describe("runSecretSet --target file environment and value sourcing", () => {
+	it("takes a name that is not a layer word as the Environment, with no git read", async () => {
+		const { result, handOff } = run({ resolveEnvironment: undefined, environment: "Some Environment" });
+		expect((await result).status).toBe("ok");
+		expect(handOff).toHaveBeenCalledWith(expect.objectContaining({ environment: "Some Environment" }));
+	});
+
+	it("says so when there is no value to hand over", async () => {
+		const { result, handOff } = run({ generate: false });
+		await expect(result).rejects.toThrow(/no value for secret `CRON_SECRET`/);
+		expect(handOff).not.toHaveBeenCalled();
+	});
+});
+
 describe("runSecretSet --target file with a given value", () => {
 	it("hands over the value it was given", async () => {
 		const { result, handOff } = run({ generate: false, value: "given-value-xyz" });
