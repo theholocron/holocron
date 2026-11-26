@@ -1,3 +1,9 @@
+## [1.58.0-alpha.57](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.56...clients-v1.58.0-alpha.57) (2026-11-26)
+
+### Bug Fixes
+
+* **cloudflare:** 🐛 find a relay destination by name and masked URL ([#2615](https://github.com/theholocron/holocron/issues/2615)) ([c9fcbb8](https://github.com/theholocron/holocron/commit/c9fcbb8fd2ebc8dba06279f439d81c84fcf732d4)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
 ## [1.58.0-alpha.56](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.55...clients-v1.58.0-alpha.56) (2026-11-24)
 
 ### Features
