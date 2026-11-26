@@ -38,11 +38,10 @@ name>` (`resolveEnvironmentId()`) is optional with `file`: given, the hint names
   the value, in memory, never printed) and after the wait reads it again: a name that is missing, blank or has the same hash
   is a failing row ("the Environment still holds the old value"), so a forgotten import is caught here and not by a 401
   later. With no readable Environment the check is a skipped row that says why, never a pass.
-- **`--sync` runs the fan-out.** It needs `--env` and a checked import (a skipped check refuses it), and then runs `sync
-secrets --env <same>` in the same process (the
-  same function, honouring `repo.secrets.deploy` and `--cwd`), so the new value reaches Vercel. Without it the command ends
-  by naming that command. Vercel only gives a deployment its variables at deploy time, so the last row says to redeploy; the
-  command does not deploy.
+- **The command ends by naming the next two steps.** After a checked import it prints `holocron sync secrets --env <same>
+[--cwd <dir>]`, which carries the new value to Vercel, and says to redeploy, because Vercel only gives a deployment its
+  variables at deploy time. It runs neither: the sync's wiring (project id, deploy filter, routes) sits in its command
+  handler, and running it in process is a separate change (below).
 - **No window where the two sides differ.** Vercel supplies `CRON_SECRET` to the function and sends the same value from the cron
   call of that deployment, so a deployment holds one value. Not verified against Vercel; the first rotation is watched.
 - **Dry run and consent.** `--dry-run` prints what it would do and writes nothing, not even the file; it asks first unless
@@ -56,17 +55,19 @@ secrets --env <same>` in the same process (the
 - Rotating a signing secret that a vendor also holds (a webhook secret): the vendor's copy has to change in the same step, which
   is a plugin method, not a table row. They stay out of `GENERATED_SECRETS` until that exists.
 - A vault that can be written (Doppler, Infisical): `--target` could name them later.
+- `--sync`: running `sync secrets` for the same Environment after a checked import. It needs the sync handler's wiring moved
+  into a function both can call.
 
 ## Verification
 
-Unit tests over an injected IO (random source, file, vault, sync): the table refuses an unknown name, the value is the
+Unit tests over an injected IO (random source, file, vault): the table refuses an unknown name, the value is the
 declared length and encoding and appears in no printed or logged text, an existing file is never overwritten, an ignored
-check failure writes nothing, an unchanged or blank value after the wait fails, a skipped read is a skip, `--sync` is called
-only after a checked import, `--dry-run` writes nothing. Not verified against a live 1Password Environment or Vercel; the
+check failure writes nothing, an unchanged or blank value after the wait fails, a skipped read is a skip, the closing rows name the sync
+and the redeploy, `--dry-run` writes nothing. Not verified against a live 1Password Environment or Vercel; the
 maintainer runs the first rotation.
 
 ## Rollout, in small stacked pull requests
 
 1. This spec.
-2. `new secret --target`, `--generate`, `--sync`: the table, the hand-off, the check, tests and docs
+2. `new secret --target`, `--generate` and `--env`: the table, the hand-off, the check, tests and docs
    (`docs/src/content/docs/commands/`, `AGENTS.md`).
