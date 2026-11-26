@@ -27,6 +27,28 @@ export const secretSetArgs = (y: Argv<GlobalArgs>) =>
 			type: "string",
 			default: "repo",
 			describe: 'Scope: "repo" (default), "env=<name>", or "org=<name>"',
+		})
+		.option("target", {
+			type: "string",
+			choices: ["github", "file"] as const,
+			default: "github" as const,
+			describe:
+				"Where the value goes: `github` (the `secrets` capability) or `file` (the private import file, for a vault the CLI cannot write)",
+		})
+		.option("generate", {
+			type: "boolean",
+			default: false,
+			describe: "Make the value with a random source (only for a secret the CLI generates, such as CRON_SECRET)",
+		})
+		.option("env", {
+			type: "string",
+			describe:
+				"With --target file: the vault Environment the file is imported into (a layer word or a name), so the import is checked",
+		})
+		.option("yes", {
+			type: "boolean",
+			default: false,
+			describe: "With --target file: write without asking (required without a terminal)",
 		});
 
 export type SecretSetArgs = InferArgs<typeof secretSetArgs>;

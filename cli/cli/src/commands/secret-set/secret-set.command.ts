@@ -1,3 +1,4 @@
+import { confirm } from "@inquirer/prompts";
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
@@ -13,7 +14,7 @@ import { type SecretSetArgs, secretSetArgs } from "./secret-set.args.js";
 
 export const secretSetCommand: CommandModule<GlobalArgs, SecretSetArgs> = {
 	command: "secret [name] [value]",
-	describe: "Set a single secret via the configured `secrets` capability",
+	describe: "Set a single secret via the configured `secrets` capability, or hand a new one to a vault by file",
 	builder: secretSetArgs,
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
@@ -36,6 +37,14 @@ export const secretSetCommand: CommandModule<GlobalArgs, SecretSetArgs> = {
 			...(argv.fromStdin ? { fromStdin: true } : {}),
 			...(argv.fromEnv ? { fromEnv: argv.fromEnv } : {}),
 			scope,
+			target: argv.target,
+			...(argv.generate ? { generate: true } : {}),
+			...(argv.env ? { environment: argv.env } : {}),
+			...(argv.yes ? { yes: true } : {}),
+			// Only a terminal can be asked; without one `--yes` is required.
+			...(process.stdin.isTTY === true
+				? { confirm: (message: string) => confirm({ message, default: false }) }
+				: {}),
 		});
 		if (report.status === "fail") {
 			process.exitCode = 1;
