@@ -12,6 +12,8 @@ pnpm add -D @theholocron/semantic-release-config semantic-release \
   conventional-changelog-conventionalcommits
 ```
 
+This config needs semantic-release 26, `@semantic-release/release-notes-generator` 15 (a beta, which semantic-release 26 depends on itself) and `conventional-changelog-conventionalcommits` 10: the preset renders only with `conventional-changelog-writer` 9, which the 14.x notes generator does not load. Mixing the old and new releases of these fails with `TypeError: headerPartial is not a function`.
+
 If your repo uses `@semantic-release/exec` for version bumping and publishing, add it too:
 
 ```bash
