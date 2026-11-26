@@ -48,7 +48,7 @@ catalog:
   lint-staged: ^17.6.2
   pino: ^10.4.0
   pino-pretty: ^13.2.0
-  posthog-node: ^5.74.0
+  posthog-node: ^6.0.5
   prettier: ^3.10.1
   semantic-release: ^26.0.1
   sort-package-json: ^4.1.0
