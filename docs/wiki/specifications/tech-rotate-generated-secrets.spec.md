@@ -1,9 +1,12 @@
 ---
+id: SPEC-0110
 status: accepted
 issue: theholocron/holocron#2629
 blocked-by: []
 related:
   - theholocron/holocron#2609
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1575374711322312796
 ---
 
 # Rotate a generated secret
