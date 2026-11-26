@@ -1,3 +1,9 @@
+## [1.58.0-alpha.58](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.57...clients-v1.58.0-alpha.58) (2026-11-26)
+
+### Features
+
+* **github-client:** ✨ getRepoInstallation finds an App's installation on a repository ([#2617](https://github.com/theholocron/holocron/issues/2617)) ([8ec0a03](https://github.com/theholocron/holocron/commit/8ec0a03e63766dfcc73a6337702462cea09a6f73)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
 ## [1.58.0-alpha.57](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.56...clients-v1.58.0-alpha.57) (2026-11-26)
 
 ### Bug Fixes
