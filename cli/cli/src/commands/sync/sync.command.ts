@@ -17,6 +17,7 @@ import { syncToolingCommand } from "../sync-tooling/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runSync } from "./index.js";
 import { type SyncArgs, syncArgs } from "./sync.args.js";
+import { syncApp } from "./sync-app.js";
 
 export const syncCommand: CommandModule<GlobalArgs, SyncArgs> = {
 	command: "sync [steps..]",
@@ -35,6 +36,12 @@ export const syncCommand: CommandModule<GlobalArgs, SyncArgs> = {
 			.command(secretsSyncCommand as never)
 			.command(notificationsSyncRolesCommand as never),
 	handler: async (argv) => {
+		// `sync <app> --env prod`: an app of the workspace by name, or the one the working folder is in (spec
+		// `tool-app-deploy-sync`). Only with `--env` or a first value that is not a step, so the steps run as before.
+		if (argv.env !== undefined || argv.steps?.[0] !== undefined) {
+			const handled = await syncApp(argv);
+			if (handled) return;
+		}
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
 		const loaded = await loadConfig(argv.cwd);

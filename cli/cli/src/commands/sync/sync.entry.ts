@@ -5,6 +5,7 @@ export const syncEntry: MenuEntry = {
 	description:
 		"Sync state from config to the provider and local files (labels, properties, teams, topics, keywords, description, homepage, readme, workflows, scripts, wiki)",
 	positionals: [],
-	skipOptions: ["repo"],
+	// `--env` syncs an app by name; this entry runs the steps.
+	skipOptions: ["repo", "env", "environment"],
 	supportsDryRun: true,
 };

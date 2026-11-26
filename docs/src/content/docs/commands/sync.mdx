@@ -5,6 +5,7 @@ description: Sync repository metadata from holocron.config.ts to GitHub and loca
 
 ```bash
 holocron sync [steps..] [--repo owner/name] [--dry-run]
+holocron sync <app> --env <environment>... [--dry-run]
 ```
 
 `sync` pushes metadata defined in `holocron.config.ts` to the configured `source` provider (GitHub) and to local files. Run it after updating any of the synced fields in config.
@@ -25,6 +26,35 @@ holocron sync [steps..] [--repo owner/name] [--dry-run]
 | [`sync specs`](/holocron/commands/sync-specs/)         | ADRs and specs, with their forum posts                               |
 | [`sync secrets`](/holocron/commands/sync-secrets/)     | A vault environment, fanned out to CI secrets and deployments        |
 | [`sync roles`](/holocron/commands/sync-roles/)         | Who holds a server role, from a GitHub team                          |
+
+## Syncing an app's secrets by name
+
+`holocron sync <app> --env prod` sends a workspace app's secrets from its vault Environment to where it runs, without
+the project id, the Worker name or `--cwd` written out (spec `tool-app-deploy-sync`, #2608). Run it from the repository
+root, or from inside the app's folder and leave the name off.
+
+```bash
+holocron sync sentinel --env prod
+cd apps/comlink && holocron sync --env prod
+holocron sync sentinel --env production --env preview --dry-run
+```
+
+`--env` (alias `--environment`, the two are interchangeable) names an environment to write to, from the standard list of
+`@theholocron/env-utils` with its aliases: `production` (or `prod`) or `preview`. Repeat the flag for both. Both read
+their secrets from the `prod` vault layer, as `sync secrets` does for those two targets. `local`, `development`, `ci`
+and `test` are refused; `sync secrets --env ci` is what fills GitHub Actions.
+
+What it does for each app comes from the app's own `holocron.config`, never its name:
+
+| The app declares                           | `sync <app>` does                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| a `deployment` provider (Sentinel: Vercel) | checks the project named like the app serves the app's `domain`, then sends it the secrets |
+| a `workers` provider (Comlink: Cloudflare) | sets the secrets on the Worker script named like the app                                   |
+| neither (Council, an Obsidian plugin)      | says there is nothing to sync and exits 0                                                  |
+
+It is `sync secrets` with the arguments filled in: only the keys `repo.secrets.deploy` names for the `prod` layer are
+sent (an app with a destination and no such entry fails and says so), and `repo.secrets.sync` and `repo.variables.sync`
+in the app's config are followed as they are there. A first value that is not an app's name is a step, as before.
 
 ## Steps
 
