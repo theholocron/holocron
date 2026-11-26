@@ -1,3 +1,25 @@
+## [5.0.0-alpha.543](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.542...v5.0.0-alpha.543) (2026-11-26)
+
+### Features
+
+* **sentinel:** ✨ list the config tree in one request through the git trees API ([#2581](https://github.com/theholocron/holocron/issues/2581)) ([9d6c0c2](https://github.com/theholocron/holocron/commit/9d6c0c292c0914d4aa487a69b6e52e77a82c837e)), references [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+### Bug Fixes
+
+* 🐛 make the release notes work with semantic-release 26 ([#2641](https://github.com/theholocron/holocron/issues/2641)) ([6afb215](https://github.com/theholocron/holocron/commit/6afb21528705ce56feefa32b39fb5fd2e0618a48)), references [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **sentinel:** 🐛 keep a quota reserve for the checks that gate a merge ([#2622](https://github.com/theholocron/holocron/issues/2622)) ([ab391eb](https://github.com/theholocron/holocron/commit/ab391ebe2839b00a3bea03f58c61ab29a0cc9b27)), references [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+### Chores
+
+* **deps:** bump @sentry/node from 10.75.2 to 11.16.0 ([#2626](https://github.com/theholocron/holocron/issues/2626)) ([b67e86e](https://github.com/theholocron/holocron/commit/b67e86efe70c319fa46692b047259fca5e2835f6))
+* **deps:** bump posthog-node from 5.52.5 to 6.0.5 ([#2625](https://github.com/theholocron/holocron/issues/2625)) ([92d4cd1](https://github.com/theholocron/holocron/commit/92d4cd1e92d9accb1d646264b40990e9f93d2575))
+* **deps:** bump semantic-release from 25.0.9 to 26.0.1 ([#2624](https://github.com/theholocron/holocron/issues/2624)) ([5d80d67](https://github.com/theholocron/holocron/commit/5d80d677fde849468738b942df9c128140c0ab2a))
+
+### CI
+
+* 👷 pass Node 26 to the release job's setup ([#2638](https://github.com/theholocron/holocron/issues/2638)) ([eebbdf6](https://github.com/theholocron/holocron/commit/eebbdf6df9481ebd2525cf9516e8192d97926059)), references [#2637](https://github.com/theholocron/holocron/issues/2637) [#2426](https://github.com/theholocron/holocron/issues/2426)
+* 👷 run CI on Node 26 for semantic-release 26 ([#2637](https://github.com/theholocron/holocron/issues/2637)) ([c6c039c](https://github.com/theholocron/holocron/commit/c6c039ced66bc325dd96fa339ead140f4f34eb1f)), references [#2624](https://github.com/theholocron/holocron/issues/2624) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.542](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.541...v5.0.0-alpha.542) (2026-11-26)
 
 ### Bug Fixes
