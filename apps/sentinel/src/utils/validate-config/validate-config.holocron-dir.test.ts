@@ -203,17 +203,29 @@ describe("validateConfig with a .holocron/ directory", () => {
 		).toBe(true);
 	});
 
-	it("lists a branch ref level by level, because a branch name is not named in a trees request", async () => {
+	it("names a base branch with no slash in the trees request, the read the aggregate makes at `alpha`", async () => {
+		const { client, calls } = makeClient(WITH_DISCORD, [
+			{ name: "notifications.ts", content: "export default {};\n" },
+		]);
+
+		await validateConfig({ client, repo: "acme/demo", ref: "alpha" });
+
+		expect(calls.filter((c) => c.url.includes("/git/trees/")).map((c) => c.url)).toEqual([
+			expect.stringContaining("/git/trees/alpha:.holocron"),
+		]);
+	});
+
+	it("lists a branch ref with a slash level by level, because it is not named in a trees request", async () => {
 		const { client, calls } = makeClient(
 			WITH_DISCORD,
 			[{ name: "notifications.ts", content: "export default {};\n" }],
 			{ fallback: "branch-ref" }
 		);
 
-		await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+		await validateConfig({ client, repo: "acme/demo", ref: "pr/head-sha" });
 
 		expect(calls.some((c) => c.url.includes("/git/trees/"))).toBe(false);
-		expect(calls.slice(0, 3).every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
+		expect(calls.slice(0, 3).every((c) => decodeURIComponent(c.url).includes("ref=pr/head-sha"))).toBe(true);
 	});
 
 	it("skips symlinks and submodules (nothing is fetched for them)", async () => {

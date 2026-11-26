@@ -102,10 +102,10 @@ describe("validateConfig", () => {
 			{ status: 200, body: { content: b64(JSON.stringify({ name: "demo", tasks: [] })) } }, // .json
 		]);
 
-		const result = await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+		const result = await validateConfig({ client, repo: "acme/demo", ref: "pr/head-sha" });
 
 		expect(result.status).toBe("valid");
-		expect(calls.every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
+		expect(calls.every((c) => decodeURIComponent(c.url).includes("ref=pr/head-sha"))).toBe(true);
 	});
 
 	it("omits ref (falls back to the default branch) when none is given", async () => {
@@ -320,14 +320,14 @@ describe("validateConfig", () => {
 		];
 
 		it("merges its tasks on top of holocron.config's, the way loadTasksConfig does", async () => {
-			// A branch name is never named in a trees request, so only the per-level listing is asked for (one 404).
+			// A branch name with a slash is never named in a trees request, so only the per-level listing is asked for (one 404).
 			const { client, calls } = makeClient(
 				HOLOCRON_JSON,
 				dedicatedJson({ tasks: [{ name: "platform.repoValidation", required: true }], syncScripts: false }),
 				[{ status: 404 }]
 			);
 
-			const result = await validateConfig({ client, repo: "acme/demo", ref: "pr-head-sha" });
+			const result = await validateConfig({ client, repo: "acme/demo", ref: "pr/head-sha" });
 
 			expect(result.status).toBe("valid");
 			expect((result as { config: unknown }).config).toEqual({
@@ -335,7 +335,7 @@ describe("validateConfig", () => {
 				tasks: ["verification.typeSafety", { name: "platform.repoValidation", required: true }],
 				syncScripts: false,
 			});
-			expect(calls.every((c) => c.url.includes("ref=pr-head-sha"))).toBe(true);
+			expect(calls.every((c) => decodeURIComponent(c.url).includes("ref=pr/head-sha"))).toBe(true);
 		});
 
 		it("executes astromech.config.ts through defineConfig from @theholocron/astromech/config, this repo's real shape", async () => {
