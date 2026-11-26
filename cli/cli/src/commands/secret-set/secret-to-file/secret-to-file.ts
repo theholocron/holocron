@@ -83,9 +83,9 @@ export async function runSecretToFile(
 		if (verdict.status === "fail") return { status: "fail", name, message: verdict.message };
 	}
 
-	const via = input.environment ? ` --env ${input.environment}` : " --env <environment>";
+	const env = input.environment ?? "<environment>";
 	print(
-		`  next: holocron sync secrets${via} (with the same --cwd), then redeploy: a deployment only gets variables when it is deployed`
+		`  next: send it where it runs with \`holocron sync <app> --env ${env}\` for a workspace app (sentinel, comlink), or \`holocron sync secrets --env ${env}\` for the repository's own destinations; then redeploy, because a deployment only gets variables when it is deployed`
 	);
 	logger.info({ key: name, status: "ok" }, `secret set: ${name}`);
 	return { status: "ok", name };

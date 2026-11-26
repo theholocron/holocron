@@ -38,8 +38,9 @@ name>` (`resolveEnvironmentId()`) is optional with `file`: given, the hint names
   the value, in memory, never printed) and after the wait reads it again: a name that is missing, blank or has the same hash
   is a failing row ("the Environment still holds the old value"), so a forgotten import is caught here and not by a 401
   later. With no readable Environment the check is a skipped row that says why, never a pass.
-- **The command ends by naming the next two steps.** After a checked import it prints `holocron sync secrets --env <same>
-[--cwd <dir>]`, which carries the new value to Vercel, and says to redeploy, because Vercel only gives a deployment its
+- **The command ends by naming the next two steps.** After a checked import it prints `holocron sync <app> --env <same>`
+  for a workspace app (`sync sentinel`, which fills in the Vercel project id and the deploy filter) or `holocron sync secrets
+--env <same>` for the repository's own destinations, and says to redeploy, because Vercel only gives a deployment its
   variables at deploy time. It runs neither: the sync's wiring (project id, deploy filter, routes) sits in its command
   handler, and running it in process is a separate change (below).
 - **No window where the two sides differ.** Vercel supplies `CRON_SECRET` to the function and sends the same value from the cron
