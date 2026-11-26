@@ -10,7 +10,7 @@ interface WantedDestination {
 	url: string;
 }
 
-/** The origin of a URL, or `undefined` when it is not one (a masked `https://host/...` still parses). */
+/** The origin of a URL, or `undefined` when it is not one. */
 function originOf(url: string): string | undefined {
 	try {
 		return new URL(url).origin;
@@ -20,14 +20,14 @@ function originOf(url: string): string | undefined {
 }
 
 /**
- * Whether a Cloudflare notification destination belongs to a relay source. Cloudflare returns a destination's URL
- * masked (`https://host/...`, the path replaced), so the exact URL cannot be compared: the name must be equal
- * (ignoring case) and the URL either equal to the wanted one or masked (ends with `...`) with the same origin.
+ * Whether a Cloudflare notification destination belongs to a relay source. The URL equal to the wanted one always
+ * matches. Cloudflare otherwise returns a destination's URL masked, the whole path replaced (`https://host/...`), so
+ * the path cannot be compared: a masked URL matches when it is exactly that shape on the wanted URL's origin and the
+ * name is equal (ignoring case). A real URL that merely ends in `...` is not a masked one.
  */
 export function destinationMatches(destination: DestinationIdentity, wanted: WantedDestination): boolean {
-	if (destination.name.toLowerCase() !== wanted.name.toLowerCase()) return false;
 	if (destination.url === wanted.url) return true;
-	if (!destination.url.endsWith("...")) return false;
-	const origin = originOf(destination.url);
-	return origin !== undefined && origin === originOf(wanted.url);
+	if (destination.name.toLowerCase() !== wanted.name.toLowerCase()) return false;
+	const origin = originOf(wanted.url);
+	return origin !== undefined && destination.url === `${origin}/...`;
 }

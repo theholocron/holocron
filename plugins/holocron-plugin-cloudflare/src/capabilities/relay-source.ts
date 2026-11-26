@@ -15,15 +15,23 @@ export function policyName(name: string, alertType: string): string {
 	return `${name}: ${alertType}`;
 }
 
-/** The webhook targets of a policy with the destination in them, once. */
-function withDestination(webhooks: Array<{ id: string }> = [], id: string): Array<{ id: string }> {
-	return webhooks.some((w) => w.id === id) ? webhooks : [...webhooks, { id }];
+/**
+ * The webhook targets of a policy with the destination in them, once, and without the other destinations that match
+ * the same source (`duplicates`): a policy that still names an older duplicate would send every alert twice.
+ */
+function withDestination(
+	webhooks: Array<{ id: string }> = [],
+	id: string,
+	duplicates: ReadonlySet<string>
+): Array<{ id: string }> {
+	const kept = webhooks.filter((w) => w.id === id || !duplicates.has(w.id));
+	return kept.some((w) => w.id === id) ? kept : [...kept, { id }];
 }
 
-/** The policies that belong to a source, found by name, one per alert type of its layout. */
+/** The policies that belong to a source, found by name (ignoring case, as the destination is), one per alert type of its layout. */
 function ownPolicies(policies: CfNotificationPolicy[], name: string): CfNotificationPolicy[] {
-	const prefix = `${name}: `;
-	return policies.filter((p) => p.name.startsWith(prefix));
+	const prefix = `${name}: `.toLowerCase();
+	return policies.filter((p) => p.name.toLowerCase().startsWith(prefix));
 }
 
 /**
@@ -54,11 +62,13 @@ export async function ensureRelaySource(
 		if (input.secret) secret = input.secret;
 	}
 	const destination = found;
+	const duplicates = new Set(matches.map((d) => d.id));
 
 	const todo: string[] = [];
 	if (matches.length > 1) {
+		const others = matches.filter((d) => d.id !== destination.id).map((d) => d.id);
 		todo.push(
-			`Cloudflare has ${matches.length} destinations named ${input.name} for ${input.url} (${matches.map((d) => d.id).join(", ")}). Only the newest (${destination.id}) holds the Worker's current secret; delete the others in the Cloudflare dashboard (Notifications, Destinations).`
+			`Cloudflare has ${matches.length} destinations named ${input.name} for ${input.url} (${matches.map((d) => d.id).join(", ")}). Setup attaches the policies to the newest (${destination.id}) and takes the others off them. Cloudflare does not show a destination's secret, so which one the Worker's secret belongs to is not checked. Send a test alert to confirm it is accepted, then delete the unused ones (${others.join(", ")}) in the Cloudflare dashboard (Notifications, Destinations).`
 		);
 	}
 	const events = input.events ?? [];
@@ -78,19 +88,22 @@ export async function ensureRelaySource(
 			enabled: true,
 			mechanisms: {
 				...base?.mechanisms,
-				webhooks: withDestination(base?.mechanisms.webhooks, destination.id),
+				webhooks: withDestination(base?.mechanisms.webhooks, destination.id, duplicates),
 			},
 			...(base?.description !== undefined ? { description: base.description } : {}),
 			...(base?.filters !== undefined ? { filters: base.filters } : {}),
 			...(base?.alert_interval !== undefined ? { alert_interval: base.alert_interval } : {}),
 		});
-		const existing = policies.find((p) => p.name === name);
+		const existing = policies.find((p) => p.name.toLowerCase() === name.toLowerCase());
 		if (!existing) {
 			await client.alerting.policies.create(accountId, body());
 			updated.push(`policy ${alertType}`);
 			continue;
 		}
-		const attached = existing.mechanisms.webhooks?.some((w) => w.id === destination.id) ?? false;
+		const targets = existing.mechanisms.webhooks ?? [];
+		const attached =
+			targets.some((w) => w.id === destination.id) &&
+			targets.every((w) => w.id === destination.id || !duplicates.has(w.id));
 		if (existing.enabled && attached) continue;
 		// PUT replaces the whole policy, so everything it already had is sent back.
 		await client.alerting.policies.update(accountId, existing.id, body(existing));
