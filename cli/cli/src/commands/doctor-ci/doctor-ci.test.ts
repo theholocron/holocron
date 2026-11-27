@@ -427,6 +427,8 @@ describe("aggregateRow when ci.aggregate names the poster", () => {
 		const row = aggregateRow([actionsCaller()], ["typecheck"], "none");
 		expect(row.status).toBe("fail");
 		expect(row.problems.join("\n")).toContain("ci.ci.yml is still there");
+		const hosted = caller("ci.yml", { ...flat("ci"), expected: ["typecheck"] });
+		expect(aggregateRow([hosted], [], "none").status).toBe("fail");
 	});
 
 	it("keeps the old behaviour for actions and for no setting", () => {
