@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import { aggregateChecks, codecovUploads, readWorkspacePackages, requiredChecks } from "@theholocron/astromech";
+import { codecovUploads, readWorkspacePackages, requiredChecks } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { describe, expect, it } from "vitest";
 
@@ -46,24 +46,27 @@ async function rootTasksConfig(): Promise<TasksConfig> {
 }
 
 describe("this repo's required checks (#1727, B6)", () => {
-	it("keeps the ruleset to the aggregate and DCO", async () => {
-		expect(requiredChecks(await rootTasksConfig(), true)).toEqual([
-			"ci / Required checks",
-			"validate:dco / Run Developer Certificate of Origin",
-		]);
+	it("has no aggregate (#2636): `ci.aggregate` is none and the ruleset requires each check on its own", async () => {
+		const { resolved } = await loadConfig(REPO_ROOT);
+		expect(resolved.ci).toEqual({ aggregate: "none" });
+		await expect(readFile(`${REPO_ROOT}.github/workflows/ci.ci.yml`, "utf8")).rejects.toThrow(/ENOENT/);
+		await expect(readFile(`${REPO_ROOT}.github/workflows/ci.yml`, "utf8")).rejects.toThrow(/ENOENT/);
+	});
+
+	it("writes down in `.holocron/repo.ts` exactly the contexts its tasks derive, so a new task's check is a deliberate edit", async () => {
+		const { resolved } = await loadConfig(REPO_ROOT);
+		// One context is named differently by the app that posts it: Sentinel runs `lint:editorconfig` and calls its check
+		// `Run editorconfig`, where the Actions job the table is built from said `Run editorconfig-checker`.
+		const postedAs: Record<string, string> = {
+			"lint:editorconfig / Run editorconfig-checker": "lint:editorconfig / Run editorconfig",
+		};
+		const expected = PINNED_CONTEXTS.map((context) => postedAs[context] ?? context);
+		expect([...(resolved.repo?.requiredChecks ?? [])].sort()).toEqual([...expected].sort());
 	});
 
 	it("derives exactly the per-task contexts it did before, and no codecov context per package", async () => {
 		const contexts = requiredChecks(await rootTasksConfig(), false);
 		expect([...contexts].sort()).toEqual([...PINNED_CONTEXTS].sort());
-	});
-
-	it("writes the aggregate's statuses and ids into ci.ci.yml exactly as derived", async () => {
-		const { statuses, expected } = aggregateChecks(await rootTasksConfig());
-		expect(statuses).toEqual(["codecov/patch", "codecov/project", "codecov/patch/documentation"]);
-		const caller = await readFile(`${REPO_ROOT}.github/workflows/ci.ci.yml`, "utf8");
-		expect(caller).toContain(`statuses: '${JSON.stringify(statuses)}'`);
-		expect(caller).toContain(`expected: '${JSON.stringify(expected)}'`);
 	});
 
 	it("lists a codecov component and a flag for every workspace package in codecov.yml", async () => {

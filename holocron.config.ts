@@ -89,19 +89,12 @@ export default defineConfig({
 		defaultBranch: "alpha",
 		// teams, topics, variables and secrets live in .holocron/repo.ts; the loader adds them to `repo` here.
 	},
-	// Required status checks not backed by a `{ required: true }` task.
-	// `holocron setup` appends these to the task-derived contexts from
-	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong
-	// here: a ruleset takes no wildcards and a package a PR does not touch posts
-	// no status, so a per-package `codecov/patch/<slug>` can neither be listed
-	// for every package (one per workspace, hundreds once the org's repos are
-	// folded in) nor be relied on to appear. Codecov still posts the
-	// per-component statuses; they are informational, not required (#1223).
-	// "validate:deps / ..." and "validate:generated / ..." are the checks of the `validate:deps` (`holocron probe deps
-	// check`, #1380) and `validate:generated` (`holocron probe generated check`, #1405) tasks. They are listed here, not
-	// `required: true`, so the aggregate waits on them without the tasks joining `holocron run ci`.
-	// "codecov/patch/documentation" is the doc-comment gate (#1368): the `documentation` flag's patch status, which
-	// fails a PR that adds or changes an exported symbol without a comment. Its project status is not required.
+	// Required status checks not backed by a `{ required: true }` task, appended to the task-derived contexts by
+	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong here: a ruleset takes no wildcards and a
+	// package a PR does not touch posts no status, so a per-package `codecov/patch/<slug>` cannot be listed (#1223).
+	// The two `validate:` checks are the `validate:deps` and `validate:generated` tasks, listed here and not `required: true`
+	// so they stay out of `holocron run ci`. `codecov/patch/documentation` is the doc-comment gate (#1368).
+	// What the ruleset requires is written down in `repo.requiredChecks` (.holocron/repo.ts), not derived from these.
 	extraRequiredChecks: [
 		"codecov/patch",
 		"codecov/project",
@@ -113,6 +106,8 @@ export default defineConfig({
 	// export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation`
 	// is a required check (`extraRequiredChecks` above); the value itself never touches the ruleset.
 	repoValidation: { docsCoverage: "required" },
+	// No `ci / Required checks` aggregate (#2636): it cost too much GitHub quota in a burst, so each check is required on its own.
+	ci: { aggregate: "none" },
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/

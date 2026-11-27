@@ -329,7 +329,7 @@ posts, instead of reporting pass/fail.
 `holocron setup` builds the branch-protection required-check list from the
 manifest, not a hand-maintained array:
 
-In the repo that holds the reusable workflows (holocron itself) the list is `ci / Required checks` and `DCO`. That is the aggregate
+In the repo that holds the reusable workflows the list is `ci / Required checks` and `DCO` (holocron itself sets `ci.aggregate: none` and writes its list down, below). That is the aggregate
 check (`ci/workflows/ci.yml`, written by `setup` / `sync` as `.github/workflows/ci.ci.yml`): it waits on
 every `{ required: true }` task, the hand-written checks in `extraRequiredChecks` and the coverage statuses (the `coverage` provider's required ones, `Coverage.statusContexts()`; `codecov/*` by default when none is loaded), and its
 job summary lists each of them with a link, failing ones first. The DCO check (`validate:dco / Run Developer Certificate of Origin`, Sentinel's) stays its own required context. In any other

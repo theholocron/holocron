@@ -99,7 +99,9 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		expect(after?.variables).not.toHaveProperty("org");
 		// And (#2430): the area labels are new, so the old inline text has none.
 		expect(Object.keys(after?.labels?.areas ?? {})).toContain("cli");
-		const { variables: _movedVariables, labels: _labels, ...afterRest } = after!;
+		// And (#2636): the required checks are written down in the file, not derived, so the old inline text has none.
+		expect(after?.requiredChecks).toHaveLength(19);
+		const { variables: _movedVariables, labels: _labels, requiredChecks: _requiredChecks, ...afterRest } = after!;
 		const { variables: _inlineVariables, ...beforeRest } = before!;
 		// And (#1864): eight synced secrets are named `HOLOCRON_<NAME>` now; the same tokens, renamed.
 		const renamed: Record<string, string> = {
