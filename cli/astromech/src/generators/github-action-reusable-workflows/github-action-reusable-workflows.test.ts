@@ -1055,6 +1055,16 @@ describe("delivery.publish.yml version groups", () => {
 			expect(outputs["channel"]).toBe("alpha");
 		});
 
+		it("skips a `deployed/<package>` tag, which is nearer after a deploy, for the ungrouped release", () => {
+			const { outputs, commits } = runReleaseStep(
+				"",
+				{ a: "v1.0.0", b: "deployed/theholocron-sentinel" },
+				"v1.1.0-alpha.1"
+			);
+			expect(outputs["previous"]).toBe(commits["v1.0.0"]);
+			expect(outputs["channel"]).toBe("alpha");
+		});
+
 		it("keeps the ungrouped behavior: the nearest tag, `v` stripped for the channel", () => {
 			const { outputs, commits } = runReleaseStep("", { a: "v1.0.0", b: "v1.1.0" }, "v1.2.0-alpha.1");
 			expect(outputs["previous"]).toBe(commits["v1.1.0"]);
