@@ -210,8 +210,9 @@ jobs:
         id: release
         run: |
           BEFORE=$(git rev-parse HEAD)
-          # A group's tags are `<group>-v<version>`; without one, any tag (as before).
-          MATCH=()
+          # A group's tags are `<group>-v<version>`; without one, the repo-wide `v<version>` tags only: a
+          # `deployed/<package>` tag (the deploy step's marker) is nearer after a deploy and is not a release.
+          MATCH=(--match "v[0-9]*")
           PREFIX="v"
           if [ -n "$RELEASE_GROUP" ]; then
             MATCH=(--match "${RELEASE_GROUP}-v*")
@@ -280,7 +281,7 @@ jobs:
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
           RELEASE_GROUP: ${{ inputs.group }}
         run: |
-          MATCH=()
+          MATCH=(--match "v[0-9]*")
           PREFIX="v"
           if [ -n "$RELEASE_GROUP" ]; then
             MATCH=(--match "${RELEASE_GROUP}-v*")
