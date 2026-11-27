@@ -1830,7 +1830,7 @@ describe("handleWebhookRequest — role sync (holocron#1595)", () => {
 		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
 		const sync = { status: "synced" as const, roles: ["gatekeepers"], added: 1, removed: 0, failures: [] };
 		vi.mocked(runRoleSync).mockResolvedValue(sync);
-		const env = { ...ENV, SENTINEL_ROLE_SYNC_REPO: "acme/holocron" };
+		const env = { ...ENV, SENTINEL_REPO: "acme/holocron" };
 		const res = await handleWebhookRequest(req(), env);
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({ handled: true, type: "team.membership", sync });

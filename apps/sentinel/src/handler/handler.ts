@@ -138,7 +138,7 @@
  *   `pull_request_review` and `check_run.completed` (only `ci / Required checks`
  *   reaches here). For opened/synchronize/edited it runs before the checks and
  *   independent of them. Off, with a quiet `skipped`, unless the role-sync settings
- *   `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and that repo's
+ *   `SENTINEL_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and that repo's
  *   layout has a forum with `feeds.prs` (no new secret). A feed error answers 500 with
  *   the reason (merged into the checks' own response, which is otherwise unchanged)
  *   and logs an error line, so GitHub offers a redelivery, which is safe.

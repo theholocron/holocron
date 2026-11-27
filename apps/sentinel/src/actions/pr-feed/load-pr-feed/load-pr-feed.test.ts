@@ -6,7 +6,7 @@ import { loadPrFeed } from "./load-pr-feed.js";
 import type { PrFeedEnv, PrFeedFactories } from "./load-pr-feed.type.js";
 
 const CLIENT = {} as GitHubClient;
-const ENV: PrFeedEnv = { SENTINEL_ROLE_SYNC_REPO: "acme/holocron", HOLOCRON_DISCORD_BOT_TOKEN: "bot" };
+const ENV: PrFeedEnv = { SENTINEL_REPO: "acme/holocron", HOLOCRON_DISCORD_BOT_TOKEN: "bot" };
 const LAYOUT = { categories: [{ name: "Dev", channels: [{ name: "prs", kind: "forum", feeds: { prs: true } }] }] };
 
 function factories(providers: unknown, layout: unknown = LAYOUT, status = "valid"): PrFeedFactories {
@@ -35,9 +35,9 @@ describe("loadPrFeed", () => {
 
 	it("is off, saying which setting is missing", async () => {
 		const f = factories(DISCORD);
-		expect(await load({ ...ENV, SENTINEL_ROLE_SYNC_REPO: undefined }, f)).toMatchObject({
+		expect(await load({ ...ENV, SENTINEL_REPO: undefined }, f)).toMatchObject({
 			ok: false,
-			reason: expect.stringContaining("SENTINEL_ROLE_SYNC_REPO"),
+			reason: expect.stringContaining("SENTINEL_REPO"),
 		});
 		expect(await load({ ...ENV, HOLOCRON_DISCORD_BOT_TOKEN: undefined }, f)).toMatchObject({
 			ok: false,

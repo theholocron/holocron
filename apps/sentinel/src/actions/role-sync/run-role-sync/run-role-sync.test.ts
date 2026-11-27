@@ -68,6 +68,6 @@ describe("runRoleSync", () => {
 
 	it("loads the real providers when none are injected (off without settings)", async () => {
 		const result = await runRoleSync({ client: CLIENT, env: {}, org: "acme" });
-		expect(result).toMatchObject({ status: "skipped", reason: expect.stringContaining("SENTINEL_ROLE_SYNC_REPO") });
+		expect(result).toMatchObject({ status: "skipped", reason: expect.stringContaining("SENTINEL_REPO") });
 	});
 });

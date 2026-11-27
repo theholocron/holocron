@@ -47,8 +47,8 @@ export async function loadRoleSyncProviders(input: LoadRoleSyncProvidersInput): 
 	const { env, org, client } = input;
 	const factories = input.factories ?? DEFAULT_FACTORIES;
 
-	const repo = env.SENTINEL_ROLE_SYNC_REPO;
-	if (!repo) return { ok: false, reason: "role sync is off: SENTINEL_ROLE_SYNC_REPO is not set" };
+	const repo = env.SENTINEL_REPO;
+	if (!repo) return { ok: false, reason: "role sync is off: SENTINEL_REPO is not set" };
 	if (repo.split("/")[0].toLowerCase() !== org.toLowerCase()) {
 		return { ok: false, reason: `role sync is configured for ${repo}, not for the ${org} organisation` };
 	}

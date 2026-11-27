@@ -19,7 +19,7 @@ export const DEFAULT_BOARD_FACTORIES: BoardStatusFactories = {
  * Builds the `projects` provider for the board handler and reads the boards the config declares, or says why it cannot.
  *
  * Like the feed's loader and from the same setting: the declaration is read from the default branch of
- * `SENTINEL_ROLE_SYNC_REPO` (`.holocron/` area files included, through `validateConfig`), and the provider is GitHub's,
+ * `SENTINEL_REPO` (`.holocron/` area files included, through `validateConfig`), and the provider is GitHub's,
  * made over the installation's own client, so no secret of its own is needed (the App's organization projects
  * permission does the writing). Nothing throws for "not set up": a missing setting, another organisation, a config that
  * does not load, no `github` projects provider or no usable board is a reason. A template that is not a built-in is
@@ -30,8 +30,8 @@ export async function loadBoardStatus(input: LoadBoardStatusInput): Promise<Load
 	const factories = input.factories ?? DEFAULT_BOARD_FACTORIES;
 	const org = repo.split("/")[0];
 
-	const home = env.SENTINEL_ROLE_SYNC_REPO;
-	if (!home) return { ok: false, reason: "board status is off: SENTINEL_ROLE_SYNC_REPO is not set" };
+	const home = env.SENTINEL_REPO;
+	if (!home) return { ok: false, reason: "board status is off: SENTINEL_REPO is not set" };
 	if (home.split("/")[0].toLowerCase() !== org.toLowerCase()) {
 		return { ok: false, reason: `board status is configured for ${home}, not for the ${org} organisation` };
 	}

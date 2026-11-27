@@ -10,7 +10,7 @@ const { privateKey } = generateKeyPairSync("rsa", {
 });
 const ENV = {
 	CRON_SECRET: "s3cret",
-	SENTINEL_SCHEDULE_REPO: "o/r",
+	SENTINEL_REPO: "o/r",
 	SENTINEL_GITHUB_APP_ID: "1",
 	SENTINEL_GITHUB_APP_PRIVATE_KEY: privateKey,
 };
@@ -61,9 +61,7 @@ describe("handleScheduledRequest", () => {
 	it("answers 405 for anything but GET, 404 with no repository set, 400 with no task and 404 for an unknown one", async () => {
 		const o = options();
 		expect((await handleScheduledRequest(call(undefined, { method: "POST" }), ENV, o)).status).toBe(405);
-		expect((await handleScheduledRequest(call(), { ...ENV, SENTINEL_SCHEDULE_REPO: undefined }, o)).status).toBe(
-			404
-		);
+		expect((await handleScheduledRequest(call(), { ...ENV, SENTINEL_REPO: undefined }, o)).status).toBe(404);
 		expect((await handleScheduledRequest(call(""), ENV, o)).status).toBe(400);
 		const unknown = await handleScheduledRequest(call("?task=nope"), ENV, o);
 		expect(unknown.status).toBe(404);

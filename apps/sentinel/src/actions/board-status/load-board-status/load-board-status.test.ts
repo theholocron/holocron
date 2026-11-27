@@ -5,7 +5,7 @@ import { DEFAULT_BOARD_FACTORIES, loadBoardStatus } from "./load-board-status.js
 import type { BoardStatusEnv, BoardStatusFactories } from "./load-board-status.type.js";
 
 const CLIENT = { graphql: {} } as unknown as GitHubClient;
-const ENV: BoardStatusEnv = { SENTINEL_ROLE_SYNC_REPO: "acme/holocron" };
+const ENV: BoardStatusEnv = { SENTINEL_REPO: "acme/holocron" };
 const PROJECTS = { providerName: "github" };
 
 function factories(config: unknown, status = "valid"): BoardStatusFactories {
@@ -52,7 +52,7 @@ describe("loadBoardStatus", () => {
 		const f = factories(github());
 		expect(await load({}, f)).toEqual({
 			ok: false,
-			reason: "board status is off: SENTINEL_ROLE_SYNC_REPO is not set",
+			reason: "board status is off: SENTINEL_REPO is not set",
 		});
 		expect(await load(ENV, f, "other/widgets")).toMatchObject({
 			ok: false,

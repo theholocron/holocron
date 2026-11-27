@@ -8,7 +8,7 @@ import { runBoardStatus } from "./run-board-status.js";
 
 const TEMPLATE = BUILTIN_TEMPLATES.roadmap;
 const BOARD = { id: "b", number: 5, name: "v5", url: "u", closed: false };
-const ENV = { SENTINEL_ROLE_SYNC_REPO: "acme/holocron" };
+const ENV = { SENTINEL_REPO: "acme/holocron" };
 const GREEN = { key: "#12", state: "open", draft: false, checks: "success" } as const;
 const DRAFT = { key: "#12", state: "open", draft: true, checks: "pending" } as const;
 

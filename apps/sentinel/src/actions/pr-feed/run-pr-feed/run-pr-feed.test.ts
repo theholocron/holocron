@@ -6,7 +6,7 @@ import type { LoadPrFeedResult } from "../load-pr-feed/index.js";
 import type { PrFeedTrigger } from "../pr-feed.type.js";
 import { runPrFeed } from "./run-pr-feed.js";
 
-const ENV = { SENTINEL_ROLE_SYNC_REPO: "acme/holocron", HOLOCRON_DISCORD_BOT_TOKEN: "bot" };
+const ENV = { SENTINEL_REPO: "acme/holocron", HOLOCRON_DISCORD_BOT_TOKEN: "bot" };
 
 function notifications() {
 	return {
@@ -72,7 +72,7 @@ describe("runPrFeed", () => {
 			repo: "acme/widgets",
 			trigger: pr(),
 		});
-		expect(result).toMatchObject({ status: "skipped", reason: expect.stringContaining("SENTINEL_ROLE_SYNC_REPO") });
+		expect(result).toMatchObject({ status: "skipped", reason: expect.stringContaining("SENTINEL_REPO") });
 	});
 
 	it("counts ages to the given time", async () => {

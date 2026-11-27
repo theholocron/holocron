@@ -55,7 +55,7 @@ async function finish({ logger, errors }: Observability): Promise<void> {
 
 /**
  * The function behind a Vercel cron entry (`/api/scheduled?task=<id>`, spec `tech-sentinel-scheduled-dispatch`, #2609):
- * checks the call carries `CRON_SECRET`, finds the App's installation on `SENTINEL_SCHEDULE_REPO` and asks GitHub to run
+ * checks the call carries `CRON_SECRET`, finds the App's installation on `SENTINEL_REPO` and asks GitHub to run
  * the task's workflow. It fails closed: no `CRON_SECRET` is `503`, a wrong or missing secret `401`, no repository set
  * `404`, an unknown task `404`, an App not installed there or a refused dispatch `502`; only a dispatch GitHub accepted is
  * `200`. Anything but `GET` is `405`. Never retried within the request: the next cron call is the retry.
@@ -91,8 +91,8 @@ async function handle(
 	if (!isCronAuthorized(request.headers.get("authorization"), secret)) {
 		return json({ handled: false, reason: "unauthorized" }, 401);
 	}
-	const repo = lookup.get("SENTINEL_SCHEDULE_REPO");
-	if (!repo) return json({ handled: false, reason: "SENTINEL_SCHEDULE_REPO is not set" }, 404);
+	const repo = lookup.get("SENTINEL_REPO");
+	if (!repo) return json({ handled: false, reason: "SENTINEL_REPO is not set" }, 404);
 	const task = new URL(request.url).searchParams.get("task");
 	if (!task) return json({ handled: false, reason: "name a task with ?task=" }, 400);
 

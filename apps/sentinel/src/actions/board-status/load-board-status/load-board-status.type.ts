@@ -6,7 +6,7 @@ import type { ValidateConfigInput, ValidateConfigResult } from "../../../utils/v
 /** What the board handler reads from Sentinel's environment: the one setting role sync and the feed also read. */
 export interface BoardStatusEnv {
 	/** `owner/repo` whose default-branch `holocron.config.ts` declares `providers.projects`. */
-	SENTINEL_ROLE_SYNC_REPO?: string;
+	SENTINEL_REPO?: string;
 }
 
 /** The pieces the loader builds the provider from; the real ones read the config and make the GitHub provider. */
