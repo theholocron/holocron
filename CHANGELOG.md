@@ -1,3 +1,9 @@
+## [5.0.0-alpha.544](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.543...v5.0.0-alpha.544) (2026-11-27)
+
+### Features
+
+* ✨ write the required checks down and drop the ci aggregate ([#2647](https://github.com/theholocron/holocron/issues/2647)) ([c2590b0](https://github.com/theholocron/holocron/commit/c2590b052605c7bec3d8b04da1748d9d3be6bb2a)), references [#2426](https://github.com/theholocron/holocron/issues/2426) [#2636](https://github.com/theholocron/holocron/issues/2636) [#2636](https://github.com/theholocron/holocron/issues/2636)
+
 ## [5.0.0-alpha.543](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.542...v5.0.0-alpha.543) (2026-11-26)
 
 ### Features
