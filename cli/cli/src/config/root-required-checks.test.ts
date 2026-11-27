@@ -55,7 +55,13 @@ describe("this repo's required checks (#1727, B6)", () => {
 
 	it("writes down in `.holocron/repo.ts` exactly the contexts its tasks derive, so a new task's check is a deliberate edit", async () => {
 		const { resolved } = await loadConfig(REPO_ROOT);
-		expect([...(resolved.repo?.requiredChecks ?? [])].sort()).toEqual([...PINNED_CONTEXTS].sort());
+		// One context is named differently by the app that posts it: Sentinel runs `lint:editorconfig` and calls its check
+		// `Run editorconfig`, where the Actions job the table is built from said `Run editorconfig-checker`.
+		const postedAs: Record<string, string> = {
+			"lint:editorconfig / Run editorconfig-checker": "lint:editorconfig / Run editorconfig",
+		};
+		const expected = PINNED_CONTEXTS.map((context) => postedAs[context] ?? context);
+		expect([...(resolved.repo?.requiredChecks ?? [])].sort()).toEqual([...expected].sort());
 	});
 
 	it("derives exactly the per-task contexts it did before, and no codecov context per package", async () => {

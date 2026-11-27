@@ -14,7 +14,9 @@ export default {
 		"validate:dco / Run Developer Certificate of Origin",
 		"typecheck / Run tsc --noEmit",
 		"lint:code / Run eslint, actionlint and prettier",
-		"lint:editorconfig / Run editorconfig-checker",
+		// Sentinel runs this task (`sentinel: true`) and names its check `Run editorconfig`; the Actions job it replaced was
+		// `Run editorconfig-checker`, which is the name the task table derives. The ruleset needs the one that posts.
+		"lint:editorconfig / Run editorconfig",
 		"lint:markdown / Run markdownlint",
 		"lint:data / Run yamllint",
 		"scan:secrets / Run gitleaks",
