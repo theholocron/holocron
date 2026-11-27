@@ -42,7 +42,7 @@ unreliable, so the trigger has to move.
   that follows covers every one that was replaced, and a run lasts seconds against a ten minute period. A task added later
   must be as idempotent, or must not be dispatched on a period shorter than its run. Nothing is removed from a workflow.
 - **Names only.** The code holds a table from a task id to a workflow file (`sync-incidents` to `ci.sync-incidents.yml`);
-  the repository comes from `SENTINEL_SCHEDULE_REPO` (`owner/repo`). With it unset the function answers `404` and does
+  the repository comes from `SENTINEL_REPO` (`owner/repo`; it was `SENTINEL_SCHEDULE_REPO` before the repository variables were merged). With it unset the function answers `404` and does
   nothing, so a deployment that does not want it is untouched.
 - **Fail closed.** Vercel sends `Authorization: Bearer <CRON_SECRET>` when the project has a `CRON_SECRET` variable. The
   function compares it in constant time and answers `401` for anything else, and `503` when `CRON_SECRET` is not set, so a
@@ -97,5 +97,5 @@ deploy stage` shipping every `api/*.mjs`, tests and the docs (`docs/src/content/
 4. Human steps: add `Actions: read and write` to each App, then **approve the permission update on each installation**
    (changing an App's permissions does not give them to an installation that has not accepted the request, and without it
    the installation token cannot dispatch); run `holocron doctor github-app` and wait for its installation rows to pass
-   before relying on a dispatch. Set `CRON_SECRET` and `SENTINEL_SCHEDULE_REPO` in the `prod` Environment,
+   before relying on a dispatch. Set `CRON_SECRET` and `SENTINEL_REPO` in the `prod` Environment,
    `holocron sync secrets --env prod --cwd apps/sentinel`, deploy, watch the run count.

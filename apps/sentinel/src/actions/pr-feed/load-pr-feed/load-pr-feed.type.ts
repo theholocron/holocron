@@ -6,7 +6,7 @@ import type { PrFeedChannel } from "../pr-feed-channel/index.js";
 /** What the feed reads from Sentinel's environment: the same two settings as role sync (it needs no user-sync token). */
 export interface PrFeedEnv {
 	/** `owner/repo` whose default-branch config holds the notifications layout. */
-	SENTINEL_ROLE_SYNC_REPO?: string;
+	SENTINEL_REPO?: string;
 	/** The Discord bot token. */
 	HOLOCRON_DISCORD_BOT_TOKEN?: string;
 }

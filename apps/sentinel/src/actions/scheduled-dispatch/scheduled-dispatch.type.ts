@@ -13,7 +13,7 @@ export interface ScheduledDispatchEnv extends GitHubAppEnv {
 	/** Vercel sends it as `Authorization: Bearer <value>` on a cron call. Unset, the function answers 503. */
 	CRON_SECRET?: string;
 	/** `owner/repo`, whose workflows are started. Unset, the function answers 404. */
-	SENTINEL_SCHEDULE_REPO?: string;
+	SENTINEL_REPO?: string;
 }
 
 /** What {@link runScheduledDispatch} needs. */

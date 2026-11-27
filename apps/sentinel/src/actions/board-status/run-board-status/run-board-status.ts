@@ -22,7 +22,7 @@ const VERDICTS = new Set(["success", "failure", "timed_out", "cancelled"]);
  * is made through `Projects.setStatus`. Everything is read from the API, never the webhook payload. Idempotent: the
  * plan reads the board as it is, so a redelivery plans nothing, and `setStatus` is itself a no-op on a status already
  * set. A check run that is not the `ci / Required checks` verdict is dropped before anything is loaded or fetched.
- * Quietly `skipped` when `SENTINEL_ROLE_SYNC_REPO` or the config's `providers.projects` is not set up, or when the
+ * Quietly `skipped` when `SENTINEL_REPO` or the config's `providers.projects` is not set up, or when the
  * pull requests close no issue. An item that cannot be moved is listed in `failed`; the hourly `reconcile-projects`
  * run is the safety net for it and for a missed delivery. Never throws.
  */

@@ -11,7 +11,7 @@ const VERDICTS = new Set(["success", "failure", "timed_out", "cancelled"]);
 /**
  * The #prs feed for one delivery (holocron#1833, spec `tech-sentinel-pr-feed`): a post in the layout's `feeds.prs`
  * forum for each pull request the delivery is about, kept in step with GitHub. See `syncPullRequest` for what it
- * writes. Off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and the
+ * writes. Off, with a quiet `skipped`, unless `SENTINEL_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and the
  * layout has a forum with `feeds.prs`; also `skipped` for an excluded or archived repository. A check run that is not the
  * `ci / Required checks` verdict is dropped before anything is loaded or fetched. Never throws: a provider or network
  * error is a `fail` result (its reason carries the response text the provider sent, so a Discord 400 says why), which

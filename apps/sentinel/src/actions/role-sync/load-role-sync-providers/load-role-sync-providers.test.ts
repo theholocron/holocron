@@ -6,7 +6,7 @@ import type { RoleNotifications, RoleSource, RoleSyncEnv, RoleSyncFactories } fr
 
 const CLIENT = {} as GitHubClient;
 const ENV: RoleSyncEnv = {
-	SENTINEL_ROLE_SYNC_REPO: "acme/holocron",
+	SENTINEL_REPO: "acme/holocron",
 	HOLOCRON_DISCORD_BOT_TOKEN: "bot-token",
 	HOLOCRON_USER_SYNC_TOKEN: "sync-token",
 };
