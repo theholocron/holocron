@@ -7,6 +7,30 @@ import type { RepoConfig } from "@theholocron/cli";
 // The import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no runtime code.
 export default {
 	teams: [{ slug: "gatekeepers", permission: "maintain" }],
+	// The status checks the default branch's ruleset requires, each on its own (#2636): `holocron setup` writes exactly this
+	// list and `holocron doctor repo` compares the ruleset with it. It is the whole list, so a new task's check is required
+	// only once it is added here. The `ci / Required checks` aggregate is not one of them (`ci.aggregate: none`).
+	requiredChecks: [
+		"validate:dco / Run Developer Certificate of Origin",
+		"typecheck / Run tsc --noEmit",
+		"lint:code / Run eslint, actionlint and prettier",
+		"lint:editorconfig / Run editorconfig-checker",
+		"lint:markdown / Run markdownlint",
+		"lint:data / Run yamllint",
+		"scan:secrets / Run gitleaks",
+		"lint:commits / Run commitlint",
+		"validate:specs / Validate ADRs and specs",
+		"validate:docs / Validate docs",
+		"test:unit / Conclusion",
+		"build / Build every workspace",
+		"lint:unused / Run knip",
+		"measure:bundle / Upload bundle stats to Codecov",
+		"codecov/patch",
+		"codecov/project",
+		"codecov/patch/documentation",
+		"validate:deps / Check dependency catalogs",
+		"validate:generated / Check generated files",
+	],
 	topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 	// Organization Actions variables the reusable workflows read as `vars.NAME`. Their values are edited in the
 	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron sync secrets --env ci`. Names only; a key blank or

@@ -580,6 +580,13 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect((expected as { issueTypes?: unknown }).issueTypes).toBeUndefined();
 		expect(resolved.issueTypes).toHaveLength(5);
 		(expected as { issueTypes?: unknown }).issueTypes = resolved.issueTypes;
+		// And (#2636): the repo drops the `ci` aggregate and writes its required checks down (`repo.requiredChecks`, in
+		// `.holocron/repo.ts`); `root-required-checks.test.ts` pins the list.
+		expect((expected as { ci?: unknown }).ci).toBeUndefined();
+		expect(resolved.ci).toEqual({ aggregate: "none" });
+		(expected as { ci?: unknown }).ci = resolved.ci;
+		expect(resolved.repo?.requiredChecks).toContain("validate:dco / Run Developer Certificate of Origin");
+		(expected as { repo: { requiredChecks?: unknown } }).repo.requiredChecks = resolved.repo?.requiredChecks;
 		expect(normalise(resolved)).toEqual(expected);
 	});
 });
