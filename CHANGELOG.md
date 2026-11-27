@@ -1,3 +1,13 @@
+## [5.0.0-alpha.545](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.544...v5.0.0-alpha.545) (2026-11-27)
+
+### Refactoring
+
+* ♻️ merge the Sentinel repository variables into SENTINEL_REPO ([#2649](https://github.com/theholocron/holocron/issues/2649)) ([56dcbf7](https://github.com/theholocron/holocron/commit/56dcbf7e66bf45951c2059d8d2df99748992435f)), references [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+### CI
+
+* 👷 require each check on its own and drop the ci aggregate (DO NOT MERGE YET) ([#2648](https://github.com/theholocron/holocron/issues/2648)) ([a72ccc7](https://github.com/theholocron/holocron/commit/a72ccc738e35366021433b3c25af999b720bbb9f)), closes [#2636](https://github.com/theholocron/holocron/issues/2636), references [#2647](https://github.com/theholocron/holocron/issues/2647) [#2636](https://github.com/theholocron/holocron/issues/2636) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
 ## [5.0.0-alpha.544](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.543...v5.0.0-alpha.544) (2026-11-27)
 
 ### Features
