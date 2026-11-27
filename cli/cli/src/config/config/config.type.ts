@@ -391,6 +391,14 @@ export interface RepoConfig {
 	 */
 	protection?: RepoProtection;
 	/**
+	 * The status-check contexts a `strict` ruleset requires, written down (in `.holocron/repo.ts`) instead of derived from
+	 * the tasks. When set it is the whole list: `holocron setup` writes exactly these and `holocron doctor repo` compares the
+	 * ruleset with them, so nothing is added (not the DCO check, not a task's context) and a task that is not listed is not
+	 * required. Each entry is the context as GitHub shows it, `<workflow or task> / <job>`. Leave it out and the list is
+	 * derived from `{ required: true }` tasks and `extraRequiredChecks` (`astromech.requiredChecks()`), as it was.
+	 */
+	requiredChecks?: string[];
+	/**
 	 * GitHub teams granted repository access. Synced by `holocron setup`, which
 	 * also writes `.github/CODEOWNERS` for teams with write-or-higher permission.
 	 * String shorthand defaults to `push` (Write).

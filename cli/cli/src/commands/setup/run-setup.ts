@@ -36,6 +36,7 @@ import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "..
 import { aggregatePin } from "../aggregate-pin/index.js";
 import { coverageConfigFiles } from "../coverage-config-files/index.js";
 import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
+import { declaredRequiredChecks } from "../declared-required-checks/index.js";
 import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
 import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
@@ -164,14 +165,17 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 			const tasksConfig: TasksConfig = { tasks: config.tasks };
 			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
+			if (config.ci) tasksConfig.ci = config.ci;
+			// A list the repo writes down is the whole list; otherwise it is derived from the tasks.
 			const requiredChecks =
 				effectivePreset === "strict"
-					? createAstromech({
+					? (declaredRequiredChecks(config.repo) ??
+						createAstromech({
 							cwd: input.context.repoRoot,
 							config: tasksConfig,
 							logger,
 							...(statusContexts ? { statusContexts } : {}),
-						}).requiredChecks(hostsReusables(input.context.repoRoot))
+						}).requiredChecks(hostsReusables(input.context.repoRoot)))
 					: [];
 			const pinPlan = aggregatePin(config.ci, requiredChecks);
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks, pinPlan.pins));

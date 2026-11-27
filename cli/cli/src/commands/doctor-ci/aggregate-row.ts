@@ -21,6 +21,19 @@ export function aggregateRow(
 ): CheckRow {
 	const id = "aggregate";
 	const title = "ci aggregate lists the configured tasks";
+	if (poster === "none") {
+		// Declared absent (`ci.aggregate: none`): each check is required on its own, so a caller that is left would post a check nobody requires.
+		const left = callers.find((caller) => caller.file === "ci.ci.yml" || caller.file === "ci.yml");
+		return left === undefined
+			? {
+					id,
+					title,
+					status: "ok",
+					detail: "there is no aggregate (ci.aggregate: none); the ruleset requires each check on its own",
+					problems: [],
+				}
+			: problemRow(id, title, [`${left.file} is still there, but ci.aggregate says there is no aggregate`], "");
+	}
 	if (poster === "sentinel") {
 		// Declared posted by Sentinel (`ci.aggregate: sentinel`): there is no caller, and one that is left is a second poster.
 		const left = callers.find((caller) => caller.file === "ci.ci.yml" || caller.file === "ci.yml");

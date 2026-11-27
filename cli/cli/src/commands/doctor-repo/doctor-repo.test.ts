@@ -593,6 +593,43 @@ describe("doctor repo — branch protection", () => {
 		expect(byId(report.rows, "repo-protection").status).toBe("ok");
 	});
 
+	it("compares the ruleset with the list the repo writes down, and with nothing derived", async () => {
+		const loaded = loadedWith({
+			providers: { source: "github" },
+			tasks: ["verification.unitTests"],
+			repo: { protection: "strict", requiredChecks: ["typecheck / Run typecheck", "format / Run prettier"] },
+		});
+		const importer = vi.fn(async () => {
+			const source = () => ({
+				providerName: "github",
+				listLabels: async () => labels(),
+				getSecurity: async () => ALL_ON,
+				getProperties: async () => ({}),
+				listRulesets: async () => [RULESET],
+				getRulesetDetail: async () => ({
+					name: RULESET.name,
+					enforcement: "active",
+					ruleTypes: ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
+					requiredChecks: ["typecheck / Run typecheck", "Old / Check"],
+				}),
+			});
+			return { createPlugin: () => ({ name: "github", capabilities: { source } }) } as unknown as Awaited<
+				ReturnType<PluginImporter>
+			>;
+		});
+		const report = await runDoctorRepo({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter),
+			print: () => {},
+			logger: fakeLogger(),
+		});
+		const problems = byId(report.rows, "repo-protection").problems;
+		expect(problems).toContain("missing required check format / Run prettier");
+		expect(problems).toContain("stale context Old / Check (not in the derived required checks)");
+		expect(problems).not.toContain(`missing required check ${DCO_CHECK}`);
+	});
+
 	it("requires the statuses a loaded coverage provider says are required", async () => {
 		const loaded = loadedWith({
 			providers: { source: "github", coverage: "codecov" },

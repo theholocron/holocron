@@ -238,6 +238,8 @@ describe("loadConfig", () => {
 		expect((await loadConfig(cwd)).resolved.ci).toEqual({ aggregate: "sentinel" });
 		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ ci: { aggregate: "actions" } }));
 		expect((await loadConfig(cwd)).resolved.ci).toEqual({ aggregate: "actions" });
+		await writeFile(join(cwd, "astromech.config.json"), JSON.stringify({ ci: { aggregate: "none" } }));
+		expect((await loadConfig(cwd)).resolved.ci).toEqual({ aggregate: "none" });
 	});
 
 	it("merges a dedicated astromech.config on top of holocron.config's tasks", async () => {

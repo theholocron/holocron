@@ -7,6 +7,7 @@ import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
 import { aggregatePin } from "../aggregate-pin/index.js";
+import { declaredRequiredChecks } from "../declared-required-checks/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { CAPABILITIES_PROPERTY, capabilityValues } from "../repo-properties/capability-property/index.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
@@ -375,8 +376,11 @@ function strictChecks(
 	repoRoot: string,
 	statusContexts: readonly StatusContext[] | undefined
 ): string[] {
+	const declared = declaredRequiredChecks(config.repo);
+	if (declared !== undefined) return declared;
 	const tasksConfig: TasksConfig = { tasks: config.tasks };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
+	if (config.ci) tasksConfig.ci = config.ci;
 	return createAstromech({
 		cwd: repoRoot,
 		config: tasksConfig,

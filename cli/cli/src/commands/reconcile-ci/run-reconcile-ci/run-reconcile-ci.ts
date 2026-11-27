@@ -82,13 +82,17 @@ export async function runReconcileCi(input: RunReconcileCiInput): Promise<Reconc
 		return fail("max-age", "--max-age is a number of minutes above zero");
 	}
 	// A commit has one poster. While `ci.aggregate` is `actions` (the default) the Actions job posts the real check, and a
-	// second writer under the same name would be a second poster, so only the shadow may be repaired.
-	if (!input.shadow && aggregatePoster({ ci: input.loaded.resolved.ci }) === "actions") {
+	// second writer under the same name would be a second poster, so only the shadow may be repaired. With `none` there is
+	// no such check at all.
+	const poster = aggregatePoster({ ci: input.loaded.resolved.ci });
+	if (!input.shadow && poster !== "sentinel") {
 		rows.push(
 			row(
 				"ci.aggregate",
 				"skip",
-				`ci.aggregate is actions here, so the Actions job posts ${AGGREGATE_CHECK_NAME} and nothing is posted; --shadow repairs Sentinel's shadow check`
+				poster === "none"
+					? `ci.aggregate is none here, so there is no ${AGGREGATE_CHECK_NAME} to post; --shadow repairs Sentinel's shadow check`
+					: `ci.aggregate is actions here, so the Actions job posts ${AGGREGATE_CHECK_NAME} and nothing is posted; --shadow repairs Sentinel's shadow check`
 			)
 		);
 		return finish();

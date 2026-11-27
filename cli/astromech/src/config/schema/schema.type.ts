@@ -98,8 +98,11 @@ export interface TasksConfig {
 	hooks?: boolean | { prePush?: boolean };
 }
 
-/** Who posts the required `ci / Required checks` check: the Actions poller (`ci.yml`) or Sentinel, from webhooks. */
-export type CiAggregatePoster = "actions" | "sentinel";
+/**
+ * Who posts the required `ci / Required checks` check: the Actions poller (`ci.yml`), Sentinel from webhooks, or nobody
+ * (`"none"`: there is no aggregate and the ruleset requires each check on its own).
+ */
+export type CiAggregatePoster = "actions" | "sentinel" | "none";
 
 /** Who may satisfy the required `ci / Required checks` context: one GitHub App, by its integration id. */
 export interface CiPin {
@@ -117,8 +120,9 @@ export interface CiConfig {
 	/**
 	 * Who posts `ci / Required checks`. `"actions"` (the default) keeps the thin caller `ci.ci.yml` and the reusable that
 	 * polls; `"sentinel"` writes neither, because Sentinel posts the check under that name for a commit whose own config
-	 * says so. Each commit has exactly one poster: the setting and the generated files change together in one pull
-	 * request, which `probe generated check` enforces.
+	 * says so; `"none"` writes neither and the ruleset requires every check on its own (`requiredChecks()` lists them), so
+	 * nothing is posted under that name. Each commit has at most one poster: the setting and the generated files change
+	 * together in one pull request, which `probe generated check` enforces.
 	 */
 	aggregate?: CiAggregatePoster;
 	/**

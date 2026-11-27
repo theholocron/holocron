@@ -342,6 +342,12 @@ repo, which has no `ci` caller yet, the list is:
   in CI order, then
 - the top-level `extraRequiredChecks` (codecov gates, a bundle-build check, …).
 
+Two settings change that. `ci: { aggregate: "none" }` drops the aggregate even in the repo that holds the reusables: no
+`ci.ci.yml`, no `ci.yml` reusable, and the list above is the one that applies there. And `repo.requiredChecks`
+(usually in `.holocron/repo.ts`) writes the list down: when it is set it is the whole list, `setup` writes exactly those
+contexts and `doctor repo` compares the ruleset with them, so the DCO check and each task's context are entries like any
+other. It must be a non-empty list of distinct, non-blank contexts, or the config does not load.
+
 ```ts
 export default defineConfig({
   tasks: [

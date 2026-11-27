@@ -202,14 +202,19 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		reusableTemplates: () => resolveReusableTemplates(),
 
+		// With `ci.aggregate: none` there is no aggregate to require, whatever the repo hosts: each check is required on its own.
 		requiredChecks: (aggregate: boolean) =>
-			resolveRequiredChecks(options.config ?? {}, aggregate, options.statusContexts),
+			resolveRequiredChecks(
+				options.config ?? {},
+				aggregate && resolveAggregatePoster(options.config ?? {}) !== "none",
+				options.statusContexts
+			),
 
 		aggregatePoster: () => resolveAggregatePoster(options.config ?? {}),
 
 		aggregateCaller: () => {
-			// Sentinel posts the check for a manifest that says so, and then no caller is written.
-			if (resolveAggregatePoster(options.config ?? {}) === "sentinel") return null;
+			// Sentinel posts the check for a manifest that says so, and a manifest that says `none` has no such check; no caller is written.
+			if (resolveAggregatePoster(options.config ?? {}) !== "actions") return null;
 			const checks = aggregateChecks(options.config ?? {}, options.statusContexts);
 			return checks.expected.length === 0 && checks.statuses.length === 0 ? null : resolveAggregateCaller(checks);
 		},

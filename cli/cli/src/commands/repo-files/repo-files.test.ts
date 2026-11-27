@@ -301,6 +301,23 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(paths).toContain(".github/workflows/mark-stale.yml");
 		});
 
+		it("is not written, and neither is the reusable that polls, when ci.aggregate says there is none", () => {
+			host();
+			const entries = generateWorkflowFiles({
+				loaded: loadedFrom({
+					name: "x",
+					tasks: ["stale", { name: "typecheck", required: true }],
+					ci: { aggregate: "none" },
+				}),
+				repoRoot: root,
+				logger: getLogger(),
+			});
+			const paths = entries.flatMap((e) => (e.kind === "file" ? [e.path] : []));
+			expect(paths).not.toContain(".github/workflows/ci.ci.yml");
+			expect(paths).not.toContain(".github/workflows/ci.yml");
+			expect(paths).toContain(".github/workflows/test-unit.yml");
+		});
+
 		it("keeps the caller and the reusable when ci.aggregate says actions, as when it is not set", () => {
 			host();
 			const entries = generateWorkflowFiles({

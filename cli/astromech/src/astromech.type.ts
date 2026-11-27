@@ -141,7 +141,7 @@ export interface Astromech {
 	aggregateCaller(): string | null;
 	/**
 	 * Who posts the `ci / Required checks` check for this manifest, from `ci.aggregate` (`"actions"` when it is not set). With
-	 * `"sentinel"`, {@link aggregateCaller} is `null` and the repo that hosts the reusables does not write `ci.yml`.
+	 * `"sentinel"` or `"none"`, {@link aggregateCaller} is `null` and the repo that hosts the reusables does not write `ci.yml`.
 	 */
 	aggregatePoster(): CiAggregatePoster;
 	/**
