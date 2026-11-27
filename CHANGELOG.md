@@ -1,3 +1,9 @@
+## [5.0.0-alpha.546](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.545...v5.0.0-alpha.546) (2026-11-27)
+
+### Bug Fixes
+
+* 🐛 take the Sentry release and the channel from a v tag, not a deployed one ([#2650](https://github.com/theholocron/holocron/issues/2650)) ([da32924](https://github.com/theholocron/holocron/commit/da32924cc2ae225cb250d5d1707848ca93334bb8)), references [#2330](https://github.com/theholocron/holocron/issues/2330) [#2330](https://github.com/theholocron/holocron/issues/2330)
+
 ## [5.0.0-alpha.545](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.544...v5.0.0-alpha.545) (2026-11-27)
 
 ### Refactoring
