@@ -1,3 +1,13 @@
+## [5.0.0-alpha.547](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.546...v5.0.0-alpha.547) (2026-11-28)
+
+### Bug Fixes
+
+* 🐛 run the docs build by its script name, build-docs ([#2652](https://github.com/theholocron/holocron/issues/2652)) ([c81144d](https://github.com/theholocron/holocron/commit/c81144d42c5b59442f8df611b9563177f221d13e)), references [#2651](https://github.com/theholocron/holocron/issues/2651)
+
+### Documentation
+
+* **specs:** 📚️ say bypass entry, not actor, in the ci spec ([#2653](https://github.com/theholocron/holocron/issues/2653)) ([cc27e59](https://github.com/theholocron/holocron/commit/cc27e59806e52ceb4c90cb43670472c5b71bac6b)), references [#2651](https://github.com/theholocron/holocron/issues/2651)
+
 ## [5.0.0-alpha.546](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.545...v5.0.0-alpha.546) (2026-11-27)
 
 ### Bug Fixes
