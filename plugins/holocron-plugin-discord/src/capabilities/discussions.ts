@@ -7,7 +7,7 @@ import type {
 } from "@theholocron/cli";
 
 import { ChannelType, type DiscordBotClient, type DiscordChannel, type DiscordThread, MessageFlag } from "../rest.js";
-import { findFooter } from "./footer.js";
+import { findFooter, replaceFooter } from "./footer.js";
 
 /** Discord's cap on the text of one message. */
 const MAX_MESSAGE = 2000;
@@ -299,10 +299,7 @@ export class DiscordDiscussions {
 		}
 		if (edited) {
 			const synced = patch.synced ?? entry.synced ?? "";
-			const found = findFooter(withId);
-			const content = found
-				? `${withId.slice(0, found.index)}-# sync: ${nextKey} | ${synced}${withId.slice(found.index + found.text.length)}`
-				: withId;
+			const content = replaceFooter(withId, `-# sync: ${nextKey} | ${synced}`);
 			// Edited on every write, so a post made before the feed hid its previews loses them on its next delivery.
 			await bot.channels.editMessage(thread.id, thread.id, { content, ...this.editFlags(channel) });
 			entry.content = content;

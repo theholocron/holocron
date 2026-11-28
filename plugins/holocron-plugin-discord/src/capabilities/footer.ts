@@ -23,7 +23,7 @@ const SEPARATOR = " | ";
  */
 export function findFooter(content: string): Footer | null {
 	let lineStart = 0;
-	while (lineStart <= content.length) {
+	for (;;) {
 		let lineEnd = lineStart;
 		while (lineEnd < content.length && !"\n\r\u2028\u2029".includes(content[lineEnd])) lineEnd += 1;
 		const line = content.slice(lineStart, lineEnd);
@@ -42,5 +42,10 @@ export function findFooter(content: string): Footer | null {
 		if (lineEnd >= content.length) return null;
 		lineStart = lineEnd + 1;
 	}
-	return null;
+}
+
+/** `content` with its footer line replaced by `line`; `content` itself when it has none. */
+export function replaceFooter(content: string, line: string): string {
+	const found = findFooter(content);
+	return found ? `${content.slice(0, found.index)}${line}${content.slice(found.index + found.text.length)}` : content;
 }

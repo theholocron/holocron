@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findFooter } from "./footer.js";
+import { findFooter, replaceFooter } from "./footer.js";
 
 describe("findFooter", () => {
 	it("reads the key and the state of the footer line, and where the line starts", () => {
@@ -44,5 +44,17 @@ describe("findFooter", () => {
 		findFooter(`${"-# sync: ".repeat(20_000)}x`);
 		findFooter("x".repeat(500_000));
 		expect(Date.now() - started).toBeLessThan(1000);
+	});
+});
+
+describe("replaceFooter", () => {
+	it("swaps the footer line and keeps the text before and after it", () => {
+		expect(replaceFooter("body\n\n-# sync: a.md | open\ntail", "-# sync: b.md | closed")).toBe(
+			"body\n\n-# sync: b.md | closed\ntail"
+		);
+	});
+
+	it("gives the message back as it was when it has no footer", () => {
+		expect(replaceFooter("just a post", "-# sync: b.md | closed")).toBe("just a post");
 	});
 });

@@ -11,7 +11,7 @@ export interface WorkspaceGlobs {
 /** `text` up to a `#` that starts it or follows whitespace (a YAML comment), or all of it. A scan, not a pattern. */
 function withoutComment(text: string): string {
 	for (let i = 0; i < text.length; i += 1) {
-		if (text[i] === "#" && (i === 0 || /\s/.test(text[i - 1] ?? ""))) return text.slice(0, i);
+		if (text[i] === "#" && (i === 0 || /\s/.test(text.charAt(i - 1)))) return text.slice(0, i);
 	}
 	return text;
 }
