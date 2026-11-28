@@ -53,7 +53,7 @@ jobs:
 
       - name: Build docs site
         if: ${{ inputs.type == 'docs' }}
-        run: pnpm -C docs build
+        run: pnpm -C docs run build-docs
 
       - name: Build Storybook projects
         if: ${{ inputs.storybook-projects != '[]' }}

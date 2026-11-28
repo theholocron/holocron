@@ -14,7 +14,7 @@ on: # yamllint disable-line rule:truthy
         required: true
         type: string
       name:
-        description: Repo name prefix used to filter the docs site package (<name>-site); omit to run pnpm -C docs build
+        description: Repo name prefix used to filter the docs site package (<name>-site); omit to run pnpm -C docs run build-docs
         required: false
         type: string
         default: ""
@@ -78,7 +78,7 @@ jobs:
 
       - name: Build docs site
         if: ${{ inputs.type == 'docs' && inputs.name == '' }}
-        run: pnpm -C docs build
+        run: pnpm -C docs run build-docs
 
       - name: Build Storybook projects
         if: ${{ inputs.storybook-projects != '[]' }}
