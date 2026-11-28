@@ -9,7 +9,8 @@ const APP_TARGETS: readonly AppTarget[] = ["production", "preview"];
 /**
  * Reads the `--env` of `deploy <app>` and `sync <app>`: the standard environments of `@theholocron/env-utils`
  * (`environment.normalize()`, so `prod` is `production`), the flag repeated for more than one. An app is deployed to
- * `production` and `preview`; both take their secrets from the `prod` vault layer. Any other environment is refused with
+ * `production` and `preview`; production takes its secrets from the `prod` vault layer and preview from the `preview`
+ * layer (`appLayer()`), with no fallback between them. Any other environment is refused with
  * the reason: `local`, `development` and `ci` are never synced or deployed to, and `test` has no deployment target.
  *
  * @param values - The `--env` (or `--environment`) values, one or several.
@@ -35,5 +36,5 @@ export function parseAppEnv(values: readonly string[] | string | undefined): App
 		}
 		wanted.add(normalized);
 	}
-	return { layer: "prod", targets: APP_TARGETS.filter((target) => wanted.has(target)) };
+	return { targets: APP_TARGETS.filter((target) => wanted.has(target)) };
 }

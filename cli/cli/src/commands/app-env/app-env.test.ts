@@ -4,18 +4,15 @@ import { parseAppEnv } from "./app-env.js";
 
 describe("parseAppEnv", () => {
 	it.each(["production", "prod", "Production"])("reads %s as production", (value) => {
-		expect(parseAppEnv(value)).toEqual({ layer: "prod", targets: ["production"] });
+		expect(parseAppEnv(value)).toEqual({ targets: ["production"] });
 	});
 
 	it("reads preview", () => {
-		expect(parseAppEnv(["preview"])).toEqual({ layer: "prod", targets: ["preview"] });
+		expect(parseAppEnv(["preview"])).toEqual({ targets: ["preview"] });
 	});
 
 	it("takes several, production first whatever the order, and drops repeats", () => {
-		expect(parseAppEnv(["preview", "prod", "production"])).toEqual({
-			layer: "prod",
-			targets: ["production", "preview"],
-		});
+		expect(parseAppEnv(["preview", "prod", "production"])).toEqual({ targets: ["production", "preview"] });
 	});
 
 	it.each([undefined, "", [], [""]])("asks for a value when it is %j", (value) => {

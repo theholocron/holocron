@@ -68,7 +68,7 @@ describe("readEntryValues", () => {
 			(e: unknown) => e
 		);
 		expect((err as Error).message).toMatch(
-			/not an Environment this repo's config names; use one of: local, dev, ci, prod, Sentinel/
+			/not an Environment this repo's config names; use one of: local, dev, ci, prod, preview, Sentinel/
 		);
 		expect(vault.readEnvironmentEntries).not.toHaveBeenCalled();
 	});

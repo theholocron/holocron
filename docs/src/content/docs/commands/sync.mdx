@@ -40,9 +40,10 @@ holocron sync sentinel --env production --env preview --dry-run
 ```
 
 `--env` (alias `--environment`, the two are interchangeable) names an environment to write to, from the standard list of
-`@theholocron/env-utils` with its aliases: `production` (or `prod`) or `preview`. Repeat the flag for both. Both read
-their secrets from the `prod` vault layer, as `sync secrets` does for those two targets. `local`, `development`, `ci`
-and `test` are refused; `sync secrets --env ci` is what fills GitHub Actions.
+`@theholocron/env-utils` with its aliases: `production` (or `prod`) or `preview`. Repeat the flag for both, and each is
+synced on its own. `production` reads its secrets from the `prod` vault layer and `preview` from its own `preview` layer
+(`<org>/<repo> - preview`), never from `prod`: a value that is not in the `preview` Environment is not sent. `local`,
+`development`, `ci` and `test` are refused; `sync secrets --env ci` is what fills GitHub Actions.
 
 What it does for each app comes from the app's own `holocron.config`, never its name:
 
@@ -52,8 +53,9 @@ What it does for each app comes from the app's own `holocron.config`, never its 
 | a `workers` provider (Comlink: Cloudflare) | sets the secrets on the Worker script named like the app                                   |
 | neither (Council, an Obsidian plugin)      | says there is nothing to sync and exits 0                                                  |
 
-It is `sync secrets` with the arguments filled in: only the keys `repo.secrets.deploy` names for the `prod` layer are
-sent (an app with a destination and no such entry fails and says so), and `repo.secrets.sync` and `repo.variables.sync`
+It is `sync secrets` with the arguments filled in: only the keys `repo.secrets.deploy` names for the target's layer are
+sent (an app with a destination and no such entry fails and says so; a `preview` sync needs its own `layer: "preview"`
+entry), and `repo.secrets.sync` and `repo.variables.sync`
 in the app's config are followed as they are there. A first value that is not an app's name is a step, as before.
 
 ## Steps

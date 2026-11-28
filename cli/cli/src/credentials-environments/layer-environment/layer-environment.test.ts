@@ -9,7 +9,7 @@ describe("layerEnvironment", () => {
 });
 
 describe("isEnvironmentLayer", () => {
-	it.each(["local", "dev", "ci", "prod"])("accepts %s", (word) => {
+	it.each(["local", "dev", "ci", "prod", "preview"])("accepts %s", (word) => {
 		expect(isEnvironmentLayer(word)).toBe(true);
 	});
 

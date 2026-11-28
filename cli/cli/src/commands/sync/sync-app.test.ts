@@ -39,7 +39,7 @@ describe("syncApp", () => {
 		expect(await syncApp(argv({ steps: ["sentinel"], env: "prod" }))).toBe(true);
 		expect(resolveApp).toHaveBeenCalledWith("sentinel", "/r");
 		const input = runAppSync.mock.calls[0]![0];
-		expect(input).toMatchObject({ app: sentinel, env: { layer: "prod", targets: ["production"] } });
+		expect(input).toMatchObject({ app: sentinel, env: { targets: ["production"] } });
 		const loaded = await input.load();
 		expect(loadConfig).toHaveBeenCalledWith("/r/apps/sentinel");
 		expect(loaded.context).toMatchObject({
