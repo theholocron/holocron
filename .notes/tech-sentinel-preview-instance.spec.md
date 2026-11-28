@@ -1,4 +1,5 @@
 ---
+id: SPEC-0112
 status: draft
 issue: theholocron/holocron#2659
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2203
   - theholocron/holocron#2608
   - theholocron/holocron#2657
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1576111230563786893
 ---
 
 # A separate preview Sentinel instance
