@@ -16,6 +16,10 @@ export interface StageDeployInput {
 	 * prerelease is pinned to it. Injectable for testing; the default asks `npm view`.
 	 */
 	alphaRelease?: AlphaReleaseLookup;
+	/** Waits (milliseconds) between looks at npm's `alpha` tags while they disagree. Injectable for testing. */
+	pinWaits?: readonly number[];
+	/** Blocks for this long between those looks. Injectable for testing; the default waits on the thread. */
+	sleep?: (milliseconds: number) => void;
 }
 
 /** What {@link stageDeploy} wrote. */
