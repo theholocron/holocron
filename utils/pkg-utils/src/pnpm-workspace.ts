@@ -37,10 +37,9 @@ const RESERVED_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", 
 /**
  * One `  name: value` line of a catalog block (the name may be quoted), or `null` when the line is not one. Read
  * with `trim()` and `indexOf()` rather than a regular expression, so a long line of spaces or colons costs a
- * pass over it and no more.
+ * pass over it and no more. `raw` is an indented line: `parseCatalogs()` has dealt with a line at the margin before this.
  */
 function parseCatalogEntry(raw: string): { key: string; value: string } | null {
-	if (!/^\s/.test(raw)) return null;
 	const body = raw.trim();
 	let key: string | undefined;
 	let rest = "";
