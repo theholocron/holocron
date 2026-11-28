@@ -1,0 +1,14 @@
+name: remind-doctor
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  remind-doctor:
+    name: remind-doctor
+    uses: theholocron/.github/.github/workflows/remind-doctor.yml@main
+    secrets: inherit

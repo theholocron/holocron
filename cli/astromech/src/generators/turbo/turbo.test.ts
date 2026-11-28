@@ -1,0 +1,539 @@
+import { describe, expect, it } from "vitest";
+
+import { ensureRootWorkspaceMember, ensureTurboDependency, turboConfig } from "./turbo.js";
+
+describe("turboConfig", () => {
+	it("returns null with no config", () => {
+		expect(turboConfig({})).toBeNull();
+	});
+
+	it("returns null when no task in the manifest has turbo fan-out config", () => {
+		// platform.repoSync / platform.commitStandards have no `turbo` entry in
+		// the registry — whole-repo tools, never fanned out.
+		expect(turboConfig({ tasks: ["platform.repoSync", "platform.commitStandards"] })).toBeNull();
+	});
+
+	it("emits an entry per fan-out-eligible task, keyed by task name", () => {
+		const content = turboConfig({
+			tasks: ["verification.typeSafety", "verification.unitTests"],
+		});
+		expect(content).not.toBeNull();
+		const parsed = JSON.parse(content!) as { tasks: Record<string, unknown> };
+		expect(Object.keys(parsed.tasks)).toEqual(["verification.typeSafety", "verification.unitTests"]);
+	});
+
+	it("carries each task's exact inputs/outputs/dependsOn from the registry", () => {
+		const content = turboConfig({ tasks: ["delivery.build"] });
+		const parsed = JSON.parse(content!) as {
+			tasks: Record<string, { inputs: string[]; outputs: string[]; dependsOn: string[] }>;
+		};
+		expect(parsed.tasks["delivery.build"]).toEqual({
+			inputs: [
+				"src/**",
+				"package.json",
+				"tsdown.config.ts",
+				"$TURBO_ROOT$/tsdown.config.ts",
+				"vite.config.ts",
+				"rollup.config.ts",
+				"tsconfig.json",
+			],
+			outputs: ["dist/**"],
+			dependsOn: ["^delivery.build"],
+		});
+	});
+
+	it("includes the always-on globalDependencies + $schema", () => {
+		const content = turboConfig({ tasks: ["verification.typeSafety"] });
+		const parsed = JSON.parse(content!) as { $schema: string; globalDependencies: string[] };
+		expect(parsed.$schema).toBe("https://turborepo.org/schema.json");
+		expect(parsed.globalDependencies).toEqual([
+			"pnpm-workspace.yaml",
+			"tsconfig.json",
+			"holocron.config.*",
+			"astromech.config.*",
+			".holocron/**",
+		]);
+	});
+
+	it("skips a task marked local: false", () => {
+		expect(turboConfig({ tasks: [{ name: "verification.typeSafety", local: false }] })).toBeNull();
+	});
+
+	it("mixes fan-out and non-fan-out tasks — only the eligible ones appear", () => {
+		const content = turboConfig({
+			tasks: ["sourceQuality.staticAnalysis", "sourceQuality.formatting", "platform.repoSync"],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, unknown> };
+		expect(Object.keys(parsed.tasks)).toEqual(["sourceQuality.staticAnalysis"]);
+	});
+
+	it("accepts bare string tasks the same as object entries", () => {
+		const bare = turboConfig({ tasks: ["verification.typeSafety"] });
+		const object = turboConfig({ tasks: [{ name: "verification.typeSafety" }] });
+		expect(bare).toEqual(object);
+	});
+
+	it("ends with a trailing newline (matches prettier's file-ending convention)", () => {
+		const content = turboConfig({ tasks: ["verification.typeSafety" as const] });
+		expect(content?.endsWith("}\n")).toBe(true);
+	});
+
+	it("appends a per-repo turbo.passThroughEnv override to the registry default", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] } }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
+	});
+
+	it("appends a per-repo turbo.dependsOn override to the registry default, without repeating one", () => {
+		const content = turboConfig({
+			tasks: [
+				{
+					name: "sourceQuality.staticAnalysis",
+					turbo: { dependsOn: ["@x/config#delivery.build", "^delivery.build"] },
+				},
+			],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
+		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual([
+			"^delivery.build",
+			"@x/config#delivery.build",
+		]);
+	});
+
+	it("keys a task by the spelling its manifest entry uses, so a repo's keys move when its list does", () => {
+		const old = JSON.parse(
+			turboConfig({ tasks: ["verification.typeSafety", "verification.unitTests", "delivery.build"] })!
+		) as { tasks: Record<string, { dependsOn: string[] }> };
+		const flat = JSON.parse(turboConfig({ tasks: ["typecheck", "test:unit", "build"] })!) as typeof old;
+		expect(Object.keys(old.tasks)).toEqual(["verification.typeSafety", "verification.unitTests", "delivery.build"]);
+		expect(old.tasks["verification.unitTests"]!.dependsOn).toEqual(["delivery.build", "^delivery.build"]);
+		expect(Object.keys(flat.tasks)).toEqual(["typecheck", "test:unit", "build"]);
+		expect(flat.tasks["test:unit"]!.dependsOn).toEqual(["build", "^build"]);
+	});
+
+	it("spells a flat id in a dependsOn override like the entry, and leaves other references alone", () => {
+		const parse = (content: string | null) =>
+			(JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> }).tasks;
+		const refs = ["@x/config#build", "//#lint:markdown", "^typecheck"];
+		expect(
+			parse(turboConfig({ tasks: [{ name: "lint:code", turbo: { dependsOn: refs } }] }))["lint:code"]!.dependsOn
+		).toEqual(["^build", "@x/config#build", "//#lint:markdown", "^typecheck"]);
+		expect(
+			parse(turboConfig({ tasks: [{ name: "sourceQuality.staticAnalysis", turbo: { dependsOn: refs } }] }))[
+				"sourceQuality.staticAnalysis"
+			]!.dependsOn
+		).toEqual(["^delivery.build", "@x/config#delivery.build", "//#lint:markdown", "^verification.typeSafety"]);
+	});
+
+	describe("in a monorepo", () => {
+		const tasks = ["build", "test:unit", "lint:code", "lint:markdown", "lint:commits", "format", "scan:secrets"];
+		const parse = (content: string | null) => (JSON.parse(content!) as { tasks: Record<string, unknown> }).tasks;
+
+		it("adds an uncached //# root task per repo-scoped suite leaf with a local tool", () => {
+			const parsed = parse(turboConfig({ tasks }, { monorepo: true }));
+			expect(parsed["//#lint:markdown"]).toEqual({ cache: false });
+			expect(parsed["//#scan:secrets"]).toEqual({ cache: false });
+			expect(parsed).not.toHaveProperty("//#format");
+			expect(parsed).not.toHaveProperty("//#lint:commits");
+			expect(parsed).not.toHaveProperty("//#test:unit");
+			expect(parsed).not.toHaveProperty("//#build");
+		});
+
+		it("adds an aggregator per suite that depends on its leaves, with the root task for a repo-scoped one", () => {
+			const parsed = parse(turboConfig({ tasks }, { monorepo: true }));
+			expect(parsed["test"]).toEqual({ dependsOn: ["test:unit"] });
+			expect(parsed["lint"]).toEqual({ dependsOn: ["lint:code", "//#lint:markdown"] });
+			expect(parsed["scan"]).toEqual({ dependsOn: ["//#scan:secrets"] });
+		});
+
+		it("depends on the key a legacy-spelled leaf has", () => {
+			const parsed = parse(turboConfig({ tasks: ["verification.unitTests"] }, { monorepo: true }));
+			expect(parsed["test"]).toEqual({ dependsOn: ["verification.unitTests"] });
+		});
+
+		it("writes a file when only root tasks exist", () => {
+			expect(Object.keys(parse(turboConfig({ tasks: ["lint:markdown"] }, { monorepo: true })))).toEqual([
+				"//#lint:markdown",
+				"lint",
+			]);
+		});
+
+		it("writes neither in a single package", () => {
+			expect(Object.keys(parse(turboConfig({ tasks }))).sort()).toEqual(["build", "lint:code", "test:unit"]);
+		});
+	});
+
+	it("keeps the registry dependsOn when no override is given", () => {
+		const content = turboConfig({ tasks: ["sourceQuality.staticAnalysis"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
+		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual(["^delivery.build"]);
+	});
+
+	it("rejects a turbo.dependsOn that is not an array of strings", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { dependsOn: "^delivery.build" as never } }],
+			})
+		).toThrow(/turbo\.dependsOn must be an array of strings/);
+	});
+
+	it("omits passThroughEnv entirely when no override is given", () => {
+		const content = turboConfig({ tasks: ["delivery.build"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toBeUndefined();
+	});
+
+	it("ignores an empty passThroughEnv override the same as no override", () => {
+		const content = turboConfig({ tasks: [{ name: "delivery.build", turbo: { passThroughEnv: [] } }] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toBeUndefined();
+	});
+
+	it("leaves inputs/outputs/dependsOn untouched when only passThroughEnv is overridden", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["FOO"] } }],
+		});
+		const withOverride = JSON.parse(content!) as {
+			tasks: Record<string, { inputs: string[]; outputs: string[]; dependsOn: string[] }>;
+		};
+		const withoutOverride = JSON.parse(turboConfig({ tasks: ["delivery.build"] })!) as typeof withOverride;
+		expect(withOverride.tasks["delivery.build"]?.inputs).toEqual(withoutOverride.tasks["delivery.build"]?.inputs);
+		expect(withOverride.tasks["delivery.build"]?.outputs).toEqual(withoutOverride.tasks["delivery.build"]?.outputs);
+		expect(withOverride.tasks["delivery.build"]?.dependsOn).toEqual(
+			withoutOverride.tasks["delivery.build"]?.dependsOn
+		);
+	});
+
+	it("a passThroughEnv override on a task with no turbo entry stays a no-op", () => {
+		// platform.repoSync has no TurboTaskConfig — the override channel is
+		// there to add onto an eligible task's config, not to make an
+		// ineligible task suddenly fan out.
+		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { passThroughEnv: ["FOO"] } }] })).toBeNull();
+	});
+
+	it("appends a per-repo turbo.inputs override to the registry default, not replacing it (holocron#845)", () => {
+		// theholocron/configs is entirely flat-layout (index.ts, presets/*.ts,
+		// … directly under the package root, no src/ directory anywhere) —
+		// the registry's "src/**" default matches nothing there, so turbo's
+		// content hash never changes when real source changes.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"$TURBO_ROOT$/tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+			"**/*.ts",
+		]);
+	});
+
+	it("omits the inputs override entirely when none is given — the registry default is used as-is", () => {
+		const content = turboConfig({ tasks: ["delivery.build"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toEqual([
+			"src/**",
+			"package.json",
+			"tsdown.config.ts",
+			"$TURBO_ROOT$/tsdown.config.ts",
+			"vite.config.ts",
+			"rollup.config.ts",
+			"tsconfig.json",
+		]);
+	});
+
+	it("ignores an empty inputs override the same as no override", () => {
+		const content = turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: [] } }] });
+		const withoutOverride = turboConfig({ tasks: ["delivery.build"] });
+		expect(content).toEqual(withoutOverride);
+	});
+
+	it("leaves outputs/dependsOn untouched when only inputs is overridden", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }],
+		});
+		const withOverride = JSON.parse(content!) as {
+			tasks: Record<string, { outputs: string[]; dependsOn: string[] }>;
+		};
+		const withoutOverride = JSON.parse(turboConfig({ tasks: ["delivery.build"] })!) as typeof withOverride;
+		expect(withOverride.tasks["delivery.build"]?.outputs).toEqual(withoutOverride.tasks["delivery.build"]?.outputs);
+		expect(withOverride.tasks["delivery.build"]?.dependsOn).toEqual(
+			withoutOverride.tasks["delivery.build"]?.dependsOn
+		);
+	});
+
+	it("an inputs override on a task with no turbo entry stays a no-op", () => {
+		expect(turboConfig({ tasks: [{ name: "platform.repoSync", turbo: { inputs: ["**/*.ts"] } }] })).toBeNull();
+	});
+
+	it("combines a passThroughEnv override and an inputs override on the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"], inputs: ["**/*.ts"] } }],
+		});
+		const parsed = JSON.parse(content!) as {
+			tasks: Record<string, { inputs: string[]; passThroughEnv?: string[] }>;
+		};
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
+
+	it("accumulates an inputs override across two entries for the same task, instead of the later one overwriting the earlier (review on #845)", () => {
+		// mergeLayers() concatenates `tasks` arrays rather than deduping by
+		// name -- holocron.config.ts's own `tasks` plus a dedicated
+		// astromech.config.ts's merged on top can legitimately produce two
+		// entries for the same task name.
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+	});
+
+	it("accumulates a passThroughEnv override across two entries for the same task", () => {
+		const content = turboConfig({
+			tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["FOO"] } }, { name: "delivery.build" }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["FOO"]);
+	});
+
+	it("merges two entries for the same task that each contribute their own inputs override", () => {
+		const content = turboConfig({
+			tasks: [
+				{ name: "delivery.build", turbo: { inputs: ["**/*.ts"] } },
+				{ name: "delivery.build", turbo: { inputs: ["**/*.tsx"] } },
+			],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { inputs: string[] }> };
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
+		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.tsx");
+		// Not duplicated beyond the two distinct globs each entry added.
+		expect(parsed.tasks["delivery.build"]?.inputs).toHaveLength(9);
+	});
+
+	it("throws a clear error when turbo.inputs is a bare string instead of an array (review on #845)", () => {
+		// A bare string would otherwise spread into individual characters
+		// ([..."**/*.ts"] -> ["*", "*", "/", "*", ".", "t", "s"]) -- a config
+		// loaded from JSON or plain JS isn't type-checked, so this has to be
+		// a runtime check, not just a TypeScript type.
+		expect(() =>
+			turboConfig({ tasks: [{ name: "delivery.build", turbo: { inputs: "**/*.ts" as unknown as string[] } }] })
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.inputs contains a non-string entry", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { inputs: [42] as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.inputs must be an array of strings/);
+	});
+
+	it("throws a clear error when turbo.passThroughEnv is a bare string instead of an array", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { passThroughEnv: "FOO" as unknown as string[] } }],
+			})
+		).toThrow(/turbo\.passThroughEnv must be an array of strings/);
+	});
+});
+
+// theholocron/observability's real pnpm-workspace.yaml (#692's actual repro)
+// — root is the real library, `packages:` lists only the unrelated `docs`
+// site. Used verbatim (not reconstructed) so the fix is proven against the
+// exact shape that broke, not an idealized version of it. Built line-by-line
+// (not a multi-line template literal) so the embedded YAML's own 2-space
+// indentation doesn't read as this *source file's* indentation to
+// editorconfig-checker (tab-indented, like the rest of the repo).
+const OBSERVABILITY_WORKSPACE_YAML = [
+	"packages:",
+	'  - "docs"',
+	"",
+	"# Shared dep versions for this repo.",
+	"catalog:",
+	'  "@astrojs/react": ^6.0.0',
+	"  react: ^19.2.0",
+	"",
+	"catalogs:",
+	"  configs:",
+	'    "@theholocron/eslint-config": ^8.2.0',
+	"",
+	"overrides:",
+	'  "@eslint/json": ^1.2.0',
+	"",
+].join("\n");
+
+describe("ensureRootWorkspaceMember", () => {
+	it("is a no-op when root has no script matching a turbo-eligible task", () => {
+		// holocron's own root shape: "build": "turbo run delivery.build" is an
+		// orchestrator, not a "delivery.build" script itself.
+		const yaml = "packages:\n  - docs\n  - packages/*\n";
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{ build: "turbo run delivery.build", lint: "eslint .", test: "vitest run" },
+			["delivery.build"]
+		);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("adds a quoted . entry when root has an eligible task and isn't already listed", () => {
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(result.changed).toBe(true);
+		expect(result.content).toBe('packages:\n  - "."\n  - "docs"\n');
+	});
+
+	it("fixes #692's exact real repro — observability's actual pnpm-workspace.yaml", () => {
+		const result = ensureRootWorkspaceMember(
+			OBSERVABILITY_WORKSPACE_YAML,
+			{ "delivery.build": "tsdown", "verification.unitTests": "vitest run" },
+			["delivery.build", "verification.unitTests", "verification.typeSafety"]
+		);
+		expect(result.changed).toBe(true);
+		expect(result.content).toContain('packages:\n  - "."\n  - "docs"');
+		// Everything after packages: — catalog, catalogs, overrides — survives
+		// completely untouched, not reformatted or reordered.
+		expect(result.content).toContain('catalog:\n  "@astrojs/react": ^6.0.0\n  react: ^19.2.0');
+		expect(result.content).toContain("catalogs:\n  configs:");
+		expect(result.content).toContain('overrides:\n  "@eslint/json": ^1.2.0');
+	});
+
+	it("is idempotent — running it twice doesn't double-insert", () => {
+		const once = ensureRootWorkspaceMember(OBSERVABILITY_WORKSPACE_YAML, { "delivery.build": "tsdown" }, [
+			"delivery.build",
+		]);
+		const twice = ensureRootWorkspaceMember(once.content, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(twice.changed).toBe(false);
+		expect(twice.content).toBe(once.content);
+	});
+
+	it("is a no-op when root is already listed as .", () => {
+		const yaml = 'packages:\n  - "."\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op when root is already listed as a bare (unquoted) .", () => {
+		const yaml = "packages:\n  - .\n  - docs\n";
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op when there's no packages: key at all — already single-package mode", () => {
+		const yaml = "# no workspace packages configured\n";
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("handles an empty packages: list", () => {
+		const yaml = "packages:\n\ncatalog:\n  foo: ^1.0.0\n";
+		const result = ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]);
+		expect(result.changed).toBe(true);
+		expect(result.content).toBe('packages:\n  - "."\n\ncatalog:\n  foo: ^1.0.0\n');
+	});
+
+	it("matches against every task name being turbo'd, not just the first", () => {
+		const yaml = "packages:\n  - docs\n";
+		const result = ensureRootWorkspaceMember(yaml, { "verification.unitTests": "vitest run" }, [
+			"delivery.build",
+			"verification.unitTests",
+		]);
+		expect(result.changed).toBe(true);
+	});
+
+	it("is a no-op when the only matching script is the generated holocron run <task> -- wrapper (#846)", () => {
+		// theholocron/clients' actual pre-existing shape: root has
+		// "verification.typeSafety": "holocron run verification.typeSafety --"
+		// predating any of this tooling. Adding "." here would make turbo
+		// invoke that exact wrapper, which re-delegates to turbo again — #747's
+		// infinite recursion, confirmed empirically (~410 processes spawned).
+		const yaml = "packages:\n  - packages/*\n";
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{ "verification.typeSafety": "holocron run verification.typeSafety --" },
+			["verification.typeSafety"]
+		);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("still adds . when at least one matching script is a real command, even if others are wrappers", () => {
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{
+				"delivery.build": "tsdown",
+				"verification.typeSafety": "holocron run verification.typeSafety --",
+			},
+			["delivery.build", "verification.typeSafety"]
+		);
+		expect(result.changed).toBe(true);
+	});
+
+	it("recognizes a wrapper built from a substituted holocronScript, not just the literal binary name", () => {
+		const yaml = "packages:\n  - packages/*\n";
+		const result = ensureRootWorkspaceMember(
+			yaml,
+			{ "delivery.build": "node packages/cli/dist/cli.mjs run delivery.build --" },
+			["delivery.build"]
+		);
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+});
+
+describe("ensureTurboDependency", () => {
+	const pkgWithout = (extra: Record<string, unknown> = {}) =>
+		JSON.stringify({ name: "demo", version: "1.0.0", ...extra });
+
+	it("adds turbo pinned to the fallback version when there's no catalog entry", () => {
+		const result = ensureTurboDependency(pkgWithout(), "packages:\n  - docs\n");
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies.turbo).toBe("^2.10.12");
+	});
+
+	it("prefers catalog: when the repo's own pnpm-workspace.yaml already has a turbo entry", () => {
+		const yaml = OBSERVABILITY_WORKSPACE_YAML.replace("catalog:", "catalog:\n  turbo: ^2.10.9");
+		const result = ensureTurboDependency(pkgWithout(), yaml);
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies.turbo).toBe("catalog:");
+	});
+
+	it("is a no-op when devDependencies.turbo already exists — never overrides a repo's own pin", () => {
+		const pkg = pkgWithout({ devDependencies: { turbo: "^1.0.0" } });
+		const result = ensureTurboDependency(pkg, "packages:\n  - docs\n");
+		expect(result).toEqual({ content: pkg, changed: false });
+	});
+
+	it("preserves existing devDependencies entries, only adding turbo", () => {
+		const pkg = pkgWithout({ devDependencies: { typescript: "^5.0.0" } });
+		const result = ensureTurboDependency(pkg, "packages:\n  - docs\n");
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		expect(parsed.devDependencies).toEqual({ typescript: "^5.0.0", turbo: "^2.10.12" });
+	});
+
+	it("is idempotent — running it twice doesn't re-touch an already-set entry", () => {
+		const once = ensureTurboDependency(pkgWithout(), "packages:\n  - docs\n");
+		const twice = ensureTurboDependency(once.content, "packages:\n  - docs\n");
+		expect(twice.changed).toBe(false);
+		expect(twice.content).toBe(once.content);
+	});
+
+	it("fixes #692's exact real repro — observability had no turbo devDependency at all", () => {
+		const result = ensureTurboDependency(
+			pkgWithout({ name: "@theholocron/observability" }),
+			OBSERVABILITY_WORKSPACE_YAML
+		);
+		expect(result.changed).toBe(true);
+		const parsed = JSON.parse(result.content) as { devDependencies: Record<string, string> };
+		// observability's real pnpm-workspace.yaml (above) has no turbo catalog
+		// entry — falls back to the pinned version, not "catalog:".
+		expect(parsed.devDependencies.turbo).toBe("^2.10.12");
+	});
+});

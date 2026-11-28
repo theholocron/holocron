@@ -1,0 +1,44 @@
+---
+title: "doctor github-app"
+description: Compare each registered GitHub App's events, permissions and installations with its manifest file. Read-only.
+---
+
+```bash
+holocron doctor github-app
+```
+
+GitHub has no API that changes an existing App's permissions or event subscriptions, so each instance (production, and the `dev` instance) is changed by hand in its settings page, and a missed one fails quietly. This check compares the App manifest (`default_permissions`, `default_events`) with what each instance has now. It changes nothing and exits non-zero while any row fails.
+
+## Declaring the instances
+
+```ts
+githubApps: [
+	{ name: "Sentinel - dev", app: "Sentinel", label: "Dev", manifest: "apps/sentinel/github-app.manifest.json", layer: "dev" },
+	{ name: "Sentinel", app: "Sentinel", label: "Prod", manifest: "apps/sentinel/github-app.manifest.json", layer: "prod" },
+],
+```
+
+`name` is the instance's key (`holocron redeliver webhooks --app <name>`). `app` and `label` are optional and only change the layout: instances that share an `app` are printed under one heading, each under its `label` as a subheading, in the order listed, with rows named by what they check (`status`, not `Sentinel - dev: status`). An instance with no `app` is printed flat, as before.
+
+`manifest` is a file in the directory. `layer` (`prod` or `dev`) names the layer whose 1Password Environment (`<org>/<repo> - <layer>`; or give an `environment` for a literal name, never both) is read (through the `vault` provider, in memory, never printed or written) that holds `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of an older Environment are read when the `SENTINEL_` ones are not there).
+
+## The rows
+
+For each instance the check signs the App's own JWT and calls `GET /app`, `GET /app/installations` and `GET /app/hook/deliveries`.
+
+| Row             | Passes when                                                                                                                                                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reachable`     | the credentials are read and GitHub accepts the JWT                                                                                                                                                                                                                                               |
+| `events`        | every manifest event is subscribed. Extra events are named in the row as `info`                                                                                                                                                                                                                   |
+| `permissions`   | every manifest permission is granted at least at the manifest's level (`read < write < admin`). Extra permissions are `info`                                                                                                                                                                      |
+| `deliveries`    | no webhook delivery of the last day failed and stayed failed (`GET /app/hook/deliveries`; a delivery redelivered successfully is done). A failing row names the oldest ones and ends with `holocron redeliver webhooks --app <name>`; a log that cannot be read is a skip, never a failure        |
+| `status`        | information only, never a failure: how many installations there are and whether each is active or suspended; which installations are suspended (GitHub sends them no webhooks, which `dev.suspendWhenIdle` wants of the development App while `holocron dev` is not running) and which are active |
+| `installations` | no installation lags the App: each has accepted every permission and event the App asks for. A pending update (the App changed, the owner has not accepted) fails, naming the installation's page to open                                                                                         |
+
+A failing `events` or `permissions` row ends with the exact page: `https://github.com/organizations/<org>/settings/apps/<slug>/permissions` for an organization-owned App, `https://github.com/settings/apps/<slug>/permissions` for a user-owned one (events are on the same page, under "Subscribe to events").
+
+## Skips
+
+An instance whose credentials cannot be read (no `vault` provider, the environment missing or not signed in, no App id or key under either name) is a skip with the reason, not a failure. A manifest that does not read, or a JWT GitHub rejects, fails.
+
+Related: [`doctor`](/holocron/commands/doctor/), [`doctor secrets`](/holocron/commands/doctor-secrets/).

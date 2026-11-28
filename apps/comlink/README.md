@@ -1,0 +1,105 @@
+<!-- alex disable invalid -->
+
+# `@theholocron/comlink`
+
+Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read, checks
+who sent them and posts them to a channel as Discord messages.
+
+> A comlink carries a message from one hand to another. Sentinel watches the repositories; Comlink carries the alerts.
+
+It exists because Sentry's free plan has no Discord integration and what an internal integration sends is Sentry's own JSON.
+Other services that post a webhook in their own shape can use the same Worker.
+
+## How it works
+
+One route per source: `https://comlink.theholocron.dev/<source>`.
+
+1. The path picks the **source** (`/sentry`). An unknown path is a 404.
+2. A body over 256 KB is refused (413) before it is hashed. The source **verifies** the request, with the secret bound
+   for it, before anything in the body is trusted (401 if not).
+3. The source **formats** the delivery as a Discord embed with pings disabled, or says it does not carry it (202: it is
+   acknowledged and dropped so the service does not retry), or says it cannot read one it should carry (422).
+4. The message is posted to the source's own **webhook** (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
+
+Each source has two secret bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK` (a dedicated
+Discord webhook for the channel it feeds).
+
+| Source       | Path          | Verified by                                                                                                                 | Carries                                                                                              |
+| ------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                                                | issue alerts (`event_alert`)                                                                         |
+| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body)                             | notifications (any alert type that carries `text`)                                                   |
+| `clerk`      | `/clerk`      | `svix-signature`: base64 HMAC-SHA256 of `svix-id.svix-timestamp.body` under the `whsec_` secret, timestamp within 5 minutes | user and organization created/deleted, member added/removed                                          |
+| `dependabot` | `/dependabot` | `X-Hub-Signature-256`: `sha256=` and hex HMAC-SHA256 of the raw body under the GitHub webhook secret                        | Dependabot alert lifecycle changes; assignment-only changes are dropped                              |
+| `vercel`     | `/vercel`     | `x-vercel-signature`: hex HMAC-SHA1 of the body under the webhook's secret                                                  | deployment events (`deployment.created`, `.ready`, `.succeeded`, `.promoted`, `.error`, `.canceled`) |
+| `doppler`    | `/doppler`    | `X-Doppler-Signature`: `sha256=` and the hex HMAC-SHA256 of the body under the webhook's signing secret                     | secret changes (`config.secrets.update`), names only                                                 |
+
+The `dependabot` source takes GitHub's `dependabot_alert` webhook event. `holocron setup notifications` makes the webhook (a repository or an organization, `relay.sources.dependabot` with `capability: "source"`) with a secret it chooses and subscribes it to that event; GitHub signs the exact request body in `X-Hub-Signature-256` as `sha256=<hex HMAC-SHA256>`. Its bindings are `COMLINK_DEPENDABOT_SECRET` (the GitHub webhook secret) and `COMLINK_DEPENDABOT_WEBHOOK`. Alert lifecycle changes are relayed; assignment-only changes and other GitHub event types are acknowledged and dropped. The payload shape follows GitHub's webhook documentation. Setup sets both bindings on the Worker; nothing is configured by hand.
+
+## Projects
+
+The embed's Project field is the Sentry project's slug, taken from the event's API address (`data.event.url`, `.../api/0/projects/<org>/<project>/events/<id>/`) because the payload otherwise carries only a number. Which projects are relayed is the layout's `relay.errors.projects`; see the docs page for Comlink.
+
+## Adding a source
+
+The vendor's webhook and the two bindings are set up by `holocron setup notifications`, not by hand: declare the source in the layout (`relay.sources`, carried by a channel with `feeds.relay.<id>`) and implement `ensureRelaySource` in the vendor's plugin (spec `tech-relay-sources`). What follows is the Worker's side.
+
+A source is one file under `src/sources/<id>/` that implements `Source` (`verify` and `format`) and one entry in the list
+in `src/worker.ts`. Nothing else changes.
+
+## Sending a delivery by hand
+
+`src/worker.collection.json` and `src/worker.environment.json` (beside `src/worker.ts`, the entry they exercise) are a collection of requests and its environment for a
+Worker run locally (the default `baseUrl` is `http://127.0.0.1:8787`, `wrangler dev`'s port) with
+`COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (a secret-type variable the file leaves empty) and
+`COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as sent
+(`Sentry-Hook-Signature`). To send one from Bruno, run `pnpm exec holocron open requests --environment prod` (quit Bruno first): Comlink has one
+environment and is prod only for now, so `COMLINK_SENTRY_SECRET` is read from the `prod` layer's 1Password Environment
+only when you name `prod` (the default is `dev`, which loads no Comlink secret and leaves `process.env.PROD_COMLINK_SENTRY_SECRET`
+unresolved). It goes into a private file that lasts until Bruno quits, so `sentrySecret` is never pasted or stored in Bruno.
+
+- **Rejected** is a GET, an unknown source and a POST with no or a wrong signature: 405, 404, 401, 401, and nothing is
+  posted.
+- **Signed, nothing posted** is a resource the source does not carry (202) and an `event_alert` with no event (422).
+- **Signed, posts to Discord** is an `event_alert`: it posts a real embed (pings off) to the bound webhook.
+
+`holocron probe comlink deliver` does the signed delivery from the command line. The collection's tests run its signing
+script against the real relay (`src/requests/requests.test.ts`).
+
+`holocron sync tooling --cwd apps/comlink` pushes both files through the `tooling` provider (`providers.tooling` in
+`holocron.config.ts`): its workspace is made when it is missing, the collection is replaced in place and the environment
+is made or updated, keeping a `sentrySecret` set there. Add `--dry-run` to see the step first.
+
+The two JSON files are the one source. A tool that reads another format gets it generated:
+`holocron export requests --to bruno --cwd apps/comlink` writes `worker.bruno.json` (the requests and the environment in one file, which Bruno imports) into the git-ignored
+`src/.export/bruno/` (`--dry-run` converts and lists without writing).
+
+### Without a Discord channel
+
+Bruno can stand in for Discord. The workspace's `.bruno/mocks/comlink.yml` is a mock server with two routes on `http://localhost:4000`: `POST /discord/accepts` answers 204, as Discord does when it takes a post, and `POST /discord/refuses` answers 500. In Bruno, open the workspace, start the **Comlink** mock server, and run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`. Send `Signed, posts to Discord` from the collection: Comlink answers 204, and the mock's request log shows the embed it sent, with nothing posted to a channel. With `/discord/refuses` the same request answers 502, the path for a webhook Discord did not take. The mock is committed beside the collections and `holocron sync requests` leaves it alone.
+
+## Build
+
+`pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is
+what `Workers.deployScript` uploads as it stands.
+
+Deploying it is `holocron setup notifications`'s job, through the `workers` capability, with the secrets above.
+
+## Secrets
+
+`apps/comlink/holocron.config.ts` keeps the signing secrets in the `prod` layer of the 1Password Environments (`<org>/<repo> - prod`, beside Sentinel's values; the `COMLINK_` prefix tells them apart), the same way Sentinel does, so there is one place to rotate them and nothing is pasted into a shell.
+
+```bash
+# once, by hand (`op` cannot create an Environment): make the Environment `<org>/<repo> - prod` (if it does not exist) and add
+# COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to it, then:
+holocron sync secrets --env prod --cwd apps/comlink --worker comlink
+```
+
+Only the `COMLINK_` names of the Environment reach the Worker: `repo.secrets.deploy` in this config says so, and `--worker` with no entry stops with a `ConfigError` (#2061). Any other key stays in the Environment.
+
+With `relay.errors` in the root `holocron.config.ts`, `holocron setup notifications` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's client secret, so the Environment above is only needed to keep the secret somewhere else too (or for a source `setup` does not create).
+
+`holocron probe comlink deliver` reads the signing secret from this config's vault (so from the `prod` layer Environment above, signed in with `op`), unless `COMLINK_SENTRY_SECRET` is set in the environment.
+
+`COMLINK_<SOURCE>_WEBHOOK` is not kept in the Environment: `holocron setup notifications` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `sync secrets`, since a secret can only be set on a Worker that exists.
+
+The Environment holds only the signing secrets the Worker verifies with. Do not add `HOLOCRON_SENTRY_COMLINK_TOKEN` to it: that is a broad Sentry API token the CLI uses to set up the integration (see the tokens page), and it must never reach the Worker.

@@ -1,0 +1,25 @@
+# `@theholocron/codecov-client`
+
+TypeScript client for the [Codecov REST API v2](https://docs.codecov.com/reference/overview).
+
+## Install
+
+```bash
+pnpm add @theholocron/codecov-client
+```
+
+## Usage
+
+```ts
+import { createCodecovClient } from "@theholocron/codecov-client";
+
+const codecov = createCodecovClient({ token: process.env.CODECOV_API_TOKEN! });
+
+const repo = await codecov.repos.get("github", "theholocron", "holocron");
+const owner = await codecov.owners.get("github", "theholocron");
+const flags = await codecov.flags.list("github", "theholocron", "holocron"); // every page of GET .../flags/
+const components = await codecov.components.list("github", "theholocron", "holocron"); // GET .../components/
+```
+
+The token is a Codecov API (personal access) token, sent as `Authorization: Bearer`. A repository _upload_ token is a
+different credential, and the REST API documents only the personal token.

@@ -1,0 +1,15 @@
+name: test:perf
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-perf:
+    name: test:perf
+    uses: theholocron/.github/.github/workflows/test-perf.yml@main
+    secrets: inherit

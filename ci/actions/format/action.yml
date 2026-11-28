@@ -1,0 +1,14 @@
+name: Format
+description: >
+  Check the formatting with prettier (`holocron run format --check`). `format` is
+  not a workflow of its own: a lint workflow that has already run the setup action
+  and checked the repository out calls this (`lint:code` does).
+
+runs:
+  using: composite
+  steps:
+    - uses: theholocron/.github/.github/actions/holocron@main
+      name: Run prettier
+      with:
+        task: format
+        args: --check

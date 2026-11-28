@@ -1,4 +1,5 @@
 ---
+id: SPEC-0028
 status: accepted
 issue: theholocron/holocron#576
 blocked-by: []
@@ -7,6 +8,8 @@ related:
   - theholocron/holocron#451
   - theholocron/holocron#438
   - theholocron/holocron#566
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620347187470357
 ---
 
 # CLI execution contexts — global vs workspace
@@ -16,16 +19,16 @@ related:
 wall of skips — with a raw `Cannot find package
 '@theholocron/holocron-plugin-*'` because plugins are resolved as
 siblings of the CLI and a global install has none. But most of the
-command surface needs no plugins and runs fine globally; the CLI just
+command surface needs no plugins and runs fine globally; the CLI only
 did not distinguish the two.
 
 ## Three contexts (as built)
 
-| Context          | Needs                                                          | Commands                                                                                                                                                                                |
-| ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`global`**     | nothing but the CLI binary                                     | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `bump-versions`, `publish`, `skills install` / `remove` / `update` |
-| **`repo-aware`** | `./holocron.config` + `./package.json` in cwd, no plugins      | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                               |
-| **`workspace`**  | plugin packages resolvable (devDeps in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                     |
+| Context          | Needs                                                          | Commands                                                                                                                                                                                                                          |
+| ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`global`**     | nothing but the CLI binary                                     | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `bump-versions`, `publish`, `skills install` / `remove` / `update`                                           |
+| **`repo-aware`** | `./holocron.config` + `./package.json` in cwd, no plugins      | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                                                                         |
+| **`workspace`**  | plugin packages resolvable (devDeps in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `notifications channel add`, `notifications setup`, `notifications link`, `notifications sync-roles`, `doctor notifications`, `deploy`, `cleanup-preview`, `sync-github` |
 
 `auth check` is tagged `global` — it _tries_ to load the plugin to
 verify, but degrades gracefully when it can't (see §4), so it's usable

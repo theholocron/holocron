@@ -1,0 +1,39 @@
+---
+title: Storage Utils
+description: Namespaced session storage.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/storage-utils
+```
+
+## Usage
+
+```ts
+import { storage } from "@theholocron/storage-utils";
+
+// Create a store (the namespace defaults to "theholocron")
+const store = storage.session.create("my-namespace");
+
+// Register your app first: later writes go to the most recently registered app
+store.registerApp("my-app");
+
+// Write a value (a dot-separated key nests)
+store.sendTo("user.name", "Alice");
+
+// Read it back
+store.getFrom("user"); // { name: "Alice" }
+
+// Read everything, remove one key, or clear it all
+store.getAll();
+store.removeFrom("user");
+store.clear();
+```
+
+## Notes
+
+This package uses the browser `sessionStorage` API. It degrades gracefully in environments where `sessionStorage` is unavailable.
+
+The full [API reference](/holocron/utils/storage-utils/api/readme/) is generated from the package's TSDoc comments.

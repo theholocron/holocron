@@ -1,0 +1,11 @@
+info:
+  name: Rejected
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit
+
+docs:
+  content: "Nothing here reaches Discord: the relay refuses before it formats anything."
+  type: text/markdown

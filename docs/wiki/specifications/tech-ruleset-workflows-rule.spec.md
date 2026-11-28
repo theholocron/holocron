@@ -1,4 +1,5 @@
 ---
+id: SPEC-0043
 status: archived
 issue: theholocron/holocron#678
 blocked-by: []
@@ -8,12 +9,14 @@ related:
   - theholocron/holocron#667
   - theholocron/holocron#668
   - theholocron/holocron#669
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620402837364796
 ---
 
 # Ruleset investigation — GitHub `workflows` rule type
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
-(`.notes/tech-holocron-platform.spec.md`). Covers the "Ruleset investigation
+(`docs/wiki/specifications/tech-holocron-platform.spec.md`). Covers the "Ruleset investigation
 (Phase A)" section of that spec in full detail.
 
 ## Problem
@@ -49,156 +52,77 @@ required checks stop being **name strings the ruleset matches** and become
    whether the rule can reference a workflow living in `theholocron/.github`
    directly versus one physically present in the consumer repo.
 
-## What this workstream needs to confirm before committing
+## Findings
 
-- Whether the rule targets the **caller** repo's workflow (thin caller) or
-  can point at the **reusable** workflow in `.github` directly.
-- How it interacts with a matrix job (Storybook per-project fan-out) whose
-  individual outputs are what we actually want gated.
-- Whether `astromech.requiredChecks()` needs to keep existing at all, shrink
-  to the handful of checks this rule type can't cover (codecov flags,
-  external Chromatic checks), or go away entirely.
-- Retain D8's check-name parity regardless of outcome: `holocron ci` already
-  prints each task using the identical `WORKFLOW_CHECK_CONTEXTS` string
-  GitHub's check list shows (`▶ Lint / Conclusion`, not `▶ lint`) — a
-  developer sees the same names locally as on a PR. Don't lose this.
+Resolved from GitHub's own documentation (no prototype needed — the
+platform's documented constraints rule out adoption on their own, before
+ever reaching `monorepo-nextjs-template`):
 
-## Scope
+1. **The rule's required workflow must declare `pull_request`,
+   `pull_request_target`, or `merge_group` in its own `on:` — `workflow_call`
+   is not a supported trigger.** ([GitHub docs][docs]) Every reusable
+   workflow in `theholocron/.github` is `workflow_call`-only by design — that
+   is what makes it reusable. **This negates payoff 3 outright**: the rule can
+   never target a reusable workflow directly. It can only target a
+   `pull_request`-triggered workflow physically present in the consumer
+   repo — which in this org's architecture is exactly the thin-caller file
+   `holocron sync github` already generates and keeps there. No file goes
+   away; only what gates on it changes.
+2. **A ruleset workflow "can't use most CodeQL actions" — only
+   `github/codeql-action/upload-sarif` is allowed.** ([GitHub docs][docs])
+   `security.codeScanning`'s reusable workflow calls `codeql-action/init`,
+   `/autobuild`, and `/analyze` — all three disallowed. One of this org's
+   own currently-required checks (`Security / Code Scanning / Analyze
+(javascript-typescript)`) could not be migrated to this rule type at
+   all, independent of finding 1.
+3. **The rule type only gates on GitHub Actions workflow runs — it cannot
+   reference a GitHub App's custom Check Run.** Every one of Sentinel's 12
+   posted checks (`sentinel:validate:dco / …`, `sentinel:lint:code / Run eslint`, etc.) and every Codecov flag
+   (`codecov/patch/<pkg>`, 20 and growing with the package count) would
+   have to stay on `required_status_checks`/exact-string matching
+   regardless of what this workstream decides for the Actions-native
+   checks. There is no path to _fully_ replacing
+   `astromech.requiredChecks()` — only ever a partial one.
 
-- Prototype against one low-stakes repo first — `monorepo-nextjs-template`
-  is the natural candidate since it already surfaced the bug (#45).
-- Produce findings + a go/no-go recommendation before any org-wide migration.
-- No changes to the reusable workflows themselves beyond what's needed to
-  prototype.
+Finding 3 is the decisive one. The rename-orphaning risk this workstream
+set out to fix is **not evenly distributed** across the required-checks
+list: Sentinel's checks are the actively-growing, actively-renamed part of
+it (this very session renamed several of them in #989/#990, independent of
+this investigation), while the Actions-native thin-caller job/workflow
+names are comparatively stable and rarely touched. Migrating only the
+smaller, already-more-stable slice — at the cost of a real rewrite of
+`astromech`'s required-checks generation into a second, parallel mechanism
+(ruleset `workflows` rules, keyed by `repository_id` + `path`, alongside
+the existing string-list one for everything Sentinel/Codecov posts) — is a
+worse trade than it first looked. The core motivating bug (#45) is real,
+but this lever doesn't close it for the part of the surface where it bites
+hardest and most often.
 
-## Out of scope
+## Decision: No-Go
 
-- Org-wide rollout of whatever mechanism wins — that's a follow-on once this
-  workstream has a decision, tracked separately (or folded into the
-  migration pass, #680, if the scope stays small).
+Don't adopt the `workflows` ruleset rule type. Keep
+`astromech.requiredChecks()` and exact-string required-status-check
+matching as the standing mechanism for all required checks — Actions-native,
+Sentinel-posted, and Codecov alike.
 
-## Open questions
+**Why:** the rule type cannot touch Sentinel's checks or Codecov's flags at
+all (structural — they're not Actions workflow runs), and cannot touch this
+org's own CodeQL scanning check either (the action restriction). What's
+left in scope for migration is the Actions-native thin-caller checks —
+already the smaller, more stable fraction of the required-checks surface,
+and the fraction least likely to drift. Splitting required-checks
+generation into two parallel mechanisms to fix the easier, lower-frequency
+half of the problem isn't worth the mechanism's own ongoing maintenance
+cost.
 
-- Whether `astromech.requiredChecks()` is fully replaced by the `workflows`
-  rule, partially replaced, or kept as a fallback for checks the rule type
-  structurally can't cover.
+**When to revisit:** if GitHub ever extends this rule type to support
+`workflow_call` triggers directly, or to reference an arbitrary Check Run
+(not only an Actions workflow run) — either change would remove one of the
+two structural blockers above and meaningfully change this trade-off.
+Nothing else about this decision is time-bound.
+
+[docs]: https://docs.github.com/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
 
 ## PR-stack
 
-None — this workstream is closed with a no-go finding. No code changes.
-`astromech.requiredChecks()` and the existing branch-protection ruleset
-mechanism stay as-is.
-
-## Findings (2026-09-15)
-
-### What the rule type actually is
-
-Confirmed via the REST API reference (`docs.github.com/en/rest/repos/rules`):
-`"workflows"` is a real, documented rule type. Its parameters:
-
-```jsonc
-{
-  "type": "workflows",
-  "parameters": {
-    "do_not_enforce_on_create": false, // optional
-    "workflows": [
-      {
-        "path": ".github/workflows/test.yml", // required
-        "repository_id": 873365952, // required — the repo the workflow file lives in
-        "ref": "main", // optional
-        "sha": "...", // optional
-      },
-    ],
-  },
-}
-```
-
-`repository_id` being a distinct, required integer is notable — it strongly
-suggests the rule is designed to reference a workflow living in a
-**different** repository than the one the ruleset is attached to (exactly
-the "gate on `theholocron/.github`'s reusable workflow directly, no thin
-caller needed" scenario question 3 asked about). This was never confirmed
-working — see below.
-
-One thing worth flagging for whoever revisits this: the **user-facing**
-rulesets documentation page
-(`repositories/configuring-branches-and-merges-in-your-repository/
-managing-rulesets/available-rules-for-rulesets`) does **not** mention a
-`workflows` rule at all as of this investigation — only the REST API
-reference does. That mismatch (documented in the API schema, absent from
-the human-facing rule catalog) is itself a signal, not just an oversight on
-GitHub's part to note in passing.
-
-### Prototyping — reproducible failure, cause not isolated
-
-Tested via direct REST API calls (`enforcement: "evaluate"`, never
-`"active"` — no risk to either repo's real gating) against both
-`monorepo-nextjs-template` (the repo #45 actually happened on) and
-`node-template` (as a second data point). Every attempt to create a ruleset
-containing a `workflows` rule failed identically:
-
-```json
-{
-  "message": "Validation Failed",
-  "errors": ["Invalid rule 'workflows': Invalid parameter workflows: Workflow error at index 0: "],
-  "status": 422
-}
-```
-
-The error's own explanation clause is an **empty string** — GitHub's API
-never says what's actually wrong. Variants tried, all producing the exact
-same opaque error:
-
-- `repository_id` pointing at the ruleset's own repo (same-repo reference).
-- A workflow with `on: push + pull_request` triggers (`test.yml`) — this
-  matches the one documented requirement found via GitHub Community
-  discussions ("the workflow must have `pull_request`, `pull_request_target`,
-  or `merge_group` in its `on:` for a ruleset to be able to run it") — and
-  it _still_ failed.
-- A workflow with only `on: schedule` (`stale.yml`), which should
-  legitimately fail if the trigger-type requirement is real — but produced
-  the identical message, giving no signal either way.
-- `ref` omitted, `ref: "main"`, and `ref: "refs/heads/main"`.
-- With and without `do_not_enforce_on_create`.
-
-**Ruled out:** a blanket plan-tier gate on "advanced" rule types. The same
-org, same free plan, accepted a `code_scanning` rule (another
-non-`required_status_checks` rule type) on the first try with zero errors —
-proving the API differentiates between rule types rather than rejecting
-everything non-basic.
-
-### Go/no-go
-
-**No-go, for now.** Not because the mechanism is confirmed unworkable — it's
-that the investigation hit a wall with no actionable error message, and
-diagnosing an opaque `422` with an empty explanation string isn't a good use
-of further time without a clearer signal from GitHub's side. Concretely
-unresolved:
-
-- Whether `workflows` needs an org-level feature flag/enrollment this org
-  doesn't have (nothing found in `orgs/{org}/actions/permissions` or the
-  ruleset UI, but that doesn't rule out something narrower — e.g. a
-  workflow-level `permissions:` grant, or the "Enable required workflows"
-  toggle GitHub's UI is rumored to gate behind rather than exposing purely
-  via API).
-- Whether cross-repo `repository_id` (pointing at `theholocron/.github`
-  instead of the consumer repo) works at all, given same-repo references
-  never got past validation either.
-- Whether the trigger-type requirement from GitHub Community is accurate,
-  real, or itself outdated.
-
-### If this gets picked back up
-
-- File a GitHub Support ticket first — get an actual error message before
-  spending more engineering time on trial-and-error against an
-  underspecified 422.
-- Once (if) same-repo referencing works, that's the moment to test the
-  cross-repo hypothesis (thin caller elimination) — don't assume it
-  transfers.
-- Re-test against whatever GitHub Community/changelog says has changed;
-  this is a newer, apparently still-evolving rule type.
-
-Everything in "What this workstream needs to confirm before committing"
-above (matrix-job interaction, `requiredChecks()`'s fate, D8 check-name
-parity) is now moot until the mechanism itself can be gotten to accept a
-valid payload at all.
+None — no-go, nothing to implement.

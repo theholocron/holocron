@@ -1,0 +1,66 @@
+name: Setup
+description: Prepare the environment and install project dependencies.
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: false
+    default: "26.x"
+
+runs:
+  using: composite
+
+  steps:
+    - uses: theholocron/.github/.github/actions/setup-node@main
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - uses: theholocron/.github/.github/actions/install@main
+
+    # Restored before the bootstrap build below so `pnpm build` replays from the cache instead of running cold.
+    # The key names the workflow and job: actions/cache never overwrites an existing key, so with one key per commit only
+    # the first job to finish saved its .turbo and every other job's entries (type checks, unit tests) were lost.
+    - name: Cache Turbo artifacts
+      if: ${{ hashFiles('turbo.json') != '' }}
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .turbo
+        key: turbo-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ github.sha }}
+        restore-keys: |
+          turbo-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
+          turbo-${{ runner.os }}-
+
+    # `@theholocron/cli`'s `dist/cli.mjs` doesn't exist yet at this point, so
+    # pnpm's workspace bin-linking can't create `node_modules/.bin/holocron`
+    # (silent `WARN ... ENOENT`, not a hard failure). Every package whose
+    # scripts delegate via `holocron run <task> --` then fails at run time
+    # with `holocron: not found` (#698). Same fix the `holocron` composite
+    # action already applies for its own direct invocation (see its "Build
+    # the workspace when the CLI resolves to an unbuilt checkout" step) —
+    # mirrored here so it also covers *nested* `holocron run <task> --`
+    # calls from inside package.json scripts, which that action's own guard
+    # doesn't reach. `pnpm build` (not a scoped `--filter`) so the CLI's own
+    # workspace dependencies (e.g. astromech) build
+    # in topological order too — a scoped build skips them and fails.
+    # No-op in every consumer repo, where the published tarball already
+    # ships `dist/`.
+    - name: Build the Holocron CLI
+      shell: bash
+      run: |
+        if [ ! -f node_modules/@theholocron/cli/dist/cli.mjs ]; then
+          echo "→ @theholocron/cli dist/ missing — building the workspace from source" >&2
+          pnpm build
+          echo "→ re-linking node_modules/.bin — pnpm skipped it pre-build" >&2
+          pnpm install --frozen-lockfile
+        fi
+
+    # A Turbo token with no team turns the remote cache off without a word: every task just runs cold. `TURBO_TEAM` is
+    # an organization variable that `holocron sync secrets` writes from the 1Password Environment named by
+    # `repo.variables.sync` in .holocron/repo.ts. Quiet when there is no token, because then the cache is meant to be off.
+    - name: Warn when the Turbo remote cache is off
+      if: ${{ hashFiles('turbo.json') != '' }}
+      shell: bash
+      run: |
+        if [ -n "$TURBO_TOKEN" ] && [ -z "$TURBO_TEAM" ]; then
+          echo "::warning title=Turbo remote cache is off::TURBO_TOKEN is set but TURBO_TEAM is not. Add it to the 1Password Environment behind repo.variables.sync and run holocron sync secrets."
+        fi

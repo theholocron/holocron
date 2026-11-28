@@ -1,0 +1,269 @@
+---
+title: Getting Started
+description: Wire logging, error tracking, and analytics into an application.
+---
+
+## Install
+
+```bash
+pnpm add @theholocron/observability
+```
+
+Then add the peer dependencies for the subpaths you use:
+
+| Subpath      | Peers                                  |
+| ------------ | -------------------------------------- |
+| `/core`      | none                                   |
+| `/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
+| `/errors`    | `@sentry/node`                         |
+| `/analytics` | `posthog-node`                         |
+| `/testing`   | `vitest`                               |
+
+## Code against the interface
+
+Every module that logs or reports takes a `Logger` / `ErrorSink` /
+`AnalyticsSink` from `@theholocron/observability/core` — it never imports a
+concrete adapter.
+
+```ts
+import type { Logger, ErrorSink } from "@theholocron/observability/core";
+
+export function deploy(deps: { logger: Logger; errors: ErrorSink }) {
+  deps.logger.info({ target: "production" }, "deploying");
+  try {
+    // …
+  } catch (err) {
+    deps.errors.captureException(err);
+    throw err;
+  }
+}
+```
+
+## Wire the adapters at the entry point
+
+Only the process entry point picks concrete implementations, and only it reads
+credentials.
+
+```ts
+import { createLogger } from "@theholocron/observability/logger";
+import { NoopErrorSink } from "@theholocron/observability/core";
+import { SentrySink } from "@theholocron/observability/errors";
+
+const { logger, runId } = createLogger({ level: process.env.LOG_LEVEL as never });
+
+const errors = process.env.SENTRY_DSN ? new SentrySink() : new NoopErrorSink();
+errors.init({
+  dsn: process.env.SENTRY_DSN ?? "",
+  release: `my-app@${process.env.APP_VERSION}`,
+  environment: process.env.CI ? "ci" : "local",
+  tags: { runId },
+});
+
+deploy({ logger, errors });
+```
+
+## Browser / edge / React Native
+
+`@theholocron/observability/core` runs anywhere — it is interfaces and no-ops
+with zero dependencies. For a light logger without Pino, use `ConsoleLogger`
+from `/logger`:
+
+```ts
+import { ConsoleLogger } from "@theholocron/observability/logger";
+
+const logger = new ConsoleLogger({ level: "info" });
+```
+
+### Why the adapters have one subpath each
+
+Each adapter is its own entry, so importing one never makes your bundler
+resolve another adapter's SDK:
+
+| Import                                       | Loads                 |
+| -------------------------------------------- | --------------------- |
+| `@theholocron/observability/browser/sentry`  | `@sentry/browser`     |
+| `@theholocron/observability/browser/posthog` | `posthog-js`          |
+| `@theholocron/observability/edge/sentry`     | `@sentry/vercel-edge` |
+| `@theholocron/observability/edge/posthog`    | nothing (`fetch`)     |
+
+A single `/browser` or `/edge` entry that re-exported both adapters would have
+forced an app that wants only Sentry to install `posthog-js` too. The shared,
+vendor-free parts (the Sentry-compatible sink, `scrubEvent`, `OnError`) are
+bundled into each entry and load no SDK.
+
+### In a browser or React app
+
+`SentryBrowserSink` (over `@sentry/browser`) and `PostHogBrowserSink` (over
+`posthog-js`). Install the SDKs you use, resolve the DSN and key yourself, and
+fall back to the no-ops when they are empty. Type the variables as the shared
+interfaces so either branch type-checks:
+
+```ts
+import { type AnalyticsSink, type ErrorSink, NoopAnalyticsSink, NoopErrorSink } from "@theholocron/observability/core";
+import { PostHogBrowserSink } from "@theholocron/observability/browser/posthog";
+import { SentryBrowserSink } from "@theholocron/observability/browser/sentry";
+
+const dsn = import.meta.env.VITE_SENTRY_DSN;
+const key = import.meta.env.VITE_POSTHOG_KEY;
+
+const errors: ErrorSink = dsn ? new SentryBrowserSink({ tracesSampleRate: 0.1 }) : new NoopErrorSink();
+errors.init({ dsn: dsn ?? "", release: "web@1.0.0", environment: "production", tags: {} });
+
+const analytics: AnalyticsSink = key
+  ? new PostHogBrowserSink({ key, host: "https://us.i.posthog.com" })
+  : new NoopAnalyticsSink();
+analytics.identify("user-1", { plan: "pro" });
+analytics.capture("user-1", "checkout_started", { cart: 3 });
+```
+
+The rules the browser sinks follow:
+
+- **Nothing is captured on its own.** `PostHogBrowserSink` starts `posthog-js`
+  with autocapture, automatic pageviews, page-leave events and session
+  recording off, and person profiles only for identified people. Opt in through
+  `options`, for example `options: { capture_pageview: true }`.
+- **An event goes to the person you name.** A browser has one current person.
+  `capture(distinctId, ...)` compares `distinctId` with the client's current id
+  (`get_distinct_id()`) and calls `identify(distinctId)` first when they differ,
+  so an event is never attributed to someone else. To record for an anonymous
+  visitor, pass the client's own id.
+- **Secrets stay out.** Event and person properties, Sentry events, transactions,
+  span names and tags are scrubbed of token-shaped strings before they leave.
+- **No SDK error reaches your app.** A call that throws is ignored. To see
+  those errors, pass `onError: (error, context) => ...` (`context` is such as
+  `"posthog.capture"` or `"sentry.flush"`); a throw inside `onError` is dropped.
+
+### In an edge runtime or worker
+
+`SentryEdgeSink` (over `@sentry/vercel-edge`, which runs on Cloudflare Workers,
+Vercel Edge and other WinterCG runtimes) and `PostHogFetchSink`, which sends
+events to PostHog's capture endpoint with `fetch` and needs no SDK. Hand
+pending work to the runtime so it is not cut off when the response ends:
+
+```ts
+import { PostHogFetchSink } from "@theholocron/observability/edge/posthog";
+import { SentryEdgeSink } from "@theholocron/observability/edge/sentry";
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const errors = new SentryEdgeSink({ onError: (error, context) => console.warn(context, error) });
+    errors.init({ dsn: env.SENTRY_DSN, release: "edge@1.0.0", environment: "production", tags: {} });
+    const analytics = new PostHogFetchSink({
+      key: env.POSTHOG_KEY,
+      host: "https://us.i.posthog.com",
+      waitUntil: (pending) => ctx.waitUntil(pending),
+      requestTimeoutMs: 3_000,
+    });
+    try {
+      analytics.capture("anonymous", "request", { path: new URL(request.url).pathname });
+      return new Response("ok");
+    } catch (err) {
+      errors.captureException(err);
+      ctx.waitUntil(errors.flush());
+      throw err;
+    }
+  },
+};
+```
+
+What `PostHogFetchSink` does:
+
+- It sends one request per call, with no batching and **no retry**: a request
+  that is rejected, times out (`requestTimeoutMs`, default 5000 ms) or gets a
+  non-2xx answer is dropped and reported to `onError`.
+- `identify(distinctId, props, previousId?)` takes the visitor's earlier
+  anonymous id as an optional third argument and sends it as
+  `$anon_distinct_id`, so PostHog merges the earlier events into the person.
+  The shared `AnalyticsSink.identify(distinctId, props)` stays as it is.
+- `shutdown(timeoutMs = 5000)` stops taking events (a later call is dropped and
+  reported to `onError`), then waits for every accepted request, at most
+  `timeoutMs`.
+- Event and person properties are scrubbed of token-shaped strings.
+
+The edge SDK has no release-health sessions, so `endSession()` does nothing
+there. Neither entry imports a Node built-in, and both are tree-shakable.
+
+### In a React Native app
+
+`/react-native` has `SentryReactNativeSink` (over `@sentry/react-native`) and
+`PostHogReactNativeSink` (over `posthog-react-native`). Both SDKs need the
+`react-native` runtime to load, so your app imports them and passes them in;
+the adapters import neither. That keeps the module loadable in a test or a
+Node script, and the SDKs stay optional peers:
+
+```ts
+import * as Sentry from "@sentry/react-native";
+import PostHog from "posthog-react-native";
+import { type AnalyticsSink, type ErrorSink, NoopAnalyticsSink, NoopErrorSink } from "@theholocron/observability/core";
+import { PostHogReactNativeSink, SentryReactNativeSink } from "@theholocron/observability/react-native";
+
+const errors: ErrorSink = dsn ? new SentryReactNativeSink({ sdk: Sentry }) : new NoopErrorSink();
+errors.init({ dsn: dsn ?? "", release: "app@1.0.0", environment: "production", tags: {} });
+
+const analytics: AnalyticsSink = key
+  ? new PostHogReactNativeSink({ client: new PostHog(key, { host: "https://us.i.posthog.com" }) })
+  : new NoopAnalyticsSink();
+analytics.identify("user-1", { plan: "pro" });
+```
+
+The native layer tracks release-health sessions, so `SentryReactNativeSink`
+leaves them alone unless you pass `sessions: true`. Keep `Sentry.wrap(App)` for
+the native crash and navigation integrations; they sit outside the `ErrorSink`
+interface.
+
+The PostHog sink follows the browser rules. The client has one current person,
+so `capture(distinctId, ...)` calls `identify(distinctId)` first when
+`distinctId` is not the client's current id (`getDistinctId()`), and an event is
+never attributed to someone else. Properties are scrubbed of token-shaped
+strings, and `onError` sees any error the SDK threw. The Sentry sink scrubs
+events, transactions, span names and tags the same way.
+
+## Testing
+
+`deploy` above takes `Logger` / `ErrorSink` as plain dependencies, so tests
+pass spy doubles instead of a real logger or Sentry session:
+
+```ts
+import { fakeLogger, fakeErrorSink } from "@theholocron/observability/testing";
+
+const logger = fakeLogger();
+const errors = fakeErrorSink();
+deploy({ logger, errors });
+
+expect(logger.info).toHaveBeenCalledWith(expect.objectContaining({ target: "production" }), "deploying");
+expect(errors.captureException).not.toHaveBeenCalled();
+```
+
+`fakeAnalyticsSink()` mirrors the same shape for `AnalyticsSink`. To stop code
+that builds a real Pino logger from flooding test output, mock `/logger` from a
+vitest setup file with `silenceLogger`:
+
+```ts
+import { vi } from "vitest";
+
+vi.mock("@theholocron/observability/logger", async (importOriginal) => {
+  const { silenceLogger } = await import("@theholocron/observability/testing");
+  return silenceLogger(await importOriginal());
+});
+```
+
+Every fake's
+methods are `vitest` spies; `fakeLogger().child(...)` returns the same fake so
+bindings applied via a child logger are still assertable on the parent. For a
+non-vitest context that needs a working `Logger` with no output (an
+example, a docs snippet, a non-test opt-out path), use `NoopLogger` from
+`/core` instead — it discards everything and needs no `vitest` peer.
+
+## Logging behaviour
+
+`createLogger()` picks its output from the environment:
+
+| Environment                                                                                                       | Output                           |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Local, TTY                                                                                                        | pretty-printed                   |
+| CI                                                                                                                | newline-delimited JSON to stdout |
+| Axiom credentials present (`HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`, or the `AXIOM_`-prefixed fallbacks) | also shipped to Axiom            |
+
+`HOLOCRON_TELEMETRY=false` disables the Axiom transport while leaving local
+logging intact. Sensitive fields (`token`, `secret`, `password`, `apiKey`,
+`headers.authorization`, …) are redacted before any transport sees a line.

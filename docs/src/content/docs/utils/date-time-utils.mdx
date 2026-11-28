@@ -1,0 +1,21 @@
+---
+title: Date & Time Utils
+description: Date and time helpers.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/date-time-utils
+```
+
+## Usage
+
+```ts
+import { getTimeOfDay } from "@theholocron/date-time-utils";
+
+getTimeOfDay(); // e.g. "morning"
+getTimeOfDay(new Date("2024-01-01T20:00:00")); // "evening"
+```
+
+The full [API reference](/holocron/utils/date-time-utils/api/readme/) is generated from the package's TSDoc comments.

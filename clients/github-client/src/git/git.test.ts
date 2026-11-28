@@ -1,0 +1,373 @@
+import { ProviderApiError } from "@theholocron/http-client";
+import { describe, expect, it } from "vitest";
+
+import { createGitHubClient } from "../index.js";
+import { REPO, stubFetch, TOKEN } from "../test-helpers.js";
+
+describe("git", () => {
+	it("GET /repos/{owner}/{name}/git/ref/heads/{branch}", async () => {
+		const { fetch, calls } = stubFetch([{ body: { ref: "refs/heads/main", object: { sha: "abc123" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.getRef(REPO, "main");
+		expect(calls[0]?.url).toContain("/git/ref/heads/main");
+		expect(result.object.sha).toBe("abc123");
+	});
+
+	it("GET /repos/{owner}/{name}/git/commits/{sha}", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "abc123", tree: { sha: "tree123" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.getCommit(REPO, "abc123");
+		expect(calls[0]?.url).toContain("/git/commits/abc123");
+		expect(result.tree.sha).toBe("tree123");
+	});
+
+	it("GET /repos/{owner}/{name}/git/trees/{sha}?recursive=1", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "tree123", tree: [], truncated: false } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.getTree(REPO, "tree123", true);
+		expect(calls[0]?.url).toContain("?recursive=1");
+	});
+
+	it("GET /repos/{owner}/{name}/contents/{path}", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { content: "aGVsbG8=", encoding: "base64", sha: "file123", name: "README.md", path: "README.md" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.getContents(REPO, "README.md");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/contents/README.md");
+		expect(calls[0]?.url).not.toContain("?ref=");
+		expect(result.sha).toBe("file123");
+	});
+
+	it("GET /repos/{owner}/{name}/contents/{path}?ref={ref} when a ref is given", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { content: "aGVsbG8=", encoding: "base64", sha: "file123", name: "README.md", path: "README.md" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.getContents(REPO, "README.md", "pr-head-sha");
+		expect(calls[0]?.url).toContain("/contents/README.md");
+		expect(calls[0]?.url).toContain("ref=pr-head-sha");
+	});
+
+	describe("listDirectory", () => {
+		const entry = (name: string, type: string, dir = ".holocron", size = 10) => ({
+			name,
+			path: `${dir}/${name}`,
+			type,
+			size,
+			sha: `sha-${name}`,
+			url: "ignored",
+		});
+
+		it("lists a directory's entries with name, path, type and size", async () => {
+			const { fetch, calls } = stubFetch([
+				{ body: [entry("repo.ts", "file", ".holocron", 42), entry("projects", "dir", ".holocron", 0)] },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listDirectory(REPO, ".holocron/");
+			expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/contents/.holocron");
+			expect(calls).toHaveLength(1);
+			expect(result).toEqual([
+				{ name: "repo.ts", path: ".holocron/repo.ts", type: "file", size: 42, sha: "sha-repo.ts" },
+				{ name: "projects", path: ".holocron/projects", type: "dir", size: 0, sha: "sha-projects" },
+			]);
+		});
+
+		it("passes the ref", async () => {
+			const { fetch, calls } = stubFetch([{ body: [] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await client.git.listDirectory(REPO, ".holocron", { ref: "pr-head" });
+			expect(calls[0]?.url).toContain("ref=pr-head");
+		});
+
+		it("returns an empty list for an empty directory", async () => {
+			const { fetch } = stubFetch([{ body: [] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listDirectory(REPO, ".holocron")).toEqual([]);
+		});
+
+		it("returns an empty list on 404", async () => {
+			const { fetch } = stubFetch([{ status: 404, body: { message: "Not Found" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listDirectory(REPO, ".holocron")).toEqual([]);
+		});
+
+		it("rethrows a non-404 error as ProviderApiError", async () => {
+			const { fetch } = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await expect(client.git.listDirectory(REPO, ".holocron")).rejects.toBeInstanceOf(ProviderApiError);
+		});
+
+		it("throws when the path is a file", async () => {
+			const { fetch } = stubFetch([{ body: { name: "a", path: "a", type: "file", size: 1, sha: "s" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await expect(client.git.listDirectory(REPO, "a")).rejects.toThrow("is a file");
+		});
+
+		it("does not descend into nested directories by default", async () => {
+			const { fetch, calls } = stubFetch([{ body: [entry("projects", "dir")] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await client.git.listDirectory(REPO, ".holocron");
+			expect(calls).toHaveLength(1);
+		});
+
+		it("lists nested directories as a flat list when recursive", async () => {
+			const { fetch, calls } = stubFetch([
+				{ body: [entry("repo.ts", "file"), entry("projects", "dir")] },
+				{ body: [entry("board.json", "file", ".holocron/projects")] },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listDirectory(REPO, ".holocron", { recursive: true });
+			expect(calls).toHaveLength(2);
+			expect(calls[1]?.url).toContain("/contents/.holocron/projects");
+			expect(result.map((e) => e.path)).toEqual([
+				".holocron/repo.ts",
+				".holocron/projects",
+				".holocron/projects/board.json",
+			]);
+		});
+	});
+
+	it("POST /repos/{owner}/{name}/git/blobs", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "blob123", url: "" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.createBlob(REPO, "hello world");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/git/blobs");
+		expect(calls[0]?.body).toMatchObject({
+			content: "hello world",
+			encoding: "utf-8",
+		});
+		expect(result.sha).toBe("blob123");
+	});
+
+	it("POST /repos/{owner}/{name}/git/trees", async () => {
+		const entry = {
+			path: ".github/workflows/lint.yml",
+			mode: "100644",
+			type: "blob",
+			sha: "blob123",
+		};
+		const { fetch, calls } = stubFetch([{ body: { sha: "newtree", tree: [entry], truncated: false } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.createTree(REPO, [entry], "basetree");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toMatchObject({
+			base_tree: "basetree",
+			tree: [entry],
+		});
+	});
+
+	it("POST /repos/{owner}/{name}/git/commits", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "newcommit", tree: { sha: "tree" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.createCommit(REPO, "chore: sync", "newtree", ["parentsha"]);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/git/commits");
+		expect(calls[0]?.body).toMatchObject({
+			message: "chore: sync",
+			tree: "newtree",
+			parents: ["parentsha"],
+		});
+	});
+
+	it("POST /repos/{owner}/{name}/git/refs", async () => {
+		const { fetch, calls } = stubFetch([{ body: { ref: "refs/heads/sync", object: { sha: "newcommit" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.createRef(REPO, "refs/heads/sync", "newcommit");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toMatchObject({
+			ref: "refs/heads/sync",
+			sha: "newcommit",
+		});
+	});
+
+	it("PATCH /repos/{owner}/{name}/git/refs/{ref}", async () => {
+		const { fetch, calls } = stubFetch([{ body: { ref: "refs/heads/sync", object: { sha: "newcommit" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.updateRef(REPO, "heads/sync", "newcommit", true);
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toContain("/git/refs/heads/sync");
+		expect(calls[0]?.body).toMatchObject({ sha: "newcommit", force: true });
+	});
+
+	it("POST /repos/{owner}/{name}/pulls", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: {
+					number: 1,
+					html_url: "https://github.com/pr/1",
+					title: "chore: sync",
+				},
+			},
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.git.createPull(REPO, {
+			title: "chore: sync",
+			head: "sync",
+			base: "main",
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toContain("/pulls");
+		expect(result.html_url).toBe("https://github.com/pr/1");
+	});
+});
+
+describe("git.putContents", () => {
+	it("PUT /contents/:path with base64 text, the sha and the branch", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "a.json" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const out = await client.git.putContents(REPO, "a.json", {
+			message: "m",
+			content: "héllo",
+			sha: "old",
+			branch: "b",
+		});
+		expect(out.content.sha).toBe("n");
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain(`/repos/${REPO}/contents/a.json`);
+		expect(calls[0]?.body).toEqual({
+			message: "m",
+			content: Buffer.from("héllo").toString("base64"),
+			sha: "old",
+			branch: "b",
+		});
+	});
+
+	it("leaves sha and branch out when creating a file", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "a.json" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "a.json", { message: "m", content: "x" });
+		expect(calls[0]?.body).toEqual({ message: "m", content: "eA==" });
+	});
+
+	it("a stale sha is refused by GitHub and comes through as a ProviderApiError", async () => {
+		const { fetch } = stubFetch([{ status: 409, body: { message: "does not match" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const err = await client.git
+			.putContents(REPO, "a.json", { message: "m", content: "x", sha: "stale" })
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).toMatchObject({ status: 409 });
+	});
+
+	it("encodes each path segment and refuses ones that climb out", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "dir/a b?c#d.json", { message: "m", content: "x" });
+		expect(calls[0]?.url).toContain("/contents/dir/a%20b%3Fc%23d.json");
+		expect(() => client.git.putContents(REPO, "../other/x", { message: "m", content: "x" })).toThrow(
+			/invalid path segment/
+		);
+	});
+
+	it("encodes non-ASCII text without Buffer", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "a.json", { message: "m", content: "héllo ✓" });
+		expect(Buffer.from((calls[0]!.body as { content: string }).content, "base64").toString("utf-8")).toBe(
+			"héllo ✓"
+		);
+	});
+});
+
+describe("git.getTree without recursion", () => {
+	it("does not ask for a recursive tree by default", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "tree123", tree: [], truncated: false } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.getTree(REPO, "tree123");
+		expect(calls[0]?.url).toContain("/git/trees/tree123");
+		expect(calls[0]?.url).not.toContain("recursive");
+	});
+
+	describe("listTree", () => {
+		const SHA = "0123456789abcdef0123456789abcdef01234567";
+		const item = (path: string, type: string, extra: Record<string, unknown> = {}) => ({
+			path,
+			type,
+			sha: `sha-${path}`,
+			mode: type === "tree" ? "040000" : "100644",
+			...extra,
+		});
+
+		it("lists a directory and everything under it in ONE request, with full paths", async () => {
+			const { fetch, calls } = stubFetch([
+				{
+					body: {
+						sha: "t",
+						truncated: false,
+						tree: [
+							item("org.ts", "blob", { size: 42 }),
+							item("media", "tree"),
+							item("media/emoji/git_merge.png", "blob", { size: 900 }),
+							item("link", "blob", { mode: "120000" }),
+							item("sub", "commit", { mode: "160000" }),
+						],
+					},
+				},
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listTree(REPO, "/.holocron/");
+			expect(calls).toHaveLength(1);
+			expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/git/trees/HEAD:.holocron");
+			expect(calls[0]?.url).toContain("recursive=1");
+			expect(result).toEqual([
+				{ name: "org.ts", path: ".holocron/org.ts", type: "file", size: 42, sha: "sha-org.ts" },
+				{ name: "media", path: ".holocron/media", type: "dir", size: 0, sha: "sha-media" },
+				{
+					name: "git_merge.png",
+					path: ".holocron/media/emoji/git_merge.png",
+					type: "file",
+					size: 900,
+					sha: "sha-media/emoji/git_merge.png",
+				},
+				{ name: "link", path: ".holocron/link", type: "symlink", size: 0, sha: "sha-link" },
+				{ name: "sub", path: ".holocron/sub", type: "submodule", size: 0, sha: "sha-sub" },
+			]);
+		});
+
+		it("names the commit when the ref is a full commit SHA", async () => {
+			const { fetch, calls } = stubFetch([{ body: { sha: "t", truncated: false, tree: [] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: SHA })).toEqual([]);
+			expect(calls[0]?.url).toContain(`/git/trees/${SHA}:.holocron`);
+		});
+
+		it("names a branch that has no slash, such as the base branch the aggregate reads at", async () => {
+			const { fetch, calls } = stubFetch([{ body: { sha: "t", truncated: false, tree: [] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: "alpha" })).toEqual([]);
+			expect(calls[0]?.url).toContain("/git/trees/alpha:.holocron");
+		});
+
+		it("makes no request for a branch name with a slash, which it cannot name reliably", async () => {
+			const { fetch, calls } = stubFetch([]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron", { ref: "feat/x" })).toBeUndefined();
+			expect(calls).toHaveLength(0);
+		});
+
+		it("answers undefined for a tree GitHub cut short", async () => {
+			const { fetch } = stubFetch([{ body: { sha: "t", truncated: true, tree: [item("a", "blob")] } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+		});
+
+		it("answers undefined for a 404 and a 422, so the caller lists the directory the other way", async () => {
+			const { fetch } = stubFetch([
+				{ status: 404, body: { message: "Not Found" } },
+				{ status: 422, body: { message: "Invalid request" } },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+			expect(await client.git.listTree(REPO, ".holocron")).toBeUndefined();
+		});
+
+		it("throws for any other failure", async () => {
+			const { fetch } = stubFetch([{ status: 500, body: { message: "boom" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const err = await client.git.listTree(REPO, ".holocron").catch((e: unknown) => e);
+			expect(err).toBeInstanceOf(ProviderApiError);
+		});
+	});
+});

@@ -1,0 +1,34 @@
+---
+title: Clerk Client
+description: TypeScript client for the Clerk user management API, built on @theholocron/http-client.
+---
+
+`@theholocron/clerk-client` is a typed wrapper around the Clerk backend API for managing users, instances, and webhooks.
+
+## Installation
+
+```bash
+pnpm add @theholocron/clerk-client
+```
+
+## Usage
+
+```ts
+import { createClerkClient } from "@theholocron/clerk-client";
+
+const client = createClerkClient({ token: process.env.CLERK_SECRET_KEY });
+
+const users = await client.users.list();
+const user = await client.users.get("user_abc123");
+await client.users.ban("user_abc123");
+```
+
+## Namespaces
+
+| Namespace  | Covers                                                                                |
+| ---------- | ------------------------------------------------------------------------------------- |
+| `instance` | The Clerk instance                                                                    |
+| `users`    | Listing, counting, creating, updating and deleting users, and banning or locking them |
+| `webhooks` | The Svix app behind Clerk's webhooks                                                  |
+
+The full [API reference](/holocron/clients/clerk-client/api/readme/) is generated from the package's TSDoc comments.

@@ -1,0 +1,1035 @@
+/**
+ * `holocron doctor notifications` -- compare the layout a provider
+ * declares in `holocron.config.ts` with what is actually on the server and in the
+ * secrets store, step by step.
+ *
+ * It is the end-to-end check for `setup notifications`, and stays useful after
+ * as a drift check. The step numbers match the table in holocron#1098.
+ */
+
+import { describeError, sanitizeDetail, style } from "@theholocron/kyber/ui";
+import { printCheckRows, printCheckSummary } from "@theholocron/kyber/ui";
+
+import { getLogger } from "../../observability/logger/index.js";
+import {
+	assertPluginsResolvable,
+	type Notifications,
+	type NotificationsAccess,
+	type NotificationsOnboardingLayout,
+	type NotificationsWelcomeLayout,
+	PluginLoader,
+} from "../../plugin/index.js";
+import { botPermissionChecks } from "../bot-permission-checks/index.js";
+import { emojiChecks } from "../emoji-checks/index.js";
+import { incidentFeedChecks } from "../incident-feed-checks/index.js";
+import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
+import {
+	layoutSecretNames,
+	layoutSecretProblem,
+	notificationProviders,
+	pickProvider,
+	whyMissing,
+} from "../notifications-channel-add/index.js";
+import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
+import { reactionSpelling } from "../notifications-reaction/index.js";
+import { webhookAvatarOf } from "../notifications-setup/index.js";
+import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
+import { notificationsWorkflowChecks } from "../notifications-workflow-checks/index.js";
+import { postDoctorReport } from "../post-doctor-report/index.js";
+import { prFeedChecks } from "../pr-feed-checks/index.js";
+import { relayChecks } from "../relay-checks/index.js";
+import { relaySourceChecks, resolveRelaySourceProvider } from "../relay-sources/index.js";
+import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
+import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
+import type {
+	DoctorNotificationsReport,
+	NotificationsCheck,
+	RunDoctorNotificationsInput,
+} from "./doctor-notifications.type.js";
+
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+type AccessValue = "everyone" | string[];
+/** `everyone`, or the roles sorted and lower-cased, so order and case do not matter when comparing. */
+const accessKey = (v: AccessValue): string =>
+	v === "everyone" ? "everyone" : JSON.stringify([...new Set(v.map((r) => r.toLowerCase()))].sort());
+/** The prompts of an onboarding in a form two of them can be compared in: the order of the channels and roles an answer gives, and case, do not matter. */
+const promptKey = (p: NonNullable<NotificationsOnboardingLayout["prompts"]>[number]) =>
+	JSON.stringify([
+		p.singleSelect ?? false,
+		p.required ?? false,
+		(p.options ?? []).map((o) => [
+			o.title,
+			o.description ?? "",
+			o.emoji ?? "",
+			[...new Set((o.channels ?? []).map((c) => c.toLowerCase()))].sort(),
+			[...new Set((o.roles ?? []).map((r) => r.toLowerCase()))].sort(),
+		]),
+	]);
+const accessText = (v: AccessValue): string =>
+	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
+const shown = (s: string) => sanitizeDetail(s);
+const WELCOME_TITLE = "welcome screen and onboarding set";
+const PINNED_TITLE = "pinned messages in place";
+const APP_TITLE = "bot description, tags, install link and URLs set";
+const AVATAR_TITLE = "webhook names and avatars set";
+const DELIVERY_TITLE = "test message delivered through a webhook";
+const OWNER_TITLE = "server owned by a person, not the bot";
+const SERVER_TITLE = "server verification, notifications and community set";
+const ACCESS_TITLE = "channel and category access set";
+const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
+const ROLE_MEMBERS_TITLE = "role assigned to team members";
+const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
+
+export async function runDoctorNotifications(input: RunDoctorNotificationsInput): Promise<DoctorNotificationsReport> {
+	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
+	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
+	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+	await loader.load();
+	assertPluginsResolvable(loader, "doctor notifications");
+
+	const checks: NotificationsCheck[] = [];
+	const add = (id: string, title: string, problems: string[], pass: string): void => {
+		checks.push({
+			id,
+			title,
+			status: problems.length === 0 ? "pass" : "fail",
+			detail: problems.length === 0 ? pass : `${problems.length} problem(s)`,
+			problems,
+		});
+	};
+	const byId = (id: string) => checks.find((c) => c.id === id);
+	const failed = (id: string, title: string, reason: string): void => {
+		checks.push({ id, title, status: "fail", detail: reason, problems: [] });
+	};
+
+	const summarise = () => ({
+		pass: checks.filter((c) => c.status === "pass").length,
+		fail: checks.filter((c) => c.status === "fail").length,
+		skip: checks.filter((c) => c.status === "skip").length,
+	});
+	const finish = (): DoctorNotificationsReport => {
+		const summary = summarise();
+		const report: DoctorNotificationsReport = {
+			status: summary.fail > 0 ? "fail" : "ok",
+			checks,
+			summary,
+		};
+		logger.info(
+			{ ...summary, status: report.status, checks: checks.map((c) => `${c.id}:${c.status}`) },
+			"doctor notifications"
+		);
+		return report;
+	};
+	const refuse = (message: string, reason: string = message): DoctorNotificationsReport => {
+		print(`  ${style.fail(message)}`);
+		printCheckSummary({ ok: 0, fail: 1, skip: 0 }, print);
+		logger.warn({ reason }, "doctor notifications");
+		return { status: "fail", checks, summary: summarise(), message };
+	};
+
+	let notifications: Notifications;
+	try {
+		// A provider that can only read is fine here: verify needs `inspect`, not provisioning.
+		notifications = pickProvider(
+			notificationProviders(loader),
+			input.provider,
+			(p) => typeof p.inspect === "function",
+			{ infinitive: "inspect a server", gerund: "inspecting" }
+		);
+	} catch (err) {
+		return refuse(describeError(err));
+	}
+	const declared = notifications.layout;
+	if (!declared) {
+		return refuse(
+			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
+		);
+	}
+	// A pinned message may take its text from a file in the repository. A file that cannot be read fails the
+	// pinned-messages row; everything else is still checked, without the pins.
+	const pinnedFiles = await resolvePinnedFiles(declared, input.context.repoRoot);
+	const pinnedFileProblem = "problem" in pinnedFiles ? pinnedFiles.problem : undefined;
+	const layout = "problem" in pinnedFiles ? { ...declared, pinned: [] } : pinnedFiles.layout;
+
+	// Read the server first: a provider with no `whoami` is still reachable if it can be read.
+	let found: Awaited<ReturnType<NonNullable<Notifications["inspect"]>>> | undefined;
+	let readError = "";
+	try {
+		found = await notifications.inspect!(layout);
+	} catch (err) {
+		readError = describeError(err);
+	}
+
+	// 1. the server is reachable with the configured credentials
+	if (notifications.whoami) {
+		try {
+			const who = await notifications.whoami();
+			if (who) {
+				checks.push({
+					id: "server",
+					title: "server reachable",
+					status: "pass",
+					detail: shown(who.target),
+					problems: [],
+				});
+			} else {
+				failed(
+					"server",
+					"server reachable",
+					"no server configured (the provider's whoami has nothing to check)"
+				);
+			}
+		} catch (err) {
+			failed("server", "server reachable", describeError(err));
+		}
+	} else if (found) {
+		checks.push({
+			id: "server",
+			title: "server reachable",
+			status: "pass",
+			detail: "readable (the provider has no whoami)",
+			problems: [],
+		});
+	} else {
+		failed("server", "server reachable", readError);
+	}
+
+	const declaredChannels = (layout.categories ?? []).flatMap((cat) =>
+		(cat.channels ?? []).map((channel) => ({ cat: cat.name, channel }))
+	);
+	const pick = (name: string, category: string) => {
+		const named = found!.channels.filter((c) => same(c.name, name)); // only called once `found` is set
+		return { named, match: named.find((c) => c.category !== undefined && same(c.category, category)) };
+	};
+
+	if (!found) {
+		// The reason is shown once: the server step already carries it when the credentials are the problem.
+		if (byId("server")?.status !== "fail") failed("read", "read server", readError);
+		for (const [id, title] of [
+			["categories", "categories exist"],
+			["channels", "channels in their category, with topics"],
+			["webhooks", "webhooks on their channels"],
+			["webhook-appearance", AVATAR_TITLE],
+			["roles", "roles exist and are mentionable"],
+			["role-appearance", ROLE_APPEARANCE_TITLE],
+			["access", ACCESS_TITLE],
+			["server-settings", SERVER_TITLE],
+			["welcome-onboarding", WELCOME_TITLE],
+			["pinned", PINNED_TITLE],
+			["app-settings", APP_TITLE],
+		] as const) {
+			failed(id, title, "not checked: could not read the server");
+		}
+	} else {
+		const inspected = found;
+		// 2. categories
+		const categories = layout.categories ?? [];
+		add(
+			"categories",
+			"categories exist",
+			categories
+				.filter((cat) => !inspected.categories.some((name) => same(name, cat.name)))
+				.map((cat) => `${shown(cat.name)}: missing`),
+			categories.length === 0 ? "none declared" : `${categories.length} of ${categories.length} exist`
+		);
+
+		// 3. channels: exist, in the right category, with the right topic
+		const channelProblems: string[] = [];
+		for (const { cat, channel } of declaredChannels) {
+			const { named, match } = pick(channel.name, cat);
+			if (named.length === 0) {
+				channelProblems.push(`#${shown(channel.name)}: missing`);
+				continue;
+			}
+			if (!match) {
+				const where = named.map((c) => c.category ?? "no category").join(", ");
+				channelProblems.push(
+					`#${shown(channel.name)}: exists, but under ${shown(where)} and not ${shown(cat)}`
+				);
+				continue;
+			}
+			// An empty topic means "unspecified": setup does not send one, so it cannot be made to match.
+			if (channel.topic && (match.topic ?? "") !== channel.topic) {
+				channelProblems.push(
+					`#${shown(channel.name)}: topic is "${shown(match.topic ?? "")}" but the layout says "${shown(channel.topic)}"`
+				);
+			}
+			// A text channel cannot become a forum, or back: the fix is to delete it, then run setup.
+			const isForum = channel.kind === "forum";
+			if (isForum !== (match.kind === "forum")) {
+				channelProblems.push(
+					`#${shown(channel.name)}: is ${isForum ? "a text channel, and the layout says forum" : "a forum, and the layout says text"}; delete it so \`setup\` can make it again`
+				);
+			} else if (isForum) {
+				const wantReaction = channel.defaultReaction ? reactionSpelling(channel.defaultReaction) : undefined;
+				if (wantReaction && (match.defaultReaction ?? "") !== wantReaction) {
+					channelProblems.push(
+						`#${shown(channel.name)}: default reaction is ${match.defaultReaction ? `"${shown(match.defaultReaction)}"` : "not set"} but the layout says "${shown(wantReaction)}"`
+					);
+				}
+				for (const tag of channel.tags ?? []) {
+					const have = match.tags?.find((t) => same(t.name, tag.name));
+					if (!have) {
+						channelProblems.push(`#${shown(channel.name)}: tag "${shown(tag.name)}" is missing`);
+					} else if (
+						(have.emoji ?? "") !== (tag.emoji ?? "") ||
+						(have.moderated ?? false) !== (tag.moderated ?? false)
+					) {
+						channelProblems.push(
+							`#${shown(channel.name)}: tag "${shown(tag.name)}" differs from the layout (emoji or moderated)`
+						);
+					}
+				}
+			}
+		}
+		add(
+			"channels",
+			"channels in their category, with topics",
+			channelProblems,
+			declaredChannels.length === 0
+				? "none declared"
+				: `${declaredChannels.length} of ${declaredChannels.length} as declared`
+		);
+
+		// 4. webhooks exist on the channels that ask for one
+		const withWebhook = declaredChannels.filter(({ channel }) => channel.webhook);
+		const webhookProblems: string[] = [];
+		for (const { cat, channel } of withWebhook) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			const name = cfg.name ?? channel.name;
+			const { match } = pick(channel.name, cat);
+			if (!match) {
+				webhookProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
+			} else if (match.webhooksError) {
+				webhookProblems.push(
+					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
+				);
+			} else if (!match.webhooks.some((w) => same(w, name))) {
+				webhookProblems.push(`#${shown(channel.name)}: no webhook named ${shown(name)}`);
+			}
+		}
+		add(
+			"webhooks",
+			"webhooks on their channels",
+			webhookProblems,
+			withWebhook.length === 0 ? "none declared" : `${withWebhook.length} of ${withWebhook.length} exist`
+		);
+
+		// Webhook avatars: a webhook's name is checked with the webhooks above; its picture here.
+		const wantAvatar = declaredChannels.filter(
+			({ channel }) => channel.webhook && webhookAvatarOf(layout, channel.webhook).length > 0
+		);
+		const avatarProblems: string[] = [];
+		for (const { cat, channel } of wantAvatar) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			const name = cfg.name ?? channel.name;
+			const { match } = pick(channel.name, cat);
+			if (!match) {
+				avatarProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
+			} else if (match.webhooksError) {
+				avatarProblems.push(
+					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
+				);
+			} else if (match.webhookAvatars && !match.webhookAvatars.some((w) => same(w, name))) {
+				avatarProblems.push(`#${shown(channel.name)}: webhook ${shown(name)} has no avatar`);
+			}
+		}
+		add(
+			"webhook-appearance",
+			AVATAR_TITLE,
+			avatarProblems,
+			wantAvatar.length === 0 ? "none declared" : `${wantAvatar.length} of ${wantAvatar.length} set`
+		);
+
+		// 6. roles exist and are mentionable as declared
+		const roles = layout.roles ?? [];
+		const roleProblems: string[] = [];
+		if (inspected.rolesError) {
+			roleProblems.push(`could not read the roles (${shown(inspected.rolesError)})`);
+		}
+		for (const role of inspected.rolesError ? [] : roles) {
+			const named = inspected.roles.filter((r) => same(r.name, role.name));
+			const actual = named[0];
+			if (named.length > 1) {
+				roleProblems.push(
+					`${shown(role.name)}: ${named.length} roles have this name; setup cannot tell which to manage`
+				);
+			} else if (!actual) {
+				roleProblems.push(`${shown(role.name)}: missing`);
+			} else if (role.mentionable !== undefined && actual.mentionable !== role.mentionable) {
+				roleProblems.push(
+					`${shown(role.name)}: mentionable is ${actual.mentionable} but the layout says ${role.mentionable}`
+				);
+			}
+		}
+		add(
+			"roles",
+			"roles exist and are mentionable",
+			roleProblems,
+			roles.length === 0 ? "none declared" : `${roles.length} of ${roles.length} as declared`
+		);
+
+		// 6b. role colour, hoist and permissions as declared (only what the layout states is compared)
+		const appearance: string[] = [];
+		if (!inspected.rolesError) {
+			for (const role of roles) {
+				const actual = inspected.roles.find((r) => same(r.name, role.name));
+				if (!actual) {
+					// The roles check says it is missing; this one cannot say anything about it either.
+					appearance.push(`${shown(role.name)}: not checked, the role is missing`);
+					continue;
+				}
+				if (role.color !== undefined && (actual.color ?? "").toLowerCase() !== role.color.toLowerCase()) {
+					appearance.push(
+						`${shown(role.name)}: colour is ${shown(actual.color ?? "default")} but the layout says ${shown(role.color)}`
+					);
+				}
+				if (role.hoist !== undefined && (actual.hoist ?? false) !== role.hoist) {
+					appearance.push(
+						`${shown(role.name)}: hoist is ${actual.hoist ?? false} but the layout says ${role.hoist}`
+					);
+				}
+				const reported = actual.permissions;
+				if (role.permissions !== undefined) {
+					if (reported === undefined) {
+						appearance.push(`${shown(role.name)}: the provider did not report its permissions`);
+					} else {
+						const have = new Set(reported.map((n) => n.toLowerCase()));
+						const want = new Set(role.permissions.map((n) => n.toLowerCase()));
+						const missing = role.permissions.filter((n) => !have.has(n.toLowerCase()));
+						const extra = reported.filter((n) => !want.has(n.toLowerCase()));
+						if (missing.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: missing permissions ${missing.map(shown).join(", ")}`
+							);
+						}
+						if (extra.length > 0) {
+							appearance.push(
+								`${shown(role.name)}: has extra permissions ${extra.map(shown).join(", ")}`
+							);
+						}
+					}
+				}
+			}
+		}
+		// What everyone may do is checked here too: it is the permissions of one more role.
+		const everyone = layout.everyone;
+		const everyoneProblems: string[] = [];
+		if (everyone) {
+			if (inspected.everyoneError) {
+				everyoneProblems.push(
+					`@everyone: not checked, could not read its permissions (${shown(inspected.everyoneError)})`
+				);
+			} else if (!inspected.everyone) {
+				everyoneProblems.push("@everyone: the provider did not report its permissions");
+			} else {
+				const have = new Set(inspected.everyone.permissions.map((n) => n.toLowerCase()));
+				const lacking = (everyone.allow ?? []).filter((n) => !have.has(n.toLowerCase()));
+				const keeping = (everyone.deny ?? []).filter((n) => have.has(n.toLowerCase()));
+				if (lacking.length > 0)
+					everyoneProblems.push(`@everyone: missing permissions ${lacking.map(shown).join(", ")}`);
+				if (keeping.length > 0) {
+					everyoneProblems.push(
+						`@everyone: still has permissions the layout takes away: ${keeping.map(shown).join(", ")}`
+					);
+				}
+			}
+		}
+		const styled = roles.filter(
+			(r) => r.color !== undefined || r.hoist !== undefined || r.permissions !== undefined
+		);
+		const styledCount = styled.length + (everyone ? 1 : 0);
+		add(
+			"role-appearance",
+			ROLE_APPEARANCE_TITLE,
+			inspected.rolesError
+				? [`not checked: could not read the roles`, ...everyoneProblems]
+				: [...appearance, ...everyoneProblems],
+			styledCount === 0 ? "none declared" : `${styledCount} of ${styledCount} as declared`
+		);
+
+		// 6c. who can see and post, in the channels and categories the layout (or its category) gives an access
+		const accessProblems: string[] = [];
+		const compare = (
+			label: string,
+			want: NotificationsAccess,
+			have: Required<NotificationsAccess> | "custom" | undefined
+		) => {
+			if (!have) {
+				accessProblems.push(`${label}: the provider did not report its access`);
+				return;
+			}
+			if (have === "custom") {
+				accessProblems.push(
+					`${label}: has permission overwrites that are not an access the layout can state; re-run setup to replace them`
+				);
+				return;
+			}
+			for (const field of ["view", "post"] as const) {
+				const wanted = want[field] ?? "everyone";
+				if (accessKey(wanted) !== accessKey(have[field])) {
+					accessProblems.push(
+						`${label}: ${field} is ${accessText(have[field])} but the layout says ${accessText(wanted)}`
+					);
+				}
+			}
+		};
+		let accessDeclared = 0;
+		for (const cat of categories) {
+			if (cat.access) {
+				accessDeclared++;
+				if (!inspected.categories.some((name) => same(name, cat.name))) {
+					accessProblems.push(`${shown(cat.name)}: not checked, the category is missing`);
+				} else {
+					const have = Object.entries(inspected.categoryAccess ?? {}).find(([n]) => same(n, cat.name))?.[1];
+					compare(shown(cat.name), cat.access, have);
+				}
+			}
+			for (const channel of cat.channels ?? []) {
+				if (!cat.access && !channel.access) continue;
+				accessDeclared++;
+				const want = { ...cat.access, ...channel.access };
+				const { match } = pick(channel.name, cat.name);
+				if (!match) {
+					accessProblems.push(`#${shown(channel.name)}: not checked, the channel is missing`);
+				} else {
+					compare(`#${shown(channel.name)}`, want, match.access);
+				}
+			}
+		}
+		add(
+			"access",
+			ACCESS_TITLE,
+			// Access names roles by id on the server; without the roles read, the names cannot be compared.
+			inspected.rolesError && accessDeclared > 0 ? ["not checked: could not read the roles"] : accessProblems,
+			accessDeclared === 0 ? "none declared" : `${accessDeclared} of ${accessDeclared} as declared`
+		);
+
+		// 6d. the server's own settings, for the fields the layout states
+		const wantServer = layout.server;
+		const serverProblems: string[] = [];
+		if (wantServer) {
+			if (inspected.serverError) {
+				serverProblems.push(
+					`not checked: could not read the server settings (${shown(inspected.serverError)})`
+				);
+			} else if (!inspected.server) {
+				serverProblems.push("the provider did not report the server's settings");
+			} else {
+				const have = inspected.server;
+				for (const field of [
+					"verification",
+					"defaultNotifications",
+					"contentFilter",
+					"systemChannel",
+					"rulesChannel",
+					"updatesChannel",
+					"community",
+					"description",
+					"locale",
+				] as const) {
+					const want = wantServer[field];
+					if (want === undefined) continue;
+					const actual = have[field];
+					// Channel names are compared without regard to case (Discord lower-cases them); nothing else is.
+					const isChannel =
+						field === "systemChannel" || field === "rulesChannel" || field === "updatesChannel";
+					const equal =
+						isChannel && typeof want === "string" && typeof actual === "string"
+							? same(want, actual)
+							: want === actual;
+					if (!equal) {
+						serverProblems.push(
+							`${field} is ${shown(String(actual ?? "not set"))} but the layout says ${shown(String(want))}`
+						);
+					}
+				}
+			}
+		}
+		const serverFields = wantServer ? Object.values(wantServer).filter((v) => v !== undefined).length : 0;
+		add(
+			"server-settings",
+			SERVER_TITLE,
+			serverProblems,
+			serverFields === 0 ? "none declared" : `${serverFields} of ${serverFields} as declared`
+		);
+
+		// 6e. the welcome screen and onboarding, for the parts the layout declares
+		const wantWelcome = layout.welcome;
+		const wantOnboarding = layout.onboarding;
+		const welcomeProblems: string[] = [];
+		if (wantWelcome) {
+			if (inspected.welcomeError) {
+				welcomeProblems.push(
+					`not checked: could not read the welcome screen (${shown(inspected.welcomeError)})`
+				);
+			} else if (!inspected.welcome) {
+				welcomeProblems.push("the provider did not report the welcome screen");
+			} else {
+				const have = inspected.welcome;
+				const enabled = wantWelcome.enabled ?? true;
+				if (have.enabled !== enabled) {
+					welcomeProblems.push(
+						`welcome screen is ${have.enabled ? "on" : "off"} but the layout says ${enabled ? "on" : "off"}`
+					);
+				}
+				if (have.description !== wantWelcome.description) {
+					welcomeProblems.push(
+						`welcome description is "${shown(have.description)}" but the layout says "${shown(wantWelcome.description)}"`
+					);
+				}
+				const key = (list: NotificationsWelcomeLayout["channels"]) =>
+					JSON.stringify(list.map((c) => [c.channel.toLowerCase(), c.description, c.emoji ?? ""]));
+				if (key(have.channels) !== key(wantWelcome.channels)) {
+					const names = (list: NotificationsWelcomeLayout["channels"]) =>
+						list.length === 0 ? "none" : list.map((c) => shown(c.channel)).join(", ");
+					welcomeProblems.push(
+						`welcome channels are ${names(have.channels)} but the layout says ${names(wantWelcome.channels)} (or their descriptions or emoji differ)`
+					);
+				}
+			}
+		}
+		const onboardingProblems: string[] = [];
+		if (wantOnboarding) {
+			if (inspected.onboardingError) {
+				onboardingProblems.push(`not checked: could not read onboarding (${shown(inspected.onboardingError)})`);
+			} else if (!inspected.onboarding) {
+				onboardingProblems.push("the provider did not report onboarding");
+			} else {
+				const have = inspected.onboarding;
+				if (wantOnboarding.enabled !== undefined && have.enabled !== wantOnboarding.enabled) {
+					onboardingProblems.push(
+						`onboarding is ${have.enabled ? "on" : "off"} but the layout says ${wantOnboarding.enabled ? "on" : "off"}`
+					);
+				}
+				if (wantOnboarding.defaultChannels !== undefined) {
+					const set = (list: string[]) => [...new Set(list.map((c) => c.toLowerCase()))].sort().join(",");
+					if (set(have.defaultChannels ?? []) !== set(wantOnboarding.defaultChannels)) {
+						onboardingProblems.push(
+							`default channels are ${(have.defaultChannels ?? []).map(shown).join(", ") || "none"} but the layout says ${wantOnboarding.defaultChannels.map(shown).join(", ") || "none"}`
+						);
+					}
+				}
+				if (wantOnboarding.prompts !== undefined) {
+					const found = new Map((have.prompts ?? []).map((p) => [p.title, p] as const));
+					for (const p of wantOnboarding.prompts) {
+						const actual = found.get(p.title);
+						if (!actual) onboardingProblems.push(`question "${shown(p.title)}" is missing`);
+						else if (promptKey(actual) !== promptKey(p))
+							onboardingProblems.push(`question "${shown(p.title)}" differs from the layout`);
+						found.delete(p.title);
+					}
+					for (const title of found.keys())
+						onboardingProblems.push(`question "${shown(title)}" is not in the layout`);
+					const order = (titles: string[]) => titles.join("\u0000");
+					const wantedTitles = wantOnboarding.prompts.map((p) => p.title);
+					const haveTitles = (have.prompts ?? []).map((p) => p.title).filter((t) => wantedTitles.includes(t));
+					if (haveTitles.length === wantedTitles.length && order(haveTitles) !== order(wantedTitles))
+						onboardingProblems.push("the questions are in a different order from the layout");
+				}
+			}
+		}
+		const welcomeParts = (wantWelcome ? 1 : 0) + (wantOnboarding ? 1 : 0);
+		add(
+			"welcome-onboarding",
+			WELCOME_TITLE,
+			[...welcomeProblems, ...onboardingProblems],
+			welcomeParts === 0 ? "none declared" : `${welcomeParts} of ${welcomeParts} as declared`
+		);
+
+		const wantPinned = layout.pinned ?? [];
+		const pinnedProblems: string[] = pinnedFileProblem ? [pinnedFileProblem] : [];
+		if (wantPinned.length > 0) {
+			if (inspected.pinnedError) {
+				pinnedProblems.push(
+					`not checked: could not read the pinned messages (${shown(inspected.pinnedError)})`
+				);
+			} else if (!inspected.pinned) {
+				pinnedProblems.push("the provider did not report the pinned messages");
+			} else {
+				// Every declared message needs an answer: a short list from the provider is not a clean bill.
+				wantPinned.forEach((want, i) => {
+					const have = inspected.pinned![i];
+					if (!have)
+						pinnedProblems.push(`#${shown(want.channel)}: not checked (the provider gave no answer)`);
+					else if (have.state === "missing") {
+						pinnedProblems.push(`#${shown(have.channel)}: no pinned message from the bot`);
+					} else if (have.state === "different") {
+						const source = wantPinned[i].file;
+						pinnedProblems.push(
+							`#${shown(have.channel)}: the pinned messages differ from ${source ? shown(source) : "the layout"}`
+						);
+					}
+				});
+			}
+		}
+		add(
+			"pinned",
+			PINNED_TITLE,
+			pinnedProblems,
+			wantPinned.length === 0 ? "none declared" : `${wantPinned.length} of ${wantPinned.length} in place`
+		);
+
+		const wantApp = layout.application;
+		const appProblems: string[] = [];
+		if (wantApp) {
+			if (inspected.applicationError) {
+				appProblems.push(`not checked: could not read the application (${shown(inspected.applicationError)})`);
+			} else if (!inspected.application) {
+				appProblems.push("the provider did not report the application");
+			} else {
+				const have = inspected.application;
+				const set = (list: string[]) => JSON.stringify([...new Set(list.map((n) => n.toLowerCase()))].sort());
+				const exact = (list: string[]) => JSON.stringify([...new Set(list)].sort());
+				if (wantApp.description !== undefined && (have.description ?? "") !== wantApp.description) {
+					appProblems.push("description differs from the layout");
+				}
+				if (wantApp.tags !== undefined && set(have.tags ?? []) !== set(wantApp.tags)) {
+					appProblems.push(
+						`tags are ${(have.tags ?? []).map(shown).join(", ") || "none"} but the layout says ${wantApp.tags.map(shown).join(", ") || "none"}`
+					);
+				}
+				if (
+					wantApp.intents?.members !== undefined &&
+					(have.intents?.members ?? false) !== wantApp.intents.members
+				) {
+					appProblems.push(
+						`the Server Members Intent is ${have.intents?.members ? "on" : "off"} but the layout says ${wantApp.intents.members ? "on" : "off"} (\`holocron setup notifications\` changes it)`
+					);
+				}
+				// Sign-in needs a registered redirect: what the layout names, else where the link flow would come back to now.
+				const needsLink = (layout.roles ?? []).some((r) => r.team);
+				const wantRedirects =
+					wantApp.redirectUris ??
+					(needsLink
+						? [
+								(
+									await resolveCallback({
+										...(layout.links?.hostedUrl ? { hostedUrl: layout.links.hostedUrl } : {}),
+										...(layout.links?.localPort ? { port: layout.links.localPort } : {}),
+										...(input.fetch ? { fetch: input.fetch } : {}),
+									})
+								).redirectUri,
+							]
+						: []);
+				for (const uri of wantRedirects) {
+					if (!(have.redirectUris ?? []).includes(uri)) appProblems.push(shown(redirectInstruction(uri)));
+				}
+				if (wantApp.install !== undefined) {
+					if (!have.install) {
+						appProblems.push("no install link is set");
+					} else {
+						if (exact(have.install.scopes) !== exact(wantApp.install.scopes)) {
+							appProblems.push(
+								`install scopes are ${have.install.scopes.map(shown).join(", ")} but the layout says ${wantApp.install.scopes.map(shown).join(", ")}`
+							);
+						}
+						if (set(have.install.permissions) !== set(wantApp.install.permissions)) {
+							appProblems.push("install permissions differ from the layout");
+						}
+					}
+				}
+				for (const [field, label] of [
+					["termsUrl", "terms URL"],
+					["privacyUrl", "privacy URL"],
+					["roleConnectionsUrl", "role-connections URL"],
+				] as const) {
+					const wanted = wantApp[field];
+					if (wanted !== undefined && (have[field] ?? "") !== wanted) {
+						appProblems.push(
+							`${label} is ${shown(have[field] || "not set")} but the layout says ${shown(wanted)}`
+						);
+					}
+				}
+			}
+		}
+		add("app-settings", APP_TITLE, appProblems, wantApp ? "1 of 1 as declared" : "none declared");
+	}
+
+	// 5. the secrets the layout fills exist in the org
+	const wanted = layoutSecretNames(layout);
+	if (wanted.length === 0) {
+		checks.push({ id: "secrets", title: SECRETS_TITLE, status: "pass", detail: "none declared", problems: [] });
+	} else if (!loader.has("secrets")) {
+		failed("secrets", SECRETS_TITLE, whyMissing(loader, "secrets", "no `secrets` provider to check them with"));
+	} else {
+		const org = input.context.org;
+		const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
+		if (!scope) {
+			failed("secrets", SECRETS_TITLE, "no org to look under — pass --scope or set `org` in holocron.config.ts");
+		} else {
+			try {
+				const have = new Set((await loader.get("secrets").listSecrets(scope)).map((n) => n.toUpperCase()));
+				// A layout whose names collide cannot be provisioned (setup refuses it), so it cannot pass here either.
+				const clash = layoutSecretProblem(layout);
+				add(
+					"secrets",
+					SECRETS_TITLE,
+					[
+						...(clash ? [shown(clash)] : []),
+						...wanted.filter((n) => !have.has(n.toUpperCase())).map((n) => `${shown(n)}: missing`),
+					],
+					`${wanted.length} of ${wanted.length} exist`
+				);
+			} catch (err) {
+				failed("secrets", SECRETS_TITLE, describeError(err));
+			}
+		}
+	}
+
+	// 14. a role that follows a team is held by exactly its linked members
+	const teamRoles = (layout.roles ?? []).filter((r) => r.team);
+	const blankTeams = (layout.roles ?? []).filter((r) => r.team !== undefined && r.team.trim() === "");
+	if (blankTeams.length > 0) {
+		failed(
+			"role-members",
+			ROLE_MEMBERS_TITLE,
+			shown(
+				`${blankTeams.map((r) => r.name).join(", ")}: declares an empty \`team\`; name a team or remove the field`
+			)
+		);
+	} else if (teamRoles.length === 0) {
+		checks.push({
+			id: "role-members",
+			title: ROLE_MEMBERS_TITLE,
+			status: "pass",
+			detail: "none declared",
+			problems: [],
+		});
+	} else {
+		const source = loader.has("source") ? loader.get("source") : undefined;
+		const problem = !notifications.roleMembers
+			? `the \`${notifications.providerName}\` provider cannot list who holds a role`
+			: sourceProblem(source);
+		if (problem) {
+			failed(
+				"role-members",
+				ROLE_MEMBERS_TITLE,
+				shown(loader.has("source") ? problem : whyMissing(loader, "source", problem))
+			);
+		} else {
+			try {
+				const links = await readLinks(source!, layout, input.context.org, notifications.providerName);
+				const problems: string[] = [];
+				for (const role of teamRoles) {
+					const plan = await planForRole({
+						notifications,
+						source: source!,
+						role: role.name,
+						team: role.team!,
+						...(input.context.org ? { org: input.context.org } : {}),
+						links,
+					});
+					for (const who of plan.add)
+						problems.push(
+							`${shown(who.login)}: on team ${shown(role.team!)} but lacks ${shown(role.name)}`
+						);
+					for (const who of plan.remove)
+						problems.push(
+							`${shown(who.login)}: holds ${shown(role.name)} but left team ${shown(role.team!)}`
+						);
+					for (const who of plan.unlinked)
+						problems.push(
+							`${shown(who.login)}: on team ${shown(role.team!)} but has not linked their account`
+						);
+				}
+				add("role-members", ROLE_MEMBERS_TITLE, problems, `${teamRoles.length} of ${teamRoles.length} in sync`);
+			} catch (err) {
+				failed("role-members", ROLE_MEMBERS_TITLE, shown(describeError(err)));
+			}
+		}
+	}
+
+	// The monitoring provider's feed into Discord. These read and post nothing, so `--built-only` keeps them.
+	checks.push(
+		...(await monitoringFeedChecks({
+			layout,
+			monitoring: loader.has("monitoring") ? loader.get("monitoring") : undefined,
+			missingReason: whyMissing(loader, "monitoring", "no `monitoring` provider is configured"),
+			found,
+		}))
+	);
+
+	// The bot's own role: it holds, server-wide, the permissions the provider says it needs. Read from `inspect`.
+	checks.push(...botPermissionChecks({ found }));
+
+	// The server emoji the forums' reactions name: each is on the server.
+	checks.push(...emojiChecks({ layout, found }));
+
+	// The forum Sentinel keeps one post per pull request in: it is there, has every state's tag, and the bot can run it.
+	checks.push(...prFeedChecks({ layout, found }));
+
+	// The forum the status page's incidents are mirrored into: same three rows, with the incident states' tags.
+	checks.push(...incidentFeedChecks({ layout, found }));
+
+	// The workflow that posts failed runs and releases: it is on the default branch and uses the layout's webhooks. Read-only.
+	checks.push(
+		...(await notificationsWorkflowChecks({
+			layout,
+			source: loader.has("source") ? loader.get("source") : undefined,
+			sourceMissingReason: whyMissing(loader, "source", "no `source` provider is configured"),
+		}))
+	);
+
+	// The Comlink relay that carries the error tracker's alerts. The one request is unsigned and the Worker rejects it
+	// unread, so this posts nothing either and `--built-only` keeps it.
+	checks.push(
+		...(await relayChecks({
+			layout,
+			errors: loader.has("errors") ? loader.get("errors") : undefined,
+			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
+			workers: loader.has("workers") ? loader.get("workers") : undefined,
+			workersMissingReason: whyMissing(loader, "workers", "no `workers` provider is configured"),
+			found,
+			...(input.fetch ? { fetch: input.fetch } : {}),
+		}))
+	);
+
+	// The error tracker's side of the relay: its integration and alert rule. Read-only as well.
+	checks.push(
+		...(await sentryRelayChecks({
+			layout,
+			errors: loader.has("errors") ? loader.get("errors") : undefined,
+			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
+		}))
+	);
+
+	// The vendors' side of each relay source (`relay.sources`): the webhook that posts to the relay. Read-only as well.
+	checks.push(
+		...(await relaySourceChecks({
+			layout,
+			resolve: async (source) => {
+				const resolved = await resolveRelaySourceProvider({
+					loader,
+					config: input.loaded.resolved,
+					repoRoot: input.context.repoRoot,
+					source,
+					...(input.workspaceProviders ? { workspace: input.workspaceProviders } : {}),
+				});
+				// A capability with no configured provider says why, a failed load included, as it always did.
+				return resolved.provider || source.spec.provider !== undefined
+					? resolved
+					: {
+							problem: whyMissing(
+								loader,
+								source.spec.capability,
+								`no \`${source.spec.capability}\` provider is configured`
+							),
+						};
+			},
+		}))
+	);
+
+	// 15. a test message gets through a webhook: the layout's test channel by default, every channel on request
+	const withHook = (layout.categories ?? []).flatMap((cat) =>
+		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
+	);
+	const testName = layout.testChannel;
+	// Which channels get a test post: every one with `--deliver` (each post removed); otherwise, outside
+	// `--built-only`, just the test channel (its post left there to look at); under `--built-only`, none.
+	const mode: "all" | "test" | "none" = input.deliver
+		? "all"
+		: !input.builtOnly && testName !== undefined
+			? "test"
+			: "none";
+	const targets =
+		mode === "all"
+			? withHook
+			: mode === "test"
+				? // One channel only, even if a layout that never went through `setup` repeats the name.
+					withHook.filter(({ channel }) => same(channel.name, testName!)).slice(0, 1)
+				: [];
+	let deliveryNote: string | undefined;
+	if (mode === "none") {
+		deliveryNote =
+			!input.builtOnly && testName === undefined
+				? "the delivery check needs a test channel: name one in the layout's `testChannel` (a channel with a webhook)"
+				: "the delivery check posts test messages, so --built-only skips it; add --deliver to post to every channel";
+	} else if (targets.length === 0) {
+		checks.push({
+			id: "post-works",
+			title: DELIVERY_TITLE,
+			status: "pass",
+			detail: "none declared",
+			problems: [],
+			step: 15,
+		});
+	} else if (!notifications.checkDelivery) {
+		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
+	} else {
+		const problems: string[] = [];
+		for (const { cat, channel } of targets) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			// Only the test channel's post is ever left behind: the real channels are never given one.
+			const keep = mode === "test";
+			try {
+				const result = await notifications.checkDelivery({
+					channel: channel.name,
+					name: cfg.name ?? channel.name,
+					category: cat.name,
+					// `{channel}` becomes the provider's own link to the channel (a mention, for Discord).
+					text: keep
+						? "🧪 test: `holocron doctor notifications` check for {channel}. This post was a test of the delivery system; it is safe to delete."
+						: "🧪 test: `holocron doctor notifications --deliver` check for {channel}. This post was a test of the delivery system; it removes itself.",
+					...(keep ? { keep: true } : {}),
+				});
+				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
+				if (
+					result.problems.length === 0 &&
+					// A kept post must be kept and a removable one removed: one that came back the other way is not what was asked.
+					!(result.posted && result.readBack && (keep ? result.kept : result.removed))
+				) {
+					problems.push(`#${shown(channel.name)}: the check did not complete`);
+				}
+			} catch (err) {
+				problems.push(`#${shown(channel.name)}: ${shown(describeError(err))}`);
+			}
+		}
+		add(
+			"post-works",
+			DELIVERY_TITLE,
+			problems,
+			mode === "all"
+				? `${targets.length} of ${targets.length} delivered`
+				: `delivered through #${shown(targets[0].channel.name)} (left there)`
+		);
+	}
+
+	// 16. the server belongs to a person: a bot that created it owns it until it is handed over
+	if (notifications.serverOwner) {
+		try {
+			const owner = await notifications.serverOwner();
+			add(
+				"server-owner",
+				OWNER_TITLE,
+				owner.isBot
+					? [
+							"the bot owns the server; hand it to a person with `holocron new server --resume --owner <member id>`",
+						]
+					: [],
+				`owned by member ${shown(owner.id)}`
+			);
+		} catch (err) {
+			failed("server-owner", OWNER_TITLE, shown(describeError(err)));
+		}
+	}
+
+	// Render in one place so the output order is the check order.
+	printCheckRows(
+		checks.map((check) => ({ ...check, status: check.status === "pass" ? "ok" : check.status })),
+		print
+	);
+	// Not a step and not counted: why the delivery check did not run, set apart below the steps.
+	if (deliveryNote) {
+		print("");
+		print(`  ${style.skip(`note: ${deliveryNote}`)}`);
+	}
+	const summary = summarise();
+	printCheckSummary({ ok: summary.pass, fail: summary.fail, skip: summary.skip }, print);
+	if (input.post !== undefined) {
+		print(`  ${style.skip(await postDoctorReport(notifications, input.post, { checks, summary }))}`);
+	}
+	return finish();
+}

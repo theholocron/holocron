@@ -1,0 +1,28 @@
+---
+title: "doctor wiki"
+description: Check the wiki's organization, docs site, custom domain and published pages. Read-only.
+---
+
+```bash
+holocron doctor wiki
+```
+
+A wiki can be declared and still not be there: the organization in `fern/fern.config.json` may differ from the config, the docs may never have been published, the domain may not answer, or the navigation may list a page that was moved. This check asks the `wiki` provider (Fern) to read its own files and its public site. It changes nothing, sends no token, never publishes, and prints addresses, file paths and counts only. It exits non-zero only while a row fails.
+
+## The rows
+
+| Row                                | Passes when                                                                                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `organization is set`              | `fern/fern.config.json` names the organization the config declares (`fernOrg`, else `org`). A missing or different one fails and names `holocron setup`     |
+| `docs site is declared`            | the `instances:` block of `fern/docs.yml` has the instance URL and, when `domain` is set, the `custom-domain` the config implies                            |
+| `docs site answers`                | the instance address (`<org>.docs.buildwithfern.com/<repo>`) answers below 400. A 404 fails (the docs are not published); a 401 or 403 passes as restricted |
+| `custom domain answers`            | the declared domain answers the same way. A failure points at `holocron doctor dns`                                                                         |
+| `navigation pages exist`           | every `path:` in the navigation of `fern/docs.yml` is on disk. A listed page that is missing fails: the publish would break                                 |
+| `pages under docs/wiki are listed` | information only (counted as skipped): the Markdown files under `docs/wiki` the navigation does not list, so are not published                              |
+| `published pages`                  | the site's `sitemap.xml` lists at least as many pages as the navigation. Fewer fails: the last publish is behind, so run the wiki workflow                  |
+
+## What is skipped, and what fails
+
+A file or page the check can prove wrong fails. A site that cannot be reached (no network, a timeout), a sitemap that is not served, a provider that cannot inspect its wiki, or one that failed to load is a skip with the reason. With no `wiki` provider the whole run is a skip.
+
+`holocron doctor --all` runs it with the other deep checks.

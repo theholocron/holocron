@@ -1,0 +1,52 @@
+name: Audit the Performance
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      lighthouse-config:
+        description: >
+          Path to the Lighthouse CI config file, forwarded to `holocron run
+          verification.performance -- --config`. Defaults to
+          lighthouse.config.cjs (the org standard).
+        type: string
+        required: false
+        default: lighthouse.config.cjs
+    secrets:
+      HOLOCRON_LIGHTHOUSE_TOKEN:
+        description: The Lighthouse CI GitHub App token. Read first; the LHCI_GITHUB_APP_TOKEN secret is the fallback.
+        required: false
+      LHCI_GITHUB_APP_TOKEN:
+        required: false
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  performance:
+    name: Run Lighthouse CI
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
+      # Read by `lhci autorun` inside `holocron run test:perf`.
+      LHCI_GITHUB_APP_TOKEN: ${{ secrets.HOLOCRON_LIGHTHOUSE_TOKEN || secrets.LHCI_GITHUB_APP_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - run: npm install -g @lhci/cli@0.14.x
+        name: Install Lighthouse CLI
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run Lighthouse CI
+        with:
+          task: test:perf
+          args: --config=${{ inputs.lighthouse-config }}

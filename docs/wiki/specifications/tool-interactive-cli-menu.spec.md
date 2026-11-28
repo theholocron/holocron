@@ -1,8 +1,13 @@
 ---
+id: SPEC-0013
 status: accepted
 issue: theholocron/holocron#438
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620483246620754
 ---
+
+<!-- alex disable fires hang -->
 
 # Interactive CLI menu — no-args and missing-positional fallback
 
@@ -119,7 +124,7 @@ plugin packages), so it renders as `input()`:
 ```
 
 `auth unset` / `auth check`, by contrast, render `provider` as a `select()`
-over `listStoredProviders()` — you can only unset or check what's already
+over `keyring.list()` — you can only unset or check what's already
 stored. If nothing is stored, the command fails with a clear message instead
 of a `select()` with zero choices.
 
@@ -200,7 +205,7 @@ function spawnChild(args: string[]): Promise<number> {
 
 `@inquirer/prompts` and `@inquirer/search` don't hang on a closed/non-TTY
 stdin — they throw `ExitPromptError` the moment stdin ends. But that's a
-confusing message for a CI pipeline or script that simply forgot a required
+confusing message for a CI pipeline or script that merely forgot a required
 arg. Every prompt path checks `process.stdin.isTTY` first and throws
 `NonInteractiveError` instead — a small class this module exports, added to
 `cli.ts`'s existing `USER_FACING_ERRORS` set (from #576's graceful-error
@@ -217,7 +222,7 @@ $ holocron deploy < /dev/null
 
 ## Command registry
 
-`packages/cli/src/interactive-menu.ts` exports `COMMAND_REGISTRY` — the
+`cli/cli/src/interactive-menu/command-catalog` exports `COMMAND_REGISTRY` (built by kyber's `createCommandRegistry`) — the
 single source of truth for the interactive layer. Each entry mirrors its
 corresponding Yargs registration in `cli.ts`. It does not introspect Yargs at
 runtime — entries are hand-maintained in parallel with the Yargs
@@ -287,6 +292,10 @@ subcommand. Caught during implementation, not a design change.
 ## Implementation (as-built)
 
 ### `packages/cli/src/interactive-menu.ts`
+
+> The engine below (`pickCommand`, `promptForPositionals`, `buildChildArgv`, `launchMenu`) now lives in
+> `@theholocron/kyber` (`/menu`, `/prompts`); the CLI keeps `COMMAND_REGISTRY` and `menu.ts` in
+> `cli/cli/src/interactive-menu/`.
 
 - **`COMMAND_REGISTRY`** — as above.
 - **`pickCommand(entries, message?)`** — `@inquirer/search` autocomplete.

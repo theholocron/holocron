@@ -1,0 +1,362 @@
+import { describe, expect, it } from "vitest";
+
+import { ConfigError } from "../config/index.js";
+import { compose } from "../config-system.js";
+import type { Capability } from "./compose.type.js";
+
+const node = (): Capability => ({
+	id: "node",
+	providers: { source: "github", ci: "github" },
+	repo: { protection: "strict", properties: { lifecycle: "active" } },
+	tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", "security.codeScanning"],
+	extraRequiredChecks: ["Static Analysis / Static Analysis", "Test / Conclusion"],
+});
+
+const typecheck = (): Capability => ({
+	id: "verification.typeSafety",
+	requires: ["node"],
+	tasks: ["verification.typeSafety"],
+	extraRequiredChecks: ["Typecheck / tsc --noEmit"],
+});
+
+const docs = (): Capability => ({
+	id: "docs",
+	requires: ["node"],
+	org: "theholocron",
+	domain: "theholocron.dev",
+	docs: { build: "workflow", https: true },
+	providers: { deployment: "cloudflare" },
+	tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
+	extraRequiredChecks: ["codecov/patch", "codecov/project"],
+});
+
+const audit = (): Capability => ({
+	id: "sourceQuality.deadCodeAnalysis",
+	requires: ["node"],
+	tasks: ["sourceQuality.deadCodeAnalysis"],
+	extraRequiredChecks: ["Dead Code Analysis / Dead Code Analysis"],
+});
+
+describe("compose()", () => {
+	it("merges tasks from multiple capabilities", () => {
+		const preset = compose(node(), typecheck());
+		expect(preset.tasks).toContainEqual("sourceQuality.staticAnalysis");
+		expect(preset.tasks).toContainEqual("verification.unitTests");
+		expect(preset.tasks).toContainEqual("verification.typeSafety");
+	});
+
+	it("deduplicates tasks by name — last writer wins", () => {
+		const override: Capability = {
+			id: "override",
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": false } }],
+		};
+		const preset = compose(node(), override);
+		const testEntry = preset.tasks.find((w) => (typeof w === "string" ? w : w.name) === "verification.unitTests");
+		expect(testEntry).toEqual({ name: "verification.unitTests", with: { "run-unit": false } });
+		expect(
+			preset.tasks.filter((w) => (typeof w === "string" ? w : w.name) === "verification.unitTests")
+		).toHaveLength(1);
+	});
+
+	it("lets an old dotted name override the flat id it became, and the reverse", () => {
+		const flat: Capability = { id: "flat", tasks: [{ name: "test:unit", required: true }] };
+		const dotted: Capability = {
+			id: "dotted",
+			tasks: [{ name: "verification.unitTests", with: { affected: true } }],
+		};
+		expect(compose(flat, dotted).tasks).toEqual([{ name: "verification.unitTests", with: { affected: true } }]);
+		expect(compose(dotted, flat).tasks).toEqual([{ name: "test:unit", required: true }]);
+	});
+
+	it("keys a name that is several ids (or none) by itself", () => {
+		const a: Capability = { id: "a", tasks: ["sourceQuality.formatting", "not-a-task"] };
+		const b: Capability = { id: "b", tasks: ["lint:markdown", "not-a-task"] };
+		expect(compose(a, b).tasks).toEqual(["sourceQuality.formatting", "not-a-task", "lint:markdown"]);
+	});
+
+	it("unions extraRequiredChecks without duplicates", () => {
+		const preset = compose(node(), typecheck(), docs(), audit());
+		expect(preset.extraRequiredChecks).toEqual([
+			"Static Analysis / Static Analysis",
+			"Test / Conclusion",
+			"Typecheck / tsc --noEmit",
+			"codecov/patch",
+			"codecov/project",
+			"Dead Code Analysis / Dead Code Analysis",
+		]);
+	});
+
+	it("always returns extraRequiredChecks even when no capability sets them", () => {
+		const cap: Capability = { id: "bare" };
+		const preset = compose(cap);
+		expect(preset.extraRequiredChecks).toEqual([]);
+	});
+
+	it("shallow-merges providers — later capability overrides per-key", () => {
+		const preset = compose(node(), docs());
+		expect(preset.providers).toMatchObject({ source: "github", deployment: "cloudflare" });
+	});
+
+	it("sets org, domain, docs from contributing capabilities", () => {
+		const preset = compose(node(), docs());
+		expect(preset.org).toBe("theholocron");
+		expect(preset.domain).toBe("theholocron.dev");
+		expect(preset.docs).toEqual({ build: "workflow", https: true });
+	});
+
+	it("last writer wins for org and domain", () => {
+		const override: Capability = { id: "override", org: "other-org", domain: "other.dev" };
+		const preset = compose(node(), docs(), override);
+		expect(preset.org).toBe("other-org");
+		expect(preset.domain).toBe("other.dev");
+	});
+
+	it("merges repo scalar fields — last writer wins", () => {
+		const strict: Capability = { id: "a", repo: { protection: "strict" } };
+		const balanced: Capability = { id: "b", repo: { protection: "balanced" } };
+		expect(compose(strict, balanced).repo.protection).toBe("balanced");
+	});
+
+	it("adds up repo.secrets across capabilities, without duplicates", () => {
+		const a: Capability = {
+			id: "a",
+			repo: { secrets: { repo: ["A", "SAME"], environments: { production: ["P"] } } },
+		};
+		const b: Capability = {
+			id: "b",
+			repo: { secrets: { repo: ["B", "SAME"], org: ["O"], environments: { production: ["Q"], preview: ["R"] } } },
+		};
+		expect(compose(a, b).repo.secrets).toEqual({
+			repo: ["A", "SAME", "B"],
+			org: ["O"],
+			environments: { production: ["P", "Q"], preview: ["R"] },
+		});
+		// A fragment names only the scopes it declares.
+		expect(compose(a).repo.secrets).toEqual({ repo: ["A", "SAME"], environments: { production: ["P"] } });
+		expect(compose({ id: "c", repo: { secrets: { org: ["O"] } } }).repo.secrets).toEqual({ org: ["O"] });
+		// A later fragment that names another scope keeps what an earlier one declared.
+		const c: Capability = { id: "c", repo: { secrets: { org: ["O"] } } };
+		expect(compose(a, c).repo.secrets).toEqual({
+			repo: ["A", "SAME"],
+			org: ["O"],
+			environments: { production: ["P"] },
+		});
+	});
+
+	it("keeps a secrets list that a later capability does not mention", () => {
+		const a: Capability = { id: "a", repo: { secrets: { repo: ["A"], org: ["O"] } } };
+		const b: Capability = { id: "b", repo: { secrets: { environments: { production: ["P"] } } } };
+		expect(compose(a, b).repo.secrets).toEqual({ repo: ["A"], org: ["O"], environments: { production: ["P"] } });
+		const c: Capability = { id: "c", repo: { secrets: { repo: ["B"], org: ["Q"] } } };
+		const d: Capability = { id: "d", repo: { secrets: {} } };
+		expect(compose(c, d).repo.secrets).toEqual({ repo: ["B"], org: ["Q"] });
+	});
+
+	it("merges repo.secrets.sync by environment and scope", () => {
+		const a: Capability = {
+			id: "a",
+			repo: {
+				secrets: {
+					sync: [
+						{ environment: "e1", keys: ["A"] },
+						{ environment: "e2", keys: ["X"], scope: "org=o" },
+						{ environment: "e3", keys: ["K"] },
+					],
+				},
+			},
+		};
+		const b: Capability = {
+			id: "b",
+			repo: {
+				secrets: {
+					sync: [
+						{ environment: "e1", keys: ["B", "A"], scope: "repo" },
+						{ environment: "e2", scope: "org=o" },
+						{ environment: "e1", scope: "env=qa" },
+					],
+				},
+			},
+		};
+		expect(compose(a, b).repo.secrets?.sync).toEqual([
+			{ environment: "e1", keys: ["A", "B"] },
+			{ environment: "e2", scope: "org=o" },
+			{ environment: "e3", keys: ["K"] },
+			{ environment: "e1", scope: "env=qa" },
+		]);
+		// Either side alone, and a fragment that declares no sync, keep what is there.
+		expect(compose(a).repo.secrets?.sync).toHaveLength(3);
+		expect(
+			compose(
+				{ id: "c", repo: { secrets: { sync: [{ environment: "e" }] } } },
+				{ id: "d", repo: { secrets: { org: ["O"] } } }
+			).repo.secrets
+		).toEqual({ org: ["O"], sync: [{ environment: "e" }] });
+	});
+
+	it("concatenates repo.secrets.deploy entries across capabilities and keeps one that stands alone", () => {
+		const a: Capability = { id: "a", repo: { secrets: { deploy: [{ environment: "prod", keys: ["A"] }] } } };
+		const b: Capability = { id: "b", repo: { secrets: { deploy: [{ environment: "prod", prefix: "P_" }] } } };
+		expect(compose(a, b).repo.secrets?.deploy).toEqual([
+			{ environment: "prod", keys: ["A"] },
+			{ environment: "prod", prefix: "P_" },
+		]);
+		expect(compose(a).repo.secrets?.deploy).toEqual([{ environment: "prod", keys: ["A"] }]);
+		expect(compose({ id: "c", repo: { secrets: {} } }, a).repo.secrets?.deploy).toEqual([
+			{ environment: "prod", keys: ["A"] },
+		]);
+		const kept = compose(a, { id: "d", repo: { secrets: { org: ["O"] } } }).repo.secrets;
+		expect(kept?.deploy).toEqual([{ environment: "prod", keys: ["A"] }]);
+		const onlyLater = compose({ id: "e", repo: { secrets: { org: ["O"] } } }, b).repo.secrets;
+		expect(onlyLater?.deploy).toEqual([{ environment: "prod", prefix: "P_" }]);
+		expect(compose(a, { id: "f", repo: { secrets: { org: ["O"] } } }).repo.secrets).toHaveProperty("org");
+		expect(compose({ id: "g", repo: { secrets: { org: ["O"] } } }).repo.secrets).not.toHaveProperty("deploy");
+	});
+
+	it("merges repo.variables.sync by environment and scope", () => {
+		const a: Capability = {
+			id: "a",
+			repo: { variables: { sync: [{ environment: "v", keys: ["A"], scope: "org=o", visibility: "private" }] } },
+		};
+		const b: Capability = {
+			id: "b",
+			repo: {
+				variables: {
+					sync: [
+						{ environment: "v", keys: ["B", "A"], scope: "org=o" },
+						{ environment: "w", keys: ["C"] },
+					],
+				},
+			},
+		};
+		expect(compose(a, b).repo.variables?.sync).toEqual([
+			{ environment: "v", keys: ["A", "B"], scope: "org=o", visibility: "private" },
+			{ environment: "w", keys: ["C"] },
+		]);
+		expect(compose(a).repo.variables?.sync).toHaveLength(1);
+	});
+
+	it("merges repo.variables across capabilities instead of replacing them", () => {
+		const a: Capability = { id: "a", repo: { variables: { repo: { A: "1", SAME: "a" }, org: { X: "x" } } } };
+		const b: Capability = { id: "b", repo: { variables: { repo: { B: "2", SAME: "b" }, prune: true } } };
+		expect(compose(a, b).repo.variables).toEqual({
+			repo: { A: "1", B: "2", SAME: "b" },
+			org: { X: "x" },
+			prune: true,
+		});
+		expect(compose(a).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" } });
+		// A fragment with only a flag adds no empty scope.
+		const c: Capability = { id: "c", repo: { variables: { prune: true } } };
+		expect(compose(c).repo.variables).toEqual({ prune: true });
+		expect(compose(a, c).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" }, prune: true });
+	});
+
+	it("merges repo.properties with Object.assign semantics", () => {
+		const a: Capability = { id: "a", repo: { properties: { lifecycle: "active", open_source: true } } };
+		const b: Capability = { id: "b", repo: { properties: { lifecycle: "deprecated" } } };
+		expect(compose(a, b).repo.properties).toMatchObject({ lifecycle: "deprecated", open_source: true });
+	});
+
+	it("unions repo.topics without duplicates", () => {
+		const a: Capability = { id: "a", repo: { topics: ["typescript", "cli"] } };
+		const b: Capability = { id: "b", repo: { topics: ["cli", "node"] } };
+		expect(compose(a, b).repo.topics).toEqual(["typescript", "cli", "node"]);
+	});
+
+	it("deduplicates capabilities by id — last wins", () => {
+		const first: Capability = {
+			id: "x",
+			tasks: ["sourceQuality.staticAnalysis"],
+			extraRequiredChecks: ["Static Analysis / Static Analysis"],
+		};
+		const second: Capability = {
+			id: "x",
+			tasks: ["verification.unitTests"],
+			extraRequiredChecks: ["Test / Conclusion"],
+		};
+		const preset = compose(first, second);
+		expect(preset.tasks).toContainEqual("verification.unitTests");
+		expect(preset.tasks).not.toContainEqual("sourceQuality.staticAnalysis");
+		expect(preset.extraRequiredChecks).toContain("Test / Conclusion");
+		expect(preset.extraRequiredChecks).not.toContain("Static Analysis / Static Analysis");
+	});
+
+	it("flattens nested Capability[] from bundle presets", () => {
+		const bundle = (): Capability[] => [typecheck(), audit()];
+		const preset = compose(node(), bundle());
+		expect(preset.tasks).toContainEqual("verification.typeSafety");
+		expect(preset.tasks).toContainEqual("sourceQuality.deadCodeAnalysis");
+	});
+
+	it("throws ConfigError listing all unmet dependencies at once", () => {
+		expect(() => compose(typecheck())).toThrow(ConfigError);
+		expect(() => compose(typecheck())).toThrow('"verification.typeSafety" requires "node"');
+	});
+
+	it("throws for multiple missing deps in one message", () => {
+		const cap: Capability = { id: "big", requires: ["node", "verification.typeSafety"] };
+		expect(() => compose(cap)).toThrow(ConfigError);
+		const err = (() => {
+			try {
+				compose(cap);
+			} catch (e) {
+				return e as ConfigError;
+			}
+		})();
+		expect(err?.message).toContain('"big" requires "node"');
+		expect(err?.message).toContain('"big" requires "verification.typeSafety"');
+	});
+
+	it("does not throw when all requirements are satisfied", () => {
+		expect(() => compose(node(), typecheck(), docs())).not.toThrow();
+	});
+
+	it("allows redundant explicit capability alongside bundle that includes it", () => {
+		const bundle = (): Capability[] => [typecheck()];
+		expect(() => compose(node(), typecheck(), bundle())).not.toThrow();
+	});
+
+	it("unions repo.teams by slug — later entry overrides permission", () => {
+		const a: Capability = {
+			id: "a",
+			repo: { teams: [{ slug: "gatekeepers", permission: "push" }] },
+		};
+		const b: Capability = {
+			id: "b",
+			repo: {
+				teams: [
+					{ slug: "gatekeepers", permission: "maintain" },
+					{ slug: "admins", permission: "admin" },
+				],
+			},
+		};
+		const preset = compose(a, b);
+		expect(preset.repo.teams).toHaveLength(2);
+		const gatekeepers = (preset.repo.teams ?? []).find(
+			(t) => (typeof t === "string" ? t : t.slug) === "gatekeepers"
+		);
+		expect(gatekeepers).toEqual({ slug: "gatekeepers", permission: "maintain" });
+	});
+
+	it("handles string-shorthand team entries", () => {
+		const a: Capability = { id: "a", repo: { teams: ["gatekeepers"] } };
+		const b: Capability = { id: "b", repo: { teams: ["gatekeepers", "admins"] } };
+		const preset = compose(a, b);
+		expect(preset.repo.teams).toHaveLength(2);
+		expect(preset.repo.teams).toContain("gatekeepers");
+		expect(preset.repo.teams).toContain("admins");
+	});
+
+	it("deduplicates extraRequiredChecks appearing in multiple capabilities", () => {
+		const a: Capability = {
+			id: "a",
+			extraRequiredChecks: ["Static Analysis / Static Analysis", "Test / Conclusion"],
+		};
+		const b: Capability = { id: "b", extraRequiredChecks: ["Static Analysis / Static Analysis", "codecov/patch"] };
+		const preset = compose(a, b);
+		expect(preset.extraRequiredChecks).toEqual([
+			"Static Analysis / Static Analysis",
+			"Test / Conclusion",
+			"codecov/patch",
+		]);
+	});
+});

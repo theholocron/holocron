@@ -26,7 +26,7 @@ pnpm add -D @theholocron/holocron-plugin-github @theholocron/holocron-plugin-ver
 Create `holocron.config.ts` (or `.json`) in your repo root:
 
 ```ts
-import { defineConfig } from "@theholocron/holocron-config";
+import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
   name: "my-project",
@@ -41,7 +41,7 @@ export default defineConfig({
       runtime_environment: "node",
     },
   },
-  workflows: ["lint", "test", "typecheck", "release"],
+  tasks: ["lint:code", "test:unit", "typecheck", "release"],
   skills: ["git-safety", "pr-workflow", "commit-standards"],
   agent: "claude",
   providers: {
@@ -58,10 +58,10 @@ export default defineConfig({
 Store provider tokens in the OS keyring so every command picks them up automatically:
 
 ```bash
-holocron auth set github.admin  ghp_xxx  # repo setup, secrets
-holocron auth set github.read   ghp_yyy  # clone, CI run listing
-holocron auth set github.issues ghp_zzz  # issue management
-holocron auth set github.sync   ghp_aaa  # sync-github
+holocron new token github.admin  ghp_xxx  # setup, secrets
+holocron new token github.read   ghp_yyy  # clone, CI run listing
+holocron new token github.issues ghp_zzz  # issue management
+holocron new token github.sync   ghp_aaa  # sync-github
 ```
 
 See the [Token Reference](./tokens) for the full list of tokens and the scopes each needs.
@@ -82,8 +82,8 @@ holocron setup
 
 `setup` applies all infrastructure actions for the configured capabilities:
 
-- Writes `.editorconfig`, `.alexrc.json`, `codecov.yml`, and `commitlint.config.ts`
-- Installs CI workflow thin callers from `workflows[]`
+- Writes `.editorconfig` and `commitlint.config.ts`, and `codecov.yml` when the config declares a `coverage` provider (`providers.coverage: "codecov"`); a repo with none gets no `codecov.yml` from `setup`
+- Installs CI workflow thin callers from `tasks`
 - Configures branch protection (from `repo.protection`)
 - Syncs labels, repo settings, teams, security features (GitHub plugin)
 - Installs agent skills (from `skills[]`)

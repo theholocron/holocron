@@ -2,6 +2,37 @@ import { library } from "@theholocron/eslint-config/bundles/library";
 import { vitest } from "@theholocron/eslint-config/vitest";
 import type { Linter } from "eslint";
 
+/**
+ * The `package.json` rules the shareable `configs/*` packages turn off: they configure tools their consumers install,
+ * so those peers are optional and not installed for the package's own tests. A package's own `eslint.config.ts`
+ * re-bases the root config to its folder, so it applies these to `package.json` itself.
+ */
+export const configPackageJsonRules = {
+	"package-json/peer-dependencies-as-dev-dependencies": "off",
+	"package-json/prefer-files-field": "off",
+} as const satisfies Linter.RulesRecord;
+
+/**
+ * A plugin's source reads the environment through `@theholocron/env-utils/lookup` (`createEnvLookup`, `firstEnv`) or,
+ * for a value the `credentials` providers may hold, `resolveValue` from `@theholocron/cli`, never `process.env`. Each
+ * plugin's own `eslint.config.ts` adds this (its `files` are relative to the plugin); tests and scripts may use it.
+ */
+export const noProcessEnv = {
+	files: ["src/**/*.ts"],
+	ignores: ["**/*.test.ts"],
+	rules: {
+		"no-restricted-properties": [
+			"error",
+			{
+				object: "process",
+				property: "env",
+				message:
+					'Read the environment through "@theholocron/env-utils/lookup" (or resolveValue from "@theholocron/cli"), not process.env.',
+			},
+		],
+	},
+} satisfies Linter.Config;
+
 export default [
 	...library(),
 	...vitest(),
@@ -12,6 +43,26 @@ export default [
 		settings: { node: { version: ">=22.0.0" } },
 	},
 	{
+		// The package entry also exports `DotenvLoader`, which loads a `.env` from the working directory on import.
+		// `/lookup` has the same lookups with no side effects, so nothing here reaches for the entry (#1640).
+		files: ["**/*.ts"],
+		ignores: ["utils/env-utils/**"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					paths: [
+						{
+							name: "@theholocron/env-utils",
+							message:
+								'Import from "@theholocron/env-utils/lookup": the package entry loads a .env on import.',
+						},
+					],
+				},
+			],
+		},
+	},
+	{
 		files: ["docs/src/**"],
 		rules: {
 			// docs/src imports live in root package.json, not docs/package.json
@@ -19,6 +70,54 @@ export default [
 		},
 	},
 	{
-		ignores: ["packages/*/dist/**", "packages/*/coverage/**", "packages/cli-utils/**", "**/node_modules/**"],
+		// These utils use browser APIs (navigator, sessionStorage, KeyboardEvent), so the Node.js built-ins
+		// rule does not apply to them.
+		files: ["utils/location-utils/src/**", "utils/misc-utils/src/**", "utils/storage-utils/src/**"],
+		rules: {
+			"n/no-unsupported-features/node-builtins": "off",
+		},
+	},
+	{
+		// The shareable config packages configure tools their consumers install, so those peers are optional and not
+		// installed for the package's own tests, and the `./package.json` export (npm always packs the file) is kept.
+		files: ["configs/*/package.json"],
+		rules: configPackageJsonRules,
+	},
+	{
+		// CommonJS-only packages: moving them to ESM or an `exports` map would break the tools that `require()` them.
+		files: ["configs/browserslist-config/package.json", "configs/tsconfig/package.json"],
+		rules: {
+			"package-json/prefer-exports": "off",
+			"package-json/prefer-type-module": "off",
+		},
+	},
+	{
+		// CommonJS entry point of a CommonJS package: browserslist loads it with require().
+		files: ["configs/browserslist-config/index.js"],
+		languageOptions: { sourceType: "commonjs", globals: { module: "writable", require: "readonly" } },
+		rules: { "@typescript-eslint/no-require-imports": "off" },
+	},
+	{
+		files: ["skills/package.json"],
+		rules: {
+			// the CLI resolves the package root through require.resolve("@theholocron/skills/package.json"),
+			// so the export must stay; npm always packs package.json, which no-redundant-files knows and this rule does not
+			"package-json/prefer-files-field": "off",
+		},
+	},
+	{
+		ignores: [
+			"cli/*/dist/**",
+			"cli/*/coverage/**",
+			"clients/*/dist/**",
+			"clients/*/coverage/**",
+			"utils/*/dist/**",
+			"utils/*/coverage/**",
+			"configs/*/dist/**",
+			"configs/*/coverage/**",
+			"themes/*/dist/**",
+			"themes/*/coverage/**",
+			"**/node_modules/**",
+		],
 	},
 ] satisfies Linter.Config[];

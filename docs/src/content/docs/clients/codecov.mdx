@@ -1,0 +1,33 @@
+---
+title: Codecov Client
+description: A TypeScript client for the Codecov REST API.
+---
+
+A TypeScript client for the Codecov REST API v2 — wraps the owner, repository, flag and component endpoints.
+
+## Installation
+
+```bash
+pnpm add @theholocron/codecov-client
+```
+
+## Usage
+
+```ts
+import { createCodecovClient } from "@theholocron/codecov-client";
+
+const client = createCodecovClient({ token: process.env.CODECOV_API_TOKEN! });
+
+const repo = await client.repos.get("github", "theholocron", "holocron");
+```
+
+The token is a Codecov API (personal access) token, sent as a bearer token. A repository upload token is a different credential and is not one the API documents as accepted.
+
+## Namespaces
+
+| Namespace    | Covers                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| `components` | `GET /{service}/{owner}/repos/{repo}/components/` (an array of `{ component_id, name, coverage }`) |
+| `flags`      | `GET /{service}/{owner}/repos/{repo}/flags/?page=&page_size=` (`flags.list()` follows every page)  |
+| `owners`     | `GET /{service}/{owner}/`                                                                          |
+| `repos`      | `GET /{service}/{owner}/repos/{repo}/`                                                             |

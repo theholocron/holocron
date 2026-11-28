@@ -55,26 +55,48 @@ Child loggers inherit every binding from their parent and add their own, so pass
 
 ## Standard context fields
 
-| Field     | Set by                | Value                                      |
-| --------- | --------------------- | ------------------------------------------ |
-| `runId`   | root logger (startup) | UUID, unique per command invocation        |
-| `env`     | root logger (startup) | `"ci"` when CI is detected, else `"local"` |
-| `command` | command child logger  | active holocron command name               |
-| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`  |
-| `repo`    | command child logger  | `"owner/name"` when available              |
-| `level`   | Pino                  | level name string                          |
-| `time`    | Pino                  | ISO 8601 timestamp                         |
+| Field     | Set by                | Value                                                                       |
+| --------- | --------------------- | --------------------------------------------------------------------------- |
+| `runId`   | root logger (startup) | UUID, unique per command invocation                                         |
+| `env`     | root logger (startup) | `local`, `development`, `ci`, `test`, `preview` or `production` (see below) |
+| `command` | command child logger  | active holocron command name                                                |
+| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`                                   |
+| `repo`    | command child logger  | `"owner/name"` when available                                               |
+| `level`   | Pino                  | level name string                                                           |
+| `time`    | Pino                  | ISO 8601 timestamp                                                          |
+
+## One dataset per service, every environment
+
+Every line carries `env`, so a service keeps one Axiom dataset for all of its environments and a query filters by it (never a dataset per environment). Each service has its own dataset: the CLI `holocron`, Sentinel `holocron-sentinel`, Comlink `holocron-comlink` (reserved). The value is
+`detectEnvironment()` from [`@theholocron/env-utils`](/holocron/utils/env-utils/): the
+`HOLOCRON_ENVIRONMENT` variable (or `ENVIRONMENT`, the fallback) when it names one of the six (`local`, `development`, `ci`, `test`, `preview`, `production`; `dev`,
+`stage`, `staging`, `qa` and `prod` are read as `development`, `test`, `test`, `test` and `production`, in any case). When it does not, it is `ci` inside
+CI and `local` anywhere else. They win over CI, so a deploy job can say it is `production`.
+
+| `env`         | Where                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `local`       | A laptop running the CLI: the default                                                                                                    |
+| `development` | A development instance. `holocron dev` sets `HOLOCRON_ENVIRONMENT=development` and `ENVIRONMENT=development` for the application it runs |
+| `ci`          | GitHub Actions: the default when `CI` is set                                                                                             |
+| `test`        | A deployed pre-production instance (staging, QA)                                                                                         |
+| `production`  | A production deployment, which sets `HOLOCRON_ENVIRONMENT=production` (or `ENVIRONMENT=production`)                                      |
+
+```text
+['holocron-sentinel'] | where env == "development" | sort by _time desc
+```
+
+A deployed service needs `HOLOCRON_ENVIRONMENT` (or `ENVIRONMENT`) set where it runs; nothing else tells production from a laptop.
 
 ## What the commands emit
 
-`setup`, `doctor`, `sync`, `secrets sync`, `deploy`, and `cleanup-preview`
+`setup`, `doctor`, `sync`, `sync secrets`, `deploy`, and `deploy cleanup-preview`
 emit a structured line per unit of work — a `<command>: start`, one line
 per step / row / file (with `capability`, `step`, `status`, `detail`), and
 a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a
 whole run back out of Axiom by its `runId`:
 
 ```kusto
-['holocron-ci'] | where runId == "<uuid>" | sort by _time asc
+['holocron-sentinel'] | where runId == "<uuid>" | sort by _time asc
 ```
 
 ## Log level
@@ -110,28 +132,35 @@ The Axiom transport is added when Axiom credentials are present **and**
 | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   | Axiom API token     |
 | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` | target dataset name |
 
-Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
-
-| Value            | When           |
-| ---------------- | -------------- |
-| `holocron-ci`    | CI             |
-| `holocron-local` | local — opt-in |
+The CLI ships to its own dataset, `holocron` (`HOLOCRON_AXIOM_DATASET`; the bare `AXIOM_DATASET` is only a fallback). The full list of variables and their fallback order is on [Environment Variables](/holocron/environment-variables/).
+Each service has a dataset of its own, named by its own variable (`SENTINEL_AXIOM_DATASET` is `holocron-sentinel`,
+`COMLINK_AXIOM_DATASET` is reserved for `holocron-comlink`). Within a service the environments share one dataset and are
+told apart by [`env`](#one-dataset-per-service-every-environment), not by dataset.
 
 The transport activates only when **both** a token and a dataset resolve.
-With no dataset, runs write only to their console transport and never
-attempt an Axiom connection.
+With no token or no dataset, runs write only to their console transport and never
+attempt an Axiom connection, so a local run stays opt-in.
+
+A dataset has one retention setting, set in Axiom, so the environments share it: a short window to save storage would also cut
+the CI and production lines, and a long one keeps local noise as long. Holocron does not set it.
 
 The token resolves from `HOLOCRON_AXIOM_TOKEN` → `AXIOM_TOKEN` → the OS
 keyring (`axiom.<org>`, then bare `axiom`). The dataset resolves from
-`HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` → `holocron.config`
-`log.axiom.dataset`. Env vars always win.
+`HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` (process environment; the
+prefixed name is tried first) → `holocron.config` `log.axiom.dataset` → the
+credential chain, asked for the same two names (the 1Password Environment's
+`HOLOCRON_AXIOM_DATASET`). Env vars always win. The config value is only a per-repo
+override, for a repo that keeps its own dataset; a `global`-context command
+(`clone`, `new token`, `upgrade node`, …) skips it, so the repo it runs in
+never decides where its lines go, and uses the CLI's `holocron` dataset instead.
 
 #### CI
 
 The `sync` and `sync-github` reusable workflows read the token from the
 `HOLOCRON_AXIOM_TOKEN` secret and the dataset from the
-`HOLOCRON_AXIOM_DATASET` variable — set both at the org level once
-(`HOLOCRON_AXIOM_DATASET = holocron-ci`). Thin callers forward them via
+`HOLOCRON_AXIOM_DATASET` variable (value `holocron`), which `repo.variables.sync` writes from the
+1Password Environment `theholocron/holocron - ci` and which the workflows pass to the CLI as
+`HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}`. Thin callers forward them via
 `secrets: inherit`; the variable is visible to the reusable workflow
 automatically. `HOLOCRON_TELEMETRY=false` in a workflow disables shipping
 without removing the secret.
@@ -141,21 +170,20 @@ without removing the secret.
 Store the token in the OS keyring once:
 
 ```bash
-holocron auth set axiom.theholocron <TOKEN>
+holocron new token axiom.theholocron <TOKEN>
 ```
 
 That token backs both `holocron setup` / `holocron doctor` (the `logs`
-capability, which provisions and checks the datasets) **and** the logger's
-Axiom transport. Then opt local runs into shipping by naming the dataset in
-`holocron.config` — `log: { axiom: { dataset: "holocron-local" } }`.
+capability, which provisions and checks the dataset) **and** the logger's
+Axiom transport. With `HOLOCRON_AXIOM_DATASET` in your environment, or reachable through
+the credential chain, local runs then ship too, as `env: "local"`.
 
-Leave `log.axiom.dataset` unset (and `HOLOCRON_AXIOM_DATASET` unexported)
-to keep local runs on `pino-pretty` only.
+Without a token or a dataset, local runs stay on `pino-pretty` only.
 
 ### Opting out
 
 `HOLOCRON_TELEMETRY=false` disables the Axiom transport (the logger keeps working
-— it just writes locally). The same switch also turns off Sentry and PostHog —
+— it only writes locally). The same switch also turns off Sentry and PostHog —
 see [Telemetry](/telemetry) for all three sinks.
 
 For a committed, repo-wide choice rather than an environment variable, the
@@ -176,12 +204,12 @@ Redacted: `token`, `secret`, `password`, `apiKey`, `secrets[*].value`,
 ## `holocron.config`
 
 ```ts
-import { defineConfig } from "@theholocron/holocron-config";
+import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
   log: {
     level: "info", // "debug" | "info" | "warn" | "error"
-    axiom: { dataset: "holocron-local" }, // opt local runs into Axiom shipping
+    axiom: { dataset: "my-repo" }, // only for a repo that keeps its own dataset
   },
 });
 ```

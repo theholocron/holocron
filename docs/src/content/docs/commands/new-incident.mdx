@@ -1,0 +1,50 @@
+---
+title: new incident
+description: Open an incident on a status page, with its first update and the components it marks.
+---
+
+```bash
+holocron new incident <title> [--page <name>] [--status <status>] [--component <name>=<impact>]... [--message <text>] [--no-notify] [--allow-duplicate] [--dry-run] [--yes]
+```
+
+Opens an incident on the status page the `monitoring` provider declares (`statusPages`), so the first step of an outage is a command and not a sign-in to Checkly (#2591, spec `tech-open-status-page-incidents`). [`sync incidents`](/holocron/commands/sync-incidents/) then mirrors it to `#incidents` on its next run. The command prints the incident's id; [`update incident`](/holocron/commands/update-incident/) and [`close incident`](/holocron/commands/close-incident/) take it.
+
+```bash
+holocron new incident "Sentinel is down" --component Sentinel=major --message "Webhooks are not being answered."
+holocron new incident "Docs are slow" --component Docs=degraded --status identified --no-notify
+holocron new incident "Sentinel is down" --dry-run
+```
+
+It writes to a live, public page, so it asks first (`--yes` skips the question; without a terminal and without `--yes` it refuses instead of hanging), and the question says whether subscribers will be told.
+
+| Flag                | Meaning                                                                                                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<title>`           | the incident's name, at most 255 characters                                                                                                                                          |
+| `--page`            | the declared status page; the default when one is declared, required when there are several                                                                                          |
+| `--status`          | `investigating` (default), `identified` or `monitoring`: the status the opening update carries                                                                                       |
+| `--component`       | a component of the page and how badly it is marked, `<name>=<impact>` (repeatable); the impact is `maintenance`, `degraded`, `partial` or `major`. A component left out is untouched |
+| `--message`         | what the opening update says; the default is a line for the status                                                                                                                   |
+| `--no-notify`       | do not tell the page's subscribers (the default tells them). The API itself defaults to not telling, so the command always sends the choice                                          |
+| `--allow-duplicate` | open it even when an open incident has the same title                                                                                                                                |
+| `--yes`             | do not ask first                                                                                                                                                                     |
+| `--dry-run`         | read the page and print what would be opened; nothing is written                                                                                                                     |
+
+Every problem with the request (an unknown component or impact, a title that is too long, a page that is not declared) is found and printed before anything is written.
+
+## Duplicates
+
+The command reads the page's open incidents first and refuses when one has the same title (trimmed, lower case, spaces collapsed), so a rerun after a timeout never opens two. A resolved incident does not count, so a title can be used again. Checkly offers no atomic create-if-absent, so two commands started at the same instant could both pass the check. Nothing is added to the message to mark it: Checkly shows an HTML comment as plain text on the public page.
+
+## Where it shows
+
+Only the page `feeds.incidents` names is mirrored to Discord (the only declared page, when it is `true`). An incident opened on another page stays on the status page, and the command says so in an `info` row (only when a `notifications` provider is loaded; a workflow that holds no bot token says nothing).
+
+A request that times out (the Checkly plugin gives up after 30 seconds) is reported as "may or may not have been written": check the status page before running it again.
+
+Provider support: the `monitoring` provider needs the optional `openIncident` (Checkly has it); a provider without it is a failing row. Not yet checked against a live page: component impacts (the throwaway test opened an incident with none).
+
+## From a workflow
+
+The `open-incident` task runs this command from a manual run (`workflow_dispatch`), for a phone or another system: GitHub's Actions page, the GitHub mobile app or `gh workflow run ci.open-incident.yml -f title="Sentinel is down" -f components="Sentinel=major"`. Its inputs are `title`, `page`, `status`, `components` (one `<name>=<impact>` per line), `message` and `notify`, and it runs `new incident --yes`; the job summary prints the incident's id for `update incident` and `close incident`.
+
+It holds `HOLOCRON_CHECKLY_TOKEN` in the `ci` layer, as `sync-incidents` does, so it can write and nothing new is granted. The job runs only from the default branch, so a dispatch from another branch (whose copy of the workflow could print the key) does nothing, and one run at a time. Anyone who can dispatch workflows in the repository can run it, which is the maintainer alone today. A repo lists the task in `tasks:` to get it; this repo does (`gh workflow run ci.open-incident.yml`). It was listed after the release that carries the task had deployed, because Sentinel's config check reads the registry of the deployed Sentinel and a new task fails `validate:config` until a deploy knows it.

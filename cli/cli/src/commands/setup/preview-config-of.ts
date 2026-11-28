@@ -1,0 +1,15 @@
+import { extractPreviewConfig, isTask, type PreviewConfig } from "@theholocron/astromech";
+
+import type { ResolvedHolocronConfig } from "../../config/index.js";
+
+/**
+ * The preview configuration (the Pages project and the preview domain) that drives project and DNS provisioning.
+ * `delivery.deploy`, `knowledge.docs` and `knowledge.components` all share the same combined production and preview
+ * mechanism, so any one of them can carry it. `null` when none does.
+ */
+export function previewConfigOf(config: ResolvedHolocronConfig): PreviewConfig | null {
+	const entry = (config.tasks ?? [])
+		.map((e) => (typeof e === "string" ? { name: e } : e))
+		.find((e) => isTask(e.name, "deploy") || isTask(e.name, "deploy-docs") || isTask(e.name, "deploy-components"));
+	return entry?.with ? extractPreviewConfig(entry.with, { org: config.org, domain: config.domain }) : null;
+}

@@ -1,31 +1,85 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json"],
+  "globalDependencies": [
+    "pnpm-workspace.yaml",
+    "tsconfig.json",
+    "holocron.config.*",
+    "astromech.config.*",
+    ".holocron/**"
+  ],
   "tasks": {
+    "lint:code": {
+      "inputs": [
+        "src/**",
+        "eslint.config.ts",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "$TURBO_ROOT$/eslint.config.ts",
+        "$TURBO_ROOT$/eslint.config.js",
+        "$TURBO_ROOT$/eslint.config.mjs",
+        "$TURBO_ROOT$/eslint.config.cjs"
+      ],
+      "outputs": [],
+      "dependsOn": ["^build", "@theholocron/eslint-config#build"]
+    },
+    "test:unit": {
+      "inputs": [
+        "src/**",
+        "test/**",
+        "vitest.config.ts",
+        "vitest.config.js",
+        "vitest.config.mjs",
+        "$TURBO_ROOT$/vitest.config.ts",
+        "$TURBO_ROOT$/vitest.config.js",
+        "$TURBO_ROOT$/vitest.config.mjs",
+        "package.json"
+      ],
+      "outputs": ["test-report.junit.xml", "coverage/**"],
+      "dependsOn": ["build", "^build"]
+    },
+    "typecheck": {
+      "inputs": ["src/**", "test/**", "tsconfig.json"],
+      "outputs": [],
+      "dependsOn": ["^build"]
+    },
     "build": {
-      "inputs": ["src/**", "tsdown.config.ts", "tsconfig.json", "package.json"],
+      "inputs": [
+        "src/**",
+        "package.json",
+        "tsdown.config.ts",
+        "$TURBO_ROOT$/tsdown.config.ts",
+        "vite.config.ts",
+        "rollup.config.ts",
+        "tsconfig.json"
+      ],
       "outputs": ["dist/**"],
       "dependsOn": ["^build"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
     },
-    "lint": {
-      "inputs": ["src/**", "eslint.config.ts", "eslint.config.js"],
-      "outputs": []
+    "//#lint:editorconfig": {
+      "cache": false
+    },
+    "//#lint:markdown": {
+      "cache": false
+    },
+    "//#lint:data": {
+      "cache": false
+    },
+    "//#lint:unused": {
+      "cache": false
+    },
+    "//#scan:secrets": {
+      "cache": false
     },
     "test": {
-      "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["test-report.junit.xml"],
-      "dependsOn": ["build", "^build"]
+      "dependsOn": ["test:unit"]
     },
-    "test:coverage": {
-      "inputs": ["src/**", "vitest.config.ts", "package.json"],
-      "outputs": ["coverage/**"],
-      "dependsOn": ["build"]
+    "lint": {
+      "dependsOn": ["lint:code", "//#lint:editorconfig", "//#lint:markdown", "//#lint:data", "//#lint:unused"]
     },
-    "typecheck": {
-      "inputs": ["src/**", "tsconfig.json"],
-      "outputs": [],
-      "dependsOn": ["^build"]
+    "scan": {
+      "dependsOn": ["//#scan:secrets"]
     }
   }
 }

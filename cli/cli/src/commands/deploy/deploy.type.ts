@@ -1,0 +1,91 @@
+import type { Logger } from "@theholocron/observability/core";
+
+import type { LoadedConfig } from "../../config/index.js";
+import {
+	type DeployFunctionResult,
+	type DeploymentRecord,
+	type DeploymentTrigger,
+	PluginLoader,
+	type RuntimeContext,
+} from "../../plugin/index.js";
+
+export type DeployPrintLine = (line: string) => void;
+
+/** How long {@link waitForDeployment} polls, and the clock it polls with — injectable so tests never sleep. */
+export interface DeployWaitOptions {
+	/** Give up (and report `fail`) after this long. Default 10 minutes. */
+	timeoutMs?: number;
+	/** Delay between `getDeployment()` polls. Default 5 s. */
+	intervalMs?: number;
+	sleep?: (ms: number) => Promise<void>;
+	now?: () => number;
+}
+
+/** Retrying a files deployment that ends in `error` on its package install (holocron#2406). */
+export interface DeployRetryOptions {
+	/** Total tries, the first included. Default 3. */
+	attempts?: number;
+	/** Wait before each retry, the last one repeating. Default 60 s then 120 s. */
+	delaysMs?: number[];
+	sleep?: (ms: number) => Promise<void>;
+}
+
+export interface RunDeployInput {
+	loaded: LoadedConfig;
+	context: RuntimeContext;
+	/** Vendor project id (e.g., Vercel prj_*). Required. */
+	projectId: string;
+	/** Git branch to deploy. */
+	branch: string;
+	/** Named target — `undefined` means branch preview. */
+	target?: DeploymentTrigger;
+	loader?: PluginLoader;
+	print?: DeployPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
+	wait?: DeployWaitOptions;
+}
+
+export interface DeployReport {
+	/** Null in dry-run mode (no actual deployment was triggered). */
+	deployment: DeploymentRecord | null;
+	status: "ok" | "fail" | "dry-run";
+	message?: string;
+}
+
+// ── deploy --files (deployFunction) ─────────────────────────────────────
+
+export interface RunDeployFromFilesInput {
+	loaded: LoadedConfig;
+	context: RuntimeContext;
+	/** Vendor project id (e.g., Vercel prj_*). Required. */
+	projectId: string;
+	/** Local directory to deploy — walked recursively. Files are keyed by
+	 * their path relative to this directory, POSIX-separated. */
+	dir: string;
+	/** Named target — `undefined` means preview. */
+	target?: DeploymentTrigger;
+	/**
+	 * What a preview is tagged with so `deploy cleanup-preview` can find it again: `<repo>-pr-<number>`, the alias that
+	 * command derives from a pull request. Only a preview is tagged; a named target never is. CI sets it through
+	 * `HOLOCRON_PREVIEW_KEY` (`deploy-preview` does).
+	 */
+	previewKey?: string;
+	loader?: PluginLoader;
+	print?: DeployPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
+	/** Injectable for testing. */
+	walkFiles?: (dir: string) => string[];
+	readFile?: (path: string) => string;
+	wait?: DeployWaitOptions;
+	/** Retry of an install failure; any other failure is never retried. */
+	retry?: DeployRetryOptions;
+}
+
+export interface DeployFilesReport {
+	/** Null in dry-run mode or on failure — no actual deployment was created. */
+	deployment: DeployFunctionResult | null;
+	status: "ok" | "fail" | "dry-run";
+	message?: string;
+}

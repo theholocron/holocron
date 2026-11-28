@@ -3,8 +3,8 @@ title: Slack Plugin
 description: Implements the notifications capability via Slack's bot API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-slack"]} capability="notifications" />
 
@@ -22,12 +22,6 @@ providers: {
   }],
 }
 ```
-
-### Options
-
-| Option           | Required | Description                                                        |
-| ---------------- | -------- | ------------------------------------------------------------------ |
-| `defaultChannel` | No       | Slack channel id (e.g. `C0123456789`) used as the fallback channel |
 
 ## Authentication
 
@@ -51,7 +45,7 @@ providers: {
 ### 4. Store the token
 
 ```bash
-holocron auth set slack xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx
+holocron new token slack xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 Or via env var:
@@ -85,3 +79,5 @@ await notif.send("C0123456789", "Deploy complete :white_check_mark:");
 // or use the default channel:
 await notif.send("", "Deploy complete");
 ```
+
+The full [API reference](/holocron/plugins/holocron-plugin-slack/api/readme/) is generated from the package's TSDoc comments.

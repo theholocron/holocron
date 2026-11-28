@@ -1,54 +1,109 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/sync.ts
+# Source:  theholocron/holocron · ci/workflows/deploy.yml
 # Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
+# Source package: .
+
 name: Deploy
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main]
-    paths:
-      - docs/**
-      - astro.config.ts
-      - pnpm-workspace.yaml
-      - pnpm-lock.yaml
-
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, closed]
-    paths:
-      - docs/**
-      - astro.config.ts
-      - pnpm-workspace.yaml
-      - pnpm-lock.yaml
-
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-
-permissions:
-  contents: read
-  deployments: write
-  pages: write
-  id-token: write
-  pull-requests: write
+  workflow_call:
+    inputs:
+      type:
+        description: "Type of deployment: docs or storybook"
+        required: true
+        type: string
+      storybook-projects:
+        description: >
+          JSON array of { "name"?, "workingDir", "outputDir"? } objects for storybook deploys.
+          Each is built via `pnpm -C <workingDir> build:storybook`. If "name" is provided the
+          output is placed under `sandbox/<name>/`; omit "name" for single-repo deploys and the
+          output lands directly in `sandbox/`.
+        type: string
+        required: false
+        default: "[]"
+      build-script:
+        description: pnpm script that builds the Storybook static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: build:storybook
+      output-dir:
+        description: Directory where Storybook writes its static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: storybook-static
 
 jobs:
   deploy:
     name: Deploy
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: theholocron/.github/.github/workflows/deploy.yml@main
-    with:
-      type: docs
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
 
-  preview:
-    name: Preview
-    if: ${{ github.event_name == 'pull_request' }}
-    uses: theholocron/.github/.github/workflows/preview.yml@main
-    with:
-      type: docs
-      cloudflare-project: theholocron-preview
-    secrets: inherit
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build docs site
+        if: ${{ inputs.type == 'docs' }}
+        run: pnpm -C docs run build-docs
+
+      - name: Build Storybook projects
+        if: ${{ inputs.storybook-projects != '[]' }}
+        env:
+          PROJECTS: ${{ inputs.storybook-projects }}
+        run: |
+          echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+            workingDir=$(echo "$project" | jq -r '.workingDir')
+            pnpm -C "$workingDir" build:storybook
+          done
+
+      - name: Build Storybook
+        if: ${{ inputs.type == 'storybook' && inputs.storybook-projects == '[]' }}
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
+
+      - name: Assemble site
+        env:
+          DEPLOY_TYPE: ${{ inputs.type }}
+          PROJECTS: ${{ inputs.storybook-projects }}
+          STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          mkdir -p _site
+          if [ "$DEPLOY_TYPE" = "docs" ]; then
+            cp -r docs/dist/. _site/
+          fi
+          if [ "$PROJECTS" != "[]" ]; then
+            echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+              name=$(echo "$project" | jq -r '.name // ""')
+              workingDir=$(echo "$project" | jq -r '.workingDir')
+              outputDir=$(echo "$project" | jq -r '.outputDir // "storybook-static"')
+              if [ -n "$name" ]; then
+                target="_site/sandbox/${name}"
+              else
+                target="_site/sandbox"
+              fi
+              mkdir -p "$target"
+              cp -r "${workingDir}/${outputDir}/." "$target/"
+            done
+          elif [ "$DEPLOY_TYPE" = "storybook" ]; then
+            mkdir -p _site/sandbox
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
+          fi
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        name: Upload pages artifact
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        id: deployment
+        name: Deploy to GitHub Pages

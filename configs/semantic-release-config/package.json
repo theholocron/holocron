@@ -1,0 +1,75 @@
+{
+  "name": "@theholocron/semantic-release-config",
+  "version": "8.9.0-alpha.24",
+  "description": "A semantic-release configuration for automated versioning and publishing.",
+  "keywords": [
+    "semantic-release",
+    "release",
+    "versioning",
+    "changelog",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/semantic-release-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/semantic-release-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "catalog:configs",
+    "@semantic-release/release-notes-generator": "catalog:configs",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "conventional-changelog-conventionalcommits": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@semantic-release/changelog": "^6",
+    "@semantic-release/commit-analyzer": "^13",
+    "@semantic-release/exec": "^7",
+    "@semantic-release/git": "^10",
+    "@semantic-release/github": "^11 || ^12",
+    "@semantic-release/release-notes-generator": "^15.0.0-beta.4",
+    "conventional-changelog-conventionalcommits": "^10",
+    "semantic-release": "^26"
+  },
+  "peerDependenciesMeta": {
+    "@semantic-release/exec": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

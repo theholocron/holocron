@@ -1,0 +1,352 @@
+import type { SentryApp, SentryAppInput, SentryWorkflow, SentryWorkflowInput } from "@theholocron/sentry-client";
+import { describe, expect, it, vi } from "vitest";
+
+import type { SentryClient } from "../rest.js";
+import { ensureSentryRelay, inspectSentryRelay } from "./relay.js";
+
+const ORG = "my-org";
+const WEBHOOK = "https://discord.example/api/webhooks/1/token";
+const input = {
+	name: "Comlink",
+	webhookUrl: WEBHOOK,
+	projects: ["holocron-cli"],
+	rule: { name: "Errors to Discord (Comlink)" },
+};
+
+const app = (over: Partial<SentryApp> = {}): SentryApp => ({
+	name: "Comlink",
+	slug: "comlink-1",
+	uuid: "u1",
+	status: "internal",
+	scopes: ["event:read"],
+	webhookUrl: WEBHOOK,
+	isAlertable: true,
+	clientSecret: "shh",
+	...over,
+});
+
+const workflow = (over: Partial<SentryWorkflow> = {}): SentryWorkflow => ({
+	id: "w1",
+	name: input.rule.name,
+	enabled: true,
+	environment: null,
+	config: { frequency: 5 },
+	detectorIds: ["d1"],
+	triggers: {
+		id: "t",
+		logicType: "any-short",
+		conditions: [{ id: "c", type: "new_high_priority_issue", comparison: true, conditionResult: true }],
+	},
+	actionFilters: [
+		{
+			id: "f",
+			logicType: "all",
+			conditions: [],
+			actions: [
+				{ id: "a", type: "webhook", config: { targetType: null, targetIdentifier: "comlink-1" }, data: {} },
+			],
+		},
+	],
+	...over,
+});
+
+interface World {
+	apps?: SentryApp[];
+	workflows?: SentryWorkflow[];
+	detectors?: Array<{ id: string; projectId: string | null; name: string; type: string; workflowIds: string[] }>;
+	installs?: Array<{ uuid: string; status: string; app: { uuid: string; slug: string; sentryAppId: number } }>;
+	created?: SentryApp;
+	got?: SentryApp;
+	projects?: Array<{ id: string; slug: string; name: string; platform: string }>;
+}
+
+function world(w: World = {}) {
+	const client = {
+		sentryApps: {
+			list: vi.fn(async () => w.apps ?? []),
+			create: vi.fn(async () => w.created ?? app()),
+			update: vi.fn(async (_slug: string, _body: SentryAppInput) => app()),
+			get: vi.fn(async () => w.got ?? app()),
+			installations: vi.fn(
+				async () =>
+					w.installs ?? [
+						{ uuid: "i", status: "installed", app: { uuid: "u1", slug: "comlink-1", sentryAppId: 42 } },
+					]
+			),
+		},
+		workflows: {
+			list: vi.fn(async () => w.workflows ?? []),
+			create: vi.fn(async (_org: string, _body: SentryWorkflowInput) => workflow()),
+			update: vi.fn(async (_org: string, _id: string, _body: SentryWorkflowInput) => workflow()),
+			detectors: vi.fn(
+				async () =>
+					w.detectors ?? [{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] }]
+			),
+		},
+		projects: {
+			list: vi.fn(async () => w.projects ?? [{ id: "p1", slug: "holocron-cli", name: "x", platform: "node" }]),
+		},
+	};
+	return { client, as: client as unknown as SentryClient };
+}
+
+/** Two projects, each with the issue stream detector Sentry makes for it. */
+const TWO = {
+	projects: [
+		{ id: "p1", slug: "holocron-cli", name: "x", platform: "node" },
+		{ id: "p2", slug: "sentinel", name: "y", platform: "node" },
+	],
+	detectors: [
+		{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] },
+		{ id: "d2", projectId: "p2", name: "y", type: "issue_stream", workflowIds: [] },
+	],
+};
+
+describe("ensureSentryRelay", () => {
+	it("makes one rule that covers every listed project", async () => {
+		const { client, as } = world(TWO);
+		await ensureSentryRelay(as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(client.workflows.create).toHaveBeenCalledTimes(1);
+		expect(client.workflows.create.mock.calls[0]![1].detectorIds).toEqual(["d1", "d2"]);
+	});
+
+	it("adds a newly listed project to the rule it adopts, and a second run changes nothing", async () => {
+		const first = world({ ...TWO, apps: [app()], workflows: [workflow()] });
+		const result = await ensureSentryRelay(first.as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(result.rule).toEqual({ created: false, updated: ["projects"] });
+		expect(first.client.workflows.update.mock.calls[0]![2].detectorIds).toEqual(["d1", "d2"]);
+		const again = world({ ...TWO, apps: [app()], workflows: [workflow({ detectorIds: ["d1", "d2"] })] });
+		await ensureSentryRelay(again.as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(again.client.workflows.update).not.toHaveBeenCalled();
+	});
+
+	it("creates the integration and the rule, and returns the secret it reads back", async () => {
+		const { client, as } = world({
+			created: app({ clientSecret: undefined }),
+			got: app({ clientSecret: "from-get" }),
+		});
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result).toEqual({
+			integration: { created: true, updated: [] },
+			rule: { created: true, updated: [] },
+			clientSecret: "from-get",
+		});
+		expect(client.sentryApps.create).toHaveBeenCalledWith(ORG, {
+			name: "Comlink",
+			scopes: ["event:read"],
+			webhookUrl: WEBHOOK,
+			isAlertable: true,
+		});
+		const body = client.workflows.create.mock.calls[0]![1];
+		expect(body.detectorIds).toEqual(["d1"]);
+		expect(body.actionFilters[0]!.actions[0]).toMatchObject({
+			type: "webhook",
+			config: { targetIdentifier: "comlink-1" },
+		});
+	});
+
+	it("leaves everything alone when it is already right", async () => {
+		const { client, as } = world({ apps: [app()], workflows: [workflow()] });
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result).toMatchObject({
+			integration: { created: false, updated: [] },
+			rule: { created: false, updated: [] },
+			clientSecret: "shh",
+		});
+		expect(client.sentryApps.update).not.toHaveBeenCalled();
+		expect(client.workflows.update).not.toHaveBeenCalled();
+	});
+
+	it("omits the secret when the token cannot see it", async () => {
+		const { as } = world({
+			apps: [app({ clientSecret: undefined })],
+			got: app({ clientSecret: "" }),
+			workflows: [workflow()],
+		});
+		expect(await ensureSentryRelay(as, ORG, input)).not.toHaveProperty("clientSecret");
+	});
+
+	it("adds event:read when an adopted integration lacks it", async () => {
+		const { client, as } = world({ apps: [app({ scopes: ["org:read"] })], workflows: [workflow()] });
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result.integration.updated).toEqual(["scopes"]);
+		expect(client.sentryApps.update.mock.calls[0]![1].scopes).toEqual(["org:read", "event:read"]);
+	});
+
+	it("repoints the webhook and turns the alert action on, keeping the scopes", async () => {
+		const { client, as } = world({
+			apps: [app({ webhookUrl: "https://old", isAlertable: false, scopes: ["event:read", "org:read"] })],
+			workflows: [workflow()],
+		});
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result.integration.updated).toEqual(["webhook URL", "alert action"]);
+		expect(client.sentryApps.update).toHaveBeenCalledWith("comlink-1", {
+			name: "Comlink",
+			scopes: ["event:read", "org:read"],
+			webhookUrl: WEBHOOK,
+			isAlertable: true,
+		});
+	});
+
+	it("adopts a rule that was changed: enables it, attaches the project, adds the action", async () => {
+		const stale = workflow({
+			enabled: false,
+			detectorIds: ["other"],
+			actionFilters: [
+				{
+					id: "f",
+					logicType: "all",
+					conditions: [{ id: "fc", type: "level", comparison: { level: 40 }, conditionResult: true }],
+					actions: [],
+				},
+			],
+		});
+		const { client, as } = world({ apps: [app()], workflows: [stale] });
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result.rule).toEqual({ created: false, updated: ["enabled", "projects", "action"] });
+		const [, id, body] = client.workflows.update.mock.calls[0]!;
+		expect(id).toBe("w1");
+		expect(body.enabled).toBe(true);
+		expect(body.detectorIds).toEqual(["other", "d1"]);
+		expect(body.actionFilters[1]!.actions).toHaveLength(1);
+		expect(body.actionFilters[0]!.conditions).toEqual([
+			{ type: "level", comparison: { level: 40 }, conditionResult: true },
+		]);
+		expect(JSON.stringify(body)).not.toContain('"id"');
+	});
+
+	it("sets the frequency only when the layout gives one", async () => {
+		const { client, as } = world({ apps: [app()], workflows: [workflow()] });
+		await ensureSentryRelay(as, ORG, input);
+		expect(client.workflows.update).not.toHaveBeenCalled();
+		const result = await ensureSentryRelay(as, ORG, { ...input, rule: { ...input.rule, frequency: 30 } });
+		expect(result.rule.updated).toEqual(["frequency"]);
+		expect(client.workflows.update.mock.calls[0]![2].config).toEqual({ frequency: 30 });
+	});
+
+	it("puts the action on a filter without conditions, not a narrower one", async () => {
+		const narrow = {
+			id: "f",
+			logicType: "all",
+			conditions: [{ id: "fc", type: "level", comparison: { level: 40 }, conditionResult: true }],
+			actions: [],
+		};
+		const { client, as } = world({ apps: [app()], workflows: [workflow({ actionFilters: [narrow] })] });
+		await ensureSentryRelay(as, ORG, input);
+		const filters = client.workflows.update.mock.calls[0]![2].actionFilters;
+		expect(filters).toHaveLength(2);
+		expect(filters[0]!.actions).toHaveLength(0);
+		expect(filters[1]).toMatchObject({ conditions: [], actions: [{ type: "webhook" }] });
+	});
+
+	it("reuses a filter without conditions for the action", async () => {
+		const open = { id: "f", logicType: "all", conditions: [], actions: [] };
+		const { client, as } = world({ apps: [app()], workflows: [workflow({ actionFilters: [open] })] });
+		await ensureSentryRelay(as, ORG, input);
+		const filters = client.workflows.update.mock.calls[0]![2].actionFilters;
+		expect(filters).toHaveLength(1);
+		expect(filters[0]!.actions).toHaveLength(1);
+	});
+
+	it("replaces the sentry_app action an earlier version wrote, which the page shows as unknown", async () => {
+		const old = {
+			id: "a",
+			type: "sentry_app",
+			config: { targetType: "sentry_app", targetIdentifier: "42" },
+			data: {},
+		};
+		const { client, as } = world({
+			apps: [app()],
+			workflows: [workflow({ actionFilters: [{ id: "f", logicType: "all", conditions: [], actions: [old] }] })],
+		});
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result.rule.updated).toEqual(["action"]);
+		expect(client.workflows.update.mock.calls[0]![2].actionFilters[0]!.actions).toEqual([
+			{
+				type: "webhook",
+				config: { targetType: null, targetDisplay: null, targetIdentifier: "comlink-1" },
+				data: {},
+			},
+		]);
+	});
+
+	it("changes nothing when a project is wrong", async () => {
+		const { client, as } = world({ apps: [app({ webhookUrl: "https://old" })] });
+		await expect(ensureSentryRelay(as, ORG, { ...input, projects: ["nope"] })).rejects.toThrow(/not found/);
+		expect(client.sentryApps.update).not.toHaveBeenCalled();
+		expect(client.sentryApps.create).not.toHaveBeenCalled();
+	});
+
+	it("adds a filter for the action when the rule has none", async () => {
+		const { client, as } = world({ apps: [app()], workflows: [workflow({ actionFilters: [] })] });
+		await ensureSentryRelay(as, ORG, input);
+		expect(client.workflows.update.mock.calls[0]![2].actionFilters).toHaveLength(1);
+	});
+
+	it("says which part is missing", async () => {
+		await expect(ensureSentryRelay(world().as, ORG, { ...input, projects: [] })).rejects.toThrow(/at least one/);
+		await expect(ensureSentryRelay(world().as, ORG, { ...input, projects: ["nope"] })).rejects.toThrow(
+			/`nope` was not found/
+		);
+		await expect(ensureSentryRelay(world({ detectors: [] }).as, ORG, input)).rejects.toThrow(
+			/no issue stream detector/
+		);
+		await expect(ensureSentryRelay(world({ installs: [] }).as, ORG, input)).rejects.toThrow(/not installed/);
+	});
+});
+
+describe("inspectSentryRelay", () => {
+	const ask = { name: "Comlink", projects: ["holocron-cli"], rule: { name: input.rule.name } };
+
+	it("reports the integration and, per project, the rule that is on it, enabled and sending through it", async () => {
+		const { client, as } = world({ apps: [app()], workflows: [workflow()] });
+		expect(await inspectSentryRelay(as, ORG, ask)).toEqual({
+			integration: { webhookUrl: WEBHOOK, alertAction: true },
+			rules: [{ project: "holocron-cli", enabled: true, sends: true }],
+		});
+		expect(client.sentryApps.get).not.toHaveBeenCalled();
+		expect(client.sentryApps.create).not.toHaveBeenCalled();
+		expect(client.workflows.update).not.toHaveBeenCalled();
+	});
+
+	it("reports only the listed projects the rule is on, so a doctor row can name the one missing", async () => {
+		const { as } = world({ ...TWO, apps: [app()], workflows: [workflow()] });
+		const state = await inspectSentryRelay(as, ORG, { ...ask, projects: ["holocron-cli", "sentinel"] });
+		expect(state.rules).toEqual([{ project: "holocron-cli", enabled: true, sends: true }]);
+	});
+
+	it("never returns the integration's signing secret", async () => {
+		const { as } = world({ apps: [app({ clientSecret: "sentinel-secret" })], workflows: [workflow()] });
+		expect(JSON.stringify(await inspectSentryRelay(as, ORG, ask))).not.toContain("sentinel-secret");
+	});
+
+	it("reports a rule that is disabled, or does not send through the integration", async () => {
+		const off = world({ apps: [app()], workflows: [workflow({ enabled: false, actionFilters: [] })] });
+		expect(await inspectSentryRelay(off.as, ORG, ask)).toMatchObject({
+			rules: [{ project: "holocron-cli", enabled: false, sends: false }],
+		});
+	});
+
+	it("reports no integration, no rule, a rule on another project, and a project that is not there", async () => {
+		const none = world();
+		expect(await inspectSentryRelay(none.as, ORG, ask)).toEqual({ rules: [] });
+		const noApp = world({ workflows: [workflow()] });
+		expect(await inspectSentryRelay(noApp.as, ORG, ask)).toEqual({
+			rules: [{ project: "holocron-cli", enabled: true, sends: false }],
+		});
+		const other = world({ apps: [app()], workflows: [workflow({ detectorIds: ["d9"] })] });
+		expect((await inspectSentryRelay(other.as, ORG, ask)).rules).toEqual([]);
+		const unknown = world({ apps: [app()], workflows: [workflow()] });
+		expect((await inspectSentryRelay(unknown.as, ORG, { ...ask, projects: ["nope"] })).rules).toEqual([]);
+		const noDetector = world({ apps: [app()], workflows: [workflow()], detectors: [] });
+		expect((await inspectSentryRelay(noDetector.as, ORG, ask)).rules).toEqual([]);
+	});
+
+	it("reports an integration that is not offered as an alert action", async () => {
+		const { as } = world({ apps: [app({ isAlertable: false })], workflows: [] });
+		expect((await inspectSentryRelay(as, ORG, ask)).integration).toEqual({
+			webhookUrl: WEBHOOK,
+			alertAction: false,
+		});
+	});
+});

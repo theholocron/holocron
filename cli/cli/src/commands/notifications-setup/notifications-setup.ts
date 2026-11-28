@@ -1,0 +1,1145 @@
+/**
+ * `holocron setup notifications` — apply the server layout a `notifications`
+ * provider declares in `holocron.config.ts` (categories, channels, roles, and
+ * a webhook secret per channel that asks for one).
+ *
+ * Idempotent: every step looks things up by name and creates only what is
+ * missing, so it is safe to re-run and `--dry-run` previews it. A failing step
+ * is reported and the rest still run.
+ *
+ * Run it from ONE repo per server — a layout is org-level, and putting it in a
+ * shared preset would apply it from every repo.
+ */
+
+import { confirm, input as prompt } from "@inquirer/prompts";
+import { createProgress, describeError, logReason, NonInteractiveError, style } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { AuthError } from "../../auth/index.js";
+import { getLogger } from "../../observability/logger/index.js";
+import {
+	assertPluginsResolvable,
+	type CapabilityKey,
+	type Dns,
+	type EmojiCheck,
+	type Errors,
+	type Monitoring,
+	type MonitoringAlertSettings,
+	type NotificationsAccess,
+	type NotificationsChannelLayout,
+	type NotificationsLayout,
+	type NotificationsMonitoringFeed,
+	type NotificationsPicture,
+	PluginLoader,
+	type Secrets,
+	type SecretScope,
+	type Workers,
+} from "../../plugin/index.js";
+import {
+	assertSecretsReachable,
+	describeAvatarSource,
+	layoutSecretProblem,
+	layoutSecretScope,
+	loadAvatar,
+	loadFirstAvatar,
+	notificationProviders,
+	pickProvisioner,
+	provisionChannel,
+	whyMissing,
+} from "../notifications-channel-add/index.js";
+import {
+	emojiConflictProblem,
+	layoutEmojis,
+	loadEmojiImage,
+	reactionProblem,
+	tagEmojiProblem,
+} from "../notifications-reaction/index.js";
+import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import {
+	type DeclaredRelaySource,
+	declaredRelaySources,
+	ensureRelaySource,
+	genericRelayFeeds,
+	newRelaySecret,
+	type RelaySourceProvider,
+	relaySourcesProblem,
+	resolveRelaySourceProvider,
+} from "../relay-sources/index.js";
+import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
+import { avatarProblem } from "./avatar-problem.js";
+import { channelWebhookAvatars } from "./channel-webhook-avatars/index.js";
+import { layoutPictureProblem } from "./layout-picture-problem/index.js";
+import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
+import { pictureSources } from "./picture-sources/index.js";
+import {
+	DEFAULT_RELAY_INTEGRATION,
+	DEFAULT_RELAY_RULE,
+	deployRelay,
+	errorsFeedWebhook,
+	relayProblem,
+	wantsAnyRelay,
+	wantsRelay,
+} from "./relay.js";
+import type { RelayBinding } from "./relay.type.js";
+import { withElevation } from "./with-elevation.js";
+
+/**
+ * The pictures a feed's webhook may wear, in order of preference: the config's own (a single source, or `{ url, image }`,
+ * the URL first and the file in the repo as its fallback), else the provider's own icon (its URL, then the image it carries),
+ * else the layout's, else none.
+ */
+export function feedAvatarOf(
+	layout: NotificationsLayout,
+	feed: true | { avatar?: NotificationsPicture },
+	monitoring?: Pick<Monitoring, "icon">
+): string[] {
+	const own = typeof feed === "object" ? feed.avatar : undefined;
+	if (own === undefined) {
+		const icon = [monitoring?.icon?.url, monitoring?.icon?.dataUri].filter((source): source is string =>
+			Boolean(source)
+		);
+		if (icon.length > 0) return icon;
+		return pictureSources(layout.webhookAvatar);
+	}
+	return pictureSources(own);
+}
+
+/** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
+export function monitoringFeed(
+	channel: string,
+	feed: true | NotificationsMonitoringFeed,
+	monitoring: Pick<Monitoring, "providerName">
+): { name: string; webhook: string; alerts?: MonitoringAlertSettings } {
+	const own = typeof feed === "object" ? feed : {};
+	const provider = monitoring.providerName;
+	return {
+		name: own.name ?? `Message to #${channel}`,
+		webhook: own.webhook ?? provider.charAt(0).toUpperCase() + provider.slice(1),
+		...(own.alerts ? { alerts: own.alerts } : {}),
+	};
+}
+
+/**
+ * The first reason the layout's monitoring feeds cannot work, or undefined. Checked before anything is created: two feeds
+ * sharing an alert channel name would redirect each other's alerts, and a feed webhook named like the channel's own
+ * (Discord matches names without regard to case) would share its URL, so revoking one revokes the other.
+ */
+export function feedProblem(
+	layout: NotificationsLayout,
+	monitoring: Pick<Monitoring, "providerName" | "ensureAlertChannel"> & Partial<Pick<Monitoring, "checks">>
+): string | undefined {
+	const alertNames = new Map<string, string>();
+	for (const category of layout.categories ?? []) {
+		for (const channel of category.channels ?? []) {
+			if (!channel.feeds?.monitoring) continue;
+			if (!monitoring.ensureAlertChannel) {
+				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
+			}
+			const picture = typeof channel.feeds.monitoring === "object" ? channel.feeds.monitoring.avatar : undefined;
+			const pictureProblem = avatarProblem(channel.name, "feeds.monitoring.avatar", picture);
+			if (pictureProblem) return pictureProblem;
+			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
+			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
+			if (channel.webhook && feed.webhook.toLowerCase() === own.toLowerCase()) {
+				return `channel \`${channel.name}\`: the monitoring webhook and the channel's own webhook are both named ${own} — rename one`;
+			}
+			const other = alertNames.get(feed.name.toLowerCase());
+			if (other) {
+				return `channels \`${other}\` and \`${channel.name}\` would both use the alert channel ${feed.name} — give one a distinct \`feeds.monitoring.name\``;
+			}
+			alertNames.set(feed.name.toLowerCase(), channel.name);
+		}
+	}
+	// A check routed to an alert channel nobody declares would never alert anywhere.
+	for (const check of monitoring.checks ?? []) {
+		for (const routed of check.alertChannels ?? []) {
+			if (!alertNames.has(routed.toLowerCase())) {
+				return `check \`${check.name}\` is routed to the alert channel ${routed}, which no \`feeds.monitoring\` declares`;
+			}
+		}
+	}
+	return undefined;
+}
+
+export function effectiveAccess(
+	category: NotificationsAccess | undefined,
+	channel: NotificationsAccess | undefined
+): NotificationsAccess | undefined {
+	if (!category && !channel) return undefined;
+	return { ...category, ...channel };
+}
+
+/** The states a pull request's post can be tagged with, so a forum with `feeds.prs` must have all of them (lower case). */
+export const PR_FEED_TAGS = [
+	"draft",
+	"conflicts",
+	"failing",
+	"changes requested",
+	"ready",
+	"waiting",
+	"merged",
+	"closed",
+] as const;
+
+/** The states an incident's post can be tagged with, so a forum with `feeds.incidents` must have all of them (lower case). */
+export const INCIDENT_FEED_TAGS = ["investigating", "identified", "monitoring", "resolved", "maintenance"] as const;
+
+/**
+ * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or webhook feed (its
+ * conversations are posts, which a plain webhook post cannot start); `feeds.prs` is the one feed a forum takes, and only
+ * a forum does, with a tag for every state a pull request can be in and no pinned message of its own (a pin lives in a
+ * post); tags belong to a forum; a tag needs a name no other tag of the channel has; and a tag's `emoji` written `:name:`
+ * must be a valid server emoji name with a picture declared in the layout (`tagEmojiProblem()`). Checked before anything is
+ * created, so a half-applied forum is never the result.
+ */
+export function forumLayoutProblem(layout: NotificationsLayout): string | undefined {
+	const channels = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
+	const pictured = new Set(layoutEmojis(layout).flatMap((e) => (e.image ? [e.name] : [])));
+	for (const channel of channels) {
+		const where = `channel \`${channel.name}\``;
+		if (channel.kind !== "forum") {
+			if (channel.tags) return `${where}: \`tags\` belong to a forum -- set \`kind: "forum"\` or remove them`;
+			if (channel.defaultReaction || channel.starterReactions) {
+				return `${where}: reactions belong to a forum -- set \`kind: "forum"\` or remove them`;
+			}
+			if (channel.feeds?.prs) {
+				return `${where}: \`feeds.prs\` belongs to a forum, where each pull request is a post -- set \`kind: "forum"\` or remove it`;
+			}
+			if (channel.feeds?.incidents) {
+				return `${where}: \`feeds.incidents\` belongs to a forum, where each incident is a post -- set \`kind: "forum"\` or remove it`;
+			}
+			continue;
+		}
+		if (
+			channel.webhook ||
+			channel.feeds?.monitoring ||
+			channel.feeds?.errors ||
+			Object.values(channel.feeds?.relay ?? {}).some(Boolean)
+		) {
+			return `${where}: a forum takes no \`webhook\` or the \`monitoring\` and \`errors\` feeds (nor \`relay\` ones); its conversations are posts`;
+		}
+		if (channel.defaultReaction !== undefined) {
+			const problem = reactionProblem("`defaultReaction`", channel.defaultReaction);
+			if (problem) return `${where}: ${problem}`;
+		}
+		for (const reaction of channel.starterReactions ?? []) {
+			const problem = reactionProblem("a starter reaction", reaction);
+			if (problem) return `${where}: ${problem}`;
+		}
+		const seen = new Set<string>();
+		for (const tag of channel.tags ?? []) {
+			const name = tag.name.trim().toLowerCase();
+			if (name === "") return `${where}: a tag has no name`;
+			if (seen.has(name)) return `${where}: two tags are named \`${tag.name}\``;
+			seen.add(name);
+			const emojiProblem = tagEmojiProblem(tag.name, tag.emoji, pictured);
+			if (emojiProblem) return `${where}: ${emojiProblem}`;
+		}
+		if (channel.feeds?.prs && channel.feeds.incidents) {
+			return `${where}: a forum carries one feed; \`feeds.prs\` and \`feeds.incidents\` need separate forums`;
+		}
+		if (channel.feeds?.prs) {
+			const missing = PR_FEED_TAGS.filter((tag) => !seen.has(tag));
+			if (missing.length > 0) {
+				return `${where}: \`feeds.prs\` needs the tags ${missing.map((t) => `\`${t}\``).join(", ")}; add them to \`tags\``;
+			}
+		}
+		if (channel.feeds?.incidents) {
+			const missing = INCIDENT_FEED_TAGS.filter((tag) => !seen.has(tag));
+			if (missing.length > 0) {
+				return `${where}: \`feeds.incidents\` needs the tags ${missing.map((t) => `\`${t}\``).join(", ")}; add them to \`tags\``;
+			}
+		}
+	}
+	for (const emoji of layout.emojis ?? []) {
+		const problem = reactionProblem("an `emojis` entry", emoji);
+		if (problem) return problem;
+		if (typeof emoji === "string" || !emoji.image) return "an `emojis` entry must be `{ emoji, image }`";
+	}
+	const emojiProblem = emojiConflictProblem(layout);
+	if (emojiProblem) return emojiProblem;
+	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));
+	for (const pin of layout.pinned ?? []) {
+		if (forums.has(pin.channel.toLowerCase())) {
+			return `pinned: \`${pin.channel}\` is a forum; a message is pinned in a post, not in the forum`;
+		}
+	}
+	return undefined;
+}
+
+/** The first role an `access` names that the layout does not declare, or undefined. */
+export function accessRoleProblem(layout: NotificationsLayout): string | undefined {
+	const declared = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
+	const check = (where: string, access: NotificationsAccess | undefined): string | undefined => {
+		for (const field of ["view", "post"] as const) {
+			const value = access?.[field];
+			if (!Array.isArray(value)) continue;
+			const unknown = value.find((name) => !declared.has(name.toLowerCase()));
+			if (unknown !== undefined) {
+				return `${where}: \`access.${field}\` names the role \`${unknown}\`, which is not in the layout's roles`;
+			}
+		}
+		return undefined;
+	};
+	// A role that may post must be able to see the channel, or the post permission does nothing.
+	const cannotSee = (where: string, access: NotificationsAccess | undefined): string | undefined => {
+		if (!Array.isArray(access?.view) || !Array.isArray(access?.post)) return undefined;
+		const seen = new Set(access.view.map((r) => r.toLowerCase()));
+		const stuck = access.post.find((r) => !seen.has(r.toLowerCase()));
+		return stuck === undefined
+			? undefined
+			: `${where}: the role \`${stuck}\` may post but is not in \`view\`, so it could not see the channel`;
+	};
+	for (const category of layout.categories ?? []) {
+		const problem = check(`category \`${category.name}\``, category.access);
+		if (problem) return problem;
+		const stuckCategory = cannotSee(`category \`${category.name}\``, category.access);
+		if (stuckCategory) return stuckCategory;
+		for (const channel of category.channels ?? []) {
+			const found = check(`channel \`${channel.name}\``, channel.access);
+			if (found) return found;
+			const stuck = cannotSee(`channel \`${channel.name}\``, effectiveAccess(category.access, channel.access));
+			if (stuck) return stuck;
+		}
+	}
+	return undefined;
+}
+
+/**
+ * The first problem with the layout's `server`, `welcome` and `onboarding` sections that needs no knowledge of
+ * the provider, or undefined: every channel or role they name must be in the layout, and a channel name must
+ * not be used twice (it could mean either, so they would pick one at random).
+ */
+export function serverLayoutProblem(layout: NotificationsLayout): string | undefined {
+	const counts = new Map<string, number>();
+	for (const name of (layout.categories ?? []).flatMap((c) =>
+		(c.channels ?? []).map((ch) => ch.name.toLowerCase())
+	)) {
+		counts.set(name, (counts.get(name) ?? 0) + 1);
+	}
+	const declared = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
+	const roles = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
+	const channel = (where: string, name: string): string | undefined => {
+		const count = counts.get(name.toLowerCase()) ?? 0;
+		if (count === 0) return `${where} names the channel \`${name}\`, which is not in the layout's channels`;
+		if (count > 1) return `${where} names \`${name}\`, but more than one channel in the layout has that name`;
+		return undefined;
+	};
+
+	if (layout.testChannel !== undefined) {
+		const problem = channel("`testChannel`", layout.testChannel);
+		if (problem) return problem;
+		const hasWebhook = declared.some(
+			(ch) => ch.name.toLowerCase() === layout.testChannel!.toLowerCase() && ch.webhook
+		);
+		if (!hasWebhook) return `\`testChannel\` names \`${layout.testChannel}\`, which declares no webhook`;
+	}
+
+	const roleTeams = roleTeamProblem(layout);
+	if (roleTeams) return roleTeams;
+	const emptyTeam = (layout.roles ?? []).find((r) => r.team !== undefined && r.team.trim() === "");
+	if (emptyTeam) return `role \`${emptyTeam.name}\` has an empty \`team\``;
+
+	const everyone = layout.everyone;
+	const both = (everyone?.allow ?? []).find((p) =>
+		(everyone?.deny ?? []).some((d) => d.toLowerCase() === p.toLowerCase())
+	);
+	if (both !== undefined) return `everyone: \`${both}\` is in both \`allow\` and \`deny\``;
+
+	const server = layout.server;
+	if (server) {
+		for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
+			const name = server[field];
+			const problem = name === undefined ? undefined : channel(`server: \`${field}\``, name);
+			if (problem) return problem;
+		}
+		if (server.community === true && (!server.rulesChannel || !server.updatesChannel)) {
+			return "server: `community: true` needs both `rulesChannel` and `updatesChannel`";
+		}
+	}
+	for (const entry of layout.welcome?.channels ?? []) {
+		const problem = channel("welcome:", entry.channel);
+		if (problem) return problem;
+	}
+	for (const pin of layout.pinned ?? []) {
+		const problem = channel("pinned:", pin.channel);
+		if (problem) return problem;
+		if (pin.content === undefined) {
+			return `pinned: the message for \`${pin.channel}\` has no text; give it \`content\` or a \`file\``;
+		}
+		if (pin.content.trim() === "") return `pinned: the message for \`${pin.channel}\` is empty`;
+	}
+	const onboarding = layout.onboarding;
+	for (const name of onboarding?.defaultChannels ?? []) {
+		const problem = channel("onboarding: `defaultChannels`", name);
+		if (problem) return problem;
+	}
+	for (const prompt of onboarding?.prompts ?? []) {
+		for (const option of prompt.options) {
+			for (const name of option.channels ?? []) {
+				const problem = channel(`onboarding: the option \`${option.title}\``, name);
+				if (problem) return problem;
+			}
+			for (const role of option.roles ?? []) {
+				if (!roles.has(role.toLowerCase())) {
+					return `onboarding: the option \`${option.title}\` gives the role \`${role}\`, which is not in the layout's roles`;
+				}
+			}
+		}
+	}
+	return undefined;
+}
+
+export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
+	// Lines print through the progress spinner, so a step that is waiting on Discord shows it and a result line replaces it.
+	const progress = createProgress(input.print ?? ((line: string) => console.log(line)));
+	const print = progress.print;
+	const logger = input.logger ?? getLogger();
+	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
+	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+	if (!input.preloaded) await loader.load();
+	assertPluginsResolvable(loader, "setup notifications");
+
+	const dryRun = input.context.dryRun ?? false;
+	const report: NotificationsSetupReport = { status: "ok", categories: [], channels: [], roles: [], failures: [] };
+
+	// A precondition failure is printed and returned, never thrown: the CLI's
+	// global handler swallows a plain Error, so a bare throw would exit 1 silently.
+	const refuse = (message: string, reason: string = message): NotificationsSetupReport => {
+		print(`  ${style.fail(message)}`);
+		print("");
+		print(style.header("0 ok, 1 fail, 0 skipped"));
+		logger.warn({ reason }, "setup notifications");
+		return { ...report, status: "fail", message };
+	};
+
+	let notifications;
+	try {
+		notifications = pickProvisioner(notificationProviders(loader), input.provider);
+	} catch (err) {
+		return refuse(errorMessage(err));
+	}
+	const declared = notifications.layout;
+	if (!declared) {
+		return refuse(
+			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
+		);
+	}
+	// A pinned message may take its text from a file in the repository: read it now, so a file that cannot be read
+	// stops the run before anything is created, and the provider only ever sees the text.
+	const pinnedFiles = await resolvePinnedFiles(declared, input.context.repoRoot);
+	if ("problem" in pinnedFiles) return refuse(pinnedFiles.problem);
+	const layout = pinnedFiles.layout;
+
+	// Anything that writes a secret: a channel's webhook URL, or a role's id.
+	const wantsWebhook = (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook));
+	const wantsSecrets = wantsWebhook || (layout.roles ?? []).some((r) => r.secret);
+	let secrets: Secrets | undefined;
+	// A dry-run stores nothing, so it needs no credentials for the secrets provider.
+	if (wantsSecrets && !dryRun) {
+		if (!loader.has("secrets")) {
+			return refuse(
+				whyMissing(
+					loader,
+					"secrets",
+					"the layout stores webhook URLs or role ids, which need a `secrets` capability — add a `secrets` provider"
+				)
+			);
+		}
+		secrets = loader.get("secrets");
+	}
+	const org = input.context.org;
+	let scope: SecretScope | undefined =
+		input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
+	if (wantsSecrets && !scope && !dryRun) {
+		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
+	}
+	// Channels fed by the monitoring provider hand it a dedicated webhook as an alert channel.
+	const pictureProblem = layoutPictureProblem(layout);
+	if (pictureProblem) return refuse(pictureProblem);
+
+	let monitoring: Monitoring | undefined;
+	if ((layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.feeds?.monitoring))) {
+		if (!loader.has("monitoring")) {
+			return refuse(
+				whyMissing(
+					loader,
+					"monitoring",
+					"a channel is fed by monitoring, which needs a `monitoring` capability — add a `monitoring` provider"
+				)
+			);
+		}
+		monitoring = loader.get("monitoring");
+		const problem = feedProblem(layout, monitoring);
+		if (problem) return refuse(problem);
+	} else if (loader.has("monitoring")) {
+		// No channel is fed by monitoring, so a check routed to an alert channel is routed to nothing.
+		const orphan = feedProblem(layout, loader.get("monitoring"));
+		if (orphan) return refuse(orphan);
+	}
+
+	// Channels fed by the error tracker or by a relay source go through the relay Worker: it needs somewhere to run and
+	// DNS, the tracker needs an `errors` provider, and each source needs the provider of its capability.
+	let errors: Errors | undefined;
+	let workers: Workers | undefined;
+	let dns: Dns | undefined;
+	const sourceProviders = new Map<string, RelaySourceProvider>();
+	// What a provider is asked about a source's webhook: where it points, its name and what it covers.
+	const inspectInputOf = (source: DeclaredRelaySource) => ({
+		source: source.id,
+		url: `https://${layout.relay?.host}/${source.id}`,
+		name: source.spec.name ?? source.id.charAt(0).toUpperCase() + source.id.slice(1),
+		...(source.spec.events ? { events: source.spec.events } : {}),
+		...(source.spec.scope ? { scope: source.spec.scope } : {}),
+		...(source.spec.options ? { options: source.spec.options } : {}),
+	});
+	const declaredSources = declaredRelaySources(layout);
+	const wantsErrors = wantsRelay(layout);
+	if (wantsAnyRelay(layout) || declaredSources.length > 0) {
+		const early = relayProblem(layout) ?? relaySourcesProblem(layout);
+		if (early) return refuse(early);
+		const needs: Array<readonly [CapabilityKey, string]> = [
+			["workers", "a `workers` provider (where it runs)"],
+			["dns", "a `dns` provider (for its host)"],
+			...(wantsErrors ? [["errors", "an `errors` provider (the tracker whose alerts it carries)"] as const] : []),
+		];
+		for (const { id, spec } of declaredSources) {
+			// A source that names its provider needs none configured for the capability: it is loaded by name below.
+			if (spec.provider === undefined) {
+				needs.push([spec.capability, `a \`${spec.capability}\` provider (it makes the ${id} webhook)`]);
+			}
+		}
+		for (const [key, what] of needs) {
+			if (!loader.has(key)) {
+				return refuse(whyMissing(loader, key, `the relay Worker needs ${what} — add one`));
+			}
+		}
+		if (wantsErrors) errors = loader.get("errors");
+		workers = loader.get("workers");
+		dns = loader.get("dns");
+		// Every source's provider is found and checked here, before anything is written: one that names a plugin which
+		// does not resolve, cannot make a webhook or has no token refuses the run rather than leaving a half-made relay.
+		for (const source of declaredSources) {
+			const resolved = await resolveRelaySourceProvider({
+				loader,
+				config: input.loaded.resolved,
+				repoRoot: input.context.repoRoot,
+				source,
+				...(input.workspaceProviders ? { workspace: input.workspaceProviders } : {}),
+			});
+			if (!resolved.provider) return refuse(resolved.problem!);
+			if (source.spec.provider !== undefined && !dryRun) {
+				// The plugin reads its token on first use, so ask it one question now: a missing token is a refusal, anything
+				// else (a vendor that is down) is for the step that makes the webhook to report.
+				try {
+					await resolved.provider.inspectRelaySource?.(inspectInputOf(source));
+				} catch (err) {
+					if (err instanceof AuthError) {
+						return refuse(
+							`relay source \`${source.id}\`: provider \`${source.spec.provider}\` has no token — ${describeError(err)}`
+						);
+					}
+				}
+			}
+			sourceProviders.set(source.id, resolved.provider);
+		}
+		const clash = relayProblem(layout, errors, monitoring) ?? relaySourcesProblem(layout, errors?.providerName);
+		if (clash) return refuse(clash);
+	}
+
+	// The pictures a channel's feeds may wear, in order (none when it has no feed).
+	const feedAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
+		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
+	const errorsAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
+		channel.feeds?.errors ? feedAvatarOf(layout, channel.feeds.errors) : [];
+	const relayFeedsOf = (channel: NotificationsChannelLayout) =>
+		genericRelayFeeds(layout).filter((f) => f.channel === channel);
+	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
+	const avatars = new Map<string, string>();
+	// A relative path is the repository's, wherever the command is run from.
+	const read = input.loadAvatar ?? ((source: string) => loadAvatar(source, input.context.repoRoot));
+	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
+		// A picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
+		for (const sources of [
+			channelWebhookAvatars(layout, channel),
+			feedAvatarsOf(channel),
+			errorsAvatarsOf(channel),
+			...relayFeedsOf(channel).map((f) => feedAvatarOf(layout, f.feed)),
+		]) {
+			const key = JSON.stringify(sources);
+			if (sources.length > 0 && !avatars.has(key)) {
+				try {
+					avatars.set(
+						key,
+						await loadFirstAvatar(sources, read, (source, reason, moreToTry) =>
+							print(
+								`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${moreToTry ? "; trying the next" : ""}`)}`
+							)
+						)
+					);
+				} catch (err) {
+					return refuse(`webhook avatar ${errorMessage(err)}`);
+				}
+			}
+		}
+	}
+	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
+	// creating any webhook, instead of leaving an orphan per channel on a bad token.
+	// An organization secret is readable only by the layout's `readers`; no list is a refusal, never `all` (#2131).
+	// The probe is written with those readers too, so it also proves each of them resolves.
+	if (secrets && scope && !dryRun) {
+		const narrowed = layoutSecretScope(scope, layout.readers);
+		if ("problem" in narrowed) return refuse(narrowed.problem);
+		scope = narrowed.scope;
+		try {
+			await assertSecretsReachable(secrets, scope);
+		} catch (err) {
+			return refuse(errorMessage(err), logReason(err));
+		}
+	}
+
+	// Refuse a layout whose secret names would collide, or that the provider cannot apply,
+	// before anything is created: a half-applied layout is harder to reason about than none.
+	const secretProblem = layoutSecretProblem(layout);
+	if (secretProblem) return refuse(secretProblem);
+	const accessProblem = accessRoleProblem(layout);
+	if (accessProblem) return refuse(accessProblem);
+	const forumProblem = forumLayoutProblem(layout);
+	if (forumProblem) return refuse(forumProblem);
+	const serverProblem = serverLayoutProblem(layout);
+	if (serverProblem) return refuse(serverProblem);
+	// The pictures server emoji are made from, read once the layout is judged: one that cannot be used stops the run before any write.
+	const emojiImages = new Map<string, string>();
+	const readEmoji = input.loadEmojiImage ?? ((source: string) => loadEmojiImage(source, input.context.repoRoot));
+	for (const emoji of layoutEmojis(layout)) {
+		if (!emoji.image) continue;
+		try {
+			emojiImages.set(emoji.name, await readEmoji(emoji.image));
+		} catch (err) {
+			return refuse(`emoji \`:${emoji.name}:\` image \`${emoji.image}\`: ${errorMessage(err)}`);
+		}
+	}
+	if (layout.server && !notifications.ensureServer) {
+		return refuse(
+			`the layout declares \`server\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	if (layout.welcome && !notifications.ensureWelcome) {
+		return refuse(
+			`the layout declares a \`welcome\` screen, but the \`${notifications.providerName}\` provider cannot manage one`
+		);
+	}
+	if (layout.onboarding && !notifications.ensureOnboarding) {
+		return refuse(
+			`the layout declares \`onboarding\`, but the \`${notifications.providerName}\` provider cannot manage it`
+		);
+	}
+	if ((layout.pinned?.length ?? 0) > 0 && !notifications.ensurePinned) {
+		return refuse(
+			`the layout declares \`pinned\` messages, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	if (layout.application && !notifications.ensureApplication) {
+		return refuse(
+			`the layout declares \`application\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	if (layout.everyone && !notifications.ensureEveryone) {
+		return refuse(
+			`the layout declares \`everyone\` permissions, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	// A category's access cannot be applied by a provider that has no categories: do not report success without it.
+	const needsCategories = (layout.categories ?? []).find((c) => c.access);
+	if (needsCategories && !notifications.ensureCategory) {
+		return refuse(
+			`category \`${needsCategories.name}\` declares \`access\`, but the \`${notifications.providerName}\` provider cannot manage categories`
+		);
+	}
+	if (emojiImages.size > 0 && !notifications.ensureEmoji) {
+		return refuse(
+			`the layout gives a server emoji an \`image\`, but the \`${notifications.providerName}\` provider cannot create emoji`
+		);
+	}
+	const providerProblem = notifications.validateLayout?.(layout);
+	if (providerProblem) return refuse(providerProblem);
+	// Then prove the credentials reach the parts of the layout that need more than the rest, so a bot
+	// that lacks a permission fails here, with nothing created, and not after the roles and channels.
+	if (!dryRun && notifications.preflight) {
+		try {
+			await notifications.preflight(layout);
+		} catch (err) {
+			return refuse(describeError(err), logReason(err));
+		}
+	}
+
+	// An emoji whose picture differs from the layout's is made again (a new id; the old one and the reactions made with it
+	// are lost), and only that one: a matching emoji is left alone, so a second run changes nothing. Find out which, read-only,
+	// before anything is written, and ask first. A picture the provider cannot read counts as unchanged, never as different.
+	const emojiStates = new Map<string, EmojiCheck>();
+	if (notifications.checkEmoji) {
+		for (const [name, image] of emojiImages) {
+			try {
+				emojiStates.set(name, await notifications.checkEmoji({ name, image }));
+			} catch (err) {
+				emojiStates.set(name, { state: "unknown", note: describeError(err) });
+			}
+		}
+	}
+	const changedEmoji = [...emojiStates].filter(([, check]) => check.state === "different").map(([name]) => name);
+	if (changedEmoji.length > 0 && !dryRun && !input.yes) {
+		const names = changedEmoji.map((name) => `:${name}:`).join(", ");
+		if (!(input.interactive ?? Boolean(process.stdin.isTTY))) {
+			throw new NonInteractiveError(
+				`the picture of ${names} differs from the layout's, so setup would make ${changedEmoji.length === 1 ? "it" : "them"} again and delete the old one; pass --yes to run it without asking, or --dry-run to preview`
+			);
+		}
+		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
+			`The picture of ${names} differs from the layout's. Replace ${changedEmoji.length === 1 ? "it" : "them"}? Each is made again from its image with a new id and the old one deleted, so reactions made with the old one disappear from existing posts.`
+		);
+		if (!proceed) {
+			print(`  ${style.skip("cancelled; nothing was written")}`);
+			return { ...report, status: "cancelled" };
+		}
+	}
+
+	// The relay webhook's URL, kept here between creating it and handing it to the Worker; never reported or printed.
+	const relayWebhooks = new Map<string, string>();
+
+	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
+	const tally = { ok: 0, skip: 0 };
+	const made = (created: boolean) => void (created ? tally.ok++ : tally.skip++);
+
+	const attempt = async (step: string, fn: () => Promise<void>): Promise<boolean> => {
+		try {
+			await progress.run(`${step}…`, fn);
+			return true;
+		} catch (err) {
+			const message = describeError(err);
+			print(`  ${style.fail(`${step}: ${message}`)}`);
+			report.failures.push({ step, message });
+			return false;
+		}
+	};
+
+	// Roles first: a channel's access names them, and the server has to have them by then.
+	if ((layout.roles ?? []).length > 0) print(`\n${style.header("Roles")}`);
+	for (const role of layout.roles ?? []) {
+		await attempt(`role ${role.name}`, async () => {
+			if (!notifications.ensureRole) throw new Error(`\`${notifications.providerName}\` cannot manage roles`);
+			if (dryRun) {
+				print(
+					`  ${style.skip(`would ensure role ${role.name}${role.secret ? ` and store its id in ${role.secret}` : ""}`)}`
+				);
+				tally.skip++;
+				report.roles.push({ name: role.name, created: false, ...(role.secret ? { secret: role.secret } : {}) });
+				return;
+			}
+			const result = await notifications.ensureRole({
+				name: role.name,
+				...(role.mentionable !== undefined ? { mentionable: role.mentionable } : {}),
+				...(role.color !== undefined ? { color: role.color } : {}),
+				...(role.hoist !== undefined ? { hoist: role.hoist } : {}),
+				...(role.permissions !== undefined ? { permissions: role.permissions } : {}),
+			});
+			const outcome: RoleOutcome = {
+				name: role.name,
+				id: result.id,
+				created: result.created,
+				...(result.updated?.length ? { updated: result.updated } : {}),
+			};
+			report.roles.push(outcome);
+			const changed = result.created || (result.updated?.length ?? 0) > 0;
+			const verb = result.created ? "created" : changed ? "updated" : "exists ";
+			print(
+				`  ${(changed ? style.success : style.skip)(`${verb} role ${role.name} (id ${result.id})${result.updated?.length ? `: ${result.updated.join(", ")}` : ""}`)}`
+			);
+			made(changed);
+			if (role.secret) {
+				// Same store as the webhooks, so the id is there for workflows with nothing to copy by hand.
+				await secrets!.setSecret(scope!, role.secret, result.id); // set: setup refuses to run without both
+				outcome.secret = role.secret;
+				outcome.stored = true;
+				print(`  ${style.success(`stored the id of ${role.name} in ${role.secret}`)}`);
+				tally.ok++;
+			}
+		});
+	}
+
+	// Server emoji next, made where the server lacks one and made again where its picture differs: a channel's reactions
+	// name them, and are looked up by name once the channels are reached, so a replaced emoji's new id is the one they get.
+	if (emojiImages.size > 0) print(`\n${style.header("Emoji")}`);
+	for (const [name, image] of emojiImages) {
+		await attempt(`emoji :${name}:`, async () => {
+			const check = emojiStates.get(name);
+			const replace = check?.state === "different";
+			const note = check?.state === "unknown" ? ` (picture not compared: ${check.note ?? "unknown"})` : "";
+			if (dryRun) {
+				print(
+					`  ${style.skip(
+						replace
+							? `would replace emoji :${name}: (its picture differs; made again, a new id)`
+							: `would ensure emoji :${name}: (made from its image only when the server has none)${note}`
+					)}`
+				);
+				tally.skip++;
+				return;
+			}
+			const result = await notifications.ensureEmoji!({ name, image, ...(replace ? { replace: true } : {}) }); // checked above, before anything was written
+			const replaced = !result.created && (result.updated?.length ?? 0) > 0;
+			report.emojis = [
+				...(report.emojis ?? []),
+				{ name, created: result.created, ...(replaced ? { replaced: true } : {}) },
+			];
+			const verb = result.created ? "created" : replaced ? "replaced" : "exists ";
+			print(
+				`  ${(result.created || replaced ? style.success : style.skip)(`${verb} emoji :${name}: (id ${result.id})${result.created || replaced ? "" : note}`)}`
+			);
+			made(result.created || replaced);
+		});
+	}
+
+	for (const category of layout.categories ?? []) {
+		print(`\n${style.header(category.name)}`);
+		report.categories.push(category.name);
+		const categoryOk = await attempt(`category ${category.name}`, async () => {
+			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
+			if (dryRun) {
+				print(`  ${style.skip(`would ensure category ${category.name}`)}`);
+				tally.skip++;
+				return;
+			}
+			const result = await notifications.ensureCategory(category.name, {
+				...(category.access ? { access: category.access } : {}),
+			});
+			const changed = result.created || (result.updated?.length ?? 0) > 0;
+			const verb = result.created ? "created" : changed ? "updated" : "exists ";
+			const what = result.updated?.length ? `: ${result.updated.join(", ")}` : "";
+			print(`  ${(changed ? style.success : style.skip)(`${verb} category ${category.name}${what}`)}`);
+			made(changed);
+		});
+		const channels = category.channels ?? [];
+		if (!categoryOk && channels.length > 0) {
+			// Creating its channels now would recreate the category without its access, and expose it.
+			print(
+				`  ${style.skip(`skipped ${channels.length} channel${channels.length === 1 ? "" : "s"}: the category failed`)}`
+			);
+			tally.skip += channels.length;
+			continue;
+		}
+		for (const channel of channels) {
+			await attempt(`channel ${channel.name}`, async () => {
+				const sources = channelWebhookAvatars(layout, channel);
+				const own: { name?: string; secret?: string } | undefined =
+					channel.webhook === true ? {} : channel.webhook || undefined;
+				// The picture in the layout, which may be `{ url, image }`, becomes the image that was read.
+				const webhook = own
+					? {
+							...(own.name ? { name: own.name } : {}),
+							...(own.secret ? { secret: own.secret } : {}),
+							...(sources.length > 0 ? { avatar: avatars.get(JSON.stringify(sources))! } : {}),
+						}
+					: undefined;
+				const outcome = await provisionChannel(
+					{
+						notifications,
+						...(secrets ? { secrets } : {}),
+						...(monitoring ? { monitoring } : {}),
+						onRelayWebhook: (url: string, source?: string) =>
+							void relayWebhooks.set(source ?? errors!.providerName, url),
+						scope: scope ?? { kind: "repo" },
+						dryRun,
+						print,
+						tally,
+					},
+					{
+						name: channel.name,
+						category: category.name,
+						...(channel.topic ? { topic: channel.topic } : {}),
+						...(effectiveAccess(category.access, channel.access)
+							? { access: effectiveAccess(category.access, channel.access)! }
+							: {}),
+						...(channel.kind ? { kind: channel.kind } : {}),
+						...(channel.tags ? { tags: channel.tags } : {}),
+						...(channel.defaultReaction ? { defaultReaction: channel.defaultReaction } : {}),
+						...(webhook ? { webhook } : {}),
+						...(channel.feeds?.monitoring || channel.feeds?.errors || relayFeedsOf(channel).length > 0
+							? {
+									feeds: {
+										...(channel.feeds?.monitoring
+											? {
+													monitoring: {
+														...monitoringFeed(
+															channel.name,
+															channel.feeds.monitoring,
+															monitoring!
+														),
+														...(feedAvatarsOf(channel).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(feedAvatarsOf(channel))
+																	)!,
+																}
+															: {}),
+													},
+												}
+											: {}),
+										...(relayFeedsOf(channel).length > 0
+											? {
+													relay: relayFeedsOf(channel).map((f) => ({
+														source: f.source,
+														webhook: f.webhook,
+														...(feedAvatarOf(layout, f.feed).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(feedAvatarOf(layout, f.feed))
+																	)!,
+																}
+															: {}),
+													})),
+												}
+											: {}),
+										...(channel.feeds?.errors
+											? {
+													errors: {
+														webhook: errorsFeedWebhook(channel.feeds.errors, errors!),
+														...(errorsAvatarsOf(channel).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(errorsAvatarsOf(channel))
+																	)!,
+																}
+															: {}),
+													},
+												}
+											: {}),
+									},
+								}
+							: {}),
+					}
+				);
+				report.channels.push(outcome);
+				if (outcome.webhook && !outcome.webhook.stored) {
+					report.failures.push({
+						step: `webhook ${outcome.webhook.name}`,
+						message: outcome.webhook.note!,
+					});
+				}
+			});
+		}
+	}
+
+	// The relay Worker, once its channel's webhook exists: its URL is the Worker's secret.
+	if (workers && dns && (wantsErrors || wantsAnyRelay(layout))) {
+		print(`\n${style.header("Relay")}`);
+		// Each source's side first: the tracker's integration and alert rule, and the vendors' webhooks, with the secrets
+		// that sign their requests. A failure here is reported but does not stop the Worker from being deployed with the
+		// webhooks that are ready.
+		const tracker = layout.relay!.errors;
+		const signingSecrets = new Map<string, string>();
+		if (errors && tracker && errors.ensureRelay) {
+			await attempt(`${errors.providerName} alert relay`, async () => {
+				const integration = tracker.integration ?? DEFAULT_RELAY_INTEGRATION;
+				const rule = tracker.rule ?? DEFAULT_RELAY_RULE;
+				if (dryRun) {
+					print(
+						`  ${style.skip(`would ensure the ${errors.providerName} integration ${integration} and the alert rule ${rule} on ${tracker.projects.join(", ")}`)}`
+					);
+					tally.skip += 2;
+					return;
+				}
+				const result = await errors.ensureRelay!({
+					name: integration,
+					webhookUrl: `https://${layout.relay!.host}/${errors.providerName}`,
+					projects: tracker.projects,
+					rule: { name: rule, ...(tracker.frequency ? { frequency: tracker.frequency } : {}) },
+				});
+				if (result.clientSecret) signingSecrets.set(errors.providerName, result.clientSecret);
+				for (const [what, name, outcome] of [
+					["integration", integration, result.integration],
+					["alert rule", rule, result.rule],
+				] as const) {
+					const changed = outcome.created || outcome.updated.length > 0;
+					const verb = outcome.created ? "created" : changed ? "updated" : "exists ";
+					const detail = outcome.updated.length > 0 ? `: ${outcome.updated.join(", ")}` : "";
+					print(
+						`  ${(changed ? style.success : style.skip)(`${verb} ${errors.providerName} ${what} ${name}${detail}`)}`
+					);
+					made(changed);
+				}
+				if (!result.clientSecret) {
+					print(
+						`  ${style.warn(`${errors.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to the vault as COMLINK_${errors.providerName.toUpperCase()}_SECRET and run holocron sync secrets --env prod`)}`
+					);
+				}
+			});
+		}
+		const wanted = [...(errors ? [errors.providerName] : []), ...declaredSources.map((d) => d.id)];
+		const bindingsFor = (): RelayBinding[] =>
+			wanted.flatMap((source) => {
+				const webhook = relayWebhooks.get(source);
+				const signingSecret = signingSecrets.get(source);
+				return webhook ? [{ source, webhook, ...(signingSecret ? { signingSecret } : {}) }] : [];
+			});
+		const deployWorker = (bindings: RelayBinding[]) =>
+			deployRelay({
+				relay: layout.relay!,
+				sources: bindings,
+				repoRoot: input.context.repoRoot,
+				workers: workers,
+				dns: dns,
+				...(input.readRelayCode ? { readCode: input.readRelayCode } : {}),
+			});
+		// A vendor may test the webhook it is given by posting to it (Cloudflare does, and refuses one that answers 404 or
+		// 401), so a webhook that does not exist yet needs the Worker deployed with its route and its secret first. The
+		// secret is ours to choose for those, so it is made here, deployed, then handed to the vendor. A webhook that
+		// exists keeps the secret the Worker has.
+		const chosen = new Map<string, string>();
+		if (!dryRun) {
+			for (const source of declaredSources) {
+				const provider = sourceProviders.get(source.id)!;
+				if (!provider.inspectRelaySource || !relayWebhooks.has(source.id)) continue;
+				try {
+					const state = await provider.inspectRelaySource(inspectInputOf(source));
+					if (!state.exists) chosen.set(source.id, newRelaySecret());
+				} catch {
+					// An unreadable webhook is made the old way, after the Worker: the step below reports what fails.
+				}
+			}
+			if (chosen.size > 0) {
+				for (const [id, secret] of chosen) signingSecrets.set(id, secret);
+				await attempt(`relay ${layout.relay!.host} (before its webhooks)`, async () => {
+					const deployed = await deployWorker(bindingsFor());
+					print(
+						`  ${style.success(`deployed ${deployed.script} at ${deployed.host} for ${[...chosen.keys()].join(", ")}`)}`
+					);
+					tally.ok++;
+				});
+			}
+		}
+		for (const source of declaredSources) {
+			const provider = sourceProviders.get(source.id)!;
+			await attempt(`${provider.providerName} relay source ${source.id}`, async () => {
+				const ensured = await ensureRelaySource(
+					source,
+					provider,
+					{ host: layout.relay!.host, newSecret: () => chosen.get(source.id) ?? newRelaySecret() },
+					{ print, made, dryRun }
+				);
+				if (ensured.secret) signingSecrets.set(source.id, ensured.secret);
+				for (const todo of ensured.todo) {
+					print(`  ${style.fail(`${provider.providerName} relay source ${source.id}: ${todo}`)}`);
+					report.failures.push({ step: `${provider.providerName} relay source ${source.id}`, message: todo });
+				}
+			});
+		}
+		await attempt(`relay ${layout.relay!.host}`, async () => {
+			if (dryRun) {
+				print(`  ${style.skip(`would deploy the relay Worker at ${layout.relay!.host}`)}`);
+				tally.skip++;
+				return;
+			}
+			const bindings = bindingsFor();
+			const missing = wanted.filter((source) => !relayWebhooks.has(source));
+			if (bindings.length === 0) {
+				throw new Error("no relay webhook to give the Worker (its channel failed above)");
+			}
+			const deployed = await deployWorker(bindings);
+			print(`  ${style.success(`deployed ${deployed.script} at ${deployed.host}`)}`);
+			tally.ok++;
+			if (missing.length > 0) {
+				throw new Error(
+					`no relay webhook for ${missing.join(", ")} (its channel failed above), so the Worker has none`
+				);
+			}
+		});
+	}
+
+	// The server's own settings come last: they name channels and roles, which exist by now.
+	if (
+		layout.server ||
+		layout.welcome ||
+		layout.onboarding ||
+		(layout.pinned?.length ?? 0) > 0 ||
+		layout.application ||
+		layout.everyone
+	) {
+		print(`\n${style.header("Server")}`);
+		const apply = async (
+			label: string,
+			declared: boolean,
+			run: () => Promise<{ updated: string[]; todo?: string[] }>
+		): Promise<void> => {
+			if (!declared) return;
+			await attempt(label, async () => {
+				if (dryRun) {
+					print(`  ${style.skip(`would ensure ${label}`)}`);
+					tally.skip++;
+					return;
+				}
+				const result = await run();
+				const changed = result.updated.length > 0;
+				print(
+					`  ${(changed ? style.success : style.skip)(`${changed ? "updated" : "exists "} ${label}${changed ? `: ${result.updated.join(", ")}` : ""}`)}`
+				);
+				made(changed);
+				// What only a person can do: shown, and counted as a failure so the run does not look finished.
+				for (const todo of result.todo ?? []) {
+					print(`  ${style.fail(`${label}: ${todo}`)}`);
+					report.failures.push({ step: label, message: todo });
+				}
+			});
+		};
+		await apply("@everyone permissions", !!layout.everyone, () => notifications.ensureEveryone!(layout.everyone!));
+		// A person at a terminal can be walked through the one-off Administrator step; a script gets the explanation.
+		/* v8 ignore next 4 -- the real prompt only runs with a terminal attached; tests pass their own */
+		const pause =
+			input.pause === false
+				? undefined
+				: (input.pause ??
+					(process.stdin.isTTY && process.stdout.isTTY
+						? async (message: string) => void (await prompt({ message }))
+						: undefined));
+		await apply("server settings", !!layout.server, () =>
+			withElevation(() => notifications.ensureServer!(layout.server!), {
+				label: "server settings",
+				notifications,
+				...(pause ? { pause } : {}),
+				print,
+			})
+		);
+		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
+		// Pinning needs Pin Messages, which the bot may not hold yet: a person at a terminal is walked through it.
+		await apply("pinned messages", (layout.pinned?.length ?? 0) > 0, () =>
+			withElevation(() => notifications.ensurePinned!(layout.pinned!), {
+				label: "pinned messages",
+				notifications,
+				...(pause ? { pause } : {}),
+				print,
+			})
+		);
+		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
+		await apply("bot application", !!layout.application, () =>
+			notifications.ensureApplication!(layout.application!)
+		);
+	}
+
+	if (report.failures.length > 0) {
+		report.status = "fail";
+	} else if (dryRun) {
+		report.status = "dry-run";
+	}
+	print("");
+	print(style.header(`${tally.ok} ok, ${report.failures.length} fail, ${tally.skip} skipped`));
+	logger.info(
+		{
+			provider: notifications.providerName,
+			channels: report.channels.length,
+			roles: report.roles.length,
+			failures: report.failures.length,
+			status: report.status,
+		},
+		"setup notifications"
+	);
+	return report;
+}

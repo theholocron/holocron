@@ -1,0 +1,64 @@
+---
+title: "provider"
+description: Set up or check what only one provider has, from its own block of holocron.config.
+---
+
+```bash
+holocron provider                                   # list the providers that offer setup or doctor
+holocron provider <name>                            # list what one provider offers
+holocron provider <name> doctor                     # compare the provider's block with the provider (read-only)
+holocron provider <name> setup [--dry-run] [--yes]  # make what the block declares
+holocron provider <name> doctor --with <file or key=value>...  # a provider the config does not name
+```
+
+Some things exist in one vendor only: a Linear team's auto-close, a Discord server's roles. They have no provider-neutral vocabulary, so they do not belong in [`setup project`](/holocron/commands/project/) or [`setup notifications`](/holocron/commands/setup-notifications/), which keep their neutral templates and layouts. `provider` is the command that names the provider, so the generic ones stay generic.
+
+A plugin offers them by returning a `setup` and a `doctor` from `createPlugin`, next to its `capabilities` and `probes`. `holocron provider` lists the configured providers that did; one with neither is not listed. Both read the provider's own options in `holocron.config` (for Linear, the block under the `issues` entry), never flags only.
+
+A provider the config names under more than one capability (Linear under both `issues` and `projects`) takes its options from the **first** of those entries in the config's `providers`. Put the full block, with the labels, project and automation, in that first entry, or give it with [`--with`](#a-provider-that-is-not-in-the-config).
+
+## A provider that is not in the config
+
+`--with` runs a provider the config does not name, with its options given on the command line, and changes nothing in the config. Each value is a `key=value` pair (text, the syntax of [`migrate`](/holocron/commands/migrate/)'s `linear:team=ENG`) or the path of a file, and the flag repeats:
+
+```bash
+holocron provider linear doctor --with team=ENG --with linear-trial.json
+holocron provider linear setup --with linear-trial.json --dry-run
+```
+
+- **A file** is `.json`, or `.ts`, `.js`, `.mjs` or `.cjs` with the options object as its default export, relative to the working directory. It holds what the provider's block would hold: lists and nested objects are fine. Names only, never a token.
+- **Later values win**, one top-level key at a time; a nested object in a later value replaces the earlier one whole.
+- **Where the config does name the provider**, its first entry's options are the base and `--with` goes over them.
+- **The options are checked as the config's are**, by the plugin's own parser, so a wrong shape is a `ConfigError` naming the path (the path reads as it would in the config, for example `providers.issues.labels`).
+- **The plugin package must still resolve** from where you run the command, as for every command that calls a provider; otherwise you get the same message about running it from a repo that has the plugin packages.
+- **The token** comes from the usual chain or `--token`, so a one-off admin key can be passed for one command (`--token linear=<KEY>`). It is never printed.
+
+## `provider <name> doctor`
+
+Read-only. One row per declared setting, printed through the same renderer as every `doctor <capability>`: `ok`, `fail` (with a line per difference) or `skipped`, then `N ok, N fail, N skipped`. Exit code 1 if any row fails. A block that declares nothing is one skipped row.
+
+## `provider <name> setup`
+
+Makes what the block declares:
+
+- **Idempotent.** What is already right is `ok`; a second run changes nothing.
+- **Never deletes.** It does not remove or reorder anything it was not told about.
+- **`--dry-run`** reports each step as what it would do, and changes nothing.
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
+- **A step that fails is a row, not the end of the run.** The next step still runs, and the exit code is 1 at the end.
+
+## Options
+
+| Option      | Default | Description                                                               |
+| ----------- | ------- | ------------------------------------------------------------------------- |
+| `--dry-run` | `false` | `setup`: show what it would change, without changing it                   |
+| `--yes`     | `false` | `setup`: do not ask before changing things (required without a terminal)  |
+| `--with`    |         | The provider's options: a `key=value` pair or an options file; repeatable |
+
+No token is ever printed: what a provider reports passes through the same filter as [`probe`](/holocron/commands/probe/).
+
+## Providers
+
+| Provider | `setup` and `doctor` cover                                                                                            |
+| -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `linear` | the team's labels, a project, and its auto-close and auto-archive. See the [Linear plugin](/holocron/plugins/linear/) |

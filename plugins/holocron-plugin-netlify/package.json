@@ -1,0 +1,69 @@
+{
+  "name": "@theholocron/holocron-plugin-netlify",
+  "version": "5.0.0-alpha.549",
+  "description": "Holocron plugin for Netlify. Implements the deployment capability against Netlify's REST API, plus exports verifyToken + AUTH_HINT for `holocron auth`.",
+  "keywords": [
+    "deployment",
+    "holocron",
+    "netlify",
+    "plugin"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/netlify/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "plugins/holocron-plugin-netlify"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "validate:plugin": "tsx scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/netlify-client": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:peers",
+    "@theholocron/netlify-client": "catalog:peers"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/netlify-client": {}
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

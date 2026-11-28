@@ -3,8 +3,8 @@ title: Cloudflare Plugin
 description: Implements the dns and deployment capabilities against Cloudflare's API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-cloudflare"]} capability="dns" />
 
@@ -34,13 +34,14 @@ providers: {
 }
 ```
 
-The `deployment` capability is enabled automatically when `CLOUDFLARE_ACCOUNT_ID` is set in the environment (or passed as `accountId` in plugin options).
+The `deployment` capability is enabled automatically when `HOLOCRON_CLOUDFLARE_ACCOUNT_ID` (or the bare `CLOUDFLARE_ACCOUNT_ID`) is set in the environment or in a `credentials` provider's Environment (or passed as `accountId` in plugin options).
 
 ### Options
 
-| Option      | Required | Description                                                                                                 |
-| ----------- | -------- | ----------------------------------------------------------------------------------------------------------- |
-| `accountId` | No       | Cloudflare account ID. Falls back to `CLOUDFLARE_ACCOUNT_ID` env var. Required for `deployment` capability. |
+| Option      | Required | Description                                                                                                                                                                                                                                       |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accountId` | No       | Cloudflare account ID. Falls back to `HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, then `CLOUDFLARE_ACCOUNT_ID`, in the environment, then in the variables a `credentials` provider (a 1Password Environment) returned. Required for `deployment` capability. |
+| `zone`      | No       | The zone the organization's own DNS lives in. `.holocron/org.ts` fills it into every Cloudflare entry. `holocron probe cloudflare token` reads this zone when none is named on the command line.                                                  |
 
 ## Authentication
 
@@ -53,7 +54,7 @@ The `deployment` capability is enabled automatically when `CLOUDFLARE_ACCOUNT_ID
 5. Copy the token (shown once)
 
 ```bash
-holocron auth set cloudflare <TOKEN>
+holocron new token cloudflare <TOKEN>
 ```
 
 Or via env var:
@@ -70,6 +71,12 @@ For Pages deployments, also set the account ID:
 export CLOUDFLARE_ACCOUNT_ID=<ACCOUNT_ID>
 ```
 
+Or keep it in the 1Password Environment a `providers.credentials` entry names, and it is found the same way the token is, with no copy in the process environment. The order is the `accountId` option, the environment, then the credentials providers.
+
+## Checking a token
+
+`holocron probe cloudflare token [<zone>...]` tries each permission the plugin uses (Zone: Read, DNS: Edit and Workers Routes: Edit per zone, Workers Scripts: Edit, Pages: Edit, Cloudflare Tunnel: Edit and Notifications: Edit on the account) and reports which the token has. It only reads, uses the plugin's account id, and never prints the token. Without a zone on the command line it reads the plugin's `zone` option, the organization's own zone (`.holocron/org.ts` fills it into every Cloudflare entry); with neither it reads the first few zones of the account, which a token scoped to one zone rightly cannot edit. Point it at another token with `--token cloudflare=<token>` or `--environment <layer or name>`; on a terminal with neither it asks. See [`probe`](/holocron/commands/probe/#checking-a-token) and [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs).
+
 ## What `dns` provides
 
 - `listRecords(domain)` — list all DNS records for the zone (zone resolved automatically from domain)
@@ -77,6 +84,36 @@ export CLOUDFLARE_ACCOUNT_ID=<ACCOUNT_ID>
 - `deleteRecord(domain, id)` — delete a DNS record by id
 
 Zone resolution walks from the full domain up to the apex automatically — e.g. `api.staging.example.com` tries `api.staging.example.com`, then `staging.example.com`, then `example.com`.
+
+## What `workers` provides
+
+- `deployScript(name, config)`: uploads a Worker with its secrets and routes. This is how `holocron setup notifications` deploys the Comlink relay.
+- `setSecret(script, name, value)` and `secretNames(script)`: set one secret on a deployed script, and list the names (never the values) of its secrets.
+- `inspectScript(name, host)`: reads a script without changing it, for `holocron doctor notifications`. It returns whether the script exists, the routes in the zone of `host` that point at it, and the names of its secrets. A secret's value is never requested.
+
+## What `tunnels` provides
+
+Named Cloudflare Tunnels, for a stable public hostname that reaches a port on this machine (a webhook that has to find a development instance). Needs a token with **Cloudflare Tunnel: Edit** (account) and an account id, like `workers`.
+
+- `ensureTunnel({ name, hostname, service })`: finds the tunnel by name or makes it, and makes it serve `hostname` at `service`. Routes for other hostnames are kept and the `http_status:404` catch-all stays last. A tunnel that already serves the hostname is left alone. It returns the tunnel id and the `CNAME` target (`<id>.cfargotunnel.com`); the DNS record is the `dns` provider's.
+- `tunnelToken(id)`: the token `cloudflared` runs the tunnel with. A credential: it is never printed or stored.
+- `whoami()`: how many tunnels the token can see, for `holocron doctor`.
+
+## Relay sources on `dns`
+
+`dns` also implements the optional `ensureRelaySource` and `inspectRelaySource` (spec `tech-relay-sources`), so a `relay.sources` entry with `capability: "dns"` gets its Cloudflare notification webhook with no dashboard step. It needs the account id and a token with **Notifications: Edit** (account; Notifications Write or Account Settings Write).
+
+```ts
+relay: {
+  host: "comlink.theholocron.dev",
+  sources: { cloudflare: { capability: "dns", events: ["incident_alert", "dos_attack_l7"] } },
+},
+```
+
+- `events` is the list of Cloudflare alert types (`alert_type`; `GET /accounts/<id>/alerting/v3/available_alerts` says which an account may create). A destination alone sends nothing, so each alert type gets a policy of its own, named `<name>: <alert_type>`, that names the destination. A source with no `events` is reported as a failing `todo`.
+- The destination (`POST /accounts/<id>/alerting/v3/destinations/webhooks`) is found again by its name and URL (Cloudflare returns the URL masked, `https://host/...`, so a destination whose URL is exactly `https://<host>/...` on the same origin and whose name is equal ignoring case counts; one at the exact URL counts whatever its name) and each policy by name, so a second run changes nothing. When several destinations match, the newest (by `created_at`) is used, the older ones are taken off the source's policies so no alert is sent twice, and a `todo` names the others so they can be deleted in the dashboard (Notifications, Destinations) after a test alert is accepted: Cloudflare never shows a destination's secret, so setup cannot check which one the Worker's secret belongs to. A policy that is off, or does not name the destination, is turned on and given it with a `PUT` that sends back everything else it held. Nothing is deleted.
+- The secret is chosen by the caller, sent as is in the `cf-webhook-auth` header and never returned by Cloudflare. It is handed back only when the destination was made now, so the Worker's `COMLINK_CLOUDFLARE_SECRET` is set in that deploy; an adopted destination keeps the secret the Worker has. A destination made and then lost with its secret is fixed by deleting it in the dashboard and running `setup` again.
+- `inspectRelaySource` reports whether the destination exists, the alert types of the policies that send to it and whether they are all on. Cloudflare never says whether a destination has a secret, so that is not reported.
 
 ## What `deployment` provides
 
@@ -94,7 +131,7 @@ Add `preview: true` to the `deploy` entry in `holocron.config.ts`:
 ```ts
 org: "myorg",
 domain: "myorg.dev",
-workflows: [
+tasks: [
   { name: "deploy", with: { docs: true, preview: true } }
 ]
 ```
@@ -110,13 +147,13 @@ Running `holocron setup` provisions the Pages project, apex custom domain, and D
 
 Every PR gets a stable branch URL:
 
-```
+```text
 https://<repo>-pr-<n>.<project>.pages.dev/<base-path>/
 ```
 
 For example, PR #42 on the `holocron` repo with project `theholocron-preview`:
 
-```
+```text
 https://holocron-pr-42.theholocron-preview.pages.dev/holocron/
 ```
 
@@ -130,7 +167,7 @@ Go to **Workers & Pages → `<project-name>`** to see:
 - **Custom domains** tab — verify the apex domain is active.
 - **Settings → Builds & deployments** — do not connect a Git repository; deployments are driven by GitHub Actions via the API.
 
-If a preview deploy fails, check the **Deployments** tab → click the failed deployment → **View build log**.
+If a preview deploy fails, check the **Deployments** tab → click the deployment that errored → **View build log**.
 
 ## Example
 
@@ -147,3 +184,5 @@ await dns.upsertRecord("example.com", {
   ttl: 60,
 });
 ```
+
+The full [API reference](/holocron/plugins/holocron-plugin-cloudflare/api/readme/) is generated from the package's TSDoc comments.

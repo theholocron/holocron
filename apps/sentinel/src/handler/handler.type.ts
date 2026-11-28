@@ -1,0 +1,35 @@
+import type { CiAggregateEnv } from "../actions/ci-aggregate/index.js";
+import type { RoleSyncEnv } from "../actions/role-sync/load-role-sync-providers/index.js";
+import type { GitHubAppEnv } from "../utils/github-app-credentials/index.js";
+
+/**
+ * The deployment's bindings. The App's id and key are `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`,
+ * or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` (see {@link GitHubAppEnv}); one spelling of each must be set.
+ */
+export interface Env extends RoleSyncEnv, GitHubAppEnv, CiAggregateEnv {
+	SENTINEL_WEBHOOK_SECRET: string;
+}
+
+/** What a platform adapter can hand `handleWebhookRequest()`. */
+export interface HandleWebhookOptions {
+	/**
+	 * Keeps the function alive until the promise settles after the response is sent (Vercel's `waitUntil`). When set,
+	 * a verified delivery is answered `202` at once and its work runs here; when absent the work is awaited and its
+	 * status is the response.
+	 */
+	waitUntil?: (promise: Promise<unknown>) => void;
+}
+
+/** The push/pull_request-specific fields the pipeline needs beyond what `SentinelEvent` already normalizes. */
+export interface ResolutionContext {
+	defaultBranch: string;
+	headSha: string;
+	/** Only present for `pull_request.*` events — `lintCommits()`'s own input. `push.default-branch` has no PR to fetch commits from. */
+	pullNumber?: number;
+	/** Only present for `pull_request.*` events — the PR's head *branch name*, not a SHA. `commitFormattingFix()`'s own `updateRef()` input (holocron#820); nothing else needs it. */
+	headRef?: string;
+	/** Only present for `pull_request.*` events — the PR title, which the docs-presence check reads a `feat` from. */
+	prTitle?: string;
+	/** Only present for `pull_request.*` events — the PR description, which the docs-presence check reads `[skip docs]` from. */
+	prBody?: string;
+}

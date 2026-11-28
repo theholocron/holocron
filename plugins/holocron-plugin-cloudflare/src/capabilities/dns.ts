@@ -1,0 +1,141 @@
+import type {
+	Dns,
+	DnsRecord,
+	DnsRecordType,
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
+	InspectRelaySourceInput,
+	RelaySourceState,
+} from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
+
+import type { CloudflareClient } from "../rest.js";
+import { ensureRelaySource, inspectRelaySource } from "./relay-source.js";
+
+/** The Cloudflare implementation of the `dns` capability; finds a domain's zone by walking from the domain up to its apex. */
+export class CloudflareDns implements Dns {
+	/** The capability this class provides, always `"dns"`. */
+	readonly key = "dns" as const;
+	/** The provider name, `"cloudflare"`. */
+	readonly providerName = "cloudflare";
+
+	// Zone id is cached per domain name for the plugin instance lifetime.
+	private readonly zoneCache = new Map<string, string>();
+
+	constructor(
+		private readonly client: () => CloudflareClient,
+		private readonly accountId?: string
+	) {}
+
+	/** Makes the Cloudflare notification webhook and the policies that send to it for a relay source; needs the account id. */
+	async ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		return ensureRelaySource(this.client(), this.account(), input);
+	}
+
+	/** Reads the relay source's notification webhook and its policies back, changing nothing. */
+	async inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		return inspectRelaySource(this.client(), this.account(), input);
+	}
+
+	private account(): string {
+		if (!this.accountId) {
+			throw new ProviderApiError(
+				"Cloudflare accountId is required for notification webhooks: set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID",
+				0,
+				undefined
+			);
+		}
+		return this.accountId;
+	}
+
+	/** Lists the DNS records in the zone that holds the domain. */
+	async listRecords(domain: string): Promise<DnsRecord[]> {
+		const zoneId = await this.resolveZone(domain);
+		const records = await this.client().dns.list(zoneId);
+		return records.map(mapRecord);
+	}
+
+	/** Updates the first record of the same type and name, or creates the record when there is none; returns the stored record. */
+	async upsertRecord(domain: string, record: DnsRecord): Promise<DnsRecord> {
+		const client = this.client();
+		const zoneId = await this.resolveZone(domain);
+		const existing = await client.dns.list(zoneId, {
+			type: record.type,
+			name: record.name,
+		});
+		if (existing.length > 0) {
+			// When multiple same-type records exist (e.g. TXT for SPF + DKIM),
+			// update only the first match. Callers managing multiple TXT records
+			// should use listRecords + deleteRecord + explicit upserts.
+			const updated = await client.dns.update(zoneId, existing[0].id, {
+				type: record.type,
+				name: record.name,
+				content: record.content,
+				...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
+				...(record.proxied !== undefined ? { proxied: record.proxied } : {}),
+			});
+			return mapRecord(updated);
+		}
+		const created = await client.dns.create(zoneId, {
+			type: record.type,
+			name: record.name,
+			content: record.content,
+			...(record.ttl !== undefined ? { ttl: record.ttl } : {}),
+			...(record.proxied !== undefined ? { proxied: record.proxied } : {}),
+		});
+		return mapRecord(created);
+	}
+
+	/** Deletes the DNS record with this id from the zone that holds the domain. */
+	async deleteRecord(domain: string, id: string): Promise<void> {
+		const zoneId = await this.resolveZone(domain);
+		await this.client().dns.delete(zoneId, id);
+	}
+
+	/** `holocron doctor` has no specific domain to check — lists every zone the token can see instead. */
+	async whoami(): Promise<{ ok: boolean; zones: number }> {
+		const zones = await this.client().zones.list();
+		return { ok: true, zones: zones.length };
+	}
+
+	/**
+	 * Walk from full domain up to apex to find the Cloudflare zone.
+	 * E.g. "api.staging.example.com" tries:
+	 *   1. "api.staging.example.com"
+	 *   2. "staging.example.com"
+	 *   3. "example.com"
+	 */
+	private async resolveZone(domain: string): Promise<string> {
+		const cached = this.zoneCache.get(domain);
+		if (cached) return cached;
+
+		const parts = domain.split(".");
+		for (let i = 0; i < parts.length - 1; i++) {
+			const candidate = parts.slice(i).join(".");
+			const zones = await this.client().zones.list({ name: candidate });
+			if (zones.length > 0) {
+				this.zoneCache.set(domain, zones[0].id);
+				return zones[0].id;
+			}
+		}
+		throw new ProviderApiError(`No Cloudflare zone found for domain: ${domain}`, 404, undefined);
+	}
+}
+
+function mapRecord(raw: {
+	id: string;
+	type: string;
+	name: string;
+	content: string;
+	ttl: number;
+	proxied?: boolean;
+}): DnsRecord {
+	return {
+		id: raw.id,
+		type: raw.type as DnsRecordType,
+		name: raw.name,
+		content: raw.content,
+		ttl: raw.ttl,
+		...(raw.proxied !== undefined ? { proxied: raw.proxied } : {}),
+	};
+}

@@ -1,0 +1,30 @@
+---
+title: Misc Utils
+description: Miscellaneous utilities.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/misc-utils
+```
+
+## Usage
+
+```ts
+import { errorMessage, konami } from "@theholocron/misc-utils";
+
+try {
+  doSomething();
+} catch (err) {
+  console.error(errorMessage(err));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (konami.is(event)) {
+    console.log("Konami Code entered!");
+  }
+});
+```
+
+The full [API reference](/holocron/utils/misc-utils/api/readme/) is generated from the package's TSDoc comments.

@@ -1,8 +1,13 @@
 ---
+id: SPEC-0011
 status: archived
 issue: theholocron/holocron#369
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620397380702280
 ---
+
+<!-- alex disable fires -->
 
 # Org-scoped token resolution
 

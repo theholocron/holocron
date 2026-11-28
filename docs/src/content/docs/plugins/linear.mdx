@@ -1,0 +1,161 @@
+---
+title: Linear Plugin
+description: Implements the issues and projects capabilities against Linear, with export and import for migrating to and from GitHub.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-linear"]} capability="issues" />
+
+<Installation package={getPlugins()["holocron-plugin-linear"].package} dev />
+
+<CapabilitiesTable
+  rows={[
+    { capability: "issues", token: "HOLOCRON_LINEAR_TOKEN (linear)" },
+    { capability: "projects", token: "HOLOCRON_LINEAR_TOKEN (linear)" },
+  ]}
+/>
+
+## Config
+
+```ts
+providers: {
+  issues: ["linear", {
+    // Required: the key of the team the issues and boards belong to
+    team: "ENG",
+    // Optional: the states the inProgress and inReview slots move an issue to.
+    // Left out, the team's first "started" state (and a started state named like "review") is used.
+    states: { inProgress: "In Progress", inReview: "In Review" },
+    // Optional, for `holocron provider linear setup` and `doctor` (names only, no secrets):
+    labels: ["bug", "enhancement", "chore"], // made on the team when missing
+    project: "Roadmap", //                      made when missing
+    automation: {
+      autoClose: { months: 3, state: "Canceled" }, // team autoClosePeriod / autoCloseState
+      autoArchive: { months: 6 }, //                  team autoArchivePeriod
+    },
+  }],
+  projects: ["linear", { team: "ENG" }],
+}
+```
+
+## Authentication
+
+Create a personal API key at **Linear → Settings → Account → Security → API keys**, then:
+
+```bash
+holocron new token linear <KEY>
+```
+
+or set `HOLOCRON_LINEAR_TOKEN` (or `LINEAR_API_KEY`).
+
+### What permissions the key needs
+
+A personal API key lets you pick its permissions (Read, Write, Admin, Create issues, Create comments) and the teams it can reach. Do not give it more than the command in front of you needs, and limit it to the team you use.
+
+| Key                       | Permissions                          | Team access  | Use it for                                                                                                                    | Status                                                      |
+| ------------------------- | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Everyday key**          | Read, Write                          | the one team | `migrate`, `sync issues`, the doctor, and every `provider linear setup` step run so far, auto-close and auto-archive included | confirmed on a real team (labels, project and `teamUpdate`) |
+| **Admin key** (if needed) | Read, Write, Admin                   | the one team | a step that the everyday key is refused                                                                                       | not needed so far; git automation and statuses are untested |
+| **Narrowest key** (a try) | Read, Create issues, Create comments | the one team | copying issues and their comments only                                                                                        | untested: labels, relations and projects will be refused    |
+
+Read and Write cover comments and issues, and they were enough for `provider linear setup` to make labels and a project and to change a team's auto-close period. Linear does not say which permission covers each call, so the only way to know is to run a step: a refused one shows in the doctor row. Raise the key by one permission and run it again, and give an Admin key to one command through the environment (`HOLOCRON_LINEAR_TOKEN=<KEY> holocron provider linear setup …`), not `--token`, which shows in `ps` and shell history. A key cannot do more than your own role in the workspace allows.
+
+## How Linear maps onto the capabilities
+
+| Holocron                | Linear                                                                  |
+| ----------------------- | ----------------------------------------------------------------------- |
+| issue key               | `ENG-42` (a bare `42` or `#42` takes the team key)                      |
+| lifecycle `inProgress`  | the `states.inProgress` state, else the first `started` state           |
+| lifecycle `inReview`    | the `states.inReview` state, else a `started` state named like "review" |
+| lifecycle `done`        | the first `completed` state                                             |
+| `create({ milestone })` | a Linear **project**, by id or name                                     |
+| board (`projects`)      | a Linear project of the team                                            |
+| board status            | one of the **team's** workflow states                                   |
+| board `Priority` field  | Linear's built-in priority (Urgent, High, Medium, Low)                  |
+| board rules             | the team's auto-archive and auto-close settings (read-only)             |
+
+### Searching by text
+
+`search({ text })` is filtered by Linear: `issues(filter: { or: [{ title: { containsIgnoreCase } }, { description: { containsIgnoreCase } }] })`,
+combined with the team, `assignee` and `openOnly` filters, newest update first, up to `limit` (default 50). Each
+returned `Issue` carries the description as `body`, so a caller can confirm a match.
+
+## Differences from GitHub
+
+Linear does not need to match GitHub feature for feature. Keep this table in mind when moving **back** to GitHub.
+
+| Thing                     | GitHub                                                                              | Linear                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Priority                  | a project field (the repo uses `P0`…`P3`)                                           | built into every issue; migrates as a `priority: <level>` label on GitHub                                                                                          |
+| Kind (bug, feature, task) | the issue Type (Bug, Feature, Task), else the `bug`, `enhancement` or `chore` label | no Type: the same three labels; `IssueRecord.kind` carries it both ways (below)                                                                                    |
+| Effort and dates          | the organization's `Effort`, `Start date` and `Target date` issue fields            | the estimate (1 low, 3 medium, 5 high; another number is no effort) and the due date; **no start date**: it is `dropped` as `startDate (Linear has no start date)` |
+| Statuses                  | per project (`Status` field)                                                        | per **team**, shared by every project; `ensure` adds, never removes                                                                                                |
+| Custom fields             | yes (single select, number, date, …)                                                | none; a template's extra fields come back as `todos`                                                                                                               |
+| Views                     | managed by `setup project`                                                          | not managed; a template's views come back as `todos`                                                                                                               |
+| Automation                | project workflows (read, report)                                                    | team auto-archive / auto-close (read); turning one on is a `todo`                                                                                                  |
+| Milestone                 | milestone                                                                           | project (`create` and `migrate --milestone` use a project's name)                                                                                                  |
+| Backdating                | no                                                                                  | yes, so a migrated issue keeps its created date                                                                                                                    |
+| Parent and blocked-by     | read through GraphQL                                                                | native; **not set** when importing into GitHub                                                                                                                     |
+| Assignee                  | a login                                                                             | matched by email on import; unmatched assignees are dropped                                                                                                        |
+| Comment author            | the commenter                                                                       | comments are posted by the token's user, with the author named in the text                                                                                         |
+| Move between boards       | rewrites the project item                                                           | an issue is in one project, so `move issues` changes its project                                                                                                   |
+
+## Setup and doctor
+
+`holocron provider linear setup` makes what the block above declares, and `holocron provider linear doctor` compares it with the team, one row per setting. See [provider](/holocron/commands/provider/) for the rules both follow (idempotent, never deletes, `--dry-run`, asks first unless `--yes`).
+
+| Step             | What setup does                                                                                                                                                                                                                                                                                             | What the doctor checks                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `labels`         | `issueLabelCreate` on the team for each missing name, in GitHub's colour when `CANONICAL_LABELS` has the name, else in the colour of the declared issue Type (`issueTypes`) whose label it is (so `epic` keeps one). An existing label (any case) is left alone                                             | each name is present on the team or workspace                                  |
+| `project`        | makes the project, for the team, when no open project of the team has the name                                                                                                                                                                                                                              | an open project of the team has the name                                       |
+| `autoClose`      | `teamUpdate` of `autoClosePeriod` (months; `0` sends `null`, which the schema calls turned off) and, when `state` is given, `autoCloseState`; a state the team lacks fails the row                                                                                                                          | the team's period and state equal the declaration                              |
+| `autoArchive`    | `teamUpdate` of `autoArchivePeriod`                                                                                                                                                                                                                                                                         | the team's period equals the declaration                                       |
+| `automation.git` | for each `{ event, state, branch? }`: `gitAutomationStateCreate` (a `gitAutomationTargetBranchCreate` first for a named `branch`, reused when a rule already names it), or `gitAutomationStateUpdate` when the rule for that event and branch points at another state; a state the team lacks fails the row | a rule for the event (and exact branch) exists and moves to the declared state |
+| `templates`      | not applied: each `{ name, file }` is validated and reported as a skipped row                                                                                                                                                                                                                               | not compared (skipped)                                                         |
+
+A wrong shape is a `ConfigError` naming the path (`providers.issues.automation.autoClose.months must be a non-negative integer`). Changing team settings needs a key with admin access to the team; a refused write is a failing row, and the rest of the steps still run. The team's missing **statuses** are not part of this command: [`setup project`](/holocron/commands/project/) adds them from the board template, and `doctor project` reports a board rule (auto-archive, auto-close) that is off.
+
+The Linear side of GitHub's project workflows (what moves an issue on its own) is therefore: auto-close and auto-archive, and Linear's git automation (`event` is one of `draft`, `review`, `start`, `mergeable`, `merge`, Linear's own names). A rule is found by its event and its target branch, so one made by hand is adopted and only its state is compared; `branch` is an exact branch name (a regular-expression target in Linear never matches it), and a rule the block does not declare is never touched. A target branch that exists with no rule cannot be listed through the API, so making a rule for it fails the row (a name conflict) until a rule for it exists; delete the branch in Linear or make one rule for it by hand.
+
+Issue templates are the one declared thing that is not applied. Linear's schema documents a template's `templateData` only as a JSON string of pre-filled attributes, with no shape for an issue, and the template's markdown (`content`) is read-only, so neither writing a template from `.holocron/linear/*.md` nor comparing it with the team can be done with certainty. Each run reports the declaration as a skipped row; make the template in Linear: **Settings → Templates**. GitHub's workflows cannot be created from the API, so that side stays a `todo` in `doctor project`.
+
+### Without a config entry
+
+A repo that keeps GitHub as its `issues` and `projects` provider can still run Linear's setup and doctor: give the options on the command line instead of in `holocron.config`. Put the block in a file (no secrets):
+
+```json
+{
+  "team": "ENG",
+  "labels": ["bug", "enhancement"],
+  "project": "Roadmap",
+  "automation": { "autoClose": { "months": 3 } }
+}
+```
+
+This repo's copy, for the HOLO team, is [`plugins/holocron-plugin-linear/examples/linear-trial.json`](https://github.com/theholocron/holocron/blob/alpha/plugins/holocron-plugin-linear/examples/linear-trial.json) (it is not part of the published package). Run, from the repo root:
+
+```bash
+F=plugins/holocron-plugin-linear/examples/linear-trial.json
+holocron provider linear doctor --with $F
+holocron provider linear setup --with $F --dry-run
+# only if a step is refused with the everyday key: give an Admin key in the environment for this command only, not on the
+# command line, where `ps` and shell history would show it
+HOLOCRON_LINEAR_TOKEN=<ADMIN_KEY> holocron provider linear setup --with $F
+```
+
+The config file is not touched. See [provider](/holocron/commands/provider/) for how `--with` combines with a config entry.
+
+## Creating and updating issues
+
+`create` and `update` (`holocron new issue`, `holocron update issue`) map the neutral fields like this: priority is Linear's priority, the target date is the due date, the parent is the parent issue, a blocker is a `blocks` relation (`unblock` deletes it), effort is the estimate on a 1-3-5 scale (low, medium, high) and the kind is the label `bug`, `enhancement` or `chore`. Linear has no issue Type, and the client reads and writes a due date only, so a start date is a `dropped` line, never a label or a comment. A team with estimates off may refuse the estimate: it is written on its own, after the rest, and a refusal is a `dropped` line (how Linear answers is not verified). `--clear` empties priority, due date, estimate, assignee, project and parent; `--state open` picks the team's first open state and `closed` its first completed one.
+
+## Migrating
+
+**The kind of an issue** (#2485, spec `tech-issue-kind-on-record`) travels as the optional `kind` of the migrated record. Linear's export reads it from the kind label (`bug`, `enhancement`, `chore`; two different kind labels name none), and its `import` and `sync` add that label to the issue, making it on the team when missing and not adding it twice. So a GitHub issue that has a Type and no kind label arrives in Linear with its kind, and a Linear issue's kind becomes the Type on a GitHub target. A record with no kind is migrated exactly as before. Nothing is lost here, so Linear has no `dropped` line for the kind.
+
+`holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.
+
+## Syncing
+
+`holocron sync issues --from github --to linear:team=ENG` (and the other way round) keeps the issues up to date, one direction at a time. Linear takes part as a target through `sync`: a missing issue is made as `migrate` makes it, and one a migrate or sync made (found through its `Migrated from` attachment) has title, description, priority, state, labels and assignee set to the source's when they differ, and the comments it lacks added. A state is compared by name when the source names one and by category otherwise, so a move between two open states in Linear is not undone. The assignee is matched by email and never cleared. As a source, an issue's `Migrated from` attachment is read, which is what keeps the reverse sync from copying it back. See [sync issues](/holocron/commands/sync-issues/).

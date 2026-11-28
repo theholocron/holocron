@@ -1,0 +1,30 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: sync-incidents
+
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Sync Incidents (manual)' || github.event_name == 'schedule' && 'Sync Incidents (scheduled)' || 'Sync Incidents' }}"
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "7,17,27,37,47,57 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only say what would be made or changed; write nothing to Discord"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-incidents:
+    name: sync-incidents
+    uses: ./.github/workflows/sync-incidents.yml
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+    secrets: inherit

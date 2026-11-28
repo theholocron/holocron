@@ -1,0 +1,48 @@
+import { layoutEmojis, type NotificationsLayout } from "@theholocron/cli";
+
+import type { PermissionName } from "./rest.js";
+
+/** What the bot needs in the server to do everything `setup` does. The invite link asks for exactly these. */
+export const BOT_NEEDS: readonly PermissionName[] = [
+	"ViewChannel",
+	"SendMessages",
+	"ReadMessageHistory",
+	"ManageChannels",
+	"ManageRoles",
+	"ManageWebhooks",
+	"ManageGuild",
+	"CreatePublicThreads",
+	"CreatePrivateThreads",
+	"SendMessagesInThreads",
+];
+
+/**
+ * What the bot keeps for a layout: the usual set, Pin Messages when the layout pins messages, Manage Threads when it
+ * declares a forum (a post's tags are applied by the bot, and a moderated tag only by someone who can manage threads),
+ * and Add Reactions when a forum has `starterReactions` (without it the bot skips them and the post still gets made),
+ * and Create Guild Expressions (Discord's "Create Expressions") only when the layout gives a server emoji an `image`,
+ * which `setup` makes the emoji from.
+ * The one list `setup`'s invite link, `doctor notifications` and `probe discord token` all read.
+ */
+export function botNeeds(layout: NotificationsLayout | undefined): PermissionName[] {
+	const channels = (layout?.categories ?? []).flatMap((c) => c.channels ?? []);
+	const forum = channels.some((ch) => ch.kind === "forum");
+	const reacts = channels.some((ch) => (ch.starterReactions ?? []).length > 0);
+	const makesEmoji = layoutEmojis(layout).some((emoji) => emoji.image);
+	return [
+		...BOT_NEEDS,
+		...(layout?.pinned?.length ? (["PinMessages"] as PermissionName[]) : []),
+		...(forum ? (["ManageThreads"] as PermissionName[]) : []),
+		...(reacts ? (["AddReactions"] as PermissionName[]) : []),
+		...(makesEmoji ? (["CreateGuildExpressions"] as PermissionName[]) : []),
+	];
+}
+
+/**
+ * What `setup notifications` also needs to replace an emoji whose picture changed: Manage Guild Expressions (Discord's "Manage Expressions"), which
+ * deleting an emoji someone else made takes (Create Guild Expressions covers only the bot's own). It is not part of
+ * {@link botNeeds}, since whether emoji are replaced is a choice of one run, not of the layout.
+ */
+export function replaceNeeds(layout: NotificationsLayout | undefined): PermissionName[] {
+	return [...botNeeds(layout), "ManageGuildExpressions"];
+}

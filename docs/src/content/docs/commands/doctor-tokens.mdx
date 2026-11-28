@@ -1,0 +1,42 @@
+---
+title: "doctor tokens"
+description: Check every token the plugins declare for a layer against its declaration, by running each provider's token probe against that layer's 1Password Environment. Read-only.
+---
+
+```bash
+holocron doctor tokens
+```
+
+[`probe <provider> token --environment <layer>`](/holocron/commands/probe/) proves one provider's tokens in one layer. This check runs all of them: for each layer (`local`, `dev`, `ci`, `prod`) and each token a configured plugin declares for it (its `expect`, listed in [Tokens](/holocron/tokens/)), it reads that layer's Environment in memory and runs the provider's `token` probe against the token it holds. Each layer's token is probed with that layer's own plain values (a dataset, an account id), the Environment's visible variables that are not tokens, set for that one run only; the machine's own chain (shell, `.env`, `credentials` providers) is the fallback for any value the Environment lacks, a concealed value is never handed over, and a vault that cannot tell visible from concealed supplies none. It changes nothing, prints names, counts and dates only (the probes scrub every token they use from their output, and a token is never written anywhere), and exits non-zero while a row fails. It goes online: each probe calls its provider's API.
+
+## The rows
+
+There is one row per token per layer, titled `<layer>: <VARIABLE> (<provider>)`.
+
+| Row                                          | Passes when                                                                                                                                                                                     |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci: HOLOCRON_CLOUDFLARE_TOKEN (cloudflare)` | every check of the provider's probe passes: each permission the layer requires is reached, each one it must not have is not, and the token is neither past its rotation age nor near its expiry |
+| a failing row                                | it lists each failed check as a problem: a permission the token must not have, one it lacks, `expiry` (expired or within `warnDays`), or `age` (older than `maxAgeDays`)                        |
+| `not held in <Environment>`                  | fails: the layer declares the token and its Environment does not hold it, under the plugin's own variable or the vendor's                                                                       |
+
+## Which providers it checks
+
+The providers the config names under a capability, and the ones a workspace package's own config names that the root's does not. This repo's root config deploys with Cloudflare while Sentinel (`apps/sentinel`) deploys with Vercel, and the Vercel token the deploys and `sync secrets` use is held in the root's Environments, so `vercel` is checked from the root with no key for it in `holocron.config.ts`. The package's config is read (never written) for the provider's options, such as the team id, and the plugin is loaded by name for its tokens and its `token` probe only; it takes no capability slot, so nothing the root deploys or syncs changes. A package whose config cannot be read is left out here; its own commands report it. [`probe`](/holocron/commands/probe/) finds those providers the same way, so `holocron probe vercel token --environment ci` works from the root.
+
+A provider with no declared layers, no `token` probe, or tokens that cannot be read gets one `skip` row for the provider, with the reason, and never fails. A layer whose Environment cannot be read (no vault that reads an Environment, an Environment that is not there) is a skip with the reason on each of its rows, since nothing could be compared. A token a layer holds but does not declare for it is not reported here.
+
+Rotation is read where the provider exposes it (Cloudflare `expires_on` and `not_before`) through the same rows as the probe, using each token's declared `rotation` (default: due after 90 days, expiry flagged 14 days ahead). Where a provider does not expose a token's age or expiry, the probe says so as an `info` row, counted in the detail (`N noted`) and never a failure.
+
+## How it relates to the other checks
+
+- [`doctor secrets --verify`](/holocron/commands/doctor-secrets/) asks each vendor whether the one token this machine resolves is still accepted, and fails a token near its expiry. It does not look at layers or permissions.
+- `doctor tokens` is the per-layer comparison with the declaration. It reuses the probe flow (`environmentTokens()` and `runProbe()`), so a result here is the one `probe <provider> token --environment <layer>` would print for that token.
+
+`holocron doctor --all` runs it with the other deep checks. ## Scheduled run
+
+The `doctor-tokens` task runs it every day at 06:41 UTC (the `ci.doctor-tokens.yml` caller, the reusable `doctor-tokens.yml`), after [`check-tokens`](/holocron/commands/doctor-secrets/) at 06:17. It is never part of `holocron run ci`.
+
+- **What it reads.** The job reads Environments through a 1Password service account, the optional secret `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`. It has read access to the `ci` Environment and nothing else: a scheduled job with no one watching must not be able to read `prod`, so the `prod` rows are skipped. A pass proves the tokens `ci` holds and what CI can reach.
+- **What it skips.** The command has no flag to limit the layers. A layer the account cannot read (`local`, `dev` and `prod` Environments) is a `skip` row with the reason on each of its rows, never a failure; a layer it can read is checked with the same fail rules. With no secret set, every row is a skip, the run passes and the job prints a warning.
+- **Where it reports.** A failed run posts to Discord #alerts through `platform.notifications.yml` (the task id `doctor-tokens` is in its list), with the failing jobs linked. There is no other channel. A run that only skipped is not an alert.
+- **Output.** Names, counts and dates only; the probes scrub every token they use.

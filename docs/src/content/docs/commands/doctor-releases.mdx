@@ -1,0 +1,44 @@
+---
+title: "doctor releases"
+description: Check that npm received every release tag the repository has, and name the tag and note to delete when it did not. Read-only.
+---
+
+```bash
+holocron doctor releases
+```
+
+A release whose publish fails leaves the repository wedged and nothing says so. semantic-release pushes its tag, and its note `refs/notes/semantic-release-<tag>`, before it publishes. When the publish then fails, every later run sees the tag, finds nothing new to release and ends green, and the package never reaches npm until someone deletes the tag and the note by hand. This check compares each release line's newest tag with what npm serves, so a wedged tag is named without anyone reading the release log.
+
+It reads git tags, the version groups of the `release` task in `holocron.config` and npm's public registry (`/-/package/<name>/dist-tags`). It needs no provider or token, changes nothing, and exits non-zero while a row fails. Run `git fetch --tags` first in a clone that has not fetched them.
+
+## The rows
+
+A repository releases on one line per version group (tags `configs-v8.9.0-alpha.20`) and one line for every public package outside the groups (tags `v5.0.0-alpha.470`). A group that publishes nothing to npm, such as `ci`, has no row. Each line has one row per channel that has a tag: a stable tag is checked against the `latest` dist-tag, a prerelease tag against the dist-tag named by its first identifier (`alpha`).
+
+| Row                          | Passes when                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<tag> reached npm (<dist>)` | every package of the line serves the tag's version or a later one on that dist-tag. A package that serves an older version, or none, fails |
+
+A failing row lists each package behind and what to do:
+
+```text
+  ✗ configs-v8.9.0-alpha.20 reached npm (alpha)   1 package(s) behind: the tag was pushed and the publish failed
+      @theholocron/prettier-config serves 8.9.0-alpha.19, tag is 8.9.0-alpha.20
+      delete the tag: git push --delete origin configs-v8.9.0-alpha.20
+      delete its note: git push origin :refs/notes/semantic-release-configs-v8.9.0-alpha.20
+      cause 1, a sigstore 409 on an identical tarball: the next release needs different contents
+      cause 2, ENEEDAUTH: the Trusted Publisher entries expired; run holocron publish package --sync-trust
+```
+
+Delete both the tag and the note: with the note left behind, semantic-release still counts the release as done.
+
+## The two known causes
+
+- **A sigstore 409.** The tarball is identical to one already published, so npm refuses the provenance. The next release needs a change in the package's contents. `publish package --skip-already-published` retries a 409 twice, publishes the rest of the group anyway and names the identical tarball in its report and job summary, so this check is mostly what finds a package that stayed behind, and a manual run of the release workflow with `republish_tag` publishes it without a new release (see [a failed package does not stop the rest](/commands/publish-package/#a-failed-package-does-not-stop-the-rest---skip-already-published)).
+- **`ENEEDAUTH`.** The Trusted Publisher entries on npmjs.com expired or no longer match the calling workflow. `holocron publish package --sync-trust` registers them again.
+
+## What is skipped
+
+A tag younger than 30 minutes is a skip, not a failure: its own release job may still be publishing it. A repository with no release tags, or a run that cannot read git or the registry, is a skip with the reason, never a failure. Packages that were never published are behind only when a tag of their line exists.
+
+`holocron doctor --all` runs it with the other deep checks.

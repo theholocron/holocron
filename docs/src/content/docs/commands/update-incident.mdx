@@ -1,0 +1,30 @@
+---
+title: update incident
+description: Append an update to a status page incident.
+---
+
+```bash
+holocron update incident <id> --status <status> --message <text> [--page <name>] [--no-notify] [--dry-run] [--yes]
+```
+
+Appends one update to an incident (#2591, spec `tech-open-status-page-incidents`). `<id>` is what [`new incident`](/holocron/commands/new-incident/) printed. It only appends: an update is never rewritten or deleted, which [`sync incidents`](/holocron/commands/sync-incidents/) relies on.
+
+```bash
+holocron update incident 7b0ef7dc-d717-43dd-af36-9e8e921839c1 --status identified --message "A bad deploy; rolling back."
+holocron update incident 7b0ef7dc-d717-43dd-af36-9e8e921839c1 --status monitoring --message "Rolled back; watching." --no-notify
+```
+
+| Flag          | Meaning                                                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `--status`    | `investigating`, `identified` or `monitoring`; to resolve an incident use [`close incident`](/holocron/commands/close-incident/) |
+| `--message`   | what the update says                                                                                                             |
+| `--page`      | the declared status page, when several are declared                                                                              |
+| `--no-notify` | do not tell the page's subscribers (the default tells them)                                                                      |
+| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)                                                     |
+| `--dry-run`   | read the incident and print the update that would be appended                                                                    |
+
+## A retry is safe
+
+The incident is read before the write: one whose newest update already has this status and message is left alone (a response lost after the write is the case), and an update to a resolved incident is refused, so its status never leaves `resolved`. The incident is looked for among the open ones and those resolved in the last 7 days. Two commands racing on one incident are not serialized.
+
+A request that times out is reported as "may or may not have been written": check the page before running it again.

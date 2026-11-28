@@ -1,0 +1,43 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/scan/code.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Security
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      language:
+        description: CodeQL language to analyze
+        type: string
+        required: false
+        default: javascript-typescript
+
+jobs:
+  analyze:
+    name: Analyze (${{ inputs.language }})
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Do not cancel in-progress security scans.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        name: Initialize CodeQL
+        with:
+          languages: ${{ inputs.language }}
+
+      - uses: github/codeql-action/autobuild@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        name: Autobuild
+
+      - uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v4.39.4
+        name: Analyze
+        with:
+          category: /language:${{ inputs.language }}

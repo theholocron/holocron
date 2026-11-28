@@ -1,0 +1,1240 @@
+import { fakeLogger } from "@theholocron/observability/testing";
+import { describe, expect, it, vi } from "vitest";
+
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import type { Monitoring, Notifications, Secrets } from "../../plugin/index.js";
+import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
+import {
+	defaultSecretName,
+	isReservedSecret,
+	pickProvisioner,
+	PREFLIGHT_PREFIX,
+	provisionChannel,
+	runNotificationsChannelAdd,
+} from "./notifications-channel-add.js";
+
+function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
+	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
+}
+
+function makePlugin(name: string, caps: Record<string, unknown>) {
+	return {
+		createPlugin: (_opts: Record<string, unknown>) => ({
+			name,
+			capabilities: Object.fromEntries(Object.entries(caps).map(([k, impl]) => [k, () => impl])),
+		}),
+	};
+}
+
+function makeLoader(loaded: LoadedConfig, modules: Record<string, unknown>): PluginLoader {
+	const importer = vi.fn(async (pkg: string) => {
+		if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+		return modules[pkg] as Awaited<ReturnType<PluginImporter>>;
+	});
+	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+}
+
+function fakeNotifications(over: Partial<Notifications> = {}): Notifications {
+	return {
+		key: "notifications",
+		providerName: "discord",
+		send: async () => {},
+		layout: { readers: ["theholocron/holocron"] },
+		ensureChannel: vi.fn(async () => ({ id: "1", created: true })),
+		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/secret" })),
+		...over,
+	} as Notifications;
+}
+
+function fakeSecrets() {
+	const calls: Array<{ scope: unknown; name: string; value: string }> = [];
+	return {
+		calls,
+		impl: {
+			providerName: "github",
+			listSecrets: async () => [] as string[],
+			setSecret: async (scope: unknown, name: string, value: string) => {
+				if (!name.startsWith(PREFLIGHT_PREFIX)) calls.push({ scope, name, value });
+			},
+			deleteSecret: async () => {},
+		},
+	};
+}
+
+const loadedDemo = () => loadedFrom({ name: "demo", providers: { notifications: ["discord"], secrets: "github" } });
+
+function run(
+	notifications: Notifications,
+	secrets: ReturnType<typeof fakeSecrets> | undefined,
+	input: Partial<Parameters<typeof runNotificationsChannelAdd>[0]> = {}
+) {
+	const loaded = loadedDemo();
+	const lines: string[] = [];
+	const loader = makeLoader(loaded, {
+		"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+		"@theholocron/holocron-plugin-github": makePlugin("gh", secrets ? { secrets: secrets.impl } : {}),
+	});
+	const log = fakeLogger();
+	return {
+		lines,
+		log,
+		result: runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			name: "alerts",
+			loader,
+			print: (l) => lines.push(l),
+			logger: log,
+			...input,
+		}),
+	};
+}
+
+describe("defaultSecretName", () => {
+	it("derives HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>, never naming the provider", () => {
+		expect(defaultSecretName("sync")).toBe("HOLOCRON_NOTIFY_WEBHOOK_SYNC");
+		expect(defaultSecretName("release-notes")).toBe("HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES");
+	});
+});
+
+describe("pickProvisioner", () => {
+	const a = fakeNotifications({ providerName: "a" });
+	const b = fakeNotifications({ providerName: "b" });
+	const post = { key: "notifications", providerName: "slack", send: async () => {} } as Notifications;
+
+	it("rejects when no provider can provision", () => {
+		expect(() => pickProvisioner([post])).toThrow(/can provision/);
+		expect(() => pickProvisioner([])).toThrow(/can provision/);
+	});
+
+	it("accepts a role-only provider", () => {
+		const rolesOnly = {
+			key: "notifications",
+			providerName: "r",
+			send: async () => {},
+			ensureRole: async () => ({ id: "1", created: true }),
+		} as Notifications;
+		expect(pickProvisioner([rolesOnly])).toBe(rolesOnly);
+	});
+
+	it("takes the only capable provider", () => {
+		expect(pickProvisioner([post, a])).toBe(a);
+	});
+
+	it("asks for --provider when several can", () => {
+		expect(() => pickProvisioner([a, b])).toThrow(/pass --provider/);
+		expect(pickProvisioner([a, b], "b")).toBe(b);
+	});
+
+	it("rejects an unknown --provider", () => {
+		expect(() => pickProvisioner([a], "nope")).toThrow(/named `nope` \(have: a\)/);
+	});
+});
+
+describe("runNotificationsChannelAdd", () => {
+	it("creates a channel under a category without touching secrets", async () => {
+		const n = fakeNotifications();
+		const { result, lines } = run(n, undefined, { category: "ALERTS", topic: "needs a human" });
+		const report = await result;
+		expect(report).toMatchObject({ status: "ok", channel: { name: "alerts", category: "ALERTS", created: true } });
+		expect(n.ensureChannel).toHaveBeenCalledWith({ name: "alerts", category: "ALERTS", topic: "needs a human" });
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("created channel alerts in ALERTS");
+	});
+
+	it("reports an existing channel as such", async () => {
+		const n = fakeNotifications({ ensureChannel: vi.fn(async () => ({ id: "1", created: false })) });
+		const { result, lines } = run(n, undefined);
+		expect((await result).channel?.created).toBe(false);
+		expect(lines.join("\n")).toContain("exists  channel alerts");
+	});
+
+	it("stores a new webhook's URL in an org secret and never prints it", async () => {
+		const secrets = fakeSecrets();
+		const { result, lines } = run(fakeNotifications(), secrets, { withWebhook: true });
+		const report = await result;
+		expect(secrets.calls).toEqual([
+			{
+				scope: { kind: "organization", name: "theholocron", visibility: "selected", repos: ["holocron"] },
+				name: "HOLOCRON_NOTIFY_WEBHOOK_ALERTS",
+				value: "https://hook/secret",
+			},
+		]);
+		expect(report.channel?.webhook).toEqual({
+			name: "alerts",
+			created: true,
+			secret: "HOLOCRON_NOTIFY_WEBHOOK_ALERTS",
+			stored: true,
+		});
+		expect(lines.join("\n")).not.toContain("https://hook/secret");
+	});
+
+	it("refuses to write an organization secret when the layout names no readers, before creating anything", async () => {
+		for (const layout of [undefined, { readers: [] }]) {
+			const secrets = fakeSecrets();
+			const n = fakeNotifications({ layout });
+			const { result, lines } = run(n, secrets, { withWebhook: true });
+			const report = await result;
+			expect(report.status).toBe("fail");
+			expect(lines.join("\n")).toMatch(/readers/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			expect(secrets.calls).toEqual([]);
+		}
+	});
+
+	it("needs no readers for a repository scope, and previews without them on --dry-run", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications({ layout: undefined });
+		const { result } = run(n, secrets, { withWebhook: true, scope: { kind: "repo" } });
+		expect((await result).status).toBe("ok");
+		const dry = fakeNotifications({ layout: undefined });
+		const preview = run(dry, undefined, {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		expect((await preview.result).status).not.toBe("fail");
+	});
+
+	it("honours --webhook-name, --secret and --scope", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications();
+		const { result } = run(n, secrets, {
+			withWebhook: true,
+			webhookName: "repo-sync",
+			secret: "MY_SECRET",
+			scope: { kind: "repo" },
+		});
+		await result;
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "alerts", name: "repo-sync" });
+		expect(secrets.calls[0]).toMatchObject({ scope: { kind: "repo" }, name: "MY_SECRET" });
+	});
+
+	it("fails, storing nothing and saying why, when an existing webhook's URL cannot be read", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const { result, lines } = run(n, secrets, { withWebhook: true });
+		const report = await result;
+		expect(secrets.calls).toEqual([]);
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/cannot be read back/);
+		expect(report.channel?.webhook).toMatchObject({ stored: false, created: false });
+		expect(lines.join("\n")).toContain("cannot be read back");
+	});
+
+	it("previews without calling the provider on --dry-run", async () => {
+		const n = fakeNotifications();
+		const { result, lines } = run(n, fakeSecrets(), {
+			withWebhook: true,
+			category: "ALERTS",
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		const secrets = fakeSecrets();
+		expect((await result).status).toBe("dry-run");
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(secrets.calls).toEqual([]);
+		expect(lines.join("\n")).toContain(
+			"would ensure webhook alerts and store its URL in HOLOCRON_NOTIFY_WEBHOOK_ALERTS"
+		);
+	});
+
+	it("previews a plain channel on --dry-run", async () => {
+		const { result, lines } = run(fakeNotifications(), undefined, {
+			context: { repoRoot: "/tmp/test", dryRun: true },
+		});
+		expect((await result).channel).toEqual({ name: "alerts", created: false });
+		expect(lines.join("\n")).toContain("would ensure channel alerts");
+	});
+
+	it("returns fail, not a throw, when the provider errors", async () => {
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				throw new Error("Missing Permissions");
+			}),
+		});
+		const { result, log } = run(n, undefined);
+		expect(await result).toMatchObject({ status: "fail", message: "Missing Permissions" });
+		expect(log.warn).toHaveBeenCalled();
+	});
+
+	it("fails when the provider cannot create webhooks", async () => {
+		const n = fakeNotifications({ ensureWebhook: undefined });
+		const { result } = run(n, fakeSecrets(), { withWebhook: true });
+		expect((await result).message).toMatch(/cannot create webhooks/);
+		// ...and it said so BEFORE creating the channel, so nothing is left behind.
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("fails when a webhook was asked for but no secrets provider is configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
+		});
+		const lines: string[] = [];
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			name: "x",
+			withWebhook: true,
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(report).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/needs a `secrets` capability/),
+		});
+		expect(lines.join("\n")).toContain("✗");
+	});
+
+	it("fails before touching anything when there is no org or scope for the secret", async () => {
+		const { result } = run(fakeNotifications(), fakeSecrets(), {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test" },
+		});
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/no org to store the webhook secret/),
+		});
+	});
+
+	it("fails, with a printed reason, when no notifications provider is configured at all", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { secrets: "github" } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { secrets: fakeSecrets().impl }),
+		});
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "x",
+			loader,
+			print: () => {},
+		});
+		expect(report).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/no `notifications` provider is available/),
+		});
+	});
+
+	it("explains why the secrets provider is missing when it failed to load", async () => {
+		const loaded = loadedDemo();
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
+		});
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			name: "x",
+			withWebhook: true,
+			loader,
+			print: () => {},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/needs a `secrets` capability .*failed to load: .*holocron-plugin-github/);
+	});
+
+	it("needs no secrets provider and no org to preview a webhook on --dry-run", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
+		});
+		const lines: string[] = [];
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			name: "x",
+			withWebhook: true,
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(report.status).toBe("dry-run");
+		expect(lines.join("\n")).toContain("would ensure webhook x");
+	});
+
+	it("refuses a webhook request up front, even on --dry-run, when the provider cannot create webhooks", async () => {
+		const n = fakeNotifications({ ensureWebhook: undefined });
+		const { result } = run(n, fakeSecrets(), {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/cannot create webhooks/),
+		});
+	});
+
+	it("passes the category through so the webhook lands on the right channel", async () => {
+		const n = fakeNotifications();
+		const { result } = run(n, fakeSecrets(), { withWebhook: true, category: "AUTOMATION", name: "sync" });
+		await result;
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "sync", name: "sync", category: "AUTOMATION" });
+	});
+
+	it("tells the user how to recover when the webhook was created but the secret write failed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_scope: unknown, name: string) => {
+					if (!name.startsWith(PREFLIGHT_PREFIX)) throw new Error("403 Resource not accessible");
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+		});
+		const report = await result;
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(
+			/was created but storing its URL in HOLOCRON_NOTIFY_WEBHOOK_ALERTS failed .*403.*delete the webhook/
+		);
+	});
+
+	it("fails before creating the channel when a real run has no secrets provider loaded", async () => {
+		const n = fakeNotifications();
+		const secretless = loadedFrom({ name: "demo", providers: { notifications: ["discord"], secrets: "github" } });
+		const loader = makeLoader(secretless, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: n }),
+		});
+		await runNotificationsChannelAdd({
+			loaded: secretless,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			name: "x",
+			withWebhook: true,
+			loader,
+			print: () => {},
+		});
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("fails when the provider can only manage roles and a channel is asked for", async () => {
+		const n = fakeNotifications({
+			ensureChannel: undefined,
+			ensureRole: vi.fn(async () => ({ id: "1", created: true })),
+		});
+		const { result } = run(n, undefined);
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/cannot create channels/),
+		});
+	});
+
+	it("reports a found webhook as found when its URL is stored again", async () => {
+		const secrets = fakeSecrets();
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://hook/again" })),
+		});
+		const { result, lines } = run(n, secrets, { withWebhook: true });
+		expect((await result).status).toBe("ok");
+		expect(secrets.calls[0]?.value).toBe("https://hook/again");
+		expect(lines.join("\n")).toContain("found   webhook alerts; URL stored in HOLOCRON_NOTIFY_WEBHOOK_ALERTS");
+	});
+
+	it("words a failed secret write for an existing webhook as 'found', not 'created'", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_scope: unknown, name: string) => {
+					if (!name.startsWith(PREFLIGHT_PREFIX)) throw new Error("boom");
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://hook/again" })),
+		});
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		expect((await result).message).toMatch(/webhook alerts was found but storing its URL/);
+	});
+
+	it("prints to the console when no print function is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const loaded = loadedDemo();
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
+		});
+		await runNotificationsChannelAdd({ loaded, context: { repoRoot: "/tmp/test" }, name: "x", loader });
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("new channel — x"));
+		log.mockRestore();
+	});
+});
+
+describe("provisionChannel", () => {
+	it("refuses a real webhook request when no secrets provider was resolved", async () => {
+		const n = fakeNotifications();
+		await expect(
+			provisionChannel(
+				{ notifications: n, scope: { kind: "repo" }, dryRun: false, print: () => {} },
+				{ name: "alerts", webhook: {} }
+			)
+		).rejects.toThrow(/needs a `secrets` provider/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("checks the secrets store before creating anything, so a bad token leaves no orphan webhook", async () => {
+		const n = fakeNotifications();
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {
+					throw new ProviderApiError(
+						"GitHub PUT /orgs/theholocron/actions/secrets/x → 403",
+						403,
+						'{"message":"Resource not accessible"}'
+					);
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		const report = await result;
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/cannot write to the secrets store for organization theholocron/);
+		expect(report.message).toContain("Resource not accessible");
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+	});
+
+	it("shows the provider's response body, not just the status, when a step fails", async () => {
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				throw new ProviderApiError(
+					"Discord PATCH /channels/1 → 403",
+					403,
+					'{"message":"Missing Permissions","code":50013}'
+				);
+			}),
+		});
+		const { result } = run(n, undefined);
+		expect((await result).message).toBe(
+			'Discord PATCH /channels/1 → 403: {"message":"Missing Permissions","code":50013}'
+		);
+	});
+
+	it("does not check the secrets store on --dry-run", async () => {
+		const setSecret = vi.fn(async () => {});
+		const secrets = {
+			calls: [],
+			impl: { providerName: "github", listSecrets: async () => [], setSecret, deleteSecret: async () => {} },
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+			context: { repoRoot: "/tmp/test", org: "theholocron", dryRun: true },
+		});
+		await result;
+		expect(setSecret).not.toHaveBeenCalled();
+	});
+
+	it("names a non-organization scope plainly when the secrets store is unreachable", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {
+					throw new Error("nope");
+				},
+				deleteSecret: async () => {},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+			scope: { kind: "repo" },
+		});
+		expect((await result).message).toMatch(/cannot write to the secrets store for repo \(nope\)/);
+	});
+
+	it("proves write access with a throwaway secret that it removes, before creating any channel", async () => {
+		const order: string[] = [];
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_s: unknown, name: string) => void order.push(`set ${name}`),
+				deleteSecret: async (_s: unknown, name: string) => void order.push(`delete ${name}`),
+			},
+		};
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				order.push("channel");
+				return { id: "1", created: true };
+			}),
+		});
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		await result;
+		const probe = order[0]!.replace(/^set /, "");
+		expect(probe).toMatch(/^HOLOCRON_NOTIFY_PREFLIGHT_[0-9A-F]{8}$/);
+		expect(order.slice(0, 3)).toEqual([`set ${probe}`, `delete ${probe}`, "channel"]);
+	});
+
+	it("fails before creating anything when the throwaway secret cannot be removed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {},
+				deleteSecret: async () => {
+					throw new Error("delete refused");
+				},
+			},
+		};
+		const n = fakeNotifications();
+		const { result } = run(n, secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true });
+		expect(await result).toMatchObject({ status: "fail", message: expect.stringMatching(/delete refused/) });
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("keeps the provider's response body out of the structured log while still showing it to the user", async () => {
+		const n = fakeNotifications({
+			ensureChannel: vi.fn(async () => {
+				throw new ProviderApiError("Discord PATCH /channels/1 → 403", 403, '{"message":"Missing Permissions"}');
+			}),
+		});
+		const { result, log, lines } = run(n, undefined);
+		const report = await result;
+		expect(report.message).toContain("Missing Permissions");
+		expect(lines.join("\n")).toContain("Missing Permissions");
+		expect(JSON.stringify(log.warn.mock.calls)).not.toContain("Missing Permissions");
+		expect(JSON.stringify(log.warn.mock.calls)).toContain("Discord PATCH /channels/1 → 403");
+	});
+
+	it("uses a different throwaway name every run, so it can never overwrite and delete an existing secret", async () => {
+		const names = new Set<string>();
+		for (let i = 0; i < 5; i++) {
+			const secrets = {
+				calls: [],
+				impl: {
+					providerName: "github",
+					listSecrets: async () => [] as string[],
+					setSecret: async (_s: unknown, name: string) => void names.add(name),
+					deleteSecret: async () => {},
+				},
+			};
+			await run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, { withWebhook: true })
+				.result;
+		}
+		const probes = [...names].filter((n) => n.startsWith(PREFLIGHT_PREFIX));
+		expect(probes).toHaveLength(5);
+		expect(probes).not.toContain(PREFLIGHT_PREFIX);
+	});
+
+	it("tells the user the probe's name when it cannot be removed", async () => {
+		const secrets = {
+			calls: [],
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async () => {},
+				deleteSecret: async () => {
+					throw new Error("delete refused");
+				},
+			},
+		};
+		const { result } = run(fakeNotifications(), secrets as unknown as ReturnType<typeof fakeSecrets>, {
+			withWebhook: true,
+		});
+		expect((await result).message).toMatch(
+			/If a secret named HOLOCRON_NOTIFY_PREFLIGHT_[0-9A-F]{8} was left behind, delete it/
+		);
+	});
+
+	it("refuses --secret under the reserved preflight prefix", async () => {
+		const n = fakeNotifications();
+		const { result } = run(n, fakeSecrets(), { withWebhook: true, secret: "holocron_notify_preflight_x" });
+		expect(await result).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/reserved for the setup preflight/),
+		});
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+	});
+});
+
+describe("isReservedSecret", () => {
+	it("matches the preflight prefix case-insensitively and nothing else", () => {
+		expect(isReservedSecret("HOLOCRON_NOTIFY_PREFLIGHT")).toBe(true);
+		expect(isReservedSecret("holocron_notify_preflight_abcd1234")).toBe(true);
+		expect(isReservedSecret("HOLOCRON_NOTIFY_WEBHOOK_SYNC")).toBe(false);
+		expect(isReservedSecret("MY_HOLOCRON_NOTIFY_PREFLIGHT")).toBe(false);
+	});
+
+	it("names the plugin's own load error when the configured notifications plugin fails to load", async () => {
+		const loaded = loadedDemo();
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { secrets: fakeSecrets().impl }),
+			"@theholocron/holocron-plugin-discord": {
+				createPlugin: () => {
+					throw new Error("no Discord webhook URL found");
+				},
+			},
+		});
+		const report = await runNotificationsChannelAdd({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			name: "x",
+			loader,
+			print: () => {},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(
+			/no `notifications` provider is available.*`discord` failed to load: no Discord webhook URL found/
+		);
+	});
+});
+
+describe("provisionChannel — forum default reaction", () => {
+	it("hands the forum's default reaction to the provider", async () => {
+		const n = fakeNotifications();
+		await provisionChannel(
+			{ notifications: n, scope: { kind: "repo" }, dryRun: false, print: () => {} },
+			{ name: "ideas", kind: "forum", defaultReaction: "👍" }
+		);
+		expect(n.ensureChannel).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "ideas", kind: "forum", defaultReaction: "👍" })
+		);
+	});
+});
+
+describe("provisionChannel — webhook avatar", () => {
+	const secrets = () => {
+		const stored: Array<{ name: string; value: string }> = [];
+		return {
+			stored,
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_s: unknown, name: string, value: string) => void stored.push({ name, value }),
+				deleteSecret: async () => {},
+			},
+		};
+	};
+	const deps = (n: Notifications, lines: string[], tally?: { ok: number; skip: number }) => {
+		const s = secrets();
+		return {
+			s,
+			deps: {
+				notifications: n,
+				secrets: s.impl as unknown as Secrets,
+				scope: { kind: "repo" as const },
+				dryRun: false,
+				print: (l: string) => void lines.push(l),
+				...(tally ? { tally } : {}),
+			},
+		};
+	};
+
+	it("passes the picture on, says it was set and counts it", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		const { deps: d } = deps(n, lines, tally);
+		const out = await provisionChannel(d, { name: "alerts", webhook: { avatar: "data:image/png;base64,AA" } });
+		expect(n.ensureWebhook).toHaveBeenCalledWith({
+			channel: "alerts",
+			name: "alerts",
+			avatar: "data:image/png;base64,AA",
+		});
+		expect(lines.join("\n")).toContain("set     avatar on webhook alerts");
+		expect(out.webhook?.updated).toEqual(["avatar"]);
+		expect(tally.ok).toBe(3);
+	});
+
+	it("also reports a picture set on a webhook whose URL cannot be read back", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, updated: ["avatar"] })) });
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines).deps, { name: "alerts", webhook: { avatar: "data:x" } });
+		expect(out.webhook).toMatchObject({ stored: false, updated: ["avatar"] });
+		expect(lines.join("\n")).toContain("set     avatar on webhook alerts");
+	});
+
+	it("stores the URL first and then fails when the picture could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", avatarError: "too big" })),
+		});
+		const { deps: d, s } = deps(n, []);
+		await expect(provisionChannel(d, { name: "alerts", webhook: { avatar: "data:x" } })).rejects.toThrow(
+			/webhook alerts is ready but setting its avatar failed \(too big\)/
+		);
+		expect(s.stored).toEqual([{ name: "HOLOCRON_NOTIFY_WEBHOOK_ALERTS", value: "https://h" }]);
+	});
+
+	it("says nothing about a picture that was already there", async () => {
+		const n = fakeNotifications();
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines).deps, { name: "alerts", webhook: { avatar: "data:x" } });
+		expect(lines.join("\n")).not.toContain("avatar");
+		expect(out.webhook?.updated).toBeUndefined();
+	});
+});
+
+describe("provisionChannel — monitoring feed", () => {
+	const feed = { monitoring: { name: "Message to #uptime", webhook: "Checkly" } };
+	const fakeMonitoring = (over: Partial<Monitoring> = {}): Monitoring =>
+		({
+			key: "monitoring",
+			providerName: "checkly",
+			checks: [],
+			ensureCheck: vi.fn(),
+			ensureAlertChannel: vi.fn(async () => ({ created: true, updated: [], subscribed: 2 })),
+			...over,
+		}) as unknown as Monitoring;
+	const deps = (
+		notifications: Notifications,
+		monitoring: Monitoring | undefined,
+		lines: string[],
+		dryRun = false
+	) => ({
+		notifications,
+		...(monitoring ? { monitoring } : {}),
+		scope: { kind: "repo" as const },
+		dryRun,
+		print: (l: string) => void lines.push(l),
+	});
+
+	it("gives monitoring a dedicated webhook, whose URL is stored nowhere else", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
+		});
+		const m = fakeMonitoring();
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, m, lines), { name: "uptime", category: "ALERTS", feeds: feed });
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(1);
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "uptime", name: "Checkly", category: "ALERTS" });
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({
+			name: "Message to #uptime",
+			format: "discord",
+			url: "https://discord.com/api/webhooks/1/secret",
+		});
+		expect(out.alertChannel).toEqual({ name: "Message to #uptime", created: true, updated: [], subscribed: 2 });
+		const text = lines.join("\n");
+		expect(text).toContain("created alert channel Message to #uptime via webhook Checkly (2 checks)");
+		// The URL is a credential and is never printed.
+		expect(text).not.toContain("secret");
+	});
+
+	it("says whether the feed's webhook was made or found, and counts it", async () => {
+		const made = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h" })) });
+		const found = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, url: "https://h" })) });
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(made, fakeMonitoring(), lines), tally }, { name: "uptime", feeds: feed });
+		expect(lines.join("\n")).toContain("created webhook Checkly");
+		// The channel, the webhook and the alert channel were all made.
+		expect(tally).toEqual({ ok: 3, skip: 0 });
+
+		const again: string[] = [];
+		const second = { ok: 0, skip: 0 };
+		await provisionChannel(
+			{
+				...deps(
+					found,
+					fakeMonitoring({
+						ensureAlertChannel: vi.fn(async () => ({ created: false, updated: [], subscribed: 2 })),
+					}),
+					again
+				),
+				tally: second,
+			},
+			{ name: "uptime", feeds: feed }
+		);
+		expect(again.join("\n")).toContain("found   webhook Checkly");
+		// Channel (the fake always reports it made), then the webhook and the alert channel found unchanged.
+		expect(second).toEqual({ ok: 1, skip: 2 });
+	});
+
+	it("counts a webhook made and given its picture as two successes", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", updated: ["avatar"] })),
+		});
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(
+			{ ...deps(n, fakeMonitoring(), []), tally },
+			{
+				name: "uptime",
+				feeds: {
+					monitoring: { name: "Message to #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+				},
+			}
+		);
+		// The channel, the webhook, its picture and the alert channel.
+		expect(tally).toEqual({ ok: 4, skip: 0 });
+	});
+
+	it("gives the feed's webhook its picture, and says so", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://h", updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		await provisionChannel(deps(n, fakeMonitoring(), lines), {
+			name: "uptime",
+			feeds: {
+				monitoring: { name: "Message to #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+			},
+		});
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,AA" })
+		);
+		expect(lines.join("\n")).toContain("found   webhook Checkly (avatar set)");
+	});
+
+	it("hands the URL over first, then fails if the picture could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", avatarError: "too big" })),
+		});
+		const m = fakeMonitoring();
+		await expect(provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/webhook Checkly is ready but setting its avatar failed \(too big\)/
+		);
+		expect(m.ensureAlertChannel).toHaveBeenCalled();
+	});
+
+	it("runs next to the channel's own webhook without sharing it", async () => {
+		const ensureWebhook = vi
+			.fn()
+			.mockResolvedValueOnce({ created: true, url: "https://own" })
+			.mockResolvedValueOnce({ created: true, url: "https://feed" });
+		const n = fakeNotifications({ ensureWebhook });
+		const m = fakeMonitoring();
+		const stored: string[] = [];
+		const secrets = {
+			providerName: "github",
+			listSecrets: async () => [],
+			setSecret: async (_s: unknown, _n: string, value: string) => void stored.push(value),
+			deleteSecret: async () => {},
+		};
+		const lines: string[] = [];
+		const out = await provisionChannel(
+			{ ...deps(n, m, lines), secrets: secrets as unknown as Secrets },
+			{ name: "uptime", webhook: { name: "uptime" }, feeds: feed }
+		);
+		expect(ensureWebhook.mock.calls.map((c) => c[0].name)).toEqual(["uptime", "Checkly"]);
+		expect(stored).toEqual(["https://own"]);
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith(expect.objectContaining({ url: "https://feed" }));
+		expect(out.webhook?.stored).toBe(true);
+	});
+
+	it("passes no URL when the webhook already exists, and reports an unchanged channel", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => ({ created: false, updated: [], subscribed: 2 })),
+		});
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(n, m, lines), tally }, { name: "uptime", feeds: feed });
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({ name: "Message to #uptime", format: "discord" });
+		expect(lines.join("\n")).toContain("exists  alert channel Message to #uptime");
+		expect(tally.skip).toBeGreaterThan(0);
+	});
+
+	it("says what changed on an existing alert channel", async () => {
+		const n = fakeNotifications();
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => ({
+				created: false,
+				updated: ["url", "subscriptions"],
+				subscribed: 3,
+			})),
+		});
+		const lines: string[] = [];
+		await provisionChannel(deps(n, m, lines), { name: "uptime", feeds: feed });
+		expect(lines.join("\n")).toContain(
+			"updated alert channel Message to #uptime via webhook Checkly: url, subscriptions (3 checks)"
+		);
+	});
+
+	it("previews without touching anything in a dry run", async () => {
+		const n = fakeNotifications();
+		const m = fakeMonitoring();
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(n, m, lines, true), tally }, { name: "uptime", feeds: feed });
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain(
+			"would ensure webhook Checkly and alert channel Message to #uptime (monitoring)"
+		);
+		expect(tally.skip).toBe(3);
+		// And without a tally to count into.
+		await provisionChannel(deps(n, m, [], true), { name: "uptime", feeds: feed });
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("refuses before changing anything when monitoring cannot manage alert channels", async () => {
+		const n = fakeNotifications();
+		await expect(provisionChannel(deps(n, undefined, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/fed by monitoring, which needs a `monitoring` provider/
+		);
+		const bare = fakeMonitoring({ ensureAlertChannel: undefined });
+		await expect(provisionChannel(deps(n, bare, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/fed by monitoring/
+		);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("says the webhook is kept and a re-run retries, when the hand-over fails", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
+		});
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		const failure = await provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed }).catch((e: Error) => e);
+		expect((failure as Error).message).toMatch(
+			/webhook Checkly was created but handing its URL to checkly failed \(.*Checkly said no.*\) — the webhook is kept, so re-run once that is fixed/
+		);
+		expect((failure as Error).message).not.toContain("secret");
+	});
+
+	it("passes a failure through unchanged when there was no new URL to lose", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		await expect(provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			"Checkly said no"
+		);
+	});
+
+	it("refuses when the notifications provider cannot create webhooks, or the two webhooks share a name", async () => {
+		const noHooks = fakeNotifications({ ensureWebhook: undefined });
+		await expect(
+			provisionChannel(deps(noHooks, fakeMonitoring(), []), { name: "uptime", feeds: feed })
+		).rejects.toThrow(/cannot create webhooks/);
+		const n = fakeNotifications();
+		await expect(
+			provisionChannel(
+				{ ...deps(n, fakeMonitoring(), []), secrets: { providerName: "github" } as unknown as Secrets },
+				{ name: "uptime", webhook: { name: "Checkly" }, feeds: feed }
+			)
+		).rejects.toThrow(/both named Checkly/);
+		// Discord matches names without regard to case.
+		await expect(
+			provisionChannel(
+				{ ...deps(n, fakeMonitoring(), []), secrets: { providerName: "github" } as unknown as Secrets },
+				{ name: "uptime", webhook: { name: "CHECKLY" }, feeds: feed }
+			)
+		).rejects.toThrow(/both named CHECKLY/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+});
+
+describe("provisionChannel — relay feed", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/relay-token";
+	const relay = { errors: { webhook: "Sentry" } };
+	const deps = (notifications: Notifications, lines: string[], extra: object = {}) => ({
+		notifications,
+		scope: { kind: "repo" as const },
+		dryRun: false,
+		print: (l: string) => void lines.push(l),
+		...extra,
+	});
+
+	it("hands the webhook's URL to the caller and shows it nowhere", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		const lines: string[] = [];
+		const urls: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		const out = await provisionChannel(
+			deps(n, lines, { onRelayWebhook: (u: string) => void urls.push(u), tally }),
+			{ name: "errors", category: "ALERTS", feeds: relay }
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "errors", name: "Sentry", category: "ALERTS" });
+		expect(urls).toEqual([HOOK]);
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: true });
+		expect(JSON.stringify(out)).not.toContain("relay-token");
+		expect(lines.join("\n")).not.toContain("relay-token");
+		expect(lines.join("\n")).toContain("created webhook Sentry for the relay");
+		expect(tally).toEqual({ ok: 2, skip: 0 });
+	});
+
+	it("passes a picture on, says it was set, and counts a webhook that already existed as skipped", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: HOOK, updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines), {
+			name: "errors",
+			feeds: { errors: { webhook: "Sentry", avatar: "data:image/png;base64,AA" } },
+		});
+		expect(n.ensureWebhook).toHaveBeenCalledWith({
+			channel: "errors",
+			name: "Sentry",
+			avatar: "data:image/png;base64,AA",
+		});
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: false, updated: ["avatar"] });
+		expect(lines.join("\n")).toContain("found   webhook Sentry for the relay (avatar set)");
+
+		const tally = { ok: 0, skip: 0 };
+		const again = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, url: HOOK })) });
+		await provisionChannel(deps(again, [], { tally }), { name: "errors", feeds: relay });
+		// The channel was made (ok); the webhook was already there (skip).
+		expect(tally).toEqual({ ok: 1, skip: 1 });
+	});
+
+	it("works without anyone listening for the URL", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		await expect(provisionChannel(deps(n, []), { name: "errors", feeds: relay })).resolves.toBeDefined();
+	});
+
+	it("fails, naming the fix, for a webhook whose URL cannot be read back", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const urls: string[] = [];
+		await expect(
+			provisionChannel(deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }), {
+				name: "errors",
+				feeds: relay,
+			})
+		).rejects.toThrow(/URL cannot be read back/);
+		expect(urls).toEqual([]);
+	});
+
+	it("keeps the URL, then reports a picture that could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK, avatarError: "too big" })),
+		});
+		const urls: string[] = [];
+		await expect(
+			provisionChannel(deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }), {
+				name: "errors",
+				feeds: relay,
+			})
+		).rejects.toThrow(/setting its avatar failed \(too big\)/);
+		expect(urls).toEqual([HOOK]);
+	});
+
+	it("refuses a provider that cannot create webhooks, and previews without calling it", async () => {
+		const none = fakeNotifications({ ensureWebhook: undefined });
+		await expect(provisionChannel(deps(none, []), { name: "errors", feeds: relay })).rejects.toThrow(
+			/cannot create webhooks/
+		);
+
+		const n = fakeNotifications();
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(deps(n, lines, { dryRun: true, tally }), { name: "errors", feeds: relay });
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("would ensure webhook Sentry for the relay Worker (errors)");
+		expect(tally).toEqual({ ok: 0, skip: 2 });
+	});
+
+	it("also feeds the relay for a channel with a webhook of its own, and previews without a tally", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		const urls: string[] = [];
+		const stored: string[] = [];
+		const out = await provisionChannel(
+			{
+				...deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }),
+				secrets: {
+					providerName: "github",
+					setSecret: async (_s: unknown, name: string) => void stored.push(name),
+				} as unknown as Secrets,
+			},
+			{ name: "errors", webhook: { name: "errors" }, feeds: relay }
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(2);
+		expect(stored).toEqual(["HOLOCRON_NOTIFY_WEBHOOK_ERRORS"]);
+		expect(urls).toEqual([HOOK]);
+		expect(out.webhook?.stored).toBe(true);
+		expect(out.relayWebhook?.name).toBe("Sentry");
+
+		const dry = await provisionChannel(deps(fakeNotifications(), [], { dryRun: true }), {
+			name: "errors",
+			feeds: relay,
+		});
+		expect(dry.created).toBe(false);
+	});
+});
+
+describe("provisionChannel — relay source feeds", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/vercel-token";
+	const deps = (notifications: Notifications, lines: string[], extra: object = {}) => ({
+		notifications,
+		scope: { kind: "repo" as const },
+		dryRun: false,
+		print: (l: string) => void lines.push(l),
+		...extra,
+	});
+
+	it("makes one webhook per source and hands each URL over with its source id, showing none", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async (w: { name: string }) => ({ created: true, url: `${HOOK}/${w.name}` })),
+		});
+		const lines: string[] = [];
+		const urls: Array<[string, string | undefined]> = [];
+		const out = await provisionChannel(
+			deps(n, lines, { onRelayWebhook: (u: string, s?: string) => void urls.push([u, s]) }),
+			{
+				name: "deploys",
+				category: "ALERTS",
+				feeds: {
+					errors: { webhook: "Sentry" },
+					relay: [
+						{ source: "vercel", webhook: "Vercel" },
+						{ source: "doppler", webhook: "Doppler", avatar: "data:image/png;base64,AAAA" },
+					],
+				},
+			}
+		);
+		expect(urls).toEqual([
+			[`${HOOK}/Sentry`, undefined],
+			[`${HOOK}/Vercel`, "vercel"],
+			[`${HOOK}/Doppler`, "doppler"],
+		]);
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: true });
+		expect(out.relayWebhooks).toEqual([
+			{ source: "vercel", name: "Vercel", created: true },
+			{ source: "doppler", name: "Doppler", created: true },
+		]);
+		expect(JSON.stringify(out)).not.toContain("vercel-token");
+		expect(lines.join("\n")).not.toContain("vercel-token");
+	});
+
+	it("previews each source and refuses a provider that cannot make webhooks", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn() });
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(deps(n, lines, { dryRun: true, tally }), {
+			name: "deploys",
+			feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] },
+		});
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("would ensure webhook Vercel for the relay Worker (vercel)");
+		expect(tally).toEqual({ ok: 0, skip: 2 });
+		const none = fakeNotifications({ ensureWebhook: undefined });
+		await expect(
+			provisionChannel(deps(none, []), {
+				name: "deploys",
+				feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] },
+			})
+		).rejects.toThrow(/cannot create webhooks/);
+	});
+});
+
+describe("provisionChannel — relay source preview without a tally", () => {
+	it("prints what it would do and counts nothing", async () => {
+		const lines: string[] = [];
+		const n = fakeNotifications({ ensureWebhook: vi.fn() });
+		await provisionChannel(
+			{
+				notifications: n,
+				scope: { kind: "repo" as const },
+				dryRun: true,
+				print: (l: string) => void lines.push(l),
+			},
+			{ name: "deploys", feeds: { relay: [{ source: "vercel", webhook: "Vercel" }] } }
+		);
+		expect(lines.join("\n")).toContain("(vercel)");
+	});
+});

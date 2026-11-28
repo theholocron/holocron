@@ -1,0 +1,15 @@
+name: measure:bundle
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  measure-bundle:
+    name: measure:bundle
+    uses: theholocron/.github/.github/workflows/measure-bundle.yml@main
+    secrets: inherit

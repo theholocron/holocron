@@ -1,0 +1,28 @@
+---
+title: "deploy cleanup-preview"
+description: List and delete the Cloudflare Pages preview deployments for a pull request.
+---
+
+```bash
+holocron deploy cleanup-preview <pr> --project <name> [--repo <owner/name>]
+```
+
+Looks up the pull request through the `source` capability, derives its Cloudflare Pages branch alias (`<repo>-pr-<number>`), lists the project's preview deployments for that alias through the `deployment` capability, and deletes the ones you tick.
+
+It prints the PR's number, title, state (open, merged, or closed without merging), branch and URL first. Nothing is pre-selected: you tick the deployments to remove, and with none ticked nothing is deleted. `--dry-run` has no effect on it.
+
+## Arguments and options
+
+| Argument / Option | Default      | Description                                                            |
+| ----------------- | ------------ | ---------------------------------------------------------------------- |
+| `<pr>`            | _(required)_ | The PR number to clean up (prompted for in the interactive menu)       |
+| `--project`       | _(required)_ | Cloudflare Pages project name, e.g. `theholocron-preview`              |
+| `--repo`          | config       | GitHub repo as `owner/name`; defaults to the repo in `holocron.config` |
+
+It needs the `source` and `deployment` providers' plugins, so run it with `pnpm exec holocron`.
+
+## Examples
+
+```bash
+holocron deploy cleanup-preview 123 --project theholocron-preview
+```

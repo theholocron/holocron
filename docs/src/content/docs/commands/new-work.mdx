@@ -1,0 +1,41 @@
+---
+title: "new work"
+description: File an issue with every field and, when asked, write its spec stub.
+---
+
+```bash
+holocron new work <title> [--spec [name]] [--effort high|medium|low] [--assignee <login>]... [--body <text> | --body-file <path|->] [--label <name>]... [--milestone <number|title>] [--type bug|feature|task] [--priority urgent|high|medium|low] [--start-date <YYYY-MM-DD>] [--target-date <YYYY-MM-DD>] [--parent <key>] [--blocked-by <key>]... [--project <board>] [--area <name>]... [--dry-run] [--yes]
+```
+
+The first step in the life of a piece of work (spec `tool-work-commands`, #2429). It is [`new issue`](/holocron/commands/new-issue/) plus, with `--spec`, [`new spec`](/holocron/commands/new-spec/): the issue is filed through the `issues` provider with all its fields, then the draft spec stub is written to `.notes/` from the new issue.
+
+It makes **no branch and no commit**. [`start work`](/holocron/commands/start-work/) does that, and with `--spec <path>` its first commit is the spec. The last line of a run names the command to run next.
+
+```bash
+holocron new work "Add a work command" --type feature --effort medium --area cli --spec --yes
+holocron start work 2500 --spec .notes/tech-add-a-work-command.spec.md
+```
+
+## Behavior
+
+- **The issue** is filed by the same code as `new issue`, so its fields, `--project`, `--area`, the `not carried across` lines, the confirmation and `--dry-run` are the same. The key is printed in the first row, so a later failure leaves the issue as the anchor.
+- **The assignee** defaults to the GitHub login in git's config: `github.user`, else the login in a `users.noreply.github.com` email. It is never the token's identity, which is a bot under an agent, and a `user.name` is not a login so it is never used. `--assignee` overrides it. With no login the issue is filed unassigned and a row says why.
+- **Effort** is asked on a terminal when `--effort` is absent. It is not asked with `--yes`, with `--dry-run` or without a terminal. The CLI never chooses it: an agent or a skill passes `--effort`; the [`work-effort`](/holocron/skills/work-effort/) skill says how to choose it.
+- **`--spec [name]`** writes `.notes/<name>.spec.md` with `status: draft`, the `issue:` and the issue's text under `## Problem`. Without a name it is `tech-` and the title in kebab-case. The file is never overwritten, nothing is edited on the issue, and the file is left in the working tree, uncommitted. The name and the path are checked before the issue is filed, so a bad name or an existing file stops the run with nothing made.
+- **Asks first** once, for the issue, unless `--dry-run` or `--yes`; the spec is not a second question. Without a terminal and without `--yes` it refuses.
+- **`--dry-run`** previews the issue and says the spec would be written; it files and writes nothing.
+- **A spec that fails after the issue was made** is a failing row and exit code 1. The issue stays; run `holocron new spec <key>` to retry the spec.
+
+## Options
+
+Every [`new issue`](/holocron/commands/new-issue/) option, and:
+
+| Option            | Default                 | Description                                                                            |
+| ----------------- | ----------------------- | -------------------------------------------------------------------------------------- |
+| `--spec [name]`   | off                     | Also write the spec stub; the optional name is the whole spec name, without the ending |
+| `--effort <size>` | asked on a terminal     | `high`, `medium` or `low`                                                              |
+| `--assignee`      | the login in git config | A person to assign, by login; repeat for more where the tracker allows                 |
+
+## Not verified
+
+The command was tested with fakes only. The issue-field writes are the ones [`new issue`](/holocron/commands/new-issue/) lists as not run against a live tracker.

@@ -1,0 +1,50 @@
+---
+title: "upload coverage"
+description: Upload the repo's coverage reports, one flag per group, through the coverage provider.
+---
+
+```bash
+holocron upload coverage --uploads '<json>' [--allow-empty] [--dry-run]
+```
+
+Uploads the lcov reports a test run wrote, one flag per group, through the repo's `coverage` provider (`providers.coverage`, today Codecov). It does what the `codecov-upload` composite action did in shell, as tested TypeScript in the provider, so a swap to another coverage service is one provider entry and one plugin.
+
+## Input
+
+`--uploads` is a JSON list of groups. `files` is a glob relative to the repo root, or a list of globs:
+
+```json
+[
+  { "flag": "utils", "files": "utils/*/coverage/lcov.info" },
+  { "flag": "skills", "files": ["skills/lcov.info"] }
+]
+```
+
+A group whose glob matches nothing is skipped with a note, not an error. `--allow-empty` lets a run with no report in any group finish quietly (an affected run that selected nothing); without it that is a failure, so a missing report is not mistaken for a pass.
+
+## What the Codecov provider does
+
+1. Asks the Actions runtime for a job OIDC token (audience `https://codecov.io`). The job needs `permissions: id-token: write`; there is no stored token. The token is masked in the log (`::add-mask::`) and is never printed.
+2. Downloads the Codecov CLI, checks the signature of its checksum file with `gpg` (Codecov's published key, in a private keyring) and the binary's SHA-256 against it, and only then makes it executable.
+3. Runs `create-commit` and `create-report`, then one `do-upload` per group. The token goes to the CLI in `CODECOV_TOKEN`, never in argv.
+4. Leaves out a report that names no source file, and uploads each other report as a copy whose relative `SF:` paths start at the repo root (`SF:src/index.ts` becomes `SF:clients/doppler-client/src/index.ts`), so Codecov can place the files. The package is the report's folder less a trailing `coverage`; a report at the repo root is uploaded as it is.
+5. Tries each upload up to four times with a fresh OIDC token before every try, waiting 15 seconds times the attempt between tries. A group that fails every try fails the run and ends it.
+
+## Output
+
+One row per group: `ok` with the number of files uploaded, `skip` with the reason, or `fail`. A report left out is listed under its group's row. The exit code is 1 when a group failed, the provider could not start (no OIDC token, a Codecov CLI that does not verify), the config has no `coverage` provider, or nothing was uploaded without `--allow-empty`. `--dry-run` lists the groups and uploads nothing, and loads no provider.
+
+## Step output
+
+When `GITHUB_OUTPUT` is set (GitHub Actions), the command appends `uploaded=<n>`, the number of flags uploaded, so a later step reads `steps.<id>.outputs.uploaded` as it did from the old action (`0` when no group had a report). Nothing is written when the variable is unset.
+
+## Rules
+
+- **It needs the plugin.** It is a workspace command: the `coverage` provider's package must resolve. A provider without an `upload` method is a failing row.
+- **Names and counts only.** No token, bearer or file content is printed.
+- **The old action stays.** `ci/actions/codecov-upload` is still what the frozen reusable workflows in `theholocron/.github` call, and what `measure:docs` calls, until `CI_HOME` moves. This repo's own `test:unit` calls the command instead.
+
+## See also
+
+- [Codecov plugin](/holocron/plugins/codecov/)
+- [`coverage` capability](/holocron/capabilities/)

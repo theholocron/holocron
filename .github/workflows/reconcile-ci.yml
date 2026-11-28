@@ -1,0 +1,105 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/reconcile-ci.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Reconcile ci
+
+# The safety net of the `ci` aggregate (spec `process-sentinel-posts-ci`, SPEC-0099): runs `holocron reconcile ci`, which
+# reads each open pull request's check runs and statuses and makes `ci / Required checks` say what they call for. A
+# healthy run writes nothing. A check that was missing or wrong for longer than ten minutes means a webhook was missed:
+# the run fails, and a failed run reaches #alerts through `platform.notifications.yml`.
+#
+# It posts as Sentinel's GitHub App, with an installation token narrowed to the three permissions it needs (checks:
+# write, pull_requests: read, statuses: read), never as `GITHUB_TOKEN`: a check run belongs to the app that posted it, and
+# the ruleset will be pinned to Sentinel's app. The App's id and private key reach the job as the secrets below (`secrets:
+# inherit` passes them from the caller). The App must hold Commit statuses: read, which a person grants.
+#
+# In a repo whose `ci.aggregate` is `actions` (the default) the command posts nothing and the run is green: the Actions job
+# is the poster there. Scheduled every 15 minutes by the caller; GitHub delays and drops scheduled runs, so the heartbeat
+# is more lenient than the cron.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      SENTINEL_GITHUB_APP_ID:
+        description: The id of the GitHub App whose installation token posts the check.
+        required: false
+      SENTINEL_GITHUB_APP_PRIVATE_KEY:
+        description: The private key of that GitHub App.
+        required: false
+      SENTINEL_APP_ID:
+        description: The old name of SENTINEL_GITHUB_APP_ID, read when the new one is not set.
+        required: false
+      SENTINEL_APP_PRIVATE_KEY:
+        description: The old name of SENTINEL_GITHUB_APP_PRIVATE_KEY, read when the new one is not set.
+        required: false
+      HOLOCRON_HEARTBEAT_RECONCILE_CI:
+        description: The ping URL of the `reconcile-ci` heartbeat. Without it the run sends none.
+        required: false
+
+jobs:
+  reconcile-ci:
+    name: Bring the ci check up to date
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Two runs could post the same check twice, so a second waits for the first.
+    concurrency:
+      group: reconcile-ci
+      cancel-in-progress: false
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}
+          private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-checks: write
+          permission-pull-requests: read
+          permission-statuses: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # The token goes in the environment, never on the command line. The `source` provider reads it as its token.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Reconcile the ci check
+        id: reconcile
+        env:
+          HOLOCRON_ADMIN_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          command: reconcile ci --max-age 10
+
+      - name: List what was done
+        if: ${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}
+        env:
+          LOG_FILE: ${{ steps.reconcile.outputs.log-file }}
+        run: |
+          {
+            echo "### ci reconcile"
+            echo '```'
+            cat "$LOG_FILE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Tells Checkly this run finished (#2359, the `reconcile-ci` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job.
+      - name: Ping the heartbeat
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_RECONCILE_CI }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_RECONCILE_CI is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

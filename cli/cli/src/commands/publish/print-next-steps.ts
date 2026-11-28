@@ -1,0 +1,33 @@
+import type { EnvLookup } from "@theholocron/env-utils/lookup";
+
+import type { PublishPrint } from "./publish.type.js";
+import type { RepoIdentity } from "./resolve-repo-identity.type.js";
+
+export function printNextSteps(
+	print: PublishPrint,
+	env: EnvLookup,
+	packageNames: readonly string[],
+	identity: RepoIdentity,
+	workflowFile: string
+): void {
+	print("");
+	print("→ next: configure Trusted Publisher for each package on npm:");
+	print("    Publisher: GitHub Actions");
+	print("    Label: Holocron Release");
+	print(`    Organization: ${identity.owner}`);
+	print(`    Repository: ${identity.repo}`);
+	print(`    Workflow filename: ${workflowFile}`);
+	print("  or let the CLI register it on every package that has none (needs an npm session):");
+	print(`    holocron publish package --sync-trust ${workflowFile} ${workflowFile}`);
+	print("");
+	print("→ packages to be published:");
+	for (const name of packageNames) {
+		print(`    https://www.npmjs.com/package/${name}/access`);
+	}
+
+	if (env.get("NPM_TOKEN")) {
+		print("");
+		print("→ cleanup: $NPM_TOKEN was used. Revoke it now (no API for self-revoke; UI-only):");
+		print("    https://www.npmjs.com/settings/~/tokens");
+	}
+}

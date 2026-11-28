@@ -1,0 +1,17 @@
+name: deploy-sentinel
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - "apps/sentinel/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-sentinel:
+    name: deploy-sentinel
+    uses: theholocron/.github/.github/workflows/deploy-sentinel.yml@main
+    secrets: inherit

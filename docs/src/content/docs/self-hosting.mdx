@@ -31,7 +31,7 @@ pnpm build
 # If your npm account requires 2FA for writes, grab a one-time password
 # from your authenticator and pass it via --otp. The same code is reused
 # across all sequential publishes — they happen within seconds.
-pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp 123456
+pnpm --filter @theholocron/cli run start:source publish package --initial --otp 123456
 ```
 
 Add `--dry-run` to print what would happen without publishing. If you forget `--otp` and your account needs it, the command detects the `EOTP` error and prints the corrected command.
@@ -40,28 +40,125 @@ Add `--dry-run` to print what would happen without publishing. If you forget `--
 
 In the npm web UI, for each `@theholocron/*` package:
 
-1. Sign in at https://www.npmjs.com
+1. Sign in at [npmjs.com](https://www.npmjs.com)
 2. Navigate to the package → Settings → Trusted Publishers
 3. Configure:
    - **Publisher**: GitHub Actions
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
+   - **Workflow filename**: `ci.release.yml`: the workflow that runs on the push, not the reusable `release.yml` it calls (npm checks the calling workflow)
    - **Environment** (optional): leave blank
 
 ## Step 3 — Subsequent releases run automatically
 
-Push to `main` fires `release.yml`. The workflow requests an OIDC token from GitHub, `pnpm publish` exchanges it with npm, npm validates against the registered Trusted Publisher, and the publish proceeds with provenance attestations attached automatically.
+Push to `main` triggers `ci.release.yml`, which calls the reusable `release.yml`. The workflow requests an OIDC token from GitHub, `pnpm publish` exchanges it with npm, npm validates against the registered Trusted Publisher, and the publish proceeds with provenance attestations attached automatically.
 
 ## Adding a new plugin
 
 When adding a new `holocron-plugin-*` package:
 
 1. Add it to the workspace packages.
-2. Run `holocron publish --initial --tag alpha` (or `--dry-run` first) — it handles `npm login` itself.
+2. Run `holocron publish package --initial --tag alpha` (or `--dry-run` first) — it handles `npm login` itself.
 3. Visit the npm UI and configure Trusted Publisher for the new package (same settings as above).
 4. Future releases via `main` will include the new package automatically.
 
 ## Release versioning
 
-Holocron uses `semantic-release` with lockstep versioning — all packages in `packages/*/` advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron bump-versions` to patch every `package.json` in the workspace.
+Holocron uses `semantic-release` with lockstep versioning — all packages in the workspace advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron publish bump-versions` to patch every `package.json` in the workspace.
+
+### Releasing a version group
+
+A monorepo that holds several former repos releases each folder on its own line: `clients` at 1.43, `utils` at 1.16. Each folder is a **version group**: lockstep inside, independent of the others. `groupReleaseConfig()` from `@theholocron/semantic-release-config` builds the semantic-release config for one:
+
+```ts
+// release.config.ts
+import { groupReleaseConfig } from "@theholocron/semantic-release-config";
+
+const group = process.env["RELEASE_GROUP"] ?? "clients";
+
+export default groupReleaseConfig({
+  group,
+  branches: ["main", { name: "alpha", prerelease: true }],
+  exec: {
+    prepareCmd: `holocron publish bump-versions \${nextRelease.version} --group ${group}`,
+    publishCmd: `holocron publish package --group ${group} --skip-already-published`,
+  },
+});
+```
+
+It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules, notes and plugin order are the org's, and changes four things:
+
+- **Tags** are `<group>-v<version>` (`clients-v1.43.2`), so a group finds only its own last release.
+- **Commits** are scoped: the analyzer and notes generator see only commits that changed a file under the group's folder. After a repo is imported, `lastTag..HEAD` spans every folder, so an unscoped analyzer would release a group for a commit that never touched it. Pass `paths` to add folders beyond `[group]`; cross-group dependencies resolve from the registry, so a dependent group is not released for a dependency's commits.
+- **The changelog** is `<group>/CHANGELOG.md`.
+- **The release commit** stages only the group's `package.json` files and changelog, and says which group: `chore(release): clients 1.43.2 [skip ci]`.
+
+`@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs.
+
+A group whose release left packages off npm is finished without a new release by running the release workflow by hand with `republish_tag`; see [publishing what is missing for an existing tag](/commands/publish-package/#publishing-what-is-missing-for-an-existing-tag).
+
+#### A group that publishes nothing (tag-only)
+
+`ci` is a folder of reusable workflows and composite actions (`@theholocron/ci`, private), not an npm package. It is still a version group, so that callers outside the repo can pin it:
+
+- **Immutable tags** `ci-v1.4.0`, one per release, that never move.
+- **A moving major tag** `ci-v1` that follows the latest stable release. A caller writes `uses: theholocron/holocron/.github/workflows/<name>.yml@ci-v1` and takes every minor and patch release without editing its files.
+- **A release only when the folder changed.** The analyzer sees only commits under `ci/`, so a change elsewhere neither releases the group nor moves the tag.
+- **From `main` only.** The group's `branches` is `["main"]`, so a run on `alpha` releases nothing and cannot move a tag that outside repos follow.
+
+`release.config.ts` gives it a config of its own: `prepareCmd` runs `publish bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`publish tag`](/commands/publish-tag/) instead of `publish package`. Nothing goes to npm. In `release` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
+
+Moving to a new major (`ci-v2`) is a breaking change to the workflows' inputs or secrets. The first release after a `feat!`/`BREAKING CHANGE` commit tags `ci-v2.0.0` and creates `ci-v2`. `ci-v1` stays where it was, so callers pinned to it keep working until they change it on purpose.
+
+To repair or move a major tag by hand: `git fetch --tags && holocron publish tag ci` (`--dry-run` first).
+
+#### Releasing every group in CI
+
+List the groups on the `release` task and `holocron sync` generates a caller that releases each one:
+
+```ts
+// astromech.config.ts
+tasks: [
+  {
+    name: "release",
+    with: {
+      groups: [
+        "clients",
+        "utils",
+        // inputs that belong to one group's release, not to all of them
+        { name: "cli", "sentry-project": "holocron-cli", "deploy-on-release": true },
+      ],
+    },
+  },
+],
+```
+
+The generated workflow has a `plan` job and a matrix job that calls the reusable workflow once per group:
+
+- **One group at a time.** The matrix runs with `max-parallel: 1`, because each release pushes a commit to the branch. The reusable checks out the branch's current tip when it is given a `group`, so the next group starts after the last one's release commit instead of behind it. `fail-fast` is off, so one group failing does not skip the rest. (A `concurrency` group does not work for this: GitHub keeps only one pending run per group and cancels the rest.)
+- **A push releases every group.** A manual run has a `group` choice (default `all`) and the usual dry-run switch, so `group: clients` with a dry run previews that group's next release alone. A job's `if:` cannot see the matrix, which is why `plan` makes the choice.
+- **Per-group inputs.** Only `deploy-on-release`, `post-release`, `run-build` and `sentry-project` can be set per group; anything else under `with:` applies to every group. Setting the same input both ways is an error.
+
+**Packages in no group.** Listing groups makes the workflow release _only_ those groups, so a repo that also has packages outside them (holocron's own `cli/`, `plugins/` and `apps/` next to an imported `observability/`) adds `ungrouped`:
+
+```ts
+with: {
+  groups: ["observability"],
+  // everything in no group, released together under the repo's plain `v*` tags, last
+  ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },
+}
+```
+
+`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs **after** the groups, from the branch tip they have moved: the packages in no group depend on the groups' packages through `workspace:` ranges, which are rewritten to concrete versions at publish time, so the groups must be on npm first (list `groups` in dependency order: a group before the groups that depend on it). It is skipped if a group errored. A manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`publish bump-versions` and `publish package` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
+
+```ts
+import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";
+import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
+
+const groups = releaseGroups(await loadTasksConfig(process.cwd()));
+const group = process.env["RELEASE_GROUP"];
+```
+
+The workflow keeps its filename (`release.yml`), because npm Trusted Publishing is bound to the repository and workflow file. A repo that does not list `groups` gets the same single-release workflow as before.
+
+The reusable workflow is read from `theholocron/.github`, so run `holocron sync github` to publish its `group` input before a repo starts passing one.

@@ -1,0 +1,268 @@
+/**
+ * Sentinel's own deploy config — separate from this monorepo's root
+ * `holocron.config.ts` (which governs `holocron`'s own CI/build), since
+ * Sentinel is deployed as its own product, not built/released the way
+ * the CLI or the plugins are. Not part of the recurring `holocron run ci`
+ * gate (no `source` provider — Sentinel has no repo-settings surface
+ * of its own to check).
+ *
+ * Three separate invocations, different frequency:
+ *   - `pnpm run deploy` (recurring, every real deploy):
+ *     build → stage → `holocron deploy --target production`.
+ *   - `holocron setup --cwd apps/sentinel` (one-time, manual):
+ *     attaches the custom domain to the Vercel project and hands any
+ *     verification CNAME to the `dns` provider — `source` being
+ *     unconfigured means every repo-settings step is skipped
+ *     (each gated on `loader.has("source")`), not that setup fails.
+ *   - `check-preview` + `deploy-preview` tasks
+ *     (holocron#1010, #1022, #1024): on every PR to this repo
+ *     (no path filter yet — #1023 — so this also fires on PRs touching
+ *     unrelated packages, not only Sentinel or its bundled deps),
+ *     deploys a Vercel preview
+ *     (Sentinel has no git-linked Vercel project — it deploys via
+ *     `deployFunction()`, a bare file upload — so this creates the
+ *     GitHub Deployment + `deployment_status` itself, same move
+ *     `theholocron/.github`'s Cloudflare-Pages preview workflow already
+ *     makes), then runs `holocron check monitor` against that PR's
+ *     own preview URL instead of production — see the `monitoring`
+ *     provider comment below for why this exists. Both tasks flow
+ *     through the normal `holocron sync`-generated workflow path
+ *     (holocron#1014's monorepo-subpackage write-location bug, fixed) —
+ *     no hand-maintained workflow file for either.
+ *
+ * `deployment`: Vercel, a Team separate from any other Vercel project
+ * in this org (ADR-0011's deploy-target decision). `teamId` is not a
+ * credential, but it is an org constant, so it is not written here: the loader
+ * fills it from `.holocron/org.ts` next to this file (SPEC-0069, #1820).
+ *
+ * `vault`: the 1Password Environment `Sentinel` (holocron#1671; it was
+ * Doppler's `sentinel`/`prd` before, holocron#781). The 5 runtime secrets
+ * and the role-sync settings live there; `holocron sync secrets --env Sentinel`
+ * fans them out. The Environment is made by hand — `op` cannot create one.
+ *
+ * `secrets`: GitHub — none of the runtime keys has a GH Actions consumer any more.
+ * One, `SENTINEL_AXIOM_INGEST_TOKEN`, was copied to an org secret for the dispatched
+ * check workflow in `theholocron/.github`, which Sentinel stopped dispatching
+ * (#2263), so `sync secrets` writes only to Vercel (`repo.secrets.deploy` below).
+ *
+ * `dns`: Cloudflare — receives the CNAME challenge `holocron setup`
+ * gets back from `Deployment.ensureCustomDomain()` when it adds
+ * `sentinel.theholocron.dev` to the Vercel project, via
+ * `Dns.upsertRecord()`.
+ *
+ * `tunnels`: Cloudflare (holocron#1678) — `holocron new tunnel --cwd apps/sentinel` makes the named tunnel for
+ * a local development instance (a stable `sentinel-dev.theholocron.dev` that reaches a port on this machine),
+ * with the `dns` provider above pointing the hostname at it. The account id is not written here: the plugin
+ * reads `CLOUDFLARE_ACCOUNT_ID` through the credential chain, from the Environment named in `credentials` below
+ * (#1827). The token needs Cloudflare Tunnel: Edit on top of DNS.
+ *
+ * `monitoring`: Checkly (holocron#996) — two API checks watching
+ * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
+ * infra, since Sentry/Axiom are both reactive (they only see traffic
+ * that reaches the function) and wouldn't notice if the deployment
+ * stopped receiving traffic at all. `accountId` is not a secret and is filled
+ * from the repo root's `.holocron/org.ts` (the org area is shared with this config, #1829), unlike Vercel's `teamId`, which
+ * is in the `.holocron/org.ts` beside this file; the API token is vault-sourced like
+ * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
+ * `holocron sync secrets` the same way `vault` already handles the
+ * other 5 keys. `locations: ["us-east-1"]` is required on both —
+ * confirmed live via `POST /checks/api` returning 400 "You have to
+ * set at least one `location` or `privateLocation`" on this (trial)
+ * account, which has no account-level default configured.
+ *
+ * The uptime check asserts a 405 on a plain GET: confirmed live that
+ * `handleWebhookRequest` declines non-POST before touching any
+ * webhook-specific logic, so a clean 405 with the exact expected body
+ * proves the function is deployed and routing correctly, not
+ * crashed/cold/timed out — full business-logic correctness stays
+ * with the existing test suite. `shouldFail: true` is required on
+ * both checks below — confirmed live that a check still reports
+ * `hasFailures: true` with the assertion matching exactly (`actual:
+ * 405` === `target: "405"`, no assertion-level error): Checkly
+ * classifies any response >= 400 as a platform-level failure before
+ * assertions are evaluated at all, and `shouldFail` is the documented
+ * flag to invert that for a check whose healthy response is itself an
+ * error status.
+ *
+ * The second check POSTs an empty body with no signature header at
+ * all and asserts a 401 — `handler.ts`'s `parseWebhookEvent()` throws
+ * `WebhookVerificationError` (mapped to 401) the moment
+ * `verifyGitHubWebhookSignature()` fails, which it always does given
+ * no `X-Hub-Signature-256` header. Unlike the uptime check, this one
+ * actually proves `SENTINEL_WEBHOOK_SECRET` made it into the deployed
+ * environment correctly: the uptime check's 405 happens before signature
+ * verification ever runs, so it can't catch a secret drifting out of
+ * sync between the vault and Vercel — this one can. `body: "{}"`
+ * (holocron#996, via `@theholocron/checkly-client`'s request-body
+ * support, clients#396) is sent as Checkly's `bodyType: "RAW"`; its
+ * exact content doesn't matter — the handler checks the signature
+ * before ever parsing the body as JSON.
+ */
+
+import { defineConfig } from "@theholocron/cli";
+
+import org from "../../.holocron/org.js";
+
+// The zone is spelled once, in the repo root's `.holocron/org.ts`; every hostname below derives from it. The import is
+// safe because this config is only ever loaded from disk (`holocron ... --cwd apps/sentinel`, `pnpm dev`): Sentinel's
+// remote loader evaluates a repo's root config, never this one. The loader also sets `domain` on this config from the
+// shared org area, so it is not written below.
+const { domain } = org;
+const sentinelHost = `sentinel.${domain}`;
+const webhookUrl = `https://${sentinelHost}/api/webhook`;
+
+export default defineConfig({
+	// Redeploy after a release publishes (holocron#928, #930): the `deploy` job
+	// in the shared release workflow runs `holocron deploy on-release`,
+	// which reads this task from every workspace package. `paths` default to this
+	// package plus its `workspace:*` dependencies (the packages inlined into
+	// `dist/`).
+	tasks: [
+		{ name: "deploy", with: { on: "release", channel: "alpha" } },
+		// cwd tells the generated workflow which package directory to run
+		// from — the repo root is checked out, and this is a monorepo, so
+		// without it the CLI would load this repo's own root
+		// holocron.config.ts (no monitoring/deployment provider there)
+		// instead of this file. Fixed properly (holocron#1014) — both tasks
+		// now flow through the normal `holocron sync` path, no
+		// hand-maintained workflow file needed for either.
+		{
+			name: "check-preview",
+			with: {
+				cwd: "apps/sentinel",
+				// Verified live via Vercel's API before
+				// VERCEL_PROTECTION_BYPASS_SECRET is ever attached to a
+				// request (holocron#1032 review) — the project's real id,
+				// not its name (`projects.get("sentinel")`'s own `.id`
+				// field), since that's what a deployment's `projectId`
+				// actually resolves to.
+				"vercel-project": "prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV",
+			},
+		},
+		// Un-deferred (#1022 released as @theholocron/astromech@5.0.0-alpha.145,
+		// and Sentinel redeployed with that bundle in the same release's
+		// deploy-on-release job) — was deliberately left out until both of
+		// those were true. Sentinel's config-compatibility check validates
+		// task names against its OWN deployed, bundled
+		// @theholocron/astromech — never a PR's own registry.ts changes
+		// (D6's security boundary) — so a brand-new task name can't appear
+		// in ANY repo's config until a real release has shipped it and
+		// Sentinel has redeployed with the updated bundle (confirmed live:
+		// this exact failure on holocron#1019's sync-templates,
+		// same root cause).
+		{ name: "deploy-preview", with: { cwd: "apps/sentinel", project: "sentinel" } },
+	],
+	// `holocron dev` (and `pnpm dev`): the development instance runs locally behind a named tunnel. The hostname is one
+	// level under the zone because Cloudflare's free certificate covers `*.theholocron.dev` and no deeper name.
+	dev: {
+		layer: "dev",
+		tunnel: { name: "sentinel-dev", hostname: `sentinel-dev.${domain}` },
+		port: 3000,
+		// The dev App's webhook points at this tunnel, so while `pnpm dev` is not running GitHub would deliver into a 530:
+		// its installations are suspended except for the length of a run.
+		suspendWhenIdle: true,
+		serve: {
+			handler: "./src/handler/index.ts",
+			export: "handleWebhookRequest",
+			required: ["SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+			logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "SENTINEL_AXIOM_DATASET" },
+		},
+	},
+	repo: {
+		secrets: {
+			// What the Vercel deployment may receive from a `sync secrets` (#2061): the `SENTINEL_` names, and the three
+			// `HOLOCRON_` names the app reads for role sync and log shipping (apps/sentinel/src reads no others), and `CRON_SECRET`,
+			// the name Vercel reads to authenticate its cron calls to `/api/scheduled` (#2609); it has no prefix to match.
+			// Anything else the Environment holds stays in it. With no entry the sync stops with a ConfigError.
+			deploy: [
+				{
+					layer: "prod",
+					prefix: "SENTINEL_",
+					keys: [
+						"CRON_SECRET",
+						"HOLOCRON_AXIOM_ORG",
+						"HOLOCRON_DISCORD_BOT_TOKEN",
+						"HOLOCRON_USER_SYNC_TOKEN",
+					],
+				},
+			],
+		},
+	},
+	providers: {
+		deployment: ["vercel", { domain: sentinelHost }],
+		dns: "cloudflare",
+		tunnels: "cloudflare",
+		monitoring: [
+			"checkly",
+			{
+				checks: [
+					{
+						name: "Sentinel webhook uptime",
+						url: webhookUrl,
+						method: "GET",
+						// Checkly requires at least one location or privateLocation —
+						// no account-level default exists on a trial/Hobby plan.
+						locations: ["us-east-1"],
+						// The tag a dashboard and the status page pick this check by (#2302).
+						tags: ["sentinel"],
+						// 405 is the EXPECTED healthy response here (confirms the
+						// function declines non-POST) — without shouldFail, Checkly
+						// classifies any 4xx as a platform-level failure before
+						// assertions are even evaluated, regardless of a match.
+						shouldFail: true,
+						assertions: [
+							{ source: "status_code", comparison: "equals", target: "405" },
+							// Catches a regression where the status stays 405 but the
+							// response body itself changes (e.g. a framework swap
+							// changing the error page).
+							{ source: "body", comparison: "equals", target: "Method Not Allowed" },
+						],
+					},
+					{
+						name: "Sentinel webhook signature verification",
+						url: webhookUrl,
+						method: "POST",
+						locations: ["us-east-1"],
+						tags: ["sentinel"],
+						// A POST with no signature header always fails verification —
+						// 401 is the expected response, same shouldFail reasoning as
+						// the uptime check above.
+						shouldFail: true,
+						// Content is irrelevant — handler.ts checks the signature
+						// before ever parsing this as JSON.
+						body: "{}",
+						assertions: [{ source: "status_code", comparison: "equals", target: "401" }],
+					},
+				],
+			},
+		],
+		// The requests for sending a delivery by hand, `api/` (#2172): `holocron sync tooling --cwd apps/sentinel`
+		// pushes them to the `Holocron` workspace (made when absent; every app is a collection in it). The environment's
+		// `webhookSecret` is committed empty and keeps the value set there.
+		tooling: [
+			[
+				"postman",
+				{
+					workspace: "Holocron",
+					collectionFiles: ["api/webhook.collection.json"],
+					envFiles: ["api/webhook.environment.json"],
+				},
+			],
+			// Bruno reads files, not an account: `holocron export requests --to bruno` writes the same collection as
+			// a Bruno JSON file into the git-ignored `api/.export/bruno/`.
+			[
+				"bruno",
+				{
+					collectionFiles: ["api/webhook.collection.json"],
+					envFiles: ["api/webhook.environment.json"],
+				},
+			],
+		],
+		secrets: "github",
+		// The production values of Sentinel, in the `prod` layer (#2069): `holocron sync secrets --env prod`.
+		vault: ["1password", { layer: "prod" }],
+		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use, and CLOUDFLARE_ACCOUNT_ID) come from the
+		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.
+		credentials: ["1password"],
+	},
+});

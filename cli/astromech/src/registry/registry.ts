@@ -1,0 +1,344 @@
+import type { TaskDef } from "./registry.type.js";
+/**
+ * The task registry — how each task runs *locally*, without GitHub
+ * Actions. `holocron run <task>` and `holocron run ci` resolve against this;
+ * adding a task here gives every repo that task.
+ *
+ * Keyed by the flat, verb-first id (`test:unit`, `lint:code`, `build`,
+ * `deploy-preview`), the one spelling of a task in the CLI (spec
+ * `ci-flat-task-vocabulary`, SPEC-0064, epic #1612). A colon means "member of
+ * the suite named before it": `test`, `lint`, `scan`,
+ * `validate` and `measure` are suites, declared here by the `suite` field of their leaves
+ * and never ids of their own. A hyphen is part of a verb phrase and implies no
+ * suite. The old dotted names (`verification.unitTests`, …) are accepted for a
+ * window through {@link LEGACY_NAMES} and still name the generated workflow
+ * files, turbo tasks and `package.json` scripts until the later phases move
+ * those (see {@link legacyName}).
+ *
+ * Every other artifact (`KNOWN_TASKS`, `CI_ORDER`, the suites) derives from
+ * these keys rather than hand-duplicating them — including the GitHub App
+ * (#679), which imports this same table for config-schema validation.
+ *
+ * Declared order is run order: a suite runs its members in the order they
+ * appear here.
+ *
+ * Task names are an intent-facing vocabulary, not tool names —
+ * `eslint`/`vitest`/`tsdown`/… stay internal to this file and the `configs/`
+ * folder.
+ *
+ * Spec: `.notes/ci-flat-task-vocabulary.spec.md`, and
+ * `docs/wiki/specifications/tech-astromech-task-runner.spec.md` (epic #581).
+ */
+
+export const TASKS: Record<string, TaskDef> = {
+	// ── Verification — does the code work? ────────────────────────────────
+	"test:unit": {
+		group: "Verification",
+		scope: "package",
+		suite: "test",
+		// Unit tests always run with coverage: it is in the command, not a flag anyone passes (spec decision 10).
+		local: { tool: "vitest", args: ["run", "--coverage"] },
+		turbo: {
+			inputs: [
+				"src/**",
+				"test/**",
+				"vitest.config.ts",
+				"vitest.config.js",
+				"vitest.config.mjs",
+				// A repo-root vitest config shared by every package without its own.
+				"$TURBO_ROOT$/vitest.config.ts",
+				"$TURBO_ROOT$/vitest.config.js",
+				"$TURBO_ROOT$/vitest.config.mjs",
+				"package.json",
+			],
+			outputs: ["test-report.junit.xml", "coverage/**"],
+			// Own package's build first (tests may import from dist) + every
+			// upstream workspace's build (so a dependency's types/dist are current).
+			dependsOn: ["build", "^build"],
+		},
+	},
+	// Its own task/workflow, not a `test:unit` sub-job
+	// (holocron#394/#1062) -- GitHub evaluates a job's `if:` before
+	// expanding its `strategy.matrix`, so no `chromatic-projects` default
+	// can make a *disabled* Chromatic job disappear from PR checks; only
+	// not generating the job at all does. A repo opts in by listing this
+	// task, same as any other optional task -- omitting it means no
+	// workflow, no job, no check, not even a skipped one.
+	"test:visual": { group: "Verification", scope: "repo", suite: "test", local: null },
+	"test:perf": {
+		group: "Verification",
+		scope: "repo",
+		suite: "test",
+		local: {
+			detect: [
+				{ when: /^lighthouse\.config\.(cjs|js|mjs|ts)$/, tool: "lhci", args: ["autorun"] },
+				{ when: /^lighthouserc\.(cjs|js|mjs|json|yml|yaml)$/, tool: "lhci", args: ["autorun"] },
+			],
+		},
+	},
+	// Its own verb, not `test:types`: it needs no test runner, runs on a different input set and posts a separate check.
+	typecheck: {
+		group: "Verification",
+		scope: "package",
+		local: { tool: "tsc", args: ["--noEmit"] },
+		turbo: {
+			inputs: ["src/**", "test/**", "tsconfig.json"],
+			outputs: [],
+			dependsOn: ["^build"],
+		},
+	},
+
+	// ── Source Quality — is the source well-formed? ───────────────────────
+	"lint:code": {
+		group: "Source Quality",
+		scope: "package",
+		suite: "lint",
+		local: null,
+		linterGroup: ["eslint", "actionlint", "git-merge-conflict-markers"],
+		turbo: {
+			// ESLint finds a config by walking up from the package, so a package with none of its own
+			// lints with the repo root's: that file is an input too, or editing it would serve stale
+			// cached results for every such package.
+			inputs: [
+				"src/**",
+				"eslint.config.ts",
+				"eslint.config.js",
+				"eslint.config.mjs",
+				"eslint.config.cjs",
+				"$TURBO_ROOT$/eslint.config.ts",
+				"$TURBO_ROOT$/eslint.config.js",
+				"$TURBO_ROOT$/eslint.config.mjs",
+				"$TURBO_ROOT$/eslint.config.cjs",
+			],
+			outputs: [],
+			dependsOn: ["^build"],
+		},
+	},
+	"lint:editorconfig": {
+		group: "Source Quality",
+		scope: "repo",
+		suite: "lint",
+		local: null,
+		linterGroup: ["editorconfig"],
+	},
+	"lint:markdown": {
+		group: "Source Quality",
+		scope: "repo",
+		suite: "lint",
+		local: null,
+		linterGroup: ["markdownlint"],
+	},
+	"lint:data": {
+		group: "Source Quality",
+		scope: "repo",
+		suite: "lint",
+		local: null,
+		linterGroup: ["yamllint"],
+	},
+	// knip reports unused files, exports and dependencies, hence `unused` and not "dead code".
+	"lint:unused": { group: "Source Quality", scope: "repo", suite: "lint", local: { tool: "knip" } },
+	// commitlint has no local runner (the `commit-msg` hook covers it), so a run skips it as CI-only.
+	"lint:commits": {
+		group: "Source Quality",
+		scope: "repo",
+		suite: "lint",
+		local: null,
+		linterGroup: ["commitlint"],
+	},
+	// Not a suite and not a linter: the one task that writes by default (`--check` is the read-only form). It has no
+	// workflow of its own; its check is the `ci/actions/format` action, which the `lint:code` workflow calls.
+	format: {
+		group: "Source Quality",
+		scope: "repo",
+		workflow: false,
+		host: "lint:code",
+		local: { tool: "prettier", args: ["--write", "."] },
+		checkArgs: ["--check", "."],
+	},
+
+	// ── Security ───────────────────────────────────────────────────────────
+	"scan:secrets": {
+		group: "Security",
+		scope: "repo",
+		suite: "scan",
+		local: null,
+		linterGroup: ["gitleaks"],
+	},
+	"scan:code": { group: "Security", scope: "repo", suite: "scan", local: null },
+	// Runs `holocron doctor secrets --verify`: fails on a token that is rejected or has 7 days or fewer left. Scheduled daily by
+	// its workflow; never part of `holocron run ci`'s gate (it needs the org's token secrets, and a token about to
+	// expire is not a reason to block a merge). Not a `scan` leaf: it is an operations signal that needs secrets.
+	"check-tokens": { group: "Security", scope: "repo", local: { command: "doctor secrets --verify" } },
+	// Runs `holocron doctor tokens` (#2158): each layer's tokens against what the plugins declare for them (permissions it
+	// must and must not have, rotation age, expiry), through a 1Password service account that reads the `ci` Environment.
+	// Scheduled daily by its workflow; a layer the runner cannot read is a skip row. Never part of `holocron run ci`
+	// (it needs the service account and calls each provider's API).
+	"doctor-tokens": { group: "Security", scope: "repo", local: { command: "doctor tokens" } },
+
+	// ── Delivery — shipping software (npm packages, deployed apps) ────────
+	build: {
+		group: "Delivery",
+		scope: "package",
+		local: {
+			detect: [
+				{ when: /^tsdown\.config\.(ts|js|mjs|cjs)$/, tool: "tsdown" },
+				{ when: /^vite\.config\.(ts|js|mjs|cjs)$/, tool: "vite", args: ["build"] },
+				{ when: /^rollup\.config\.(ts|js|mjs|cjs)$/, tool: "rollup", args: ["-c"] },
+				{ when: /^tsconfig\.json$/, tool: "tsc", args: ["-b"] },
+			],
+		},
+		turbo: {
+			// Covers every `local.detect` build tool above — turbo doesn't mind
+			// listing a config filename a given package doesn't have.
+			inputs: [
+				"src/**",
+				"package.json",
+				"tsdown.config.ts",
+				// A repo-root tsdown config shared by every package without its own.
+				"$TURBO_ROOT$/tsdown.config.ts",
+				"vite.config.ts",
+				"rollup.config.ts",
+				"tsconfig.json",
+			],
+			outputs: ["dist/**"],
+			// Depends only on upstream workspaces — a package can't depend on
+			// its own not-yet-built output.
+			dependsOn: ["^build"],
+		},
+	},
+	// Renamed from `publish`, which npm and pnpm give a meaning of their own (see `RESERVED_SCRIPT_NAMES`).
+	release: { group: "Delivery", scope: "repo", local: null, preview: true },
+	deploy: { group: "Delivery", scope: "package", local: null, preview: true },
+	"measure:bundle": { group: "Delivery", scope: "repo", suite: "measure", local: null },
+	// No local runner — needs a live preview deployment URL that only
+	// exists once Vercel has actually deployed it (holocron#1010). Never
+	// part of `holocron run ci`'s push/PR gate; runs only from its own
+	// `deployment_status`-triggered workflow.
+	"check-preview": { group: "Delivery", scope: "repo", local: null },
+	// No generic local runner — each consuming package defines its own
+	// build-stage-deploy script under this exact task name, same shape as
+	// `deploy`; the reusable workflow just runs it via `holocron run
+	// deploy-preview`. Triggered by `pull_request` and reports a synthetic
+	// deployment_status with the resulting URL (holocron#1010 follow-up, #1016,
+	// #1017's review) — Vercel's own GitHub integration never sees a
+	// file-uploaded (deployFunction) deploy, so there is nothing to synthesize
+	// this from on Vercel's side.
+	"deploy-preview": { group: "Delivery", scope: "package", local: null },
+	// Sentinel's own deploy from CI (#800): `pnpm run deploy` in `apps/sentinel`, on a push to `main` that touches it and
+	// on demand. It needs the Vercel token and has no local runner (a person runs `pnpm run deploy` from a checkout).
+	"deploy-sentinel": { group: "Delivery", scope: "repo", local: null },
+
+	// ── Platform — operating the repo itself ──────────────────────────────
+	// Process/governance checks that rode inside the old monolithic `lint` task with no linter connection at all.
+	// Not `linters.ts` entries (not linters), so plain tasks of the `validate` suite, each a holocron subcommand.
+	// Spec/ADR frontmatter (`holocron probe specs check`).
+	"validate:specs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe specs check" } },
+	// `holocron probe docs validate` runs two probes. `docs presence` warns (never fails) when a PR adds a new
+	// public package, or a `feat` changes one, without a docs change; `docs tokens` fails when a plugin resolves a
+	// token that docs/src/content/docs/tokens.mdx does not document (a command cannot chain, so one probe runs both). It does not need a docs *site* to be meaningful
+	// (just "was something documented"), so it belongs here with its process/governance sibling, not behind the docs
+	// deploy. The doc-comment gate (`docs patch`, `repoValidation.docsCoverage`) is its own workflow, not this task.
+	"validate:docs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe docs validate" } },
+	// Dependency catalogs (#1380): `holocron probe deps check` fails on a hard-coded version, a workspace package pinned to
+	// a version, a dependency in the wrong catalog or an unused catalog entry.
+	"validate:deps": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe deps check" } },
+	// Generated files (#1405): `holocron probe generated check` fails when a file the CLI writes differs from the committed
+	// copy, or a workflow is neither generated nor marked `# HAND-MAINTAINED`.
+	"validate:generated": {
+		group: "Platform",
+		scope: "repo",
+		suite: "validate",
+		local: { command: "probe generated check" },
+	},
+	// A plugin package's live check against its provider (its own `scripts/validate.mjs`, run by hand with the provider's
+	// credentials): the package's script is the whole task, so there is no built-in runner and no workflow, and it is not
+	// part of `holocron run ci`. It is a leaf so that the 16 plugins' script has a name in the suite and no collision.
+	"validate:plugin": { group: "Platform", scope: "package", suite: "validate", workflow: false, local: null },
+	// Doc-comment coverage of the public API (#1368): `holocron probe docs coverage` measures it with TypeDoc; its workflow
+	// uploads the report to Codecov as the `documentation` flag, whose patch status is the gate. Not part of `holocron run ci`.
+	"measure:docs": {
+		group: "Platform",
+		scope: "repo",
+		suite: "measure",
+		local: { command: "probe docs coverage" },
+	},
+	// A weekly post to #alerts that reminds a maintainer to run `holocron doctor notifications --post` (#1585). It only
+	// posts through a webhook secret, so there is nothing to run locally.
+	"remind-doctor": { group: "Platform", scope: "repo", local: null },
+	"sync-repo": { group: "Platform", scope: "repo", local: { command: "sync" } },
+	// No local runner -- it posts real messages through org secrets that only a
+	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
+	// `holocron setup notifications`, never part of `holocron run ci`.
+	"check-notify": { group: "Platform", scope: "repo", local: null },
+	// No local equivalent runner distinct from `sync github` itself —
+	// invokes the CLI subcommand directly, same shape as sync-repo's `sync`.
+	// Holocron-repo-specific: its workflow finds the org's consumer repos and opens a pull request in
+	// theholocron/.github and in each of them with astromech's generated reusable workflows and composite
+	// actions, so only this repo's thin caller is ever meaningfully triggered (holocron#1013).
+	// Sentinel's secrets, fanned from its 1Password Environment to Vercel (production) and one org secret (#781, #800).
+	// Manual only: run it after registering the App and again when a secret rotates. It writes with org-wide tokens,
+	// so it is never part of `holocron run ci` and has no local runner (the README has the local invocation).
+	"sync-secrets": { group: "Platform", scope: "repo", local: null },
+	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
+	// Runs `holocron reconcile project`: sets each item's status on the declared project boards from its issue state and
+	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.
+	// Scheduled hourly by its workflow; never part of `holocron run ci` (it writes to a live board with a GitHub App token).
+	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "reconcile project" } },
+	// Runs `holocron reconcile ci`: brings the `ci / Required checks` check up to date on every open pull request (spec
+	// `process-sentinel-posts-ci`, SPEC-0099), the safety net for a webhook Sentinel missed. A repo whose `ci.aggregate` is
+	// `actions` gets a run that posts nothing. Scheduled every 15 minutes by its workflow; it writes check runs with a
+	// GitHub App token, so it is never part of `holocron run ci`.
+	"reconcile-ci": { group: "Platform", scope: "repo", local: { command: "reconcile ci" } },
+	// Runs `holocron sync issues --from <a> --to <b>` hourly, and with `both` the swapped direction after it (spec
+	// `tech-issue-sync-schedule-and-assignees`, #2251). The endpoints are the task's `with:` inputs, so a repo with one
+	// tracker never lists it, and it has no local runner (the command needs them as flags).
+	"sync-issues": { group: "Platform", scope: "repo", local: null },
+	// `holocron sync incidents --yes` every ten minutes: mirrors the status page's incidents into the forum with
+	// `feeds.incidents`, one post each (#2366, spec `tech-incidents-to-discord`). It posts with the bot token, so it is
+	// never part of `holocron run ci`; a repo with no status page never lists it.
+	"sync-incidents": { group: "Platform", scope: "repo", local: { command: "sync incidents --yes" } },
+	// `holocron new incident --yes` from a manual run, for a phone or another system (#2591, spec
+	// `tech-open-status-page-incidents`). It writes to the public status page, so it is only ever dispatched by hand, never
+	// part of `holocron run ci`, and a repo with no status page never lists it.
+	"open-incident": { group: "Platform", scope: "repo", local: null },
+
+	// ── Knowledge — published content, not software ───────────────────────
+	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull
+	// request with the edits it made (#1535). Hourly, on a push to `alpha` that changes a spec or ADR, and on demand.
+	// It writes posts with the bot token, so it is never part of `holocron run ci`.
+	"sync-specs": { group: "Knowledge", scope: "repo", local: { command: "sync specs" } },
+	// The same sync for the files one pull request changes (`--files`, `--pr`), or the withdrawal of their posts when it
+	// closes unmerged (#1600, #1653). It needs the pull request's number and paths, so it has no local runner.
+	"preview-specs": { group: "Knowledge", scope: "repo", local: null },
+	"publish-wiki": { group: "Knowledge", scope: "repo", local: { command: "sync-wiki" }, preview: true },
+	"deploy-docs": { group: "Knowledge", scope: "repo", local: null, preview: true },
+	"deploy-components": { group: "Knowledge", scope: "repo", local: null, preview: true },
+};
+
+/**
+ * The order `holocron run ci` runs tasks in — cheapest / fastest signal first, so
+ * an agent or a `pre-push` hook fails early. Tasks not listed here run last, in
+ * manifest order. (The generated thin callers carry no `needs:` — cross-workflow
+ * ordering lives in `theholocron/.github` — so `holocron run ci` declares its own.)
+ */
+export const CI_ORDER: string[] = [
+	"typecheck",
+	"lint:code",
+	"lint:editorconfig",
+	"lint:markdown",
+	"format",
+	"lint:data",
+	"scan:secrets",
+	"lint:commits",
+	"validate:specs",
+	"validate:docs",
+	"validate:deps",
+	"validate:generated",
+	"test:unit",
+	"build",
+	"lint:unused",
+	"measure:bundle",
+	"test:perf",
+	"scan:code",
+	"deploy",
+];

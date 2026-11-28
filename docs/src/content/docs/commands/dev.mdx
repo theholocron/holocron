@@ -1,0 +1,78 @@
+---
+title: "dev"
+description: Run an application locally behind its development tunnel, with its secrets from the vault, in one command.
+---
+
+```bash
+holocron dev
+holocron dev --hostname other-dev.theholocron.dev -- node app.js
+```
+
+For an application that has to receive webhooks while you work on it. It does, in one terminal:
+
+1. Sets up the named tunnel and its proxied `CNAME` the way [`new tunnel`](/holocron/commands/new-tunnel/) does. It is idempotent, so nothing changes when they are already right. It checks the `vault`, `tunnels` and `dns` providers first and says which is missing.
+2. Reads the variables of the vault environment `--environment` in memory. Only how many there are is printed.
+3. Runs the command after `--` beside `cloudflared`. The application gets those variables and `PORT` and `HOLOCRON_PORT`, both the same number (from `--port`, which the tunnel also sends requests to, so a `PORT` in the vault does not win). The application also gets `HOLOCRON_ENVIRONMENT=development` and `ENVIRONMENT=development`, the same value (unless the vault sets its own for either name), which its logger reads to tag every line `env: "development"` (see [Logging](/holocron/logging/)). The connector gets the tunnel's token as `TUNNEL_TOKEN`, in its environment only.
+
+Output from both goes to the terminal. When either ends the other is stopped, and Ctrl-C stops both and is not a failure; any other exit of the first to end becomes the command's status. A value or the token is never printed or written to a file.
+
+`--dry-run` sets up and reads nothing: it runs the tunnel step as a dry run and says what it would read and run.
+
+Everything it needs is the `dev` block of the directory's `holocron.config.ts`, so the hostname and the rest live in one committed place:
+
+```ts
+dev: {
+  layer: "dev", // the Environment <org>/<repo> - dev; `environment: "Name"` names one literally
+  tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+  port: 3000,
+  command: ["pnpm", "run", "serve"],
+},
+```
+
+A flag wins over the config, and a command after `--` wins over `dev.command`. A missing value is named in one message, with both places it could be given.
+
+## Suspending the development App when idle
+
+When the application is a GitHub App's webhook handler, the App's webhook points at the tunnel, so while `holocron dev` is not running GitHub keeps delivering into a `530` and the failures pile up. Set `suspendWhenIdle: true` in the `dev` block and the App's installations are suspended except for the length of a run: `holocron dev` unsuspends them once the tunnel and the variables are ready, and suspends them again when the application ends (Ctrl-C, or the process dying on its own). GitHub sends a suspended installation no webhooks.
+
+The App's id and key are read from the environment the application already runs with: `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`, or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`. They sign the App's own JWT; nothing is printed or written. If they are missing, or GitHub refuses the call, nothing starts and the row says why; if suspending again fails at the end, the row says to do it by hand. `--dry-run` says what it would do and calls nothing.
+
+It cannot help when the CLI is killed without a chance to clean up (`kill -9`, a crash of the machine): the installations then stay active, as they were before, until the next run ends. A suspended installation also has its tokens refused, which is the point for a development App and no problem for one that is only used while it is running. Not checked against the real App: the suspend and unsuspend endpoints are taken from GitHub's documentation.
+
+## Serving a handler
+
+For an application that is one web-standard handler (`(Request, env) => Response`), name it instead of writing a server and a `command`:
+
+```ts
+dev: {
+  layer: "dev",
+  tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+  serve: {
+    handler: "./src/handler/index.ts",
+    export: "handleWebhookRequest",
+    required: ["SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+    logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+  },
+},
+```
+
+The application is then `holocron dev serve`, which `holocron dev` runs beside `cloudflared` with the vault's variables in its environment. It loads the handler (TypeScript as is) after those variables are set, so a handler that reads `process.env` when its module loads sees them, and serves it on `127.0.0.1` at `/api/webhook` on `PORT`. It names any `required` variable that is missing and prints one line per request (method, path, status), never a header or a body. With `logging` it also says whether the app's logs go to Axiom, and which dataset, never the token. `command` and a command after `--` still win over `serve`.
+
+| `serve` key | What it is                                                                     |
+| ----------- | ------------------------------------------------------------------------------ |
+| `handler`   | The module that exports the handler, relative to the directory                 |
+| `export`    | The export's name. Default `default`                                           |
+| `required`  | The variables the handler cannot run without                                   |
+| `logging`   | The variables holding the Axiom ingest token and dataset, to say where logs go |
+
+| Option          | Config            | What it does                                                                        |
+| --------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `--environment` | `environment`     | The vault environment whose variables the application runs with.                    |
+| `--name`        | `tunnel.name`     | The tunnel's name.                                                                  |
+| `--hostname`    | `tunnel.hostname` | The public hostname the tunnel serves.                                              |
+| `--port`        | `port`            | The port the application listens on and the tunnel sends requests to. Default 3000. |
+| `-- <command>`  | `command`         | The application's command and arguments.                                            |
+
+The hostname must sit one level under a zone the DNS provider manages (`sentinel-dev.theholocron.dev`, not `dev.sentinel.theholocron.dev`): Cloudflare's free certificate covers the zone and `*.zone`, and a proxied name two levels down would fail the TLS handshake.
+
+It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).

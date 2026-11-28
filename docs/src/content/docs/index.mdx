@@ -5,8 +5,8 @@ sidebar:
   hidden: true
 ---
 
-import { PackageGrid } from "@theholocron/components-doc";
-import { getHolocron } from "@theholocron/registry-doc";
+import { PackageGrid } from "../../components/index.ts";
+import { getHolocron } from "../../lib/registry.ts";
 
 <PackageGrid packages={getHolocron()} />
 
@@ -22,10 +22,10 @@ pnpm add -D @theholocron/cli
 
 ```bash
 # Authenticate once
-holocron auth set github.admin  ghp_xxx
-holocron auth set github.read   ghp_yyy
+holocron new token github.admin  ghp_xxx
+holocron new token github.read   ghp_yyy
 
-# Apply full repo setup
+# Apply full setup
 holocron setup
 
 # Sync repo metadata to GitHub

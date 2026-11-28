@@ -1,0 +1,63 @@
+{
+  "name": "@theholocron/rollup-plugin-transform-template",
+  "version": "8.9.0-alpha.24",
+  "description": "Rollup/Vite/Rolldown plugin that transforms template files into default-exported strings.",
+  "keywords": [
+    "rollup",
+    "plugin",
+    "rollup-plugin",
+    "vite",
+    "rolldown",
+    "template",
+    "transform"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/rollup-plugin-transform-template/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/rollup-plugin-transform-template"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./client": {
+      "types": "./client.d.ts",
+      "default": "./client.d.ts"
+    }
+  },
+  "files": [
+    "client.d.ts",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/tsdown-config": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

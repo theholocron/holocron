@@ -1,0 +1,75 @@
+---
+title: "close work"
+description: Close out a piece of work, marking its pull request ready when the checks are green and cleaning up after the merge, or abandon it.
+---
+
+```bash
+holocron close work <issue> [--wait [--timeout <minutes>]] [--keep-worktree] [--pr <number>] [--dry-run] [--yes]
+holocron close work <issue> --abandon [--keep-worktree] [--pr <number>] [--dry-run] [--yes]
+```
+
+The end of a piece of work. Part 6 of spec `tool-work-commands` (#2429). **It never merges**: the maintainer does. What it does depends on where the pull request is.
+
+```bash
+holocron close work 2429 --wait        # wait for the aggregate, mark the pull request ready
+holocron close work 2429               # after the merge: remove the worktree and the local branch
+holocron close work 2429 --abandon     # give the work up
+holocron close work 2429 --dry-run
+```
+
+## An open pull request
+
+| Step                   | What it does                                                                                                                                                                                                      | Writes to         |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| pull request           | Finds the open pull request whose branch is `<type>/<issue>-<slug>` (`--pr` names one)                                                                                                                            | nothing           |
+| `ci / Required checks` | Reads the aggregate check on the pull request's newest commit, **every run**; with `--wait` it polls until the aggregate is green or red or `--timeout` passes. Not green stops here and names the failing checks | nothing           |
+| ready                  | Asks, then marks the pull request ready (`Source.markReady`); one that is already ready is left. The board moves to In Review by itself                                                                           | GitHub (`source`) |
+| area labels            | Adds the `area:<name>` labels the pull request's changed folders earn, as [`update work`](/holocron/commands/update-work/) does (add-only)                                                                        | tracker, GitHub   |
+| relations              | Takes a blocker that has closed off the issue's blocked-by list                                                                                                                                                   | tracker           |
+
+A red aggregate stops the wait at once; a pending one or one that has not been posted is waited on. Without `--wait` the aggregate is read once, and one still running is a failed row that names `--wait`. Every step is independent: a failed one does not stop the next, and a second run does only what is left.
+
+## After the merge
+
+Run it again once the maintainer has merged. The pull request is found among the merged ones and the command removes the clutter:
+
+- **worktree**: `git worktree remove`, never forced. A worktree with uncommitted changes, the main checkout and the worktree the command is running inside are left with a row saying why. `--keep-worktree` leaves it (and so its branch).
+- **local branch**: deleted when it is the commit the pull request had (a squash merge leaves it unmerged to git, so the head commit is the proof) or holds nothing no remote branch has.
+- **remote branch**: only checked. GitHub deletes it on merge (a repository setting); if it is still there the row prints the `git push origin --delete` command, and nothing is deleted.
+
+It asks before removing anything unless `--yes`.
+
+## `--abandon`
+
+Gives the work up. It **always asks first** (`--yes` answers for you):
+
+1. Stops, writing nothing, when the branch holds commits no remote branch has.
+2. Closes the pull request.
+3. Withdraws the spec's discussion post: the specs and ADRs among the pull request's files go to `holocron sync specs --withdraw --files`, which tags each post `withdrawn` and closes it (a spec already on the base branch keeps its post).
+4. Removes the worktree and the local branch, as above.
+5. Asks whether to close the issue as **not planned**. `--yes` does not close it; the row names `holocron update issue <issue> --state closed --state-reason not_planned`.
+
+The remote branch is left, and a row says so.
+
+## Behavior
+
+- **`--dry-run`** runs every read and prints each write as `would ...`; nothing is written, **local git included**. No question is asked.
+- **Without a terminal** and without `--yes` or `--dry-run` the command refuses (`NonInteractiveError`).
+- **The aggregate is read each time**, so "ready" is never assumed from an earlier run.
+- **No pull request found** is a failed row; a pull request closed without merging is a skipped row that names `--abandon`.
+
+## Options
+
+| Option                | Description                                                                      |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `--wait`              | Poll the aggregate until it is green or red, or the timeout passes               |
+| `--timeout <minutes>` | With `--wait`: how long to poll (default 30, the aggregate's own limit)          |
+| `--abandon`           | Close the pull request, withdraw the spec's post, remove the worktree and branch |
+| `--keep-worktree`     | Leave the worktree, and so its local branch                                      |
+| `--pr <number>`       | The pull request, when its branch is not `<type>/<issue>-<slug>`                 |
+| `--dry-run`           | Show what would be done, change nothing                                          |
+| `--yes`               | Do it without asking (required without a terminal)                               |
+
+## Tokens
+
+The `issues` and `source` providers (and `projects` for the board, `notifications` for the spec's post) read their tokens through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs their plugin packages to resolve. Marking a pull request ready is a GraphQL write whose token scope is not verified.

@@ -1,0 +1,122 @@
+---
+title: Comlink
+description: Holocron's alert relay, a Cloudflare Worker that turns signed service webhooks into Discord messages.
+---
+
+`@theholocron/comlink` is Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read, checks who sent them, and posts them to a channel as Discord messages.
+
+It exists because Sentry's free plan has no Discord integration and what an internal integration sends is Sentry's own JSON. Other services that post a webhook in their own shape can use the same Worker.
+
+:::note
+Comlink is a **private app, deployed rather than published**. It is not on npm, so there is nothing to `pnpm add`. The build produces a single Worker module that `holocron setup notifications` uploads.
+:::
+
+## How it fits
+
+Sentinel watches the repositories. Comlink carries the alerts. It is deployed as part of the [server as code](/holocron/server-as-code/) flow: a channel declared with `feeds: { errors: true }` and a layout `relay` gets a dedicated Discord webhook, a DNS record pointing at the Worker, and the Worker itself, all through `holocron setup notifications`.
+
+## How it works
+
+There is one route per source, `https://comlink.theholocron.dev/<source>`.
+
+1. The path picks the source (`/sentry`). An unknown path is a 404.
+2. A body over 256 KB is refused (413) before it is hashed. The source verifies the request with its bound secret before anything in the body is trusted (401 if not).
+3. The source formats the delivery as a Discord embed with pings turned off. It can also say it does not carry the delivery (202, acknowledged and dropped so the service does not retry), or that it cannot read one it should carry (422).
+4. The message is posted to the source's own webhook (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
+
+| Source       | Path          | Verified by                                                                                                                 | Carries                                                                                              |
+| ------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `sentry`     | `/sentry`     | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret                                                | issue alerts (`event_alert`)                                                                         |
+| `cloudflare` | `/cloudflare` | `cf-webhook-auth`: the shared secret itself, compared as is (Cloudflare does not sign the body)                             | notifications (any alert type that carries `text`)                                                   |
+| `clerk`      | `/clerk`      | `svix-signature`: base64 HMAC-SHA256 of `svix-id.svix-timestamp.body` under the `whsec_` secret, timestamp within 5 minutes | user and organization created/deleted, member added/removed                                          |
+| `dependabot` | `/dependabot` | `X-Hub-Signature-256`: `sha256=` and hex HMAC-SHA256 of the raw body under the GitHub webhook secret                        | Dependabot alert lifecycle changes; assignment-only changes are dropped                              |
+| `vercel`     | `/vercel`     | `x-vercel-signature`: hex HMAC-SHA1 of the body under the webhook's secret                                                  | deployment events (`deployment.created`, `.ready`, `.succeeded`, `.promoted`, `.error`, `.canceled`) |
+| `doppler`    | `/doppler`    | `X-Doppler-Signature`: `sha256=` and the hex HMAC-SHA256 of the body under the webhook's signing secret                     | secret changes (`config.secrets.update`), names only                                                 |
+
+The `clerk` source takes a Clerk webhook endpoint (Dashboard, Webhooks) subscribed to `user.created`, `user.deleted`, `organization.created`, `organization.deleted`, `organizationMembership.created` and `organizationMembership.deleted`; any other event type is acknowledged and dropped. Clerk delivers through Svix, so a delivery is refused unless `svix-id`, `svix-timestamp` and `svix-signature` are present, the timestamp is within five minutes of now (replay protection) and one of the space-separated `v1,` signatures matches. Its two bindings are `COMLINK_CLERK_SECRET` (the endpoint's signing secret, `whsec_...`) and `COMLINK_CLERK_WEBHOOK`. The payload shape is taken from Clerk's and Svix's documentation and has not been checked against a live delivery. There is no layout feed or `ensure…` method for it: the endpoint is made by hand in the Clerk dashboard and the bindings are set with `wrangler secret put`.
+
+The `vercel` source takes a Vercel webhook (Team Settings, Webhooks) with the deployment events ticked; any other event type is acknowledged and dropped. Its two bindings are `COMLINK_VERCEL_SECRET` (the secret Vercel shows once when the webhook is made) and `COMLINK_VERCEL_WEBHOOK`. The payload shape is taken from Vercel's webhook documentation and has not been checked against a live delivery. There is no layout feed or `ensure…` method for it yet: Vercel's webhook API is not wrapped by the Vercel client, so the webhook is made by hand in the dashboard and the two bindings are set with `wrangler secret put`.
+
+The `doppler` source takes a Doppler webhook with a signing secret set; Doppler does not sign a webhook without one. Its two bindings are `COMLINK_DOPPLER_SECRET` (that signing secret) and `COMLINK_DOPPLER_WEBHOOK`. Only `config.secrets.update` is carried, with the names of the secrets added, updated and removed (Doppler sends no values); a custom payload replaces the default body and is not read. The payload shape is taken from Doppler's webhook documentation and has not been checked against a live delivery. There is no layout feed or `ensure…` method for it yet: the Doppler client does not wrap webhooks, so the webhook is made by hand and the two bindings are set with `wrangler secret put`.
+
+### Dependabot alerts
+
+GitHub's `dependabot_alert` event is a signed webhook. With a secret configured, GitHub sends the HMAC-SHA256 of the exact body in `X-Hub-Signature-256` (`sha256=<hex>`). `holocron setup notifications` makes the webhook: declare `relay.sources.dependabot = { capability: "source", scope: ["owner/name"] }` (or `options: { org: "name" }` for an organization) and feed it to a channel with `feeds.relay.dependabot`, and setup creates a JSON webhook for `https://<relay.host>/dependabot` with a secret it chooses, subscribed to `dependabot_alert`. The source relays alert lifecycle changes (`created`, `auto_reopened`, `reopened`, `reintroduced`, `dismissed`, `auto_dismissed`, `fixed`, `withdrawn`); it drops assignment-only changes and unrelated GitHub events.
+
+Setup also hands the Worker the secret as `COMLINK_DEPENDABOT_SECRET` and the channel's webhook as `COMLINK_DEPENDABOT_WEBHOOK`, so nobody sets either by hand. It is the plugin's own secret, chosen at creation: GitHub never returns it, so an existing webhook keeps the secret the Worker has. A webhook that exists is found by its URL and has only its events and `active` flag brought in line; nothing is deleted. The token needs Webhooks write permission (see [the GitHub plugin](/holocron/plugins/github/#the-dependabot-relay-webhook)). GitHub's built-in Discord integration does not carry this event: Discord's GitHub-compatible webhook lists `commit_comment`, `create`, `delete`, `fork`, `issue_comment`, `issues`, `member`, `public`, `pull_request`, `pull_request_review`, `pull_request_review_comment`, `push`, `release`, `watch`, `check_run`, `check_suite`, `discussion` and `discussion_comment`, not `dependabot_alert`. GitHub documents the [webhook delivery headers](https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers) and [signature validation](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries); Comlink verifies the SHA-256 signature against the raw body.
+
+## Relaying more Sentry projects
+
+`relay.errors.projects` in the layout is the list of Sentry projects whose issues are sent. Add a project's slug to it and run the two commands again:
+
+```ts
+relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "sentinel"] } },
+```
+
+```bash
+holocron setup notifications      # attaches the one alert rule to each listed project's issue stream
+holocron doctor notifications     # one problem line per listed project that has no rule, a disabled one, or one that does not send through the integration
+```
+
+`setup` is idempotent: it adds a newly listed project to the rule it already made and leaves the rest alone, and it stops before changing anything if a listed project does not exist in the Sentry organisation. It never detaches a project that is no longer listed.
+
+## The Project field
+
+Sentry's `event_alert` payload carries the project only as a number (`data.event.project`), which the embed leaves out. The Project field is taken from the event's API address instead, `data.event.url` (`.../api/0/projects/<org>/<project>/events/<id>/`), which names the project by slug. It is read only after the signature has been verified, and nothing is looked up, so the Worker needs no Sentry token.
+
+## Secrets
+
+Each source has two bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+
+- The signing secret is kept in the `prod` layer of the 1Password Environments (`theholocron/holocron - prod`, beside Sentinel's values) and pushed to the Worker with `holocron sync secrets --env prod --cwd apps/comlink --worker comlink`. With `relay.errors` configured, `holocron setup notifications` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's secret.
+- The webhook URL is not kept in the Environment. `holocron setup notifications` creates each channel's webhook and sets its URL on the Worker directly, so run `setup` before `sync secrets`.
+
+See [`sync secrets`](/holocron/commands/sync-secrets/) and [`setup notifications`](/holocron/commands/setup-notifications/). `holocron probe comlink deliver` reads the signing secret from the config's vault (or from `COMLINK_SENTRY_SECRET` in the environment) to exercise delivery.
+
+## The Vercel source
+
+The Vercel plugin implements `ensureRelaySource` and `inspectRelaySource` for `relay.sources.vercel` (`capability: "deployment"`; `events` such as `deployment.error`, `scope` the project ids). `setup notifications` makes the team webhook for `https://<relay.host>/vercel` and binds `COMLINK_VERCEL_SECRET` (the secret Vercel returns once) and `COMLINK_VERCEL_WEBHOOK`; see [the Vercel plugin](/holocron/plugins/vercel/#relay-source-comlink). The source that verifies and formats the delivery is `src/sources/vercel/`. This repo's root `deployment` is Cloudflare, so its layout names `provider: "vercel"`: `relay.sources.vercel` relays only build failures (`deployment.error`) of Sentinel's project (`scope` is its `prj_` id, the one `apps/sentinel/holocron.config.ts` holds as `vercel-project`) to `#alerts`. The token needs the `webhooks` permission in `local` and `dev` ([the table](/holocron/tokens/#holocron_vercel_token)).
+
+## Adding a source
+
+A source may name its plugin with `provider` (`{ capability: "deployment", provider: "vercel" }`) when the root config gives that capability to another plugin. `setup notifications` loads that plugin by name with the options of the config that names it (a workspace package's, for Sentinel's `vercel`) and refuses, before it writes anything, one that is missing, cannot make a webhook or has no token (spec `tech-relay-source-provider`). `doctor notifications` finds the plugin the same way and reads the webhook back through it; a plugin it cannot load or read (no token on this machine) is a skipped row with the reason, never a failure.
+
+The vendor's side is set up the same way for every source, so nobody opens a vendor's dashboard: declare it in the layout (`relay.sources`, `feeds.relay`; see [`setup notifications`](/holocron/commands/setup-notifications/)), implement the optional `ensureRelaySource` and `inspectRelaySource` in the vendor's plugin, and `setup notifications` makes the webhook, hands its signing secret to the Worker as `COMLINK_<ID>_SECRET` in the same deploy and makes the channel webhook `COMLINK_<ID>_WEBHOOK`; `doctor notifications` checks both. Where a vendor's API cannot do a step, `setup` reports it as a failing `todo`. A vendor that tests a new webhook by posting to it (Cloudflare refuses one whose URL answers 404 or 401) needs the Worker live first, so for a webhook that does not exist yet `setup` chooses its secret, deploys the Worker with the route and that secret, and only then makes the webhook with the same secret; a webhook that exists keeps the secret the Worker has, and a vendor that picks its own secret (Vercel) gets a final deploy with it. **Clerk is the one source with a manual step**: it delivers through Svix, and Clerk has no API that makes an endpoint or returns its `whsec_` signing secret, so a person adds the endpoint in the Clerk dashboard and puts the secret in `COMLINK_CLERK_SECRET` (see the [Clerk plugin](/holocron/plugins/clerk/)).
+
+### Doppler
+
+`relay.sources.doppler` with `capability: "vault"` makes the Doppler webhook through the `vault` provider (`ensureRelaySource`, `POST /v3/webhooks?project=`), with no dashboard step. `scope` is the config slugs it applies to (all of them when left out, which is unverified); `options.project` names another project than the vault's; `events` is ignored, because a Doppler webhook is sent on secret changes. Holocron chooses the signing secret, Doppler stores it and never returns it, and `setup notifications` hands it to the Worker as `COMLINK_DOPPLER_SECRET` in the same deploy. The webhook is found again by its URL, so a second run changes nothing: an existing webhook is adopted as it is, never changed or deleted, and `doctor notifications` reports a missing, turned-off or secret-less one (`hasSecret`) and a config it does not cover. Doppler's reference does not say which token type may manage webhooks (a service token is scoped to one config's secrets). When Doppler answers 401 or 403, the run reports a failing `todo` naming what to use: a personal token of a member who can manage the project's webhooks, or adding the webhook by hand with the same URL and secret.
+
+Cloudflare's side is the first vendor implementation (the `dns` provider's `ensureRelaySource`, see the [Cloudflare plugin](/holocron/plugins/cloudflare/#relay-sources-on-dns)): it makes the notification webhook for `https://<relay.host>/cloudflare` with a secret of ours (sent as `cf-webhook-auth`) and one policy per alert type in `events`. The token needs the new Notifications: Edit permission.
+
+A source is one file under `src/sources/<id>/` implementing `Source` (`verify` and `format`), plus one entry in the list in `src/worker.ts`. Nothing else changes.
+
+## Sending a delivery by hand
+
+`apps/comlink/src/` holds, beside `worker.ts`, a collection of requests (`worker.collection.json`) and an environment (`worker.environment.json`) for a Worker run locally, with `COMLINK_SENTRY_SECRET` set to the environment's `sentrySecret` (an empty secret-type variable) and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. A pre-request script signs each body as `Sentry-Hook-Signature`.
+
+| Folder                     | What it sends                                                               | What the relay does                   |
+| -------------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
+| `Rejected`                 | a GET, an unknown source, a POST with no signature, a POST with a wrong one | 405, 404, 401, 401; nothing is posted |
+| `Signed, nothing posted`   | a resource the source does not carry, an `event_alert` with no event        | 202, 422                              |
+| `Signed, posts to Discord` | an `event_alert`                                                            | posts an embed, pings off             |
+
+`holocron probe comlink deliver` sends the signed delivery from the command line.
+
+[`holocron sync tooling --cwd apps/comlink`](/holocron/commands/sync-tooling/) pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `sentrySecret` you set there. Add `--dry-run` to see the step first.
+
+The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/comlink` generates it (`worker.bruno.json`, the requests and the environment in one file, into the git-ignored `src/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/). Bruno can also open them in place: the repo's `.bruno/` workspace holds Bruno's own files for this collection and its environment (under `collections/comlink-relay/`), kept equal to the JSON by [`holocron sync requests`](/holocron/commands/sync-requests/); in Bruno choose Open Workspace and pick `.bruno`. `sentrySecret` is left empty in the files, so set it in Bruno.
+
+### Without a Discord channel
+
+Bruno can stand in for Discord. The workspace's `.bruno/mocks/comlink.yml` is a mock server with two routes on `http://localhost:4000`: `POST /discord/accepts` answers 204, as Discord does when it takes a post, and `POST /discord/refuses` answers 500. In Bruno, open the workspace, start the **Comlink** mock server, and run the Worker with `COMLINK_SENTRY_WEBHOOK=http://localhost:4000/discord/accepts`. Send `Signed, posts to Discord` from the collection: Comlink answers 204, and the mock's request log shows the embed it sent, with nothing posted to a channel. With `/discord/refuses` the same request answers 502, the path for a webhook Discord did not take. The mock is committed beside the collections and [`holocron sync requests`](/holocron/commands/sync-requests/) leaves it alone.
+
+## Build and deploy
+
+```bash
+pnpm --filter @theholocron/comlink build
+```
+
+This writes `dist/worker.js`, a single ES module with no imports, which is uploaded as it stands. Deployment is `holocron setup notifications`'s job, through the `workers` capability.
+
+Source: [`apps/comlink`](https://github.com/theholocron/holocron/tree/alpha/apps/comlink) on GitHub.

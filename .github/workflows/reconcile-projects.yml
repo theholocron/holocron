@@ -1,0 +1,110 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/reconcile-projects.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Reconcile Projects
+
+# Keeps the project boards true to their rules (SPEC-0020, #1744): runs `holocron reconcile project`, which sets an item's
+# status from the issue's state and its "blocked by" links (an open blocker means blocked, no blocker left means planned,
+# a closed issue means done), then `holocron doctor project`, which reports what reconcile cannot fix.
+#
+# `GITHUB_TOKEN` cannot write an organization project, so the job mints an installation token from a GitHub App. The App
+# needs the organization permission Projects (read and write), which a person grants; its id and private key reach the job
+# as the secrets below (`secrets: inherit` passes them from the caller). The boards a repo keeps come from its own
+# `providers.projects` in holocron.config.ts, so a repo that declares none passes `doctor project` as a skip.
+#
+# Scheduled hourly by the caller. A failed run reaches #alerts through `platform.notifications.yml`.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      SENTINEL_GITHUB_APP_ID:
+        description: The id of the GitHub App whose installation token writes the boards.
+        required: false
+      SENTINEL_GITHUB_APP_PRIVATE_KEY:
+        description: The private key of that GitHub App.
+        required: false
+      SENTINEL_APP_ID:
+        description: The old name of SENTINEL_GITHUB_APP_ID, read when the new one is not set.
+        required: false
+      SENTINEL_APP_PRIVATE_KEY:
+        description: The old name of SENTINEL_GITHUB_APP_PRIVATE_KEY, read when the new one is not set.
+        required: false
+      HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS:
+        description: The ping URL of the `reconcile-projects` heartbeat. Without it the run sends none.
+        required: false
+
+jobs:
+  reconcile-projects:
+    name: Reconcile and check the boards
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Two runs could set the same item twice, so a second waits for the first.
+    concurrency:
+      group: reconcile-projects
+      cancel-in-progress: false
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}
+          private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # The token goes in the environment, never on the command line.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Reconcile the boards
+        id: reconcile
+        env:
+          HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          command: reconcile project
+
+      - name: List what changed
+        if: ${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}
+        env:
+          LOG_FILE: ${{ steps.reconcile.outputs.log-file }}
+        run: |
+          {
+            echo "### Project reconcile"
+            echo '```'
+            cat "$LOG_FILE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # What reconcile cannot fix: a board that differs from its template, a rule that is off, a missing App permission.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Check the boards
+        if: ${{ !cancelled() }}
+        env:
+          HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          command: doctor project
+
+      # Tells Checkly this run finished (#2359, the `reconcile-projects` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job.
+      - name: Ping the heartbeat
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_RECONCILE_PROJECTS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

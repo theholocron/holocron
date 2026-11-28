@@ -1,0 +1,2757 @@
+import { existsSync, realpathSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AuthError } from "../../auth/index.js";
+import { runSyncReadme, type RunSyncReadmeInput, type SyncReadmeReport } from "../sync-readme/index.js";
+import * as syncWikiModule from "../sync-wiki/index.js";
+import { thinCallerFile } from "../thin-caller-file/index.js";
+import { runSync } from "./sync.js";
+
+// `sync-wiki` falls back to the OS keyring for its token; a test must never read the machine's real one.
+vi.mock("../../auth/index.js", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../auth/index.js")>();
+	return { ...actual, keyring: { ...actual.keyring, get: () => null } };
+});
+
+vi.mock("../sync-readme/sync-readme.js", () => ({
+	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> => {
+		if (input.context.dryRun) return { status: "dry-run", updated: false };
+		return { status: "ok", updated: true };
+	}),
+}));
+import { fakeLogger } from "@theholocron/observability/testing";
+
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
+
+function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
+	return {
+		resolved: resolveConfig(rawConfig),
+		filepath: "/tmp/test/holocron.config.json",
+	};
+}
+
+function makePlugin(name: string, caps: Record<string, unknown>) {
+	return {
+		createPlugin: (_opts: Record<string, unknown>) => ({
+			name,
+			capabilities: Object.fromEntries(Object.entries(caps).map(([k, impl]) => [k, () => impl])),
+		}),
+	};
+}
+
+function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>): PluginLoader {
+	const importer = vi.fn(async (pkg: string) => {
+		if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+		return modules[pkg] as Awaited<ReturnType<PluginImporter>>;
+	});
+	return new PluginLoader(
+		loaded.resolved,
+		{ repoRoot: "/tmp/test", repo: "theholocron/holocron" },
+		importer as unknown as PluginImporter
+	);
+}
+
+describe("runSync", () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("doesn't throw when --cwd doesn't resolve to a real path (holocron#1014)", async () => {
+		// A parent that exists but a leaf that was never created -- realpathSync
+		// throws, falling back to the raw, unresolved value rather than
+		// propagating. Distinct from the existing "/tmp/test" convention used
+		// elsewhere in this file, which happens to already exist on this
+		// machine (and apparently in CI too) and so never actually exercises
+		// this fallback.
+		const parent = await mkdtemp(join(tmpdir(), "holocron-sync-nonexistent-"));
+		const repoRoot = join(parent, "never-created");
+		try {
+			// A real task, not an empty manifest -- "no tasks configured" would
+			// skip before ever touching gitRoot/pkgRelPath, proving nothing
+			// about whether the fallback value actually works downstream.
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
+			const report = await runSync({
+				loaded,
+				context: { repoRoot },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(repoRoot, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
+		} finally {
+			await rm(parent, { recursive: true, force: true });
+		}
+	});
+
+	it("runs all sync steps when no steps filter is given", async () => {
+		const called: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			description: "A demo CLI tool",
+			repo: { name: "theholocron/demo", topics: ["ts", "cli"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "2 properties set";
+					},
+					syncTopics: async (topics: string[]) => {
+						called.push("topics");
+						return `${topics.length} topics set`;
+					},
+				},
+			}),
+		});
+
+		const log = fakeLogger();
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+			logger: log,
+		});
+
+		expect(called).toEqual(["labels", "properties", "topics"]);
+
+		// structured logging: a start line, one line per step, a done summary
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ config: "demo", steps: "all" }), "sync: start");
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ capability: "source", step: "sync labels", status: "ok" }),
+			"sync: sync labels"
+		);
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
+		expect(report.steps).toHaveLength(15);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(9);
+		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
+		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
+		expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
+		expect(report.summary).toMatchObject({ ok: 9, fail: 0, skip: 6 });
+	});
+
+	it("runs only the requested step when a single step filter is given", async () => {
+		const called: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called.push("topics");
+						return "1 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(called).toEqual(["topics"]);
+		expect(report.steps).toHaveLength(1);
+		expect(report.steps[0]?.step).toBe("sync topics");
+		expect(report.steps[0]?.status).toBe("ok");
+	});
+
+	it("runs a subset of steps when multiple steps are requested", async () => {
+		const called: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called.push("labels");
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called.push("properties");
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called.push("topics");
+						return "1 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["labels", "topics"],
+			print: () => {},
+		});
+
+		expect(called).toEqual(["labels", "topics"]);
+		expect(report.steps).toHaveLength(2);
+	});
+
+	it("reports skip for an unknown step name", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => "17 synced",
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["labels", "not-a-real-step"],
+			print: () => {},
+		});
+
+		const unknownStep = report.steps.find((s) => s.step === "sync not-a-real-step");
+		expect(unknownStep?.status).toBe("skip");
+		expect(unknownStep?.message).toContain("unknown step");
+		expect(report.summary.skip).toBeGreaterThanOrEqual(1);
+	});
+
+	it("dry-run does not call any sync methods", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			description: "A demo CLI tool",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called = true;
+						return "17 synced";
+					},
+					syncProperties: async () => {
+						called = true;
+						return "1 set";
+					},
+					syncTopics: async () => {
+						called = true;
+						return "1 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
+		expect(report.summary.dryRun).toBe(9);
+	});
+
+	it("reports skip when provider does not implement syncLabels", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					// syncLabels intentionally omitted
+					syncProperties: async () => "1 set",
+					syncTopics: async () => "0 topics set",
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync labels");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncLabels");
+	});
+
+	it("reports skip when provider does not implement syncProperties", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => "17 synced",
+					// syncProperties intentionally omitted
+					syncTopics: async () => "0 topics set",
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync properties");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncProperties");
+	});
+
+	it("skips syncTopics with 'no topics configured' when topics list is absent", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("skips syncTopics with 'no topics configured' when topics list is empty", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: [] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("reports skip when provider does not implement syncTopics (topics configured)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["ts"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => "17 synced",
+					syncProperties: async () => "1 set",
+					// syncTopics intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTopics");
+	});
+
+	it("passes the configured topics to syncTopics", async () => {
+		let capturedTopics: string[] | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTopics: async (topics: string[]) => {
+						capturedTopics = topics;
+						return `${topics.length} topics set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["topics"],
+			print: () => {},
+		});
+
+		expect(capturedTopics).toEqual(["cli", "nodejs", "typescript"]);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("3 topics set");
+	});
+
+	it("passes the configured teams to syncTeams", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async (teams: unknown[]) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("1 team synced");
+		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
+	});
+
+	it("syncs the teams but writes no CODEOWNERS when the repo is named without an organization", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async (teams: unknown[]) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("reports skip when provider does not implement syncTeams (teams configured)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
+	it("skips CODEOWNERS in sync when all teams have read-only permission", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "readers", permission: "pull" as const }] },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncTeams: async () => "1 team synced",
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			steps: ["teams"],
+			print: () => {},
+		});
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("skips sync keywords when no topics are configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["keywords"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync keywords");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	it("skips sync keywords when topics list is empty", async () => {
+		const loaded = loadedFrom({ name: "demo", repo: { topics: [] }, providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["keywords"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync keywords");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no topics configured");
+	});
+
+	describe("sync keywords — package.json write", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		it("writes topics to package.json#keywords", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli", "typescript"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("2 keywords written");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { keywords: string[] };
+			expect(pkg.keywords).toEqual(["cli", "typescript"]);
+		});
+
+		it("succeeds gracefully when package.json is absent", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("no package.json");
+		});
+
+		it("still writes keywords when the provider plugin fails to load (no token)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", keywords: [] }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli", "typescript"] },
+				providers: { source: "github" },
+			});
+			// Importer throws AuthError — simulates missing provider token.
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw new AuthError("no GitHub token found");
+					},
+				},
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync keywords");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("2 keywords written");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { keywords: string[] };
+			expect(pkg.keywords).toEqual(["cli", "typescript"]);
+		});
+
+		it("soft-skips a plugin that fails to load — local steps still run", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { topics: ["cli"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw new Error("plugin package corrupted");
+					},
+				},
+			});
+
+			const log = fakeLogger();
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["keywords"],
+				print: () => {},
+				logger: log,
+			});
+
+			// did not throw; the local keywords step ran; the failure is recorded
+			expect(report.steps.find((s) => s.step === "sync keywords")).toBeDefined();
+			expect(loader.loadFailures()[0]?.error.message).toMatch(/corrupted/);
+			// the load failure is surfaced as a structured warning
+			expect(log.warn).toHaveBeenCalledWith(
+				expect.objectContaining({ provider: "github", reason: expect.stringMatching(/corrupted/) }),
+				expect.stringContaining("unavailable")
+			);
+		});
+	});
+
+	describe("sync scripts — package.json merge", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runScriptsStep(rawConfig: Parameters<typeof resolveConfig>[0]) {
+			const loaded = loadedFrom(rawConfig);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["scripts"], print: () => {} });
+		}
+
+		it("merges task scripts + the holocron entry without disturbing other scripts", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { start: "node ." } }, null, 2) + "\n"
+			);
+
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["verification.unitTests", "sourceQuality.staticAnalysis"],
+				providers: {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("set");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({
+				start: "node .",
+				holocron: "holocron",
+				"verification.unitTests": "holocron run verification.unitTests --",
+				"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+			});
+		});
+
+		it("writes turbo-direct root scripts in a workspace, and keeps a real command the root already has (#747)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { build: "tsdown", test: "turbo run old", dev: "astro dev" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["build", "test:unit", "format"],
+				holocronScript: "node cli.mjs",
+				providers: {},
+			});
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toBe(
+				"format, holocron, test, test:unit set"
+			);
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({
+				build: "tsdown",
+				dev: "astro dev",
+				test: "turbo run test",
+				"test:unit": "turbo run test:unit",
+				format: "prettier --write .",
+				holocron: "node cli.mjs",
+			});
+		});
+
+		it("keeps the file's own indent and line endings when merging scripts (holocron#1033)", async () => {
+			// Tabs + CRLF -- stringifyJson's `like: content` preserves
+			// whatever the repo already used; a bare JSON.stringify(x,
+			// null, 2) would have silently rewritten both to 2-space LF.
+			const tabbedCrlf = '{\r\n\t"name": "demo",\r\n\t"scripts": {\r\n\t\t"start": "node ."\r\n\t}\r\n}\r\n';
+			await writeFile(join(tmpDir, "package.json"), tabbedCrlf);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.unitTests"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
+			const written = await readFile(join(tmpDir, "package.json"), "utf8");
+			expect(written).toContain('\t"start": "node ."');
+			expect(written).toContain('\t\t"verification.unitTests": "holocron run verification.unitTests --"');
+			expect(written).toMatch(/\r\n/);
+			// Not just "at least one CRLF" -- a mixed-ending file (one real
+			// \r\n plus bare \n elsewhere) would satisfy the check above too
+			// (holocron#1033 review).
+			expect(written).not.toMatch(/(?<!\r)\n/);
+			expect(JSON.parse(written)).toMatchObject({
+				scripts: { start: "node .", "verification.unitTests": "holocron run verification.unitTests --" },
+			});
+		});
+
+		it("updates a drifted value and is a no-op when already current", async () => {
+			// platform.commitStandards has no turbo entry — the #747 protection
+			// below is specifically about turbo-eligible tasks, so a plain
+			// drift/idempotency check uses a task that's never subject to it.
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify(
+					{ name: "demo", scripts: { holocron: "holocron", "platform.commitStandards": "commitlint" } },
+					null,
+					2
+				) + "\n"
+			);
+			const raw = {
+				name: "demo",
+				tasks: ["platform.commitStandards"],
+				providers: {},
+			} as Parameters<typeof resolveConfig>[0];
+
+			const first = await runScriptsStep(raw);
+			expect(first.steps.find((s) => s.step === "sync scripts")?.message).toBe("platform.commitStandards set");
+
+			const second = await runScriptsStep(raw);
+			expect(second.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
+		});
+
+		it("never overwrites an existing direct-tool command for a turbo-eligible task (#747)", async () => {
+			// observability's real shape: root is a directly-buildable package
+			// with its own "tsc --noEmit", not an orchestrator's generated
+			// wrapper — overwriting it would silently discard the real command
+			// and (once turbo.json exists + root is a real workspace member,
+			// #692) reintroduce infinite recursion.
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify(
+					{ name: "demo", scripts: { holocron: "holocron", "verification.typeSafety": "tsc --noEmit" } },
+					null,
+					2
+				) + "\n"
+			);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toBe("2 scripts already current");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("tsc --noEmit");
+		});
+
+		it("still writes the wrapper for a turbo-eligible task when no script exists yet", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toContain("set");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("holocron run verification.typeSafety --");
+		});
+
+		it("replaces a stale wrapper for a turbo-eligible task (not a custom command, safe to update)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify(
+					{
+						name: "demo",
+						scripts: {
+							"verification.typeSafety": "node packages/cli/dist/cli.mjs run verification.typeSafety --",
+						},
+					},
+					null,
+					2
+				) + "\n"
+			);
+
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toContain("verification.typeSafety");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts["verification.typeSafety"]).toBe("holocron run verification.typeSafety --");
+		});
+
+		it("honours a custom holocronScript", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+
+			await runScriptsStep({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				holocronScript: "node packages/cli/dist/cli.mjs",
+				providers: {},
+			});
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts.holocron).toBe("node packages/cli/dist/cli.mjs");
+			expect(pkg.scripts["verification.unitTests"]).toBe("holocron run verification.unitTests --");
+		});
+
+		it("succeeds gracefully when package.json is absent", async () => {
+			const report = await runScriptsStep({ name: "demo", tasks: ["verification.unitTests"], providers: {} });
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toBe("no package.json");
+		});
+
+		it("skips when syncScripts is false", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["verification.unitTests"],
+				syncScripts: false,
+				providers: {},
+			});
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("syncScripts: false");
+		});
+
+		it("writes only the holocron entry when no tasks are configured", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }, null, 2) + "\n");
+			const report = await runScriptsStep({ name: "demo", providers: {} });
+			const step = report.steps.find((s) => s.step === "sync scripts");
+			expect(step?.status).toBe("ok");
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({ holocron: "holocron" });
+		});
+	});
+
+	describe("sync agents", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runAgentsStep(repoRoot: string, dryRun = false) {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["agents"], print: () => {} });
+		}
+
+		it("appends the org block to AGENTS.md and keeps the repo's own text", async () => {
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n\nOwn rules.\n");
+			const report = await runAgentsStep(tmpDir);
+
+			expect(report.steps.find((s) => s.step === "write AGENTS.md")?.status).toBe("ok");
+			const text = await readFile(join(tmpDir, "AGENTS.md"), "utf8");
+			expect(text).toMatch(/^# Demo\n\nOwn rules\./);
+			expect(text).toContain("BEGIN holocron org agent instructions");
+		});
+
+		it("leaves the file alone on a dry run", async () => {
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n");
+			await runAgentsStep(tmpDir, true);
+			expect(await readFile(join(tmpDir, "AGENTS.md"), "utf8")).toBe("# Demo\n");
+		});
+
+		it("skips a repo with no AGENTS.md or CLAUDE.md", async () => {
+			const report = await runAgentsStep(tmpDir);
+			const step = report.steps.find((s) => s.step === "write AGENTS.md");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("no AGENTS.md or CLAUDE.md");
+		});
+
+		it("skips when --cwd is a monorepo subpackage, not the git root", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n");
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const report = await runAgentsStep(subpackage);
+
+			const step = report.steps.find((s) => s.step === "sync agents");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect(await readFile(join(tmpDir, "AGENTS.md"), "utf8")).toBe("# Demo\n");
+		});
+	});
+
+	describe("sync private directory", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runPrivateStep(repoRoot: string, dryRun = false) {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["private"], print: () => {} });
+		}
+
+		it("writes the .gitkeep and the ignore block, keeping the rest of .gitignore", async () => {
+			await writeFile(join(tmpDir, ".gitignore"), "node_modules\n");
+			const report = await runPrivateStep(tmpDir);
+			expect(report.steps.map((s) => [s.step, s.status])).toEqual([
+				["write .holocron/.private/.gitkeep", "ok"],
+				["write .gitignore", "ok"],
+			]);
+			expect(await readFile(join(tmpDir, ".holocron/.private/.gitkeep"), "utf8")).toBe("");
+			const text = await readFile(join(tmpDir, ".gitignore"), "utf8");
+			expect(text).toMatch(/^node_modules\n/);
+			expect(text).toContain(".holocron/.private/*\n!.holocron/.private/.gitkeep");
+		});
+
+		it("is idempotent: a second run leaves the same bytes", async () => {
+			await runPrivateStep(tmpDir);
+			const first = await readFile(join(tmpDir, ".gitignore"), "utf8");
+			await runPrivateStep(tmpDir);
+			expect(await readFile(join(tmpDir, ".gitignore"), "utf8")).toBe(first);
+		});
+
+		it("writes nothing on a dry run", async () => {
+			await runPrivateStep(tmpDir, true);
+			await expect(readFile(join(tmpDir, ".gitignore"), "utf8")).rejects.toThrow();
+		});
+
+		it("skips when --cwd is a monorepo subpackage, not the checkout root", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const step = (await runPrivateStep(subpackage)).steps.find((s) => s.step === "sync private directory");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+		});
+	});
+
+	describe("sync claude settings", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		const OPTED_IN = { name: "demo", providers: {}, agent: ["claude", { dcg: true }] } as Parameters<
+			typeof loadedFrom
+		>[0];
+
+		async function runClaudeStep(repoRoot: string, raw: Parameters<typeof loadedFrom>[0], dryRun = false) {
+			const loaded = loadedFrom(raw);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["claude"], print: () => {} });
+		}
+
+		it("does nothing, and reports no step, for a repo that does not opt in", async () => {
+			const report = await runClaudeStep(tmpDir, { name: "demo", providers: {}, agent: "claude" });
+			expect(report.steps).toEqual([]);
+			await expect(readFile(join(tmpDir, ".claude/settings.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("writes the dcg hook into .claude/settings.json, keeping what was there, and the same bytes again", async () => {
+			await mkdir(join(tmpDir, ".claude"));
+			await writeFile(
+				join(tmpDir, ".claude/settings.json"),
+				JSON.stringify({ permissions: { allow: ["Bash(ls)"] } })
+			);
+			const report = await runClaudeStep(tmpDir, OPTED_IN);
+			expect(report.steps.map((s) => [s.step, s.status])).toEqual([["write .claude/settings.json", "ok"]]);
+			const first = await readFile(join(tmpDir, ".claude/settings.json"), "utf8");
+			expect(JSON.parse(first).permissions).toEqual({ allow: ["Bash(ls)"] });
+			expect(JSON.parse(first).hooks.PreToolUse[0].hooks[0].command).toBe("dcg");
+			await runClaudeStep(tmpDir, OPTED_IN);
+			expect(await readFile(join(tmpDir, ".claude/settings.json"), "utf8")).toBe(first);
+		});
+
+		it("writes nothing on a dry run", async () => {
+			await runClaudeStep(tmpDir, OPTED_IN, true);
+			await expect(readFile(join(tmpDir, ".claude/settings.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("fails the step, and leaves the file, when it is not JSON", async () => {
+			await mkdir(join(tmpDir, ".claude"));
+			await writeFile(join(tmpDir, ".claude/settings.json"), "{ nope");
+			const step = (await runClaudeStep(tmpDir, OPTED_IN)).steps[0];
+			expect(step).toMatchObject({ status: "fail", message: ".claude/settings.json is not valid JSON" });
+			expect(await readFile(join(tmpDir, ".claude/settings.json"), "utf8")).toBe("{ nope");
+		});
+
+		it("skips when --cwd is a monorepo subpackage, and says nothing for a repo that does not opt in", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const step = (await runClaudeStep(subpackage, OPTED_IN)).steps.find(
+				(s) => s.step === "sync claude settings"
+			);
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect((await runClaudeStep(subpackage, { name: "demo", providers: {} })).steps).toEqual([]);
+		});
+	});
+
+	describe("sync turbo.json", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runTurboStep(rawConfig: Parameters<typeof resolveConfig>[0]) {
+			const loaded = loadedFrom(rawConfig);
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["turbo"], print: () => {} });
+		}
+
+		it("writes turbo.json when the manifest has a fan-out-eligible task", async () => {
+			const report = await runTurboStep({
+				name: "demo",
+				tasks: ["verification.typeSafety", "verification.unitTests"],
+				providers: {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "turbo.json"), "utf8")) as {
+				tasks: Record<string, unknown>;
+			};
+			expect(Object.keys(written.tasks)).toEqual(["verification.typeSafety", "verification.unitTests"]);
+		});
+
+		it("skips when no task in the manifest has turbo fan-out config", async () => {
+			const report = await runTurboStep({ name: "demo", tasks: ["platform.repoSync"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("no fan-out-eligible tasks configured");
+			await expect(readFile(join(tmpDir, "turbo.json"), "utf8")).rejects.toThrow();
+		});
+
+		it("skips when no tasks are configured at all", async () => {
+			const report = await runTurboStep({ name: "demo", providers: {} });
+			expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
+		});
+
+		it("skips entirely when --cwd is a monorepo subpackage, not the git root (holocron#1014)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			// Present at the real root — if the step incorrectly fell back to
+			// writing there via --cwd, this content would get overwritten;
+			// the assertion below confirms it's untouched.
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+
+			const loaded = loadedFrom({ name: "demo", tasks: ["delivery.build"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["turbo"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync turbo.json");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect(existsSync(join(tmpDir, "turbo.json"))).toBe(false);
+			expect(existsSync(join(subpackage, "turbo.json"))).toBe(false);
+			const rootPkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies?: Record<string, string>;
+			};
+			expect(rootPkg.devDependencies).toBeUndefined();
+		});
+
+		it("fixes pnpm-workspace.yaml when root has a fan-out-eligible script it isn't a workspace member for (#692)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)");
+			expect(step?.status).toBe("ok");
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "."\n  - "docs"\n');
+		});
+
+		it("does not touch pnpm-workspace.yaml when root has no fan-out-eligible script", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { build: "turbo run delivery.build" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(
+				report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+			).toBeUndefined();
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "packages/*"\n');
+		});
+
+		it("does not touch pnpm-workspace.yaml when root's matching script is a pre-existing holocron run <task> -- wrapper (#846)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({
+					name: "demo",
+					scripts: { "verification.typeSafety": "holocron run verification.typeSafety --" },
+				})
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+
+			const report = await runTurboStep({ name: "demo", tasks: ["verification.typeSafety"], providers: {} });
+
+			expect(
+				report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+			).toBeUndefined();
+			const written = await readFile(join(tmpDir, "pnpm-workspace.yaml"), "utf8");
+			expect(written).toBe('packages:\n  - "packages/*"\n');
+		});
+
+		it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			const step = report.steps.find((s) => s.step === "add turbo devDependency");
+			expect(step?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("^2.10.12");
+		});
+
+		it("does not touch package.json when turbo is already a devDependency", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", devDependencies: { turbo: "^1.0.0" } })
+			);
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "add turbo devDependency")).toBeUndefined();
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("^1.0.0");
+		});
+
+		it("prefers catalog: over the pinned fallback when pnpm-workspace.yaml already has a turbo entry", async () => {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "catalog:\n  turbo: ^2.10.9\n");
+
+			const report = await runTurboStep({ name: "demo", tasks: ["delivery.build"], providers: {} });
+
+			expect(report.steps.find((s) => s.step === "add turbo devDependency")?.status).toBe("ok");
+			const written = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				devDependencies: Record<string, string>;
+			};
+			expect(written.devDependencies.turbo).toBe("catalog:");
+		});
+	});
+
+	it("skips sync description when no description is configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["description"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync description");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no description configured");
+	});
+
+	describe("sync description — file writes and GitHub sync", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		it("writes description to package.json#description", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", description: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { description: string };
+			expect(pkg.description).toBe("A great tool");
+		});
+
+		it("replaces description within existing marker block", async () => {
+			const initial =
+				"# Demo\n\n<!-- holocron:description -->\nOld description.\n<!-- /holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "New description.",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("New description.");
+			expect(readme).not.toContain("Old description.");
+			expect(readme).toContain("## Usage");
+		});
+
+		it("marker block update is idempotent across multiple syncs", async () => {
+			const initial =
+				"# Demo\n\n<!-- holocron:description -->\nFirst.\n<!-- /holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "Second.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme.match(/<!-- holocron:description -->/g)).toHaveLength(1);
+			expect(readme).toContain("Second.");
+		});
+
+		it("inserts marker block after H1 when no block exists", async () => {
+			await writeFile(join(tmpDir, "README.md"), "# Demo\n\n## Usage\n");
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "A new description.",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("<!-- holocron:description -->");
+			expect(readme).toContain("A new description.");
+			expect(readme).toContain("<!-- /holocron:description -->");
+			expect(readme).toContain("## Usage");
+		});
+
+		it("does nothing when start marker exists but end marker is missing", async () => {
+			const initial = "# Demo\n\n<!-- holocron:description -->\nOrphaned content.\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toBe(initial);
+		});
+
+		it("does nothing when end marker appears before start marker", async () => {
+			const initial =
+				"# Demo\n\n<!-- /holocron:description -->\nContent.\n<!-- holocron:description -->\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toBe(initial);
+		});
+
+		it("does not overwrite badge lines immediately after H1", async () => {
+			const initial = "# Demo\n\n[![Build](https://img.shields.io/ci)](https://ci.example.com)\n\n## Usage\n";
+			await writeFile(join(tmpDir, "README.md"), initial);
+			const loaded = loadedFrom({ name: "demo", description: "My tool.", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["description"], print: () => {} });
+
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).toContain("[![Build]");
+			expect(readme).toContain("My tool.");
+			expect(readme).toContain("<!-- holocron:description -->");
+		});
+
+		it("calls source.syncDescription when provider implements it", async () => {
+			let capturedDesc: string | null = null;
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncDescription: async (desc: string) => {
+							capturedDesc = desc;
+							return "description updated";
+						},
+					},
+				}),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
+
+			expect(capturedDesc).toBe("A great tool");
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("GitHub");
+		});
+
+		it("skips README.md update when file has no H1 heading", async () => {
+			await writeFile(join(tmpDir, "README.md"), "No heading here.\n\n## Usage\n");
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+			const readme = await readFile(join(tmpDir, "README.md"), "utf8");
+			expect(readme).not.toContain("A great tool");
+		});
+
+		it("step reports ok even when package.json and README.md are absent", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A great tool", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["description"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync description");
+			expect(step?.status).toBe("ok");
+		});
+	});
+
+	it("skips sync homepage when no homepage is configured", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["homepage"],
+			print: () => {},
+		});
+
+		const step = report.steps.find((s) => s.step === "sync homepage");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no homepage configured");
+	});
+
+	describe("sync homepage — file writes and GitHub sync", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		it("writes homepage to package.json#homepage", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { homepage: string };
+			expect(pkg.homepage).toBe("https://example.com");
+		});
+
+		it("still writes package.json when the config has no source provider to sync the homepage to", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", homepage: "" }, null, 2) + "\n"
+			);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { vault: "1password" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as { homepage: string };
+			expect(pkg.homepage).toBe("https://example.com");
+		});
+
+		it("keeps the file's own indent and line endings when writing homepage (holocron#1033)", async () => {
+			// 4 spaces + CRLF -- stringifyJson's `like: content` preserves
+			// whatever the repo already used.
+			const fourSpaceCrlf = '{\r\n    "name": "demo",\r\n    "homepage": ""\r\n}\r\n';
+			await writeFile(join(tmpDir, "package.json"), fourSpaceCrlf);
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["homepage"], print: () => {} });
+
+			const written = await readFile(join(tmpDir, "package.json"), "utf8");
+			expect(written).toContain('    "homepage": "https://example.com"');
+			expect(written).toMatch(/\r\n/);
+			// Not just "at least one CRLF" -- a mixed-ending file (one real
+			// \r\n plus bare \n elsewhere) would satisfy the check above too
+			// (holocron#1033 review).
+			expect(written).not.toMatch(/(?<!\r)\n/);
+			expect(JSON.parse(written)).toMatchObject({ homepage: "https://example.com" });
+		});
+
+		it("step reports ok even when package.json is absent and no syncHomepage provider", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["homepage"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync homepage");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("calls source.syncHomepage when provider implements it", async () => {
+			let capturedUrl: string | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				homepage: "https://example.com",
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncHomepage: async (url: string) => {
+							capturedUrl = url;
+							return "homepage updated";
+						},
+					},
+				}),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["homepage"],
+				print: () => {},
+			});
+
+			expect(capturedUrl).toBe("https://example.com");
+			const step = report.steps.find((s) => s.step === "sync homepage");
+			expect(step?.status).toBe("ok");
+			expect(step?.message).toContain("GitHub");
+		});
+	});
+
+	it("passes manual and derived properties to syncProperties", async () => {
+		let captured: Record<string, string | string[]> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: {
+				name: "theholocron/demo",
+				properties: {
+					lifecycle: "active",
+					open_source: true,
+					runtime_environment: "node",
+					uses_external_packages: false,
+				},
+			},
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncProperties: async (values: Record<string, string | string[]>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			steps: ["properties"],
+			print: () => {},
+		});
+
+		expect(captured).not.toBeNull();
+		// derived: monorepo always present; holocron_branch_protection_level absent when protection unset
+		expect(captured!["monorepo"]).toBe("false"); // /tmp/test has no pnpm-workspace.yaml
+		expect(captured!["holocron_branch_protection_level"]).toBeUndefined();
+		// manual properties
+		expect(captured!["lifecycle"]).toBe("active");
+		expect(captured!["open_source"]).toBe("true");
+		expect(captured!["runtime_environment"]).toBe("node");
+		expect(captured!["uses_external_packages"]).toBe("false");
+		// derived properties (#677) — /tmp/test has no package.json, so these
+		// fall back to their "nothing detected" values.
+		expect(captured!["holocron_profile"]).toBe("library");
+		expect(captured!["holocron_stack"]).toEqual([]);
+		expect(captured!["holocron_capabilities"]).toEqual(["source"]);
+		expect(captured!["holocron_compliance"]).toBe("non-compliant"); // no `ci` provider wired
+		const step = report.steps.find((s) => s.step === "sync properties");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("derives holocron_profile/stack/capabilities/compliance from real repo content (#677)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ devDependencies: { tsdown: "^0.22.0" } }));
+			let captured: Record<string, string | string[]> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github", ci: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string | string[]>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["properties"],
+				print: () => {},
+			});
+
+			expect(captured).not.toBeNull();
+			expect(captured!["holocron_stack"]).toEqual(["tsdown"]);
+			expect(captured!["holocron_capabilities"]).toEqual(["ci", "source"]);
+			expect(captured!["holocron_compliance"]).toBe("compliant");
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("sets monorepo=true when pnpm-workspace.yaml exists in repoRoot", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			let captured: Record<string, string | string[]> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string | string[]>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({ loaded, context: { repoRoot: tmpDir }, loader, steps: ["properties"], print: () => {} });
+
+			expect(captured!["monorepo"]).toBe("true");
+		} finally {
+			await rm(tmpDir, { recursive: true });
+		}
+	});
+
+	it("derives monorepo/profile from the real git root, not --cwd, for a monorepo subpackage (holocron#1014)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+			await writeFile(join(tmpDir, "package.json"), JSON.stringify({ devDependencies: { tsdown: "^0.22.0" } }));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			// No pnpm-workspace.yaml/package.json here — only the real root's,
+			// above, should ever be read.
+
+			let captured: Record<string, string | string[]> | null = null;
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo" },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						syncProperties: async (values: Record<string, string | string[]>) => {
+							captured = values;
+							return `${Object.keys(values).length} properties set`;
+						},
+					},
+				}),
+			});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["properties"],
+				print: () => {},
+			});
+
+			expect(captured!["monorepo"]).toBe("true");
+			expect(captured!["holocron_stack"]).toEqual(["tsdown"]);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("includes holocron_branch_protection_level when repo.protection is set", async () => {
+		let captured: Record<string, string | string[]> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncProperties: async (values: Record<string, string | string[]>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["properties"], print: () => {} });
+
+		expect(captured!["holocron_branch_protection_level"]).toBe("strict");
+		expect(captured!["monorepo"]).toBe("false");
+	});
+
+	it("omits holocron_branch_protection_level when repo.protection is 'none'", async () => {
+		let captured: Record<string, string | string[]> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncProperties: async (values: Record<string, string | string[]>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["properties"], print: () => {} });
+
+		expect(captured!["holocron_branch_protection_level"]).toBeUndefined();
+		expect(captured!["monorepo"]).toBe("false");
+	});
+
+	it("output includes a header and summary line", async () => {
+		const lines: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => "17 synced",
+					syncProperties: async () => "1 set",
+					syncTopics: async () => "0 topics set",
+				},
+			}),
+		});
+
+		await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const joined = lines.join("\n");
+		expect(joined).toMatch(/Holocron sync — demo/);
+		expect(joined).toMatch(/ok, \d+ fail/);
+	});
+
+	it("marks step as fail when syncLabels throws", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						throw new Error("API rate limit");
+					},
+					syncProperties: async () => "1 set",
+					syncTopics: async () => "0 topics set",
+				},
+			}),
+		});
+
+		const report = await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync labels");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toContain("API rate limit");
+		expect(report.summary.fail).toBe(1);
+	});
+
+	describe("sync readme step", () => {
+		it("runs the readme step when no steps filter is given", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+		});
+
+		it("runs the readme step when steps includes 'readme'", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("skips the readme step when steps does not include 'readme'", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				description: "A demo CLI tool",
+				repo: { topics: ["ts"] },
+				providers: { source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: { syncTopics: async () => "1 set" },
+				}),
+			});
+
+			await runSync({ loaded, context: { repoRoot: "/tmp/test" }, loader, steps: ["topics"], print: () => {} });
+
+			expect(runSyncReadme).not.toHaveBeenCalled();
+		});
+
+		it("works without a provider token (local-only step)", async () => {
+			const loaded = loadedFrom({ name: "demo", description: "A demo CLI tool", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			expect(runSyncReadme).toHaveBeenCalledOnce();
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("ok");
+		});
+
+		it("reports skip status when runSyncReadme fails", async () => {
+			vi.mocked(runSyncReadme).mockResolvedValueOnce({
+				status: "fail",
+				updated: false,
+				message: "README.md not found",
+			});
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("README.md not found");
+		});
+
+		it("fails the step, naming the scripts, when the README tells the reader to run one the package lacks", async () => {
+			const problem = 'README.md tells the reader to run `pnpm test`, but package.json has no "test" script';
+			vi.mocked(runSyncReadme).mockResolvedValueOnce({ status: "ok", updated: true, problems: [problem] });
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toBe(problem);
+		});
+
+		it("reports dry-run status when context.dryRun is true", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("dry-run");
+		});
+	});
+
+	describe("sync workflows", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-sync-wf-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		it("skips when no workflows are configured", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflows");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("no tasks configured");
+		});
+
+		it("writes the ci aggregate with the statuses a loaded coverage provider reports", async () => {
+			await mkdir(join(tmpDir, "ci"));
+			await writeFile(join(tmpDir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: [{ name: "typecheck", required: true }],
+					extraRequiredChecks: ["cov/patch"],
+					providers: { coverage: "codecov" },
+				}),
+				filepath: join(tmpDir, "holocron.config.json"),
+			};
+			const statusContexts = vi.fn(() => [{ name: "cov/patch", required: true }]);
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-codecov": makePlugin("cc", { coverage: { statusContexts } }),
+			});
+
+			await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(statusContexts).toHaveBeenCalledWith({ components: [], documentation: "off" });
+			const content = await readFile(join(tmpDir, ".github", "workflows", "ci.ci.yml"), "utf8");
+			expect(content).toContain(`statuses: '["cov/patch"]'`);
+			expect(content).toContain(`expected: '["typecheck"]'`);
+		});
+
+		it("writes a plain workflow thin caller to .github/workflows/", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["sourceQuality.staticAnalysis"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
+			// the same line `setup` writes: the two commands leave a workflow as they found it
+			expect(content).toContain("# Tool:    holocron sync\n");
+			expect(content).toContain("sourceQuality.staticAnalysis.yml@main");
+		});
+
+		it("writes to the real git root's .github/workflows/, not --cwd, for a monorepo subpackage (holocron#1014)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: ["sourceQuality.staticAnalysis"],
+					providers: {},
+				}),
+				filepath: join(subpackage, "holocron.config.json"),
+			};
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: subpackage },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(
+				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
+				"utf8"
+			);
+			expect(content).toContain("AUTO-GENERATED");
+			expect(content).toContain("# Source package: packages/sentinel");
+			// Not written into the subpackage's own, GitHub-invisible .github/.
+			expect(existsSync(join(subpackage, ".github"))).toBe(false);
+		});
+
+		it("re-syncing the same package overwrites its own file without a collision (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const workflowPath = join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml");
+
+			const loaded = {
+				...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+				filepath: join(subpackage, "holocron.config.json"),
+			};
+			const loader = makeLoaderWith(loaded, {});
+			const run = () =>
+				runSync({ loaded, context: { repoRoot: subpackage }, loader, steps: ["workflows"], print: () => {} });
+
+			await run();
+			// Corrupt the body while keeping this package's own real marker --
+			// a regression that treats "marker already matches" as "nothing to
+			// do" and skips the write (while still reporting "ok") would
+			// otherwise pass with the stale body left in place.
+			const firstContent = await readFile(workflowPath, "utf8");
+			const marker = firstContent.match(/^# Source package: .+$/m)![0];
+			await writeFile(workflowPath, `${marker}\n\nstale body from a previous run\n`);
+			const second = await run();
+
+			const step = second.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(workflowPath, "utf8");
+			expect(content).not.toContain("stale body from a previous run");
+			expect(content).toBe(firstContent);
+		});
+
+		it("fails loudly instead of overwriting another package's generated workflow (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const other = join(tmpDir, "apps", "other");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(other, { recursive: true });
+			const workflowPath = join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml");
+
+			const config = {
+				name: "demo",
+				tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+				providers: {},
+			};
+			const sentinelLoaded = { ...loadedFrom(config), filepath: join(sentinel, "holocron.config.json") };
+			const otherLoaded = { ...loadedFrom(config), filepath: join(other, "holocron.config.json") };
+
+			await runSync({
+				loaded: sentinelLoaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(sentinelLoaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+			const firstContent = await readFile(workflowPath, "utf8");
+
+			const report = await runSync({
+				loaded: otherLoaded,
+				context: { repoRoot: other },
+				loader: makeLoaderWith(otherLoaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.previewDeploy");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toMatch(/apps\/sentinel/);
+			expect(step?.message).toMatch(/holocron#1026/);
+			// The first package's file must survive byte-for-byte untouched --
+			// not just "still contains its marker somewhere" (a bug that
+			// garbled the body while preserving the marker line would pass
+			// a substring check but not this).
+			const content = await readFile(workflowPath, "utf8");
+			expect(content).toBe(firstContent);
+		});
+
+		it("propagates a read error other than ENOENT instead of treating it as no collision (holocron#1026)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			// A directory where the generated file would go -- readFile throws
+			// EISDIR, not ENOENT, so the collision check must not swallow it as
+			// "nothing there."
+			await mkdir(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), {
+				recursive: true,
+			});
+
+			const loaded = loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("fail");
+			// The original read error (EISDIR, from assertNoPackageCollision's own
+			// readFile) must be what's reported -- not a holocron#1026 collision
+			// message (that would mean the read error was swallowed as "no file
+			// there"), and not some later write/rename error either (writeWorkflowFile
+			// is never reached: assertNoPackageCollision throws first).
+			expect(step?.message).toMatch(/EISDIR/);
+			expect(step?.message).not.toMatch(/holocron#1026/);
+		});
+
+		it("auto-computes delivery.previewDeploy's paths from workspace:* dependencies (holocron#1023)", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const shared = join(tmpDir, "packages", "shared");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(shared, { recursive: true });
+			await writeFile(join(shared, "package.json"), JSON.stringify({ name: "@demo/shared", version: "1.0.0" }));
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({
+					name: "@demo/sentinel",
+					version: "1.0.0",
+					dependencies: { "@demo/shared": "workspace:*" },
+				})
+			);
+
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } }],
+					providers: {},
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+
+			await runSync({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			expect(content).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
+		});
+
+		it("leaves delivery.previewDeploy's paths alone when the repo already set one explicitly", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			await mkdir(sentinel, { recursive: true });
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({ name: "@demo/sentinel", version: "1.0.0" })
+			);
+
+			const loaded = {
+				...loadedFrom({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel", paths: ["custom/**"] } }],
+					providers: {},
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+
+			await runSync({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoaderWith(loaded, {}),
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			expect(content).toContain(`paths: '["custom/**"]'`);
+		});
+
+		it("writes a plain deploy thin caller when delivery.deploy has with: but no preview", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: [{ name: "delivery.deploy", with: { type: "storybook" } }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
+			expect(content).toContain("AUTO-GENERATED");
+			expect(content).not.toContain("preview.yml@main");
+		});
+
+		it("writes a combined deploy+preview thin caller when preview is configured", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				org: "theholocron",
+				domain: "theholocron.dev",
+				tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy (with preview)");
+			expect(step?.status).toBe("ok");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
+			expect(content).toContain("AUTO-GENERATED");
+			expect(content).toContain("theholocron-preview");
+			expect(content).toContain("preview.yml@main");
+			expect(content).not.toContain("cleanup-preview.yml@main");
+		});
+
+		it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				org: "theholocron",
+				domain: "theholocron.dev",
+				tasks: [{ name: "knowledge.docs", with: { preview: true } }, "knowledge.components"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
+			const docs = await readFile(join(tmpDir, ".github", "workflows", "knowledge.docs.yml"), "utf8");
+			expect(docs).toContain("- docs/**");
+			const components = await readFile(join(tmpDir, ".github", "workflows", "knowledge.components.yml"), "utf8");
+			expect(components).toContain("- src/**");
+		});
+
+		it("skips unknown workflow names", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["nonexistent"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow nonexistent");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toContain("unknown workflow");
+		});
+
+		it("writes no file and reports no step for a ci: false task", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", ci: false }],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			expect(report.steps.some((s) => s.step.includes("verification.unitTests"))).toBe(false);
+			expect(existsSync(join(tmpDir, ".github/workflows/verification.unitTests.yml"))).toBe(false);
+			expect(report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis")?.status).toBe(
+				"ok"
+			);
+		});
+
+		it("reports dry-run status without writing files", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["sourceQuality.staticAnalysis"],
+				providers: {},
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir, dryRun: true },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("dry-run");
+			await expect(
+				readFile(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), "utf8")
+			).rejects.toThrow();
+		});
+
+		it("runs without a provider token (is a local step)", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				tasks: ["sourceQuality.staticAnalysis"],
+				providers: { source: "github" },
+			});
+			// Loader throws AuthError — simulates missing provider token.
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => {
+						throw new AuthError("no token");
+					},
+				},
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: tmpDir },
+				loader,
+				steps: ["workflows"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
+			expect(step?.status).toBe("ok");
+		});
+
+		describe("obsolete callers (#2338)", () => {
+			const workflowsDir = () => join(tmpDir, ".github", "workflows");
+			const put = async (name: string, text: string) => {
+				await mkdir(workflowsDir(), { recursive: true });
+				await writeFile(join(workflowsDir(), name), text, "utf8");
+			};
+			const exists = (name: string) => existsSync(join(workflowsDir(), name));
+			const generated = (pkg: string) => thinCallerFile(pkg, "name: gone\n");
+			const configured = () => {
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+				return { loaded, loader: makeLoaderWith(loaded, {}) };
+			};
+
+			it("removes a generated caller whose task is no longer configured, and leaves every other file alone", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				await put("hand.yml", `# HAND-MAINTAINED\n${generated(".")}`);
+				await put("plain.yml", "name: plain\non: push\n");
+				await put("other-package.yml", generated("apps/other"));
+				// only `.yml` and `.yaml` files are read: not another extension, and not a folder with a `.yml` name
+				await put("notes.txt", generated("."));
+				await mkdir(join(workflowsDir(), "folder.yml"));
+				await put("old.yaml", generated("."));
+				const { loaded, loader } = configured();
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "remove obsolete workflow delivery.previewDeploy.yml");
+				expect(step?.status).toBe("ok");
+				expect(exists("delivery.previewDeploy.yml")).toBe(false);
+				expect(exists("hand.yml")).toBe(true);
+				expect(exists("plain.yml")).toBe(true);
+				expect(exists("other-package.yml")).toBe(true);
+				expect(exists("notes.txt")).toBe(true);
+				expect(exists("folder.yml")).toBe(true);
+				expect(exists("old.yaml")).toBe(false);
+				expect(exists("sourceQuality.staticAnalysis.yml")).toBe(true);
+				expect(report.steps.filter((s) => s.step.startsWith("remove obsolete workflow"))).toHaveLength(2);
+			});
+
+			it("lists the removal but deletes nothing on --dry-run", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const { loaded, loader } = configured();
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir, dryRun: true },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "remove obsolete workflow delivery.previewDeploy.yml");
+				expect(step?.status).toBe("dry-run");
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+			});
+
+			it("removes nothing when no tasks are configured", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const loaded = {
+					...loadedFrom({ name: "demo", providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+				expect(report.steps.some((s) => s.step.startsWith("remove obsolete workflow"))).toBe(false);
+			});
+
+			it("removes nothing when a task has no template, because its file cannot be told from an obsolete one", async () => {
+				await put("delivery.previewDeploy.yml", generated("."));
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["no.such.task"], providers: {} }),
+					filepath: join(tmpDir, "holocron.config.json"),
+				};
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("delivery.previewDeploy.yml")).toBe(true);
+				const step = report.steps.find((s) => s.step === "sync obsolete workflows");
+				expect(step?.status).toBe("skip");
+			});
+
+			it("reports a failed step, and does not crash the run, when the workflows folder cannot be read", async () => {
+				const { loaded, loader } = configured();
+				// `.github/workflows` is a file, so every write fails and reading the folder is not "missing" but unreadable
+				await mkdir(join(tmpDir, ".github"));
+				await writeFile(workflowsDir(), "not a folder", "utf8");
+
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: tmpDir },
+					loader,
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "sync obsolete workflows");
+				expect(step?.status).toBe("fail");
+			});
+
+			it("leaves the root's callers alone when a package's config is synced", async () => {
+				await mkdir(join(tmpDir, ".git"));
+				const subpackage = join(tmpDir, "packages", "sentinel");
+				await mkdir(subpackage, { recursive: true });
+				await put("root-task.yml", generated("."));
+				await put("sentinel-gone.yml", generated("packages/sentinel"));
+				const loaded = {
+					...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
+					filepath: join(subpackage, "holocron.config.json"),
+				};
+
+				await runSync({
+					loaded,
+					context: { repoRoot: subpackage },
+					loader: makeLoaderWith(loaded, {}),
+					steps: ["workflows"],
+					print: () => {},
+				});
+
+				expect(exists("root-task.yml")).toBe(true);
+				expect(exists("sentinel-gone.yml")).toBe(false);
+			});
+		});
+	});
+
+	describe("sync wiki step", () => {
+		it("passes the real git root, not --cwd, to runSyncWiki for a monorepo subpackage (holocron#1014)", async () => {
+			// Resolved immediately — on macOS, tmpdir() lives under /var, a
+			// symlink to /private/var, and findRootSync (realpath) resolves symlinks.
+			const root = realpathSync(await mkdtemp(join(tmpdir(), "holocron-test-")));
+			try {
+				await mkdir(join(root, ".git"));
+				const subpackage = join(root, "packages", "sentinel");
+				await mkdir(subpackage, { recursive: true });
+
+				// fern/docs.yml is repo-wide, same category as turbo.json —
+				// runSyncWiki itself already has direct coverage (sync-wiki.
+				// test.ts) for reading it; this spy only proves `runSync`
+				// hands it the resolved git root instead of raw --cwd.
+				const spy = vi
+					.spyOn(syncWikiModule, "runSyncWiki")
+					.mockResolvedValue({ capability: "local", step: "sync wiki", status: "ok" });
+				try {
+					const loaded = loadedFrom({
+						name: "demo",
+						org: "org",
+						providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+					});
+					const loader = makeLoaderWith(loaded, {});
+
+					await runSync({
+						loaded,
+						context: { repoRoot: subpackage, repo: "org/myrepo" },
+						loader,
+						steps: ["wiki"],
+						print: () => {},
+					});
+
+					expect(spy).toHaveBeenCalledWith(
+						expect.objectContaining({ context: expect.objectContaining({ repoRoot: root }) })
+					);
+				} finally {
+					spy.mockRestore();
+				}
+			} finally {
+				await rm(root, { recursive: true, force: true });
+			}
+		});
+
+		it("skips when no wiki provider is configured", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+			});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["wiki"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync wiki");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toContain("no wiki provider configured");
+		});
+
+		it("skips when no token is available", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				org: "theholocron",
+				providers: { wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron" }] },
+			});
+			const loader = makeLoaderWith(loaded, {});
+
+			const origReadToken = process.env.HOLOCRON_READ_TOKEN;
+			const origGhToken = process.env.GH_TOKEN;
+			const origGithubToken = process.env.GITHUB_TOKEN;
+			delete process.env.HOLOCRON_READ_TOKEN;
+			delete process.env.GH_TOKEN;
+			delete process.env.GITHUB_TOKEN;
+
+			try {
+				const report = await runSync({
+					loaded,
+					context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+					loader,
+					steps: ["wiki"],
+					print: () => {},
+				});
+
+				const step = report.steps.find((s) => s.step === "sync wiki");
+				expect(step?.status).toBe("skip");
+				expect(step?.message).toContain("no GitHub token");
+			} finally {
+				if (origReadToken !== undefined) process.env.HOLOCRON_READ_TOKEN = origReadToken;
+				if (origGhToken !== undefined) process.env.GH_TOKEN = origGhToken;
+				if (origGithubToken !== undefined) process.env.GITHUB_TOKEN = origGithubToken;
+			}
+		});
+	});
+});

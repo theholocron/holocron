@@ -1,0 +1,218 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const loadConfig = vi.hoisted(() => vi.fn());
+const tokenContext = vi.hoisted(() => vi.fn());
+const reportError = vi.hoisted(() => vi.fn());
+const runDeploy = vi.hoisted(() => vi.fn());
+const runDeployFromFiles = vi.hoisted(() => vi.fn());
+const runCleanupPreview = vi.hoisted(() => vi.fn());
+const deployOnRelease = vi.hoisted(() => vi.fn());
+const recordDeploys = vi.hoisted(() => vi.fn());
+const deployApp = vi.hoisted(() => vi.fn());
+vi.mock("../../config/index.js", () => ({ loadConfig }));
+vi.mock("./index.js", () => ({ runDeploy, runDeployFromFiles }));
+vi.mock("./deploy-app.js", () => ({ deployApp }));
+vi.mock("../cleanup-preview/index.js", () => ({ runCleanupPreview }));
+vi.mock("@theholocron/astromech", () => ({ deployOnRelease, recordDeploys }));
+vi.mock("../../observability/logger/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../observability/logger/index.js")>()),
+	reportError,
+}));
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
+	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["branch"] ?? argv["pr"]],
+}));
+vi.mock("../token-context/index.js", () => ({
+	tokenContext,
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
+	applyResolvedConfig: vi.fn(),
+}));
+vi.mock("../resolve-org/index.js", () => ({
+	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
+}));
+
+import { runCommand } from "../run-command.testing.js";
+import { deployCommand } from "./deploy.command.js";
+
+const go = (args: string[]) => runCommand(deployCommand, args);
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
+	tokenContext.mockReturnValue({ cliToken: "t" });
+	runDeploy.mockResolvedValue({ status: "ok" });
+	runDeployFromFiles.mockResolvedValue({ status: "ok" });
+	runCleanupPreview.mockResolvedValue({ status: "ok" });
+	deployOnRelease.mockResolvedValue({ status: "ok" });
+	recordDeploys.mockReturnValue({ status: "ok" });
+	deployApp.mockResolvedValue(false);
+});
+afterEach(() => void (process.exitCode = undefined));
+
+describe("deploy", () => {
+	it("deploys the branch to the project, to the target if one was named", async () => {
+		await go(["deploy", "main", "--project-id", "p1", "--target", "staging"]);
+		expect(runDeploy.mock.calls[0]![0]).toMatchObject({
+			projectId: "p1",
+			branch: "main",
+			target: "staging",
+			context: { repoRoot: "/repo", cliToken: "t", org: "acme" },
+		});
+		await go(["deploy", "main", "--project-id", "p1"]);
+		expect("target" in runDeploy.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("deploys from a directory of files instead, with the target if named", async () => {
+		await go(["deploy", "--project-id", "p1", "--files", "/dist", "--target", "production"]);
+		expect(runDeploy).not.toHaveBeenCalled();
+		expect(runDeployFromFiles.mock.calls[0]![0]).toMatchObject({
+			projectId: "p1",
+			dir: "/dist",
+			target: "production",
+		});
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		expect("target" in runDeployFromFiles.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("tags a preview from files with HOLOCRON_PREVIEW_KEY when CI sets it, and tags nothing otherwise (holocron#1021)", async () => {
+		vi.stubEnv("HOLOCRON_PREVIEW_KEY", "holocron-pr-7");
+		try {
+			await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+			expect(runDeployFromFiles.mock.calls[0]![0]).toMatchObject({ previewKey: "holocron-pr-7" });
+		} finally {
+			vi.unstubAllEnvs();
+		}
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		expect("previewKey" in runDeployFromFiles.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("exits 1 when a deploy failed, from a branch or from files", async () => {
+		runDeploy.mockResolvedValue({ status: "fail" });
+		await go(["deploy", "main", "--project-id", "p1"]);
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		runDeployFromFiles.mockResolvedValue({ status: "fail" });
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		expect(process.exitCode).toBe(1);
+	});
+
+	it("says --project-id is missing, and stops when --token cannot be parsed", async () => {
+		await go(["deploy", "main"]);
+		expect(reportError).toHaveBeenCalledWith("deploy: missing required argument --project-id");
+		expect(process.exitCode).toBe(1);
+		process.exitCode = undefined;
+		tokenContext.mockReturnValue(null);
+		await go(["deploy", "main", "--project-id", "p1"]);
+		expect(runDeploy).not.toHaveBeenCalled();
+	});
+});
+
+describe("deploy <app>", () => {
+	it("hands an app name, or --env, to the app path and stops when it handled the run", async () => {
+		deployApp.mockResolvedValue(true);
+		await go(["deploy", "sentinel", "--env", "prod"]);
+		expect(deployApp.mock.calls[0]![0]).toMatchObject({ branch: "sentinel", env: ["prod"], cwd: "/repo" });
+		await go(["deploy", "--environment", "production", "--env", "preview"]);
+		expect(deployApp.mock.calls[1]![0]).toMatchObject({ env: ["production", "preview"] });
+		// One value per flag: the app's name after --env is the name, not a second environment.
+		await go(["deploy", "--env", "production", "sentinel"]);
+		expect(deployApp.mock.calls[2]![0]).toMatchObject({ branch: "sentinel", env: ["production"] });
+		await go(["deploy", "sentinel"]);
+		expect(deployApp).toHaveBeenCalledTimes(4);
+		expect(runDeploy).not.toHaveBeenCalled();
+		expect(reportError).not.toHaveBeenCalled();
+	});
+
+	it("goes on to deploy the branch when the value is not an app", async () => {
+		await go(["deploy", "main", "--project-id", "p1"]);
+		expect(deployApp).not.toHaveBeenCalled();
+		await go(["deploy", "main"]);
+		expect(deployApp).toHaveBeenCalledTimes(1);
+		expect(reportError).toHaveBeenCalledWith("deploy: missing required argument --project-id");
+	});
+
+	it("does not look for an app when deploying from files, or with no branch and no --env", async () => {
+		await go(["deploy", "--project-id", "p1", "--files", "/dist"]);
+		await go(["deploy"]);
+		expect(deployApp).not.toHaveBeenCalled();
+	});
+});
+
+describe("deploy cleanup-preview", () => {
+	it("cleans up the previews of a PR in the project, for the repo if one was named", async () => {
+		await go(["deploy", "cleanup-preview", "42", "--project", "web", "--repo", "acme/widgets"]);
+		expect(runCleanupPreview.mock.calls[0]![0]).toMatchObject({
+			prNumber: 42,
+			project: "web",
+			repo: "acme/widgets",
+		});
+		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
+		expect("repo" in runCleanupPreview.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("deletes without asking only when --yes was given (CI, holocron#1021)", async () => {
+		await go(["deploy", "cleanup-preview", "42", "--project", "web", "--yes"]);
+		expect(runCleanupPreview.mock.calls[0]![0]).toMatchObject({ yes: true });
+		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
+		expect("yes" in runCleanupPreview.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("exits 1 when the cleanup failed, and stops when --token cannot be parsed", async () => {
+		runCleanupPreview.mockResolvedValue({ status: "fail" });
+		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
+		expect(process.exitCode).toBe(1);
+		tokenContext.mockReturnValue(null);
+		runCleanupPreview.mockClear();
+		await go(["deploy", "cleanup-preview", "42", "--project", "web"]);
+		expect(runCleanupPreview).not.toHaveBeenCalled();
+	});
+});
+
+describe("deploy on-release", () => {
+	it("deploys what the release changed, for the channel and the range if given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		deployOnRelease.mockImplementation(async (o: { print: (l: string) => void }) => {
+			o.print("deployed");
+			return { status: "ok" };
+		});
+		await go(["deploy", "on-release", "--channel", "latest", "--from", "v1", "--to", "v2"]);
+		expect(deployOnRelease).toHaveBeenCalledWith(
+			expect.objectContaining({ cwd: "/repo", channel: "latest", from: "v1", to: "v2", dryRun: false })
+		);
+		expect(log).toHaveBeenCalledWith("deployed");
+		log.mockRestore();
+	});
+
+	it("treats an empty --from or --to as not given, and exits 1 when it failed", async () => {
+		deployOnRelease.mockResolvedValue({ status: "fail" });
+		await go(["deploy", "on-release", "--channel", "latest", "--from", "", "--to", ""]);
+		const options = deployOnRelease.mock.calls[0]![0];
+		expect("from" in options || "to" in options).toBe(false);
+		expect(process.exitCode).toBe(1);
+	});
+
+	it("passes --record-file to the deploy, which writes no tag itself", async () => {
+		await go(["deploy", "on-release", "--channel", "alpha", "--record-file", "/tmp/d.json"]);
+		expect(deployOnRelease).toHaveBeenCalledWith(expect.objectContaining({ recordFile: "/tmp/d.json" }));
+		expect(recordDeploys).not.toHaveBeenCalled();
+	});
+
+	it("--record runs only the record phase, with GITHUB_TOKEN, and exits 1 when a tag failed", async () => {
+		vi.stubEnv("GITHUB_TOKEN", "tok");
+		recordDeploys.mockReturnValue({ status: "fail" });
+		await go(["deploy", "on-release", "--record", "--record-file", "/tmp/d.json"]);
+		expect(deployOnRelease).not.toHaveBeenCalled();
+		expect(recordDeploys).toHaveBeenCalledWith(
+			expect.objectContaining({ cwd: "/repo", file: "/tmp/d.json", token: "tok", dryRun: false })
+		);
+		expect(process.exitCode).toBe(1);
+		vi.unstubAllEnvs();
+	});
+
+	it("--record without --record-file passes an empty file name, which records nothing", async () => {
+		await go(["deploy", "on-release", "--record", "--dry-run"]);
+		expect(recordDeploys).toHaveBeenCalledWith(expect.objectContaining({ file: "", dryRun: true }));
+		expect(process.exitCode).toBeUndefined();
+	});
+});

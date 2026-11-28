@@ -1,0 +1,4 @@
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'unexpected key "cache-mode" for "(job|workflow)" section'

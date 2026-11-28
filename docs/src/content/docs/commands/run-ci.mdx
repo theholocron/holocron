@@ -1,0 +1,77 @@
+---
+title: "run ci"
+description: Run the merge-gating checks locally, in CI order — "will CI pass?".
+---
+
+```bash
+holocron run ci [--all] [--filter <pkg>] [--dry-run]
+```
+
+`holocron run ci` runs the checks that gate a merge — locally, in the same order CI
+runs them, stopping with a non-zero exit on the first failure. It's the
+"will my PR be green?" pre-flight, and what the `pre-push` hook runs.
+
+## What it runs
+
+By default: every task marked `required: true` in `holocron.config`. If nothing
+is marked required, it falls back to every `ci: true` task (with a note).
+
+```bash
+$ holocron run ci
+holocron run ci — required checks (3)
+
+▶ typecheck / Run tsc --noEmit
+→ tsc --noEmit
+▶ lint:code / Run eslint, actionlint and prettier
+→ turbo run lint:code
+→ prettier --check .
+! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
+▶ test:unit / Conclusion
+→ vitest run --coverage
+
+✓ 3 passed
+```
+
+- Each task runs through the same resolution as `holocron run <task>` (turbo →
+  a `package.json` script → the registry tool; a `linterGroup` task like
+  `lint:code` runs its full resolved set).
+- A **`required` task whose local runner can't run is a failure** — it claims a
+  CI check it can't back locally.
+- Tasks with **no local equivalent at all** (`scan:code`,
+  `deploy`, `lint:commits`, …) still honour an explicit
+  `package.json` script when one exists. With no script they print
+  `· no local equivalent — enforced in CI` and never fail the run, even when
+  marked `required` (a CI-only check isn't a _local_ failure).
+- Each task's line is the check it posts in CI, `<id> / <job>`. Most tasks are
+  a single always-run job, so the context names that job directly
+  (`typecheck / Run tsc --noEmit`); the `… / Conclusion` fan-in is only used
+  where a task genuinely has several conditionally-run jobs feeding one check
+  (`test:unit`). CI itself gates a merge on the single `ci / Required checks`
+  check, which waits for these.
+- Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
+  first (`typecheck → lint:code → … → test:unit → …`).
+
+## Options
+
+| Option           | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `--all`          | Run every `ci: true` task, not only the required ones             |
+| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough — scope the run to one package |
+| `--dry-run`      | Print the plan without running anything                           |
+
+Exit code is `1` if any check fails, `0` otherwise.
+
+## Pre-push hook
+
+`holocron setup` installs `.husky/pre-push` running `holocron run ci` for
+`protection: "strict"` repos (opt out with `hooks: false` in `holocron.config`,
+or `holocron setup --no-hooks`). It also sets `package.json#scripts.prepare` to
+`husky` — run `pnpm install` once to activate the hook. In a repo that runs its own build of the CLI (this one:
+`node cli/cli/dist/cli.mjs`), the hook first checks the build exists and, in a fresh clone or linked worktree that has
+none, stops with "not built yet, run `pnpm install && pnpm build`" instead of a module-not-found stack. The generated
+`prepare-commit-msg` hook edits the message file git passes it, so commits from a linked worktree work too. Skip a
+single push with:
+
+```bash
+git push --no-verify
+```

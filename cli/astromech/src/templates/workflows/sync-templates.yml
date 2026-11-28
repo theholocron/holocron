@@ -1,0 +1,38 @@
+name: sync-templates
+
+# Bootstrap note: this `uses:` a reusable workflow that must already exist
+# on theholocron/.github's main branch to resolve at all — a brand-new
+# reusable workflow here needs ONE manual `holocron sync github` run
+# (pushing directly to theholocron/.github) before this thin caller can
+# ever successfully trigger it, since GitHub resolves `uses:` at run time,
+# not at merge time. Same deadlock every reusable workflow added here hits
+# on its first introduction.
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+    paths:
+      - ci/**
+      - cli/astromech/src/templates/**
+      - cli/astromech/src/generators/**
+      - cli/astromech/src/registry/**
+      - cli/cli/src/commands/sync/**
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-templates
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-templates:
+    name: sync-templates
+    # workflow_dispatch can target ANY ref, not only the release branches — without this,
+    # anyone able to dispatch this workflow (a broader group than who can
+    # push to them) could run it against an arbitrary branch, checking out
+    # and building that ref's own code with the sync token present, then
+    # publishing that ref's templates to theholocron/.github.
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/alpha'
+    uses: theholocron/.github/.github/workflows/sync-templates.yml@main
+    secrets: inherit

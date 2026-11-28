@@ -1,0 +1,48 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/validate/docs.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Validate Docs
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  validate-docs:
+    name: Validate docs
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Validate docs
+        with:
+          task: validate:docs
+        env:
+          HOLOCRON_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # The PR title and description, read by the script for a `feat` and a `[skip docs] <reason>` marker. They
+          # reach the script through the environment, never inline in a command.
+          HOLOCRON_PR_TITLE: ${{ github.event.pull_request.title }}
+          HOLOCRON_PR_BODY: ${{ github.event.pull_request.body }}
+          # The bare names stay until every caller's CLI reads the prefixed ones (#1864); a CLI that predates them
+          # reads only these.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}

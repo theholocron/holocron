@@ -1,0 +1,49 @@
+name: open-incident
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "The incident's name (at most 255 characters)"
+        type: string
+        required: true
+      page:
+        description: "The declared status page, when several are declared"
+        type: string
+        default: ""
+      status:
+        description: "The status the opening update carries"
+        type: choice
+        options:
+          - investigating
+          - identified
+          - monitoring
+        default: investigating
+      components:
+        description: "Components to mark, one <name>=<impact> per line (maintenance, degraded, partial or major)"
+        type: string
+        default: ""
+      message:
+        description: "What the opening update says (empty: a line for the status)"
+        type: string
+        default: ""
+      notify:
+        description: "Tell the page's subscribers"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  open-incident:
+    name: open-incident
+    uses: theholocron/.github/.github/workflows/open-incident.yml@main
+    with:
+      title: ${{ inputs.title }}
+      page: ${{ inputs.page }}
+      status: ${{ inputs.status }}
+      components: ${{ inputs.components }}
+      message: ${{ inputs.message }}
+      notify: ${{ inputs.notify }}
+    secrets: inherit

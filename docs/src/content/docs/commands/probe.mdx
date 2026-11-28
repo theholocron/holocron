@@ -1,0 +1,281 @@
+---
+title: "probe"
+description: Poke a live provider on purpose, to inspect it or to prove something works end to end.
+---
+
+```bash
+holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
+holocron probe <provider>               # list one provider's probes
+holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>] [--only <name>...] [--copy] [--environment <layer|name>]
+```
+
+A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
+
+On a terminal, `holocron probe` opens a menu: pick a provider, then a probe (a probe that changes things is marked, and offers a dry-run preview first). From the top-level `holocron` menu, choose `probe`. In a pipe or CI it prints the same list as plain text.
+
+Probes come from the plugins your config names (a plugin offers them next to its capabilities), plus the CLI's own `core` group. `holocron probe core providers` lists which capabilities loaded and, for any that did not, why, then each provider with the probes it offers. Other commands skip a provider that fails to load without saying so.
+
+## The rules every probe follows
+
+- **Nothing secret is printed.** Output passes through one filter: the tokens in use, anything a probe marks as secret, and anything shaped like a credential (a Discord webhook URL, a `Bearer` header, a Sentry token) is replaced with `«hidden»`. A probe reports facts such as "secret visible: false", never the value.
+- **A probe that changes things says so.** `holocron probe` marks it `(changes things)`. It asks before it runs, and without a terminal it needs `--yes`.
+- **`--dry-run` is enforced.** A probe changes things only through `write`, which on a dry run prints `would <what>` and does nothing.
+- **It cleans up.** What a probe makes, it removes again: when it succeeds, when it fails and on Ctrl-C. A clean-up that fails is reported as a failure.
+- **Exit code 1** if any row fails.
+
+## Options
+
+| Option          | Default | Description                                                                                                                                                                                                                                                                                                   |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--dry-run`     | `false` | Show what a probe that changes things would do, without doing it                                                                                                                                                                                                                                              |
+| `--yes`         | `false` | Run a probe that changes things without asking first (required without a terminal)                                                                                                                                                                                                                            |
+| `--lcov`        | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root                                                                                                                                                                                                |
+| `--only`        | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                                                                                                                                                                                                                      |
+| `--copy`        | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file                                                                                                                                                                                                            |
+| `--environment` | none    | A probe [about a token](#checking-a-token) (`cloudflare token`, `github token`, `discord token`, `codecov repo`): check every token of the provider held in this vault Environment, a layer (`ci`, `dev`) or a name; the Environment's visible values (a dataset, an account id) are used by the plugin first |
+
+## Connection, for every provider
+
+Every provider offers `connection` (for example `holocron probe github connection`). It is the first thing to run when something fails and you do not know whether the cause is the network or the credential. It checks, in order, and reports each step:
+
+| Step           | What it tells you                                                                                                                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DNS <host>`   | The name resolves, and to which address. Fails with the cause (`ENOTFOUND`, `EAI_AGAIN`).                                                                                                                                                                        |
+| `reach <host>` | The server answers over TLS, and how fast. Any HTTP answer counts, even a 401. Fails with the cause: a timeout (firewall, VPN or proxy), a refused or reset connection, or an untrusted certificate (a proxy that re-signs traffic needs `NODE_EXTRA_CA_CERTS`). |
+| `token`        | A token was found, and where to put one if not. The value is never printed.                                                                                                                                                                                      |
+| `accepted`     | The provider accepts the token, and who it belongs to. Not tried when an earlier step did not pass, so one cause is reported once.                                                                                                                               |
+
+1Password has no API hostname of its own (`op` signs in by itself), so it checks that `op` is installed and signed in. Fern has no way to check a token, so it only checks that one is set.
+
+## Checking a token
+
+A probe about a token (it declares `acceptsToken`) tries what the token can do and can be pointed at any token, not only the one the provider resolves for this repo. Which token is checked, in this order:
+
+1. `--token <provider>=<value>` (or a bare `--token <value>`), as for any command.
+2. `--environment <layer or name>`: the provider's token read in memory from that vault Environment. A layer word (`local`, `dev`, `ci`, `prod`) is this repo's `<org/repo> - <layer>`; any other text must be an Environment the config already names (a `credentials` provider, `githubApps`, `dev`, `repo.secrets.sync` or `repo.variables.sync`), and anything else is refused with the list of what is allowed, so a probe cannot be pointed at an Environment the repo has nothing to do with. `local` is read the way the CLI reads it, `- local` over `- dev`, and `- local` may be absent. Every token the provider's plugin declares (its `tokens` export) is looked for under its own variable (`HOLOCRON_CLOUDFLARE_TOKEN`, then the vendor's `CLOUDFLARE_API_TOKEN`), and each one the Environment holds is checked in turn, so you never name a feature or pick one. Each run starts with a heading row, the token's declared variable name (such as `HOLOCRON_SENTRY_TOKEN`), and the probe is told which token it is with `--token-name <VARIABLE>`, so it judges the token against that token's own expectations. A declared token the Environment does not hold gets its heading and a skipped row, `not held in <Environment>`, and fails instead when the layer is meant to hold it (a missing required token is caught). An Environment that holds none of them fails. The Environment also supplies the plugin's own plain values for the run, ahead of the machine's: each variable the vault holds as visible (not concealed) other than the tokens, such as `HOLOCRON_AXIOM_DATASET` or `CLOUDFLARE_ACCOUNT_ID`, is set in the process environment while the plugin is built and the probe runs, then put back. What the Environment does not hold falls back to the machine's own chain (your shell, `.env`, the `local` and `dev` Environments) exactly as before; with `local`, `- local` is read over `- dev` for these values too. A concealed value is never handed to the plugin, and neither a value nor a token is printed or written. It needs a vault provider that can read an Environment (1Password). A token you pass in with `--token`, or one you paste, has no variable name and is only described.
+3. On a terminal with neither, a question: the token this repo is configured to use, one from an Environment, or one you type or paste (hidden as you type).
+4. Without a terminal, the token the provider normally resolves.
+
+A provider the repo's config does not name is still found when a workspace package's own config does (here Sentinel's `vercel`): when the provider asked for is not among the configured ones, the packages' configs are read for the providers they name, and those plugins are loaded by name for their probes. So `holocron probe vercel token --environment ci` works from the repo root. Nothing is written and the root config needs no key for it.
+
+The token is never printed.
+
+## Cloudflare
+
+| Probe                                         | Changes things | What it does                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe cloudflare token [<zone>...]` | no             | Tries each permission Holocron uses and reports it: Zone: Read, then DNS: Edit and Workers Routes: Edit on each zone (up to five, or only the zones named), then Workers Scripts: Edit, Pages: Edit and Cloudflare Tunnel: Edit on the account (the plugin's own account id, so you do not type one). One read per permission; nothing is changed. |
+
+**A token you pass in** (`--token`, one you paste, or the configured one) is described: a row is `ok` when the list came back with items, `skip` when the token has no access (a 401 or 403) or the list is empty (Cloudflare often answers a token without the permission with an empty list, so an empty list means "none exist, or the token cannot see them"), and `fail` only for an error that is not about access. Cloudflare will not list a token's permissions without a further permission (API Tokens Read) that these tokens should not carry, so the probe tries each one instead.
+
+**A token read with `--environment ci`, `dev` or `local`** is also checked against what that layer should carry, the same as [what each Cloudflare token needs](/holocron/tokens/#what-each-cloudflare-token-needs): `dev` and `local` need all six permissions, and `ci` needs Cloudflare Pages: Edit and none of the others. The result is two groups, **Should have** (with what it found, such as `1 projects: theholocron-preview`) and **Should not have** (a bare `✓` for each that is rightly missing): a permission the layer needs and the token lacks fails, and one the layer must not have and the token does have fails. The run prints only these rows; how the token was chosen and what it is checked against are in `holocron probe --help`. After the permissions come **Rotation** rows: `expiry` fails for an expired token or one within 14 days of its expiry, and `age` fails for a token more than 90 days old (the policy is `rotation` of the token's `expect`, default 90 and 14). Cloudflare gives both dates only through `/user/tokens/verify`, which answers account and zone tokens with a 401, so for those the probe says the age and expiry are not exposed rather than passing. The age is counted from `not_before`, the start of validity, because Cloudflare gives no creation date. An Environment named literally, and `prod`, have no declared expectations and are only described. The expectations are the `expect` of the token in the plugin's `tokens` export, which is where any plugin declares what each layer's token must and must not carry: `expect: { permissions: { ci: { pages: "required", dns: "absent" } } }`, plus `layers` for a layer that holds the token with no permission rules. A probe, and later the doctor and the docs check, read it through `tokenExpectations()` from `@theholocron/cli`; change it and that table together.
+
+```bash
+holocron probe cloudflare token --environment ci     # the ci layer's token
+holocron probe cloudflare token --environment dev theholocron.dev
+```
+
+## GitHub
+
+| Probe                               | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe github token`       | no             | Tries a GitHub token with one read per permission (contents, actions, issues, pull requests, administration, secrets, environments, variables, custom properties, pages and the organization ones) and reports which it reaches. A classic token's scopes are shown; a fine-grained token has no list, so the permissions are found by the reads. The first row says which kind was read.                                                                                     |
+| `holocron probe github issue-types` | yes            | The one-time backfill of [area labels](/holocron/plugins/github/#backfilling-issues): sets an issue's Type from its kind labels (`bug`, `enhancement`, `chore`, and Task for `ci`, `documentation`, `refactor`, `test`, `performance` and `dependencies` when none of those three is there), adds `area:<name>` labels, fills a milestone and a project where there is a source, and lists every issue still without a project, milestone, Priority or Effort. Dry run first. |
+
+The plugin holds nine tokens. With `--environment ci`, `dev` or `local` the probe runs once for **each** GitHub token that Environment holds, each under a heading with its variable name (`HOLOCRON_ADMIN_TOKEN`), and the result is two groups, **Should have** and **Should not have**, judged against that token's declaration, the same as [Check a GitHub token](/holocron/tokens/#check-a-github-token). Without `--environment` it checks the token the plugin resolves, `HOLOCRON_READ_TOKEN`, or the one `--token-name <VAR>` names, and only describes it. A read shows a token can see an area, not that it can write there, and on a public repository the Contents, Actions, Issues and Pull requests reads succeed for any token.
+
+````bash
+holocron probe github token --environment dev   # every GitHub token the dev layer holds
+holocron probe github token --environment ci    # and the ci layer's
+holocron probe github token --token-name HOLOCRON_ADMIN_TOKEN   # the admin token this machine resolves
+
+### Backfilling issues
+
+`holocron probe github issue-types` is a writer the maintainer runs once, dry run first, and an agent never runs against the live service. It reads the organization's issue fields with `HOLOCRON_ISSUES_TOKEN` (organization **Issue fields: read**) and its issue types with `HOLOCRON_ORG_TOKEN` (organization **Issue types: read**); without them it fails with a 403 or `FORBIDDEN` (see [Tokens](/holocron/tokens/)). A probe's own options follow a bare `--`, because they are not options of `holocron`:
+
+```bash
+holocron probe github issue-types --dry-run -- --since 2026-09-01 --milestone v5.0 --project v5
+holocron probe github issue-types -- --since 2026-09-01 --milestone v5.0 --project v5   # asks first; the real run
+```
+
+| Option (after `--`)  | Default | What it does                                                                                                                                                          |
+| -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--issues <list>`    | none    | Only these numbers (`12,15,20-25`). A window for `--milestone` and `--project`.                                                                                       |
+| `--since <YYYY-MM-DD>` | none  | Only issues made on or after this day. A window for `--milestone` and `--project`.                                                                                    |
+| `--after <number>`   | `0`     | Start after this issue number: the cursor the last run printed.                                                                                                       |
+| `--limit <n>`        | `100`   | The most issues one run reads.                                                                                                                                        |
+| `--milestone <title>` | none   | The milestone for an issue in the window that has none and whose parent has none. Needs `--issues` or `--since`.                                                      |
+| `--project <title>`  | none    | The organization project for an issue in the window that is on no project. Needs `--issues` or `--since`.                                                             |
+| `--repo <owner/name>` | `repo.labels.repos`, else this repository | A repository to run on; repeat it for several. A repository other than this one reads its own area labels from `.holocron/repo.json` (a `.holocron/repo.ts` cannot be read, so it gets no area step and a row says so). Not with `--issues` or `--after` when there is more than one. |
+| `--pull-requests`    | off     | Also give pull requests their area labels, from their changed files. Skipped otherwise, as the spec says.                                                             |
+
+`--limit` caps each run, not the job: the last rows print the `--after` resume command until nothing is left. The `N ok, M fail` footer is not the number of changes; read the `summary` row. See [Backfilling issues](/holocron/plugins/github/#backfilling-issues) for the output and the rules it follows.
+
+## Axiom
+
+| Probe                                       | Changes things | What it does                                                                                                                                                                                                                 |
+| ------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe axiom token [<dataset>...]` | no             | Tries Read, Ingest and Query on the plugin's dataset (or the datasets you name), then lists the datasets the token can see. Ingest sends an empty list, so no event is written, and the query reads one row it never prints. |
+
+A token with no layer is described: a row is `ok` when the token may do it and `skip` when it may not (a 401, 403 or 404). A token read with `--environment local`, `dev`, `ci` or `prod` is also checked against [what each Axiom token needs](/holocron/tokens/#what-each-axiom-token-needs) and shown as **Should have** and **Should not have**: every layer is declared the same (one token ships to one dataset everywhere): Read and Ingest are required and a token that can Query fails, even in `prod`. The last group, **Datasets this token can see**, names every dataset the token lists and flags a retired one (`holocron-local`), so a layer's token that still reaches the old per-environment datasets shows. A token that cannot list datasets is an `info` row, not a failure.
+
+```bash
+holocron probe axiom token --environment ci     # the ci layer's token
+holocron probe axiom token --environment dev holocron-sentinel
+````
+
+## Discord
+
+| Probe                          | Changes things | What it does                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe discord token` | no             | Checks the bot token: that Discord accepts it (the bot's own application), that the bot is a member of the `guildId` server, and which of the permissions Holocron needs its roles give it, the list `setup`'s invite link and `doctor notifications` use. The reads are the ones `doctor notifications` makes; nothing is changed. |
+
+The token is the bot token (`HOLOCRON_DISCORD_BOT_TOKEN`), never the webhook URL: a webhook URL given as the token is refused. **A token you pass in** (`--token discord=<token>`, one you paste, or the configured one) is described: `ok` for each thing it has, and `info` for each it lacks. **`--environment local`, `dev`, `ci` or `prod`** runs the probe for each declared token the Environment holds; the webhook and the client secret get one `info` row saying the probe does not check them, and the bot token is checked against what that layer should carry, the same as [the Discord permission table](/holocron/tokens/#what-the-holocron_discord_bot_token-token-needs-per-layer): it is one bot, so every layer needs membership of the server and every permission. The result is **Should have**, with a `fail` for each the token lacks; permissions only your layout asks for (Pin Messages, Manage Threads, Add Reactions) are added to the list, as `doctor notifications` does. Channel overwrites are not looked at; `doctor notifications` checks them per forum. The expectations are the `expect` of the bot token in the plugin's `tokens` export.
+
+```bash
+holocron probe discord token --environment ci
+```
+
+## 1Password
+
+| Probe                                                       | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `holocron probe 1password export-environment <environment>` | yes            | Reads one Environment in memory and writes its variables as `NAME=value` to a private `.holocron/.private/.credentials` file that Git must ignore and that is deleted once you confirm the import (also on failure and Ctrl-C), to a pipe, or to the clipboard with `--copy`. The file holds real secrets until then. [Details](/holocron/plugins/1password/#moving-an-environment-export-environment) |
+
+A probe whose output is data on stdout reports its rows on stderr, so a pipe carries only the data.
+
+## Sentry
+
+`token` takes the general token (or `--environment`, `--token sentry=<token>`); the others use the same token as the Comlink relay (`sentry.comlink`, the general Sentry token as a last resort) and the `org` of the `sentry` provider.
+
+| Probe                                | Changes things | What it shows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe sentry token`        | no             | Tries the reads Holocron uses (organizations, projects of the `org`, alert rules) and reports which the token reaches: `ok` for a list with items, `skip` for a 401, 403 or empty list, `fail` for another error. With `--environment ci`, `dev` or `local` it is checked against [what each Sentry token needs](/holocron/tokens/#what-each-sentry-token-needs) in two groups, **Should have** and **Should not have**, for each declared Sentry token the Environment holds (general and Comlink in `dev`, release in `ci`), each under its own heading. Write scopes are not probed |
+| `holocron probe sentry integrations` | no             | Each custom integration: scopes, whether its alert action is on, where its webhook points (hostname and path only) and whether the client secret is visible to the token. Never the secret                                                                                                                                                                                                                                                                                                                                                                                             |
+| `holocron probe sentry rules`        | no             | Each alert rule: enabled or not, how many projects it covers and what each action sends to. A rule using the old `sentry_app` action, or naming something that is not an alertable integration, fails                                                                                                                                                                                                                                                                                                                                                                                  |
+| `holocron probe sentry rule-update`  | yes            | Makes an alert rule that is turned off and has nothing to send, changes its frequency from 5 to 10 with the same `PUT` the relay's adopt path uses, reads it back and deletes it, even if a step fails or you press Ctrl-C. It is attached to the issue stream of the project named in `HOLOCRON_SENTRY_PROBE_PROJECT`, else of any project. Needs the token to be allowed to write alerts                                                                                                                                                                                             |
+| `holocron probe sentry send-error`   | yes            | Sends one labelled test error (`HolocronProbeError`) so you can follow it through the rule to #errors. The target is `HOLOCRON_SENTRY_DSN` (else `SENTRY_DSN`), or the first client key of the project named in `HOLOCRON_SENTRY_PROBE_PROJECT`. A probe cannot delete a Sentry issue, so resolve it by hand                                                                                                                                                                                                                                                                           |
+
+## Checkly
+
+These use the `checkly` provider's token and `accountId`, and the Discord alert channel `setup notifications` makes (`Message to #uptime`; set `HOLOCRON_CHECKLY_PROBE_CHANNEL` to use another).
+
+| Probe                            | Changes things | What it does                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe checkly channel` | no             | Where the channel posts (server only), whether its template is the shipped one, and how many of the account's checks use it. Fails with the command that fixes it                                                                                                                                                                           |
+| `holocron probe checkly deliver` | yes            | Makes a throwaway API check (`https://example.com`, every 5 minutes) that must fail, subscribes it to the channel, waits until Checkly sees it fail, tells you to look for the red embed in #uptime, then makes it pass and waits for the recovery and the green embed. Takes 10 to 20 minutes. The check is always deleted, also on Ctrl-C |
+
+`deliver` removes a check of its own that an earlier run left behind (it is found by name and the `delivery-proof` tag), and refuses to touch a check with that name that lacks the tag. It reports what Checkly sees; whether the embed arrived in Discord is for you to check, since the probe cannot read the channel.
+
+## Comlink
+
+The relay Worker (`apps/comlink`) is an app, not a provider, so these are the CLI's own. They find the relay in the notifications layout (`relay.host`) and the source from the `errors` provider (`sentry`).
+
+| Probe                             | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe comlink unsigned` | no             | Sends the relay requests it must refuse and checks the answers: a `GET` is 405, an unsigned `POST` is 401 and an unknown source is 404. A 404 on the real source means the Worker is not deployed on that server                                                                                                                                                                                                                                                  |
+| `holocron probe comlink bindings` | no             | Whether the Worker has `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET`, by name, and which other secrets it holds. Never the values. Needs a `workers` provider that can list secrets (Cloudflare can)                                                                                                                                                                                                                                                       |
+| `holocron probe comlink deliver`  | yes            | Sends the relay a correctly signed test alert, so an embed titled `Holocron probe: Comlink delivery check` lands in #errors. It needs the signing secret. It reads it from `COMLINK_SENTRY_SECRET` if set, else from the vault in the app's own config (`apps/comlink/holocron.config`, found from the Worker's `relay.code`, so with your Doppler token from the keyring and no `doppler run`), else from the repo's vault. The message stays; delete it by hand |
+
+## Dependencies
+
+The `deps` group is the CLI's own, like `core` and `comlink`. It reads every workspace `package.json` and `pnpm-workspace.yaml` live on each run (nothing is cached or generated) and checks them against the catalog rule written at the top of `pnpm-workspace.yaml`: a dependency used by two or more groups (a top-level folder) is in the default `catalog:`, one used by a single group is in that group's named catalog (`catalog:configs`), peer ranges stay out of catalogs, and a package that lives in this repo is linked with `workspace:`.
+
+| Probe                            | Changes things | What it does                                                                                                                                                                        |
+| -------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe deps report`     | no             | Prints a markdown report of every dependency, its catalog and range, and how widely it is used                                                                                      |
+| `holocron probe deps who <name>` | no             | Lists the packages that use the dependencies whose name contains `<name>`, by group, with how (`prod`, `dev`, `peer`)                                                               |
+| `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version (the root's `link:` entries excepted), dependency in the wrong catalog or unused catalog entry. CI runs it |
+
+CI runs `holocron probe deps check` on every pull request (the `validate:deps / Check dependency catalogs` required check, the `validate:deps` task).
+
+## Documentation
+
+The `docs` group is the CLI's own as well. It measures how much of each public package's exported API carries a doc comment: functions, classes, interfaces, type aliases, constants, enums and the public members of those, read with the repo's TypeDoc from each package's entry point (`src/index.ts`, or `index.ts`). TSDoc comments are the source of truth for the API reference, so this is the number that says how complete it is. A symbol that a package re-exports from another one is measured in its own package: when TypeDoc sees it only through the other package's `dist/` declarations, which lose the comments on inline members, it is left out.
+
+| Probe                          | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `holocron probe docs coverage` | no             | Prints each package's documented share and the total                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `holocron probe docs patch`    | no             | Fails for each export a PR adds or changes without a doc comment (against `BASE_SHA`, or `origin/alpha`). Old undocumented exports do not count                                                                                                                                                                                                                                                                                                                                                        |
+| `holocron probe docs presence` | no             | Warns, never fails, when a PR adds a public package with no docs change, or a `feat` changes one without a docs signal (its README, a docs page named after it, or a doc comment in the diff). `[skip docs] <reason>` in the PR description or a commit message excuses it. It is part of the `validate:docs` task (through `docs validate`); it reads `HOLOCRON_BASE_SHA` (else `BASE_SHA`), and `HOLOCRON_PR_TITLE` / `HOLOCRON_PR_BODY` (else `PR_TITLE` / `PR_BODY`) when the workflow passes them |
+| `holocron probe docs tokens`   | no             | Fails for each token a plugin resolves (its `envName`, `vendorEnvName`, `keyringService` or `keyringKey`) that [the token reference](/holocron/tokens/) does not list in the plugin's row, and for each layer, permission or rule a token declares (`expect`) that the permission table there words differently, and for each layer, permission or rule a token declares (`expect`) that the permission table there words differently                                                                  |
+| `holocron probe docs validate` | no             | Runs `docs presence`, then `docs tokens`. This is the `validate:docs` task, so a missing token row fails the same CI check where presence only warns                                                                                                                                                                                                                                                                                                                                                   |
+| `holocron probe docs lcov`     | yes            | Writes `coverage/docs.lcov`, one line per exported symbol (hit when it has a doc comment)                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+`docs patch` follows [`repoValidation.docsCoverage`](/holocron/config/#doc-comment-coverage): `off` (the default) skips it, `warn` reports each miss without failing, `required` fails. The other two always run.
+
+The public API of a package is every entry in its `exports`, not only the root: a subpath such as `./config` or `./testing` is measured through the source file behind it, and a symbol that two entries share counts once.
+
+`--lcov <path>` adds that report to `docs coverage` and `docs patch` from the same measurement, without the prompt `docs lcov` needs: `docs patch --lcov coverage/docs.lcov` gates a PR and writes the file in one pass, and `docs patch` without it measures only the packages the PR touched. On `--dry-run` nothing is written.
+
+CI runs the `measure:docs` workflow on every pull request and on pushes to `alpha`. It runs `docs coverage --lcov`, which measures every package and writes the report without failing, and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from `codecov/patch` and `codecov/project`, which count only the tests. In this repo `codecov/patch/documentation` is a required check (it is listed in `extraRequiredChecks`, and `holocron setup` writes it into the ruleset); `codecov/project/documentation` is not. The probe no longer gates in CI: the Codecov status does, and `docs patch` stays in the CLI for a person to run before pushing (#1511).
+
+## CI references
+
+The `ci` group is the CLI's own. `ci refs` counts the references to the reusable workflows and composite actions hosted in the org's `.github` repository, across every active repository of the org (templates and the org site included). It shallow-clones each one with `gh` and searches the files, because GitHub code search skips repositories that are not indexed. It is the exit test for removing the forwarding shims in `.github`: they can go when the count outside `.github` is zero.
+
+| Probe                          | Changes things | What it does                                                                                                  |
+| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `holocron probe ci refs [max]` | no             | Counts the references per repository, split into workflow, action and other. Fails when above `max`, if given |
+| `holocron probe ci ref-list`   | no             | Prints every reference with its file and line                                                                 |
+
+It needs `gh` signed in with read access to the org, and a config that names the org.
+
+## Generated files
+
+The `generated` group is the CLI's own too. `holocron setup` writes a set of files from the config alone (the thin-caller workflows, the lint and editor configs, the git hooks, `codecov.yml`, `turbo.json` and the edits that go with it), and `holocron sync` writes the workflows and `turbo.json` from the same function. `generated check` runs that function with no token, so it works in CI (the `coverage` provider, when the config names one, makes `codecov.yml`; with none that file is skipped), and compares what it makes with the committed files.
+
+| Probe                            | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe generated check` | no             | Fails for each generated file that is missing or differs from the committed copy, for each file whose second generation differs from the first, and for each workflow in `.github/workflows` that nothing generates and that is not marked `# HAND-MAINTAINED`. It also generates the workflows of each workspace package that has a `holocron.config.*` of its own (`apps/sentinel`), the way `sync --cwd <package>` does, and names the package in a failure. A workflow the root config and a package both generate is checked once, as the root's, and listed as information. The fix for a difference is `setup` or `sync` (`sync --cwd <package>` for a package) |
+
+A workflow that another package's config generates (its `# Source package:` marker is not `.`) is left to that package. `UNMANAGED_WORKFLOWS` lists the files that are deliberate exceptions; it is empty now. Not covered: `.github/CODEOWNERS` (it needs the organization from the provider), the installed skills, the agent prompts and the engineering structure.
+
+CI runs `holocron probe generated check` on every pull request (the `validate:generated / Check generated files` required check, the `validate:generated` task).
+
+## ADRs and specs
+
+The `specs` group is the CLI's own. `specs check` validates the frontmatter of the ADRs (`docs/wiki/decisions/*.md`, other than `template.md` and `README.md`) and the specs (`.notes/*.spec.md` and `docs/wiki/specifications/*.spec.md`). It is the `validate:specs` task, so `holocron run validate:specs` runs it too.
+
+| Probe                                 | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `holocron probe specs check [files…]` | no             | Fails for each error: no frontmatter; an ADR with a missing `id` (or one that does not match the file's `NNNN-` prefix), `title`, `status` or `date`, an unknown status or a date that is not `YYYY-MM-DD`; a spec with a missing or unknown `status`, an `id` that is not `SPEC-` and digits, or an `id` another spec has. A warning is printed and never fails: an accepted ADR with no `discussion.url`, a spec with no `issue` (except an archived or superseded one), a spec with no `id` (`holocron sync specs` numbers it). With files, checks only those that are an ADR or a spec |
+
+The rules are `checkSpecs()` in `@theholocron/astromech/repo-validation`. Sentinel runs the same function on the ADRs and specs a pull request changes, so the CLI and the check run cannot disagree.
+
+`holocron sync specs` (a command, not a probe, since it writes) keeps a forum post per ADR and spec in step with the files; see [`sync specs`](/holocron/commands/sync-specs/). The `sync-specs` task (`.github/workflows/ci.sync-specs.yml`) runs it every hour, when a spec lands on `alpha` and on demand, and opens one pull request for the edits it makes to the files.
+
+## Task names
+
+The `tasks` group is the CLI's own. `tasks names` looks for the hand-written places that still use an old dotted task name (`build`, `test:unit`, ...), the ones the flat, verb-first vocabulary replaces (spec SPEC-0064, epic #1612).
+
+| Probe                        | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe tasks names` | no             | Lists each use of an old task name with its file, line and the id to use instead, and fails (exit code 1) if there is one. It finds a dotted name (`verification.unitTests`), a bare one used as a task (`holocron run review`, `turbo run stale`, a `review` script) and a `package.json` script with a reserved npm/pnpm name (`publish`; the root `prepare` is allowed). A bare name in prose is not a hit. `--warn` reports `info` rows instead of failing; `--files` also lists names that are part of a workflow file name (`delivery.build.yml`), which are skipped until the files are renamed. It reads workflows and actions, `.husky`, `scripts/`, every `package.json` and `turbo.json`, the `holocron.config` and `astromech.config` files, and Markdown and MDX. It leaves out files `sync` generates (`probe generated check` reports their drift), the changelog, specs and ADRs, and tests. This row names old tasks on purpose, so it carries the `holocron-allow-old-name` marker. |
+
+The old names come from astromech's `LEGACY_NAMES`, so the probe knows exactly what the runner still accepts. A mention that is on purpose (a page that explains the aliases) is marked with `holocron-allow-old-name` on its line, as a comment (`<!-- holocron-allow-old-name -->` in Markdown, `{/*holocron-allow-old-name*/}` in MDX); the marker also excuses the line below it.
+
+## Writing a probe
+
+A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.
+
+```ts
+import type { PluginProbes } from "@theholocron/cli";
+
+export function probes(ctx: PluginContext): PluginProbes {
+  return {
+    integrations: {
+      summary: "List the custom integrations, their scopes and whether their secret is visible.",
+      writes: false,
+      async run(probe) {
+        for (const app of await ctx.client().sentryApps.list(ctx.options.org!)) {
+          probe.secret(app.clientSecret);
+          probe.say({ status: "info", label: app.name, detail: `scopes: ${app.scopes.join(", ")}` });
+        }
+      },
+    },
+  };
+}
+```
+
+Use `probe.write(label, fn)` for anything that changes the provider, `probe.cleanup(label, fn)` right after making something so it is undone, and declare `writes: true`. A probe that did not declare `writes` cannot call `write`.

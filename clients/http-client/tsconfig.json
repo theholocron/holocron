@@ -1,0 +1,10 @@
+{
+  "display": "Holocron HTTP Primitives",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

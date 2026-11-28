@@ -1,0 +1,105 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const loadConfig = vi.hoisted(() => vi.fn());
+const tokenContext = vi.hoisted(() => vi.fn());
+const runSyncIssues = vi.hoisted(() => vi.fn());
+const readAssignees = vi.hoisted(() => vi.fn());
+const loader = vi.hoisted(() => ({ load: vi.fn(), has: vi.fn(), get: vi.fn() }));
+vi.mock("../../config/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../config/index.js")>()),
+	loadConfig,
+}));
+vi.mock("./run-sync-issues/run-sync-issues.js", () => ({ runSyncIssues }));
+vi.mock("./read-assignees/index.js", () => ({ readAssignees }));
+vi.mock("../../plugin/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../plugin/index.js")>()),
+	PluginLoader: vi.fn(function () {
+		return loader;
+	}),
+}));
+vi.mock("../token-context/index.js", () => ({ tokenContext }));
+vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
+vi.mock("../resolve-org/index.js", () => ({ resolveOrg: (_a: unknown, c: { org?: string }) => c.org }));
+
+import { runCommand } from "../run-command.testing.js";
+import { syncCommand } from "../sync/sync.command.js";
+
+const go = (...args: string[]) => runCommand(syncCommand, ["sync", "issues", ...args]);
+const ENDS = ["--from", "github", "--to", "linear:team=ENG"];
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
+	tokenContext.mockReturnValue({ cliToken: "t" });
+	runSyncIssues.mockResolvedValue({ status: "ok" });
+});
+afterEach(() => void (process.exitCode = undefined));
+
+describe("sync issues", () => {
+	it("passes both ends, the context and --yes", async () => {
+		await go(...ENDS, "--yes");
+		expect(runSyncIssues).toHaveBeenCalledWith(
+			expect.objectContaining({
+				from: "github",
+				to: "linear:team=ENG",
+				yes: true,
+				context: expect.objectContaining({ repoRoot: "/repo", cliToken: "t", org: "acme" }),
+			})
+		);
+		expect(runSyncIssues.mock.calls[0]![0]).not.toHaveProperty("since");
+	});
+
+	it("turns --since into a timestamp", async () => {
+		await go(...ENDS, "--since", "2026-03-01");
+		expect(runSyncIssues).toHaveBeenCalledWith(expect.objectContaining({ since: "2026-03-01T00:00:00.000Z" }));
+	});
+
+	it("rejects a --since it cannot read before doing anything", async () => {
+		await expect(go(...ENDS, "--since", "soon")).rejects.toThrow(/--since/);
+		expect(runSyncIssues).not.toHaveBeenCalled();
+	});
+
+	it("passes --limit and --order, the oldest end by default, and neither without --limit", async () => {
+		await go(...ENDS, "--limit", "4");
+		expect(runSyncIssues).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 4, order: "oldest" }));
+		await go(...ENDS, "--limit", "4", "--order", "newest");
+		expect(runSyncIssues).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 4, order: "newest" }));
+		await go(...ENDS, "--order", "newest");
+		expect(runSyncIssues.mock.calls[2]![0]).not.toHaveProperty("limit");
+		expect(runSyncIssues.mock.calls[2]![0]).not.toHaveProperty("order");
+	});
+
+	it("rejects a --limit it cannot read before doing anything", async () => {
+		await expect(go(...ENDS, "--limit", "-1")).rejects.toThrow(/sync issues: --limit "-1"/);
+		expect(runSyncIssues).not.toHaveBeenCalled();
+	});
+
+	it("hands over a reader of the assignees file that goes through the source provider and the org", async () => {
+		const source = { providerName: "github" };
+		loader.has.mockReturnValue(true);
+		loader.get.mockReturnValue(source);
+		readAssignees.mockResolvedValue([{ login: "octocat", email: "o@acme.dev" }]);
+		await go(...ENDS);
+		const read = runSyncIssues.mock.calls[0]![0].readAssignees as () => Promise<unknown>;
+		await expect(read()).resolves.toEqual([{ login: "octocat", email: "o@acme.dev" }]);
+		expect(loader.load).toHaveBeenCalled();
+		expect(readAssignees).toHaveBeenCalledWith(source, "acme");
+	});
+
+	it("reads the assignees file with no source when none is configured", async () => {
+		loader.has.mockReturnValue(false);
+		readAssignees.mockResolvedValue([]);
+		await go(...ENDS);
+		await (runSyncIssues.mock.calls[0]![0].readAssignees as () => Promise<unknown>)();
+		expect(readAssignees).toHaveBeenCalledWith(undefined, "acme");
+	});
+
+	it("does nothing without tokens, and sets a failing exit code", async () => {
+		tokenContext.mockReturnValueOnce(undefined);
+		await go(...ENDS);
+		expect(runSyncIssues).not.toHaveBeenCalled();
+		runSyncIssues.mockResolvedValueOnce({ status: "fail" });
+		await go(...ENDS);
+		expect(process.exitCode).toBe(1);
+	});
+});

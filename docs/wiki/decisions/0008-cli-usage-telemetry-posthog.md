@@ -1,3 +1,20 @@
+---
+id: ADR-0008
+title: "CLI usage telemetry: PostHog"
+status: accepted
+date: 2026-09-06
+owners: []
+specs:
+  - docs/wiki/specifications/tech-cli-usage-telemetry.spec.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618650675257524
+supersedes: []
+superseded-by: []
+tags: [telemetry, analytics, posthog, cli]
+---
+
+<!-- alex disable failed fires kill -->
+
 # ADR-0008 — CLI usage telemetry: PostHog
 
 ## Status

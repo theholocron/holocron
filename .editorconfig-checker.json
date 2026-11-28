@@ -5,7 +5,7 @@
   "IgnoreDefaults": false,
   "SpacesAfterTabs": false,
   "NoColor": false,
-  "Exclude": ["(^|.+/)LICENSE$", "^public/.*", "\\.md$", "\\.mdx$"],
+  "Exclude": ["(^|.+/)LICENSE$", "^public/.*", "\\.md$", "\\.mdx$", "\\.(png|jpe?g|gif|webp|avif|ico)$"],
   "AllowedContentTypes": [],
   "PassedFiles": [],
   "Disable": {

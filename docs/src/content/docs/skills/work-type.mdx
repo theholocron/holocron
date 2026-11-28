@@ -1,0 +1,31 @@
+---
+title: work-type
+description: How to choose --type (Epic, Spike, Bug, Feature or Task) for new work, new issue and start work.
+---
+
+Tells an agent how to pick the issue `Type` when it files or starts work. The CLI infers a Type in a few places; an agent passes `--type`, and the same rules apply to both.
+
+**Invoke as:** `/work-type`
+
+**Trigger:** `holocron new work`, `holocron new issue`, `holocron start work`, or a question about what kind of issue something is.
+
+## Types
+
+| Type      | When                                                                          |
+| --------- | ----------------------------------------------------------------------------- |
+| `Epic`    | The title starts `epic(...)`, or the issue has sub-issues or relations        |
+| `Spike`   | Never inferred: set by hand, or for a research task whose result is a finding |
+| `Bug`     | Something that worked, or was meant to work, is broken                        |
+| `Feature` | New or changed behaviour a user sees; a feature that has a spec stays Feature |
+| `Task`    | Everything else; a spec-only issue is a Task                                  |
+
+There is no Spec Type.
+
+## Rules
+
+- A Type already set always wins. An Epic signal beats a label, and a label beats a title.
+- The agent passes `--type` and states the reason in one line.
+- The agent never infers Spike, and asks the maintainer when it is unsure.
+- Change it later with `holocron update issue <key> --type <kind>`.
+
+See [`new work`](/holocron/commands/new-work/), [`new issue`](/holocron/commands/new-issue/) and [`start work`](/holocron/commands/start-work/).

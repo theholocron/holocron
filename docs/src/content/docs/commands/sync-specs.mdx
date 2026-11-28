@@ -1,0 +1,114 @@
+---
+title: "sync specs"
+description: Keep each ADR and spec in step with a post in a forum channel, and turn a retag into a pull request.
+---
+
+```bash
+holocron sync specs [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh] [--refresh-origin] [--refresh-titles] [--withdraw] [--notify] [--dry-run]
+```
+
+Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
+
+```
+ADRs and specs → #ideas
+  .notes/tech-discord-channel-content.spec.md: numbered it SPEC-0061; made the post; linked the post
+  .notes/tech-specs-to-ideas.spec.md: in step
+  docs/wiki/decisions/0009-task-manifest.md: moved status to accepted, as the tag asks; linked the post
+  .notes/tech-doctor-relay-checks.spec.md: the file moved to accepted and the tag to archived since they last agreed on proposed
+
+2 ok, 1 fail, 1 skipped
+```
+
+## What a run does for each document
+
+1. **Numbers a spec that has no `id`** (`SPEC-0007`; ADRs already have theirs): the next numbers after the highest in use, oldest file first, written as the first line of the front matter. Authors never pick a number, so two pull requests cannot take the same one.
+2. **Finds or makes the post.** It is titled with the document's own title (plain text, since a title cannot be formatted; cut with an ellipsis to 100 characters) and carries the document's status as its one tag. Its first message is the id, a short description (the first paragraph under Problem, Why or Context) and the pull request that added the file, `PR: [#1538](url)`, a paragraph each. Posts are made without notifying anyone unless you pass `--notify`, so the first run, which is the backfill, pings no one.
+3. **Writes the post's address into the file** as `discussion.url`. Any other line under `discussion:` stays; a plain `discussion:` value (an old GitHub Discussion link) is replaced.
+4. **Keeps the status in step.** Three values decide it: the status in the file, the tag on the post, and the status they last agreed on (recorded on the post). Comparing only the first two cannot tell "someone retagged" from "the file changed and the tag has not caught up".
+
+| The file                | The tag                               | What the run does                                                        |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| is the tag's status     | is the tag's status                   | nothing (or rewrites the record of what they agree on, when it is stale) |
+| moved since they agreed | did not                               | puts the file's status on the tag                                        |
+| did not                 | moved                                 | changes the file's `status:` line to the tag's                           |
+| moved                   | moved                                 | reports a conflict and changes nothing                                   |
+| has a status            | is missing, or there is more than one | puts the file's status on the tag                                        |
+| has a status            | is `withdrawn`                        | puts the file's status on the tag and reopens the post                   |
+
+A retag the file cannot take (an ADR retagged `archived`, a status only specs have) is reported and changes nothing.
+
+A file can move (`.notes/` to `docs/wiki/specifications/` is the normal lifecycle) without losing its post. The post records the path it was made for, but `sync specs` also reads the `discussion.url` the file carries: when no post has the file's path, the post that address names is the file's, and the run changes the post's recorded path to the new one (`followed the file to its new path`). `--dry-run` says `would follow the file to its new path` and writes nothing.
+
+A document with a **finished** status (`archived`, `superseded`, `rejected`, `deprecated`) has its post **closed**: archived and locked, so it leaves the active list and only gatekeepers can reply to it or reopen it, and a discussion that has ended does not start up again. `draft`, `proposed` and `accepted` stay open, since an accepted document is still asked about. The post follows the status its tag shows, so a gatekeeper's retag to a finished status closes it at once, before the file's pull request merges, and a retag back reopens it. Discord has no server-side mute for a thread (muting is each member's own setting), so there is nothing to add there.
+
+## Who can change a status
+
+Only the bot and people who can manage threads can change a post's tag, so give that permission to the role that decides (`permissions: ["ManageThreads"]` on the role in the layout). Nothing in the command checks who retagged: Discord already refused anyone else.
+
+## What it writes
+
+Only the working tree. The command edits the `status:` and `discussion.url` lines of the files and changes the posts through the provider, and it never commits or pushes. The workflow that runs it commits the edits to a pull request, so a retag reaches the repository only through a review, and the post's record of what it last agreed on moves only after that pull request merges.
+
+## Options
+
+| Flag                 | Meaning                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `--provider <name>`  | Which `notifications` provider, when several can keep discussion posts.                    |
+| `--channel <forum>`  | The forum the posts live in. Defaults to the only forum the layout declares.               |
+| `--files <paths...>` | Sync only these ADR and spec files; a path that is neither is ignored. Unset, all of them. |
+| `--pr <number>`      | Name this pull request on the posts, for one that is still open.                           |
+| `--refresh`          | Repair: the `PR:` line, the title and the id link of existing posts, in one pass.          |
+| `--refresh-origin`   | Repair: rewrite the `PR:` line of existing posts. See below.                               |
+| `--refresh-titles`   | Repair: rename existing posts to the current title rule. See below.                        |
+| `--withdraw`         | Tag the posts of `--files` `withdrawn` and close them (a pull request closed unmerged).    |
+| `--notify`           | Let new posts notify people.                                                               |
+| `--dry-run`          | Read, and say what would be made or changed. Makes and writes nothing.                     |
+
+It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
+
+Discord limits how fast posts can be made (about 46 in a row, then it asks for several minutes). When the provider rate limits a run, the command stops there instead of trying the rest, says how many documents are left and how long it was asked to wait, and exits 0: what it did is kept, and the next run (the hourly one, or yours) finds those posts and makes the rest. The first run, which makes about 80, takes two or three of these.
+
+## The id links to the file
+
+The first message of a post opens with the document's id. Once the file is on the default branch the id is a link to it, `[SPEC-0007](<https://github.com/<owner>/<repo>/blob/<default branch>/<path>>)`: the default branch is `repo.defaultBranch` in `holocron.config.ts`, or `HEAD` (which GitHub resolves to the default branch) when none is declared. While a pull request is still open (the pull-request workflow passes `--pr`) the id stays plain text, because the `PR:` line is the link and the file is not on the default branch yet. The link goes to the file, not the docs site: the wiki publishes only some documents, and a page's address cannot be worked out from the file.
+
+A spec starts in `.notes/` and moves to `docs/wiki/specifications/` when it settles, and a blob address does not follow a rename. The normal sync, and so the hourly `sync-specs` run, keeps the id right: whenever a post's id line is not the one the rule gives and the run is not for an open pull request (no `--pr`), it rewrites that line, and only that line. That covers a file followed to its new path (found by the address the file records and re-keyed), so the link never points at the old path, and a post made while its pull request was open, which starts with a plain id and is linked on the first run after the merge. The row reads `linked the id to the file` (`would link the id to the file` with `--dry-run`) and the closing lines count `N id line(s) rewritten`. It costs no extra request: the line is read together with the post, so a run where every post is already right makes no further call. A rate limit stops the run cleanly and the next one continues. The PR line and the title are not touched; those stay opt-in repairs.
+
+## Repairing existing posts in one pass
+
+Posts made before the link, before the `PR:` rule and before the title rule changed keep what they were made with. `--refresh` is a one-off repair that does all three in one run, not something to run every time: the `PR:` line, the title and the id line, each as described in the sections below and each patching only its own part of the message (the id repair changes only the first line, never the synced status small print, the tag or the open or closed state). `--refresh-origin` and `--refresh-titles` still do only their own repair.
+
+Run `holocron sync specs --refresh --dry-run` first: each post that would change is listed (`would link the id to the file`, plus `would rename the post to "..."` and `would rewrite the PR line to #N` where those apply), the rest read `in step`, and the last lines count them (`N PR line(s)`, `N title(s)`, `N id line(s) would be rewritten`). Run it again without `--dry-run` to edit the posts. A second run changes nothing. Like `--refresh-titles` it stops cleanly at a Discord rate limit: it prints how many documents are left, exits 0 and the next run continues. Run on the default branch without `--pr`, so the ids are linked (the normal sync already does that for the id); with `--pr` it would take the link off. It cannot be combined with `--withdraw`.
+
+## Repairing the `PR:` line of existing posts
+
+A post's first message is written once, so a post made before the rule for naming the pull request changed keeps the old `PR:` line. `--refresh-origin` is a one-off repair for that, not something to run every time. For each existing post it works out the line the current rule would write (the pull request the file's history names, or the one `--pr` gives, or none) and, only when the post's line differs, rewrites that line, or adds or removes it. Everything else in the message stays as it is, above all the small print that records the status last synced, and the post's tag, title and open or closed state are not touched. A closed post is unarchived to be edited and closed again.
+
+Run `holocron sync specs --refresh-origin --dry-run` first: each post that would change is listed (`would rewrite the PR line to #1538`, `would take the PR line out`), the rest read `in step`, and the last line counts them. Run it again without `--dry-run` to edit the posts. A second run changes nothing. Without the flag the command never edits a post's first message. It is a repair of a synced tree, so it cannot be combined with `--withdraw`. Like any full run it restores a `withdrawn` post whose file is on the branch it runs on (the file's own status goes back on the tag and the post is reopened), because the file being there means the pull request merged.
+
+## Renaming existing posts
+
+A post's title is set once, when it is made, and a normal run never retitles one. The 85 or so posts made before the prefix was dropped (they were titled `💡 New spec: <title>` or `📐 New ADR: <title>`; a title is now `<title>` alone) keep it until you rename them. `--refresh-titles` is a one-off repair for that, not something to run every time: for each existing post it works out the title the current rule writes and, only when the post's title differs, renames it. Only the title changes; the tag, the first message, the synced status and the open or closed state are not touched, and a `withdrawn` or closed post is renamed like any other (a closed post is unarchived to be renamed and closed again). Because it is opt-in, a title a gatekeeper changed by hand is not overwritten on every run, only by a run that asks for it.
+
+Run `holocron sync specs --refresh-titles --dry-run` first: each post that would be renamed is listed (`would rename the post to "Channel content"`), the rest read `in step`, and the last line counts them (`N title(s) would be renamed`). Run it again without `--dry-run` to rename them. A second run changes nothing. It cannot be combined with `--withdraw`.
+
+**Rate limit.** Discord limits how often a thread or channel can be renamed, so a run of about 85 renames can be stopped partway. The command treats that as a pause, not a failure: on the first rate-limit response it stops without retrying (it does not loop), prints `stopped: the provider is rate limiting; it asks for N seconds. M document(s) are left for the next run`, counts the posts it did rename, and exits 0. Run the same command again once the time has passed (it is run by hand; the hourly workflow does not use it): posts already renamed read `in step`, and it carries on with the rest. What is known: Discord answers a refused rename with HTTP 429 and a `retry_after` in seconds, and renaming a channel is widely reported to be limited to two renames per ten minutes, a figure that is not in Discord's API reference, that may or may not apply to threads and that could not be measured here (no Discord token was available when this was written). If the limit for threads is that tight, 85 renames take many runs, each renaming a few posts; if it is more generous, one or two. The `M` in the message counts documents not yet tried, including ones already in step, so it is an upper bound on the renames left; the next run's dry run gives the exact number.
+
+## While the pull request is still open
+
+The `preview-specs` task runs `sync specs --files <the spec and ADR files the pull request adds or changes> --pr <its number>` when a pull request opens, gets a push or reopens, so a spec under review has its post before it merges. It runs only for a pull request from the same repository (a post carries text the author wrote, and a fork gets no secrets), only for the files the pull request changes (a stale branch cannot retag the posts of files it does not touch), and only when it changes one. The edits the command makes to the checkout are discarded: the post's address reaches the file after the merge, when the `Spec discussions` workflow finds the post by the path it records and links it through its sync pull request. A spec with no `id` is numbered as the merged tree would number it. A pull request closed without merging has its posts withdrawn, below.
+
+## When the pull request closes unmerged
+
+A post is made while its pull request is open, so a pull request that closes without merging would leave a post that says "in discussion" for good. The same workflow runs on `closed` with `merged == false` (a same-repository pull request only) and runs `sync specs --withdraw --files <the spec and ADR files the pull request touched>`. Each post is tagged `withdrawn` and closed, like a finished status. It is a neutral, system-set state, not `rejected`: a pull request closes unmerged for reasons that are no verdict on the idea (replaced, split, abandoned, closed to be reopened), and deciding accepted or rejected stays with the gatekeepers.
+
+- **`withdrawn` is a tag and a closed post, never a file status.** `holocron probe specs check` still refuses it in a file, and `sync specs` never reads the tag as a gatekeeper's retag: a `withdrawn` post is treated as one with no status tag, so the file's own status goes back on it and no sync pull request writes `status: withdrawn`.
+- **It is reversible.** Reopening the pull request runs the workflow again, which puts the file's status back on the tag and reopens the post. If the same file comes back in a new pull request, the post (found by its path) is restored the same way on that pull request's next run.
+- **Only a post this pull request made.** The command runs on the base branch, so a file the base branch already has keeps its post (the pull request only proposed a change to it).
+- **Merging changes nothing here.** A merged pull request lands the file with the status its author wrote; accepted stays the gatekeepers' retag.
+
+Because the checkout is the base branch (nothing from a closed pull request's head runs with the bot token), the command reads nothing from the files: it needs only their paths. The forum needs a `withdrawn` tag, which `holocron setup notifications` creates from the layout and `holocron doctor notifications` checks.
+
+## Another service
+
+The command asks the provider for three things: find or make a document's post (`ensureDiscussion`), read it (`readDiscussion`), and change it (`updateDiscussion`). A provider for another service implements those the way that service fits, and the command and the rules stay the same. See [the Discord plugin](/holocron/plugins/discord/#discussion-posts).

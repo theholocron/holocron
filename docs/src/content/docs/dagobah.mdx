@@ -1,0 +1,67 @@
+---
+title: Dagobah
+description: Runs a web-standard handler on your machine with its secrets from a 1Password Environment, supervises an app beside its tunnel, and runs the GitHub App manifest flow.
+---
+
+`@theholocron/dagobah` runs a web-standard handler (`(Request, env) => Response`) locally. It loads the handler's secrets from a 1Password Environment into `process.env`, imports the handler, serves it on the loopback address and says where its logs go. It also supervises two foreground processes and runs GitHub's App manifest flow.
+
+[`holocron dev serve`](/holocron/commands/dev-serve/) is built on it. Use the package directly when a project has a handler to run locally and no Holocron config.
+
+> Dagobah is the swamp where Luke trains, away from the real thing. This is where a handler runs before it ships.
+
+## Installation
+
+```bash
+pnpm add -D @theholocron/dagobah
+```
+
+It needs the [1Password CLI](https://developer.1password.com/docs/cli/) (`op`) unless the process already has every variable the handler requires.
+
+## Usage
+
+```ts
+import { serveHandler } from "@theholocron/dagobah";
+
+await serveHandler({
+  environment: "acme/app - dev", // the 1Password Environment
+  required: ["SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+  logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+  port: Number(process.env.PORT ?? 3000),
+  handler: async () => (await import("../src/handler/index.js")).handleWebhookRequest,
+});
+```
+
+The handler is imported after the Environment is in `process.env`, so a handler that reads `process.env` when its module loads sees the right values. It is served at `/api/webhook` unless `path` says otherwise.
+
+## The pieces
+
+`serveHandler` is the three smaller functions together, each exported on its own:
+
+- `loadDevEnv({ environment, required })` reads the Environment. The process wins over it. It throws naming, and never showing, what is missing. An unquoted multi-line value, such as a PEM key as `op` prints it, is read whole.
+- `startDevServer({ handle, env, port })` listens on the loopback address only and writes one log line per request: method, path and status.
+- `describeLogging(env, { tokenVar, datasetVar })` returns one line naming the dataset, never the token.
+- `superviseProcesses({ primary, companion })` runs two processes side by side in the foreground, for example an application and a tunnel's connector. Each is started with `command`, `args` and an `env` added to the environment of that process only, so a token meant for the companion never reaches the primary. When either ends the other is stopped; Ctrl-C and a termination signal go to both and are not a failure. It resolves `{ exitCode, endedFirst, interrupted }` and rejects, naming the program, when one is not installed or cannot start.
+
+```ts
+import { superviseProcesses } from "@theholocron/dagobah";
+
+const { exitCode } = await superviseProcesses({
+  primary: { command: "pnpm", args: ["run", "serve"], env: { PORT: "3000" } },
+  companion: { command: "cloudflared", args: ["tunnel", "run"], env: { TUNNEL_TOKEN: token } },
+});
+```
+
+[`holocron dev`](/holocron/commands/dev/) uses it to run the application beside `cloudflared`.
+
+## The GitHub App manifest flow
+
+Four functions make a GitHub App from a manifest through GitHub's manifest flow. The names, permissions and webhook URL are arguments, so nothing in them is specific to Holocron.
+
+- `buildAppManifest({ base, name, webhookUrl, redirectUrl })` takes the shared part read from a file (`default_permissions`, `default_events`, and optionally `description`, `url`, `public`) and adds the name, webhook and redirect. It throws, naming the problem, when the file or the webhook is not usable; the webhook must be `https`.
+- `appManifestPage(action, manifest)` returns the page that posts the manifest to GitHub.
+- `serveAppManifest({ state, page, timeoutMs })` starts a one-shot server on a random loopback port. `/` shows the page and `/callback` takes the one-time code, only with the `state` it was started with. A request that does not name the server's own address is refused. It resolves `{ url, code, close }`.
+- `convertAppManifest(code)` exchanges the code for the App's id, private key and webhook secret. The code works once and GitHub shows the key once. An error names the status and never the body.
+
+[`holocron new github-app`](/holocron/commands/new-github-app/) is built on them and keeps the credentials file.
+
+Values and tokens are never printed.

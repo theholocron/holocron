@@ -1,18 +1,38 @@
 ---
 title: Discord Plugin
-description: Implements the notifications capability via Discord incoming webhooks.
+description: Implements the notifications capability through Discord incoming webhooks and the Holonet bot.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-discord"]} capability="notifications" />
 
 <Installation package={getPlugins()["holocron-plugin-discord"].package} dev />
 
-<CapabilitiesTable rows={[{ capability: "notifications", token: "HOLOCRON_DISCORD_WEBHOOK (discord)" }]} />
+<CapabilitiesTable
+  rows={[
+    { capability: "notifications (posting)", token: "HOLOCRON_DISCORD_WEBHOOK (discord): the full webhook URL" },
+    {
+      capability: "notifications (server as code, forum posts)",
+      token: "HOLOCRON_DISCORD_BOT_TOKEN (discord.holonet): the Holonet bot token",
+    },
+    {
+      capability: "notifications (member sign-in)",
+      token: "HOLOCRON_DISCORD_CLIENT_SECRET (discord.holonet.oauth): the OAuth client secret",
+    },
+    {
+      capability: "GitHub Actions posting",
+      token: "HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL> (a GitHub secret): not read by the plugin, see below",
+    },
+  ]}
+/>
 
-The "token" for Discord is the full webhook URL, not a separate API key.
+The "token" for `send()` is the full webhook URL, not a separate API key. The bot token and the client secret are for provisioning and sign-in, and the `HOLOCRON_NOTIFY_*` secrets are for workflows. [Tokens](/holocron/tokens/#discord) says what each one is for.
+
+The webhook is the last resort for a post that names no channel, alias or `defaultChannel`, so the plugin lists it as an optional token: `holocron doctor secrets` does not expect it in the credentials environment, and `holocron export tokens` marks it `(optional)` when it has none. The connection check (`holocron doctor`, `holocron probe discord connection`) uses the webhook when there is one and the bot token when there is not, so a missing webhook is not a broken connection as long as the bot can be reached.
+
+`holocron probe discord token` checks the bot token itself: that Discord accepts it, that the bot is in the `guildId` server and which of the permissions `setup` needs its roles give it. With `--environment <layer>` it judges the layer's token against what [that layer should carry](/holocron/tokens/#discord).
 
 ## Config
 
@@ -30,13 +50,6 @@ providers: {
 }
 ```
 
-### Options
-
-| Option           | Required | Description                                                                             |
-| ---------------- | -------- | --------------------------------------------------------------------------------------- |
-| `webhooks`       | No       | Named aliases mapping logical channel names to their webhook URLs                       |
-| `defaultChannel` | No       | Alias key or raw webhook URL used as the fallback when no channel is passed to `send()` |
-
 ## Authentication
 
 The "token" for Discord is an **incoming webhook URL** — it contains the credential inline and requires no Authorization header.
@@ -52,7 +65,7 @@ The URL looks like: `https://discord.com/api/webhooks/{webhook.id}/{webhook.toke
 ### 2. Store the webhook URL
 
 ```bash
-holocron auth set discord https://discord.com/api/webhooks/1234567890/abcdefghij...
+holocron new token discord https://discord.com/api/webhooks/1234567890/abcdefghij...
 ```
 
 Or via env var:
@@ -95,3 +108,135 @@ await notif.send("https://discord.com/api/webhooks/111/abc", "Deploy complete");
 // Via default
 await notif.send("", "Deploy complete");
 ```
+
+## Provisioning a server
+
+Posting needs only a webhook URL. Setting a server up (creating channels, roles and webhooks) needs the **Holonet bot** instead:
+
+| What               | Value                                                                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                                                                               |
+| Client secret      | `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`) — Developer Portal → OAuth2 → Reset Secret. Only [`link account`](/holocron/commands/link-account/) reads it |
+| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                                                                              |
+| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                                                                               |
+| `layout` (config)  | Categories, channels and roles to create; see [`setup notifications`](/holocron/commands/setup-notifications/)                                                             |
+
+The bot token is read only when a provisioning command runs; `send()` never needs it. Discord returns a webhook's URL only to the application that created it, so an existing webhook cannot be read back.
+
+```bash
+holocron setup notifications --dry-run   # preview
+holocron setup notifications             # apply
+holocron new channel sync --category AUTOMATION --with-webhook
+```
+
+## Posting from GitHub Actions
+
+A workflow does not use the plugin or `holocron check token`. It posts through the **`notify` action**, a composite action in `theholocron/.github` (`.github/actions/notify`, synced from `ci/actions/notify/action.yml` in this repository), with one webhook secret for the channel the message belongs in.
+
+| Input      | Default    | What it does                                                                                                                                                         |
+| ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webhook`  | _(empty)_  | The channel's webhook URL, normally `secrets.HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`. A webhook posts to exactly one channel. Empty means skip                            |
+| `message`  | _required_ | The text, cut to 2000 characters                                                                                                                                     |
+| `mention`  | _(empty)_  | A role id (digits only) to ping, normally `secrets.HOLOCRON_NOTIFY_ALERT_ROLE`. Message text can never ping `@everyone` or a role: only this one role is let through |
+| `username` | `Holocron` | The name the post shows                                                                                                                                              |
+| `strict`   | `false`    | `true` makes the step fail when the webhook is missing, the role id is not digits or Discord refuses the post. Only `check-notify` sets it                           |
+
+By default the action never fails the job it reports on: a missing webhook is a notice and a rejected post is a warning. The body is Discord's shape (`content`, `username`, `allowed_mentions`), so the webhook has to accept that.
+
+### The `HOLOCRON_NOTIFY_*` secrets
+
+`holocron setup notifications` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/setup-notifications/#security)).
+
+| Secret                              | Holds                                                                                                                                                                      | Written for                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` | The webhook URL of a layout channel with `webhook: true`. The name is the channel in capitals with each run of other characters as `_`; `webhook: { secret }` overrides it | `alerts`, `errors`, `uptime`, `releases`, `deploys`, `sync` and `holonet` in this repository's layout |
+| `HOLOCRON_NOTIFY_ALERT_ROLE`        | The id of the `gatekeepers` role (the role's `secret` in the layout). Not sensitive, kept as a secret so the same token writes it                                          | The ping on #alerts                                                                                   |
+
+Without `HOLOCRON_NOTIFY_ALERT_ROLE` the #alerts posts are made without a ping. The bot token is a separate credential and never goes to a workflow as a notify secret.
+
+### Which workflow writes to which channel
+
+| Workflow (file)                                                             | Channel and what it posts                                                                                                                                                                                                                                                                                             | Credential                                                                              |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Repo sync (`ci.sync-repo.yml`)                                              | **#sync**: a sync pull request was opened and what happened to its auto-merge, or, when the run changed nothing, a line saying so; both end with the sync's counts (`80 ok, 0 fail, 3 skipped`, #457). **#alerts**, with the ping: the sync run ended in error or timed out, or the pull request needs a manual merge | `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `_ALERTS`, `HOLOCRON_NOTIFY_ALERT_ROLE`                 |
+| [Notifications](#the-notifications-workflow) (`platform.notifications.yml`) | **#alerts**, with the ping: a watched workflow ended in error on `alpha` or `main`. **#deploys**: the same for Deploy, Preview, Preview Deploy and deploy-sentinel. **#releases**: the tags a release made                                                                                                            | `HOLOCRON_NOTIFY_WEBHOOK_ALERTS`, `_DEPLOYS`, `_RELEASES`, `HOLOCRON_NOTIFY_ALERT_ROLE` |
+| Doctor reminder (`ci.remind-doctor.yml`)                                    | **#alerts**, no ping: a weekly line (Mondays, 14:00 UTC) naming `holocron doctor notifications --built-only --post`                                                                                                                                                                                                   | `HOLOCRON_NOTIFY_WEBHOOK_ALERTS`                                                        |
+| Notify Check (`ci.check-notify.yml`, run by hand)                           | **Every channel in its list**: `sync`, `alerts` (with the ping), `errors`, `uptime`, `releases`, `deploys`, `rules` and `welcome`, one `🧪 notify check` message each, in `strict` mode                                                                                                                               | one `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` per channel, `HOLOCRON_NOTIFY_ALERT_ROLE`       |
+| Spec discussions (`ci.sync-specs.yml`)                                      | **#ideas**, a forum: one post per ADR and spec, written through the **bot token**, not a webhook                                                                                                                                                                                                                      | `HOLOCRON_DISCORD_BOT_TOKEN`                                                            |
+
+Two more feeds reach Discord without a workflow: Sentry alerts go to #errors through the Comlink relay and Checkly alerts go to #uptime through a webhook of their own. [Server as code](/holocron/server-as-code/) covers both.
+
+### The repo-sync wiring
+
+`sync-repo` is a reusable workflow (`ci/workflows/sync-repo.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
+
+### Checking the wiring: `check-notify`
+
+`check-notify` is a manual workflow (`workflow_dispatch`, from the Actions tab). Its reusable half posts one labelled test message to each channel of its `channels` input, using the real org secrets, and each channel is its own job (`Check <channel>`), so one red job names the channel to fix and the others still run. A channel marked `mention` (alerts) also needs `HOLOCRON_NOTIFY_ALERT_ROLE` and pings it, and a missing or malformed role id fails that job. A caller can pass its own `channels` (a JSON array of `{ name, secret, mention }`).
+
+Three channels are left out on purpose. `ideas` is a forum that `sync specs` writes through the bot token, so there is no webhook post to prove. `holonet` is the channel `holocron doctor notifications` uses for its own test post. Nothing posts in `dev`. `rules` and `welcome` are in the list, so their jobs fail until the layout gives them `webhook: true` and `setup` has stored the secrets.
+
+It is a different check from `holocron doctor notifications`: the doctor compares the server with the layout and can post through the webhook it finds on the channel, while this workflow proves that the **stored secret** holds a working URL and that the role ping resolves. A run started from `alpha` that goes red is also reported by the Notifications workflow, because its caller is named `check-notify`.
+
+### The Notifications workflow
+
+`.github/workflows/platform.notifications.yml` (`name: Notifications`) tells Discord about runs nobody is watching, instead of each workflow carrying its own notify step. It starts on `workflow_run` when one of these finishes: the callers named for their task id (`test:unit`, `typecheck`, `lint:code`, `build`, `release`, `validate:specs`, `validate:docs`, `deploy-docs`, `check-tokens`, and so on), or `deploy-sentinel`, or `sync-specs`.
+
+- **A failure goes to #alerts**, with the ping, when the run ended in error, was not a pull request and ran on `alpha` or `main`. **`deploy`, `deploy-docs`, `deploy-components`, `preview`, deploy-sentinel and the `ci.deploy-preview.yml` and `ci.check-preview.yml` runs go to #deploys** instead. The message names the workflow, its file, the branch and the run, and adds `(attempt N)` on a rerun. It then lists the jobs of that attempt that errored (or timed out), each as a link to the job: five at most, then `and N more`. The job runs with `actions: read` (the only job in the file that has it) to read them from `GET /actions/runs/{id}/attempts/{n}/jobs`, up to the first 100 jobs. Job names are used as they are, with `[` and `]` replaced and each cut to 80 characters, so the post stays inside Discord's 2000. When the jobs cannot be read, or none of them errored (a cancelled run), the post is the line it always was. `check-tokens` is in the list, so a token close to expiring reaches #alerts the day it is found.
+- **A release goes to #releases.** When the `release` run (`ci.release.yml`) succeeds, the job lists the tags made since the run began (from git, newest first, at most ten). A package line such as `clients-v*` is tagged without a GitHub release, which is why the tags come from git. No new tag, no post.
+- **Left out on purpose:** sync (`ci.sync-repo.yml`), which posts its own result, and this workflow, so a failure here cannot loop.
+- **A missing webhook secret is not an error.** The notify action skips and the run stays green.
+
+:::caution
+`workflow_run` only starts a run from the **default branch**, which is `alpha` here. Editing `platform.notifications.yml` in a pull request changes nothing until it is merged, and the run you see is always the version on `alpha`. Because of the same rule, a failure on a branch other than `alpha` or `main` is never reported.
+:::
+
+This workflow is hand-maintained in this repository. It is not part of the generated workflow set and is not copied to other repositories.
+
+## Forum channels
+
+A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/setup-notifications/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
+
+### Server emoji as reactions
+
+A forum's `defaultReaction` and `starterReactions` may name an emoji of the server, written `":git_merge:"` (or `{ emoji, image }`, see [Forum channels](/holocron/commands/setup-notifications/#forum-channels)). The provider lists the server's emoji (`guilds.emojis`, `GET /guilds/{id}/emojis`, which needs no permission) and resolves the name to its id:
+
+- **Default reaction.** Sent on the channel as `default_reaction_emoji: { emoji_id, emoji_name: null }` (Discord's docs: exactly one of the two is set; a Unicode one is `{ emoji_id: null, emoji_name }`) and compared by id, so `setup` changes it only when it differs. A name the server has no emoji for stops `ensureChannel` before it writes, with `the server has no emoji named :git_merge:`.
+- **Tag emoji.** A forum tag's `emoji` takes the same `":name:"` spelling. It is sent as `emoji_id` with `emoji_name: null` (a Unicode tag emoji as `emoji_name` with `emoji_id: null`), compared by id, and read back as `:name:`; a name the server lacks stops the run before any write.
+- **Starter reactions.** Added to the first message as `name:id`, URL-encoded, through `PUT /channels/{id}/messages/{id}/reactions/{emoji}/@me`. A name the server lacks is left out and the post is still made, like any reaction that fails; `doctor notifications` names it.
+- **`checkEmoji({ name, image })`** is read-only and says whether the server emoji shows `image`: `missing`, `same`, `different`, or `unknown` with a note. Discord returns no hash of an emoji's picture, so it reads the public CDN copy (`https://cdn.discordapp.com/emojis/{id}.png?size=128&quality=lossless`, no credentials, at most 1 MiB), decodes it and the layout's PNG and compares the pixels: equal size, alpha always, colour where both pixels are visible, a channel tolerance of 24 and at most 0.5 percent of pixels further apart. A layout image that is not a PNG, a CDN that does not answer and a picture that cannot be decoded are `unknown`, never `different`.
+- **`ensureEmoji({ name, image, replace? })`** makes an emoji with `POST /guilds/{id}/emojis` (`guilds.createEmoji`; `image` is a `data:` URI) only when none has the name, and never replaces, renames or deletes one unless `replace` is set, which `setup notifications` does only for an emoji `checkEmoji` found different. Replacing makes the new emoji first under `<name>_new` (names are unique per server), deletes the old one with `DELETE /guilds/{id}/emojis/{emoji.id}` (`guilds.deleteEmoji`) and renames the new one with `PATCH` (`guilds.renameEmoji`); if the delete fails the new emoji is removed again and nothing changes, and a leftover `<name>_new` stops the replace. The new emoji has a new id and reactions made with the old one are gone. Deleting an emoji the bot did not make needs Manage Guild Expressions (`MANAGE_GUILD_EXPRESSIONS`, `1 << 30`), which the invite link asks for only in the 403 message of a replace. It needs Create Guild Expressions (`CREATE_GUILD_EXPRESSIONS`, `1 << 43`); a 403 says so and carries the invite link. Discord documents a 256 KiB limit and JPEG, PNG, GIF, WebP and AVIF; the CLI checks both before it writes. Emoji routes do not follow the usual rate limit headers, so a 429 can come without warning.
+- **`inspect`** reads the server's emoji only when a reaction names one (`emojis`, or `emojisError`), and spells a forum's custom default reaction as `:name:`.
+
+### Discussion posts
+
+The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron sync specs`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state; with `prLine` it also swaps the `PR:` paragraph of the bot's own first message (a message edit that keeps every other paragraph and the footer, for `sync specs --refresh-origin`; with `idLine` it swaps the first line of that message, the document's id as plain text or as a link to its file, for `--refresh` and for a file that moved, and refuses a message that does not start with an id; a `title` renames the thread for `--refresh-titles`, unarchiving a closed post to do it and closing it again). The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
+
+On Discord:
+
+- **The key is in the post.** The last line of a post's first message is `-# sync: <path> | <state>` (small print): the document's path, and the state the post and the document last agreed on. That line is how a post is found again, and how a retag is told from an edit of the file. Do not edit it by hand.
+- **A moved file keeps its post.** When no post has a document's path, the one named by the address the file records (`discussion.url`) is it: the post's key is changed to the new path in the same edit, and no second post is made. Only a post of the same forum is found this way, and an address that names none, or is not an address, makes a new post.
+- **The state is the post's one tag**, matched by name to a tag of the forum (`proposed` to the tag named `proposed`). A post with no tag, or with more than one, has no state, and the sync puts the document's state back on it. A tag the forum lacks is an error that lists the tags it has.
+- **Archived posts count.** Discord hides a post that has been quiet for a while, so the lookup reads the archived posts too, and writing to an archived post unarchives it first.
+- **A closed post is archived and locked.** `closed` on `ensureDiscussion` and `updateDiscussion` does that, and clearing it unarchives and unlocks the post. A post that only Discord archived for being quiet is not closed; a post is closed when it is locked. Writing to a closed post opens it for the write and closes it again, which the bot can do because it holds Manage Threads.
+- **The forum is read once per run**: every post's first message, for its line. Two runs at once can each make a post for the same document; the next run finds both and uses the first.
+
+## Channel content from a file
+
+What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `setup notifications` pins whatever the file says:
+
+```ts
+layout: {
+  pinned: [{ channel: "rules", file: ".holocron/pinned/rules.md" }],
+},
+```
+
+`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron setup notifications`, and #rules shows the new text.
+
+- **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from .holocron/pinned/rules.md`), and fails the `pinned` row when the file cannot be read.
+- **The text is the file, as Discord will show it.** A byte-order mark is dropped, line endings become `\n` and blank lines at the end are trimmed, so a trailing newline never counts as a change. Markdown is Discord's, not GitHub's: a single newline is a line break there, so write a blank line between paragraphs if the file is also read on GitHub.
+- **2000 characters at most.** That is Discord's limit for one message, counted after `#channel` names become links. A longer file is refused with its name and length before anything is changed; split it into two files for two messages in the same channel, or shorten it.
+- **Inside the repository.** The path is relative to the repository root, wherever the command runs. An absolute path, a `..` that climbs out and a link that leads outside are refused, and so is a file over 100 KB.
+- **One source per message.** Give `content` or `file`, not both.
+
+The full [API reference](/holocron/plugins/holocron-plugin-discord/api/readme/) is generated from the package's TSDoc comments.

@@ -1,0 +1,29 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: typecheck
+
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Typecheck: {0}', github.event.pull_request.title) || 'Typecheck' }}"
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    name: typecheck
+    uses: ./.github/workflows/typecheck.yml
+    with:
+      affected: true
+    secrets: inherit

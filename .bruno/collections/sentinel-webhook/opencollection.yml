@@ -1,0 +1,26 @@
+opencollection: 1.0.0
+
+info:
+  name: Sentinel webhook
+  version: "5.0.0-alpha.468"
+
+request:
+  variables:
+    - name: baseUrl
+      value: http://127.0.0.1:3000
+    - name: repo
+      value: theholocron/sandbox
+    - name: pullNumber
+      value: "1"
+    - name: installationId
+      value: "1"
+
+docs:
+  content: "Requests for Sentinel's webhook receiver (`/api/webhook`). Point `baseUrl` at a development instance, never production. The folders run from harmless to acting: a request in `Signed, acts on GitHub` runs the real checks against the pull request named by the environment, with the App's credentials. Sentinel answers 405 to anything but a POST, 401 to a missing or wrong signature, and `{ handled: false }` to an event it does not read."
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

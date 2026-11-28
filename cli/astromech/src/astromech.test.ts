@@ -1,0 +1,770 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const spawnSync = vi.fn((_cmd: string, _args: string[], _opts: unknown) => ({ status: null as number | null }));
+vi.mock("node:child_process", () => ({
+	spawnSync: (...a: unknown[]) => spawnSync(...(a as [string, string[], unknown])),
+}));
+
+import { createAstromech } from "./astromech.js";
+import { aggregateChecks } from "./generators/aggregate-checks/index.js";
+import { DCO_CHECK } from "./generators/required-checks/index.js";
+
+const PKG = JSON.stringify({ name: "@scope/x" });
+
+function fs(files: Record<string, string>) {
+	const CWD = "/repo";
+	const rel = (p: string) => (p === CWD ? "" : p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p);
+	return {
+		cwd: CWD,
+		readFile: (p: string) => {
+			const c = files[rel(p)];
+			if (c === undefined) throw new Error(`ENOENT ${p}`);
+			return c;
+		},
+		fileExists: (p: string) => files[rel(p)] !== undefined,
+		listDir: (p: string) => {
+			const prefix = rel(p) === "" ? "" : rel(p) + "/";
+			return Object.keys(files)
+				.filter((f) => f.startsWith(prefix) && !f.slice(prefix.length).includes("/"))
+				.map((f) => f.slice(prefix.length));
+		},
+	};
+}
+
+afterEach(() => spawnSync.mockClear());
+
+describe("createAstromech().run", () => {
+	it("delegates to the registry runner and returns the report", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG, "node_modules/.bin/vitest": "" }),
+			exec,
+			print: () => {},
+		});
+		const report = astromech.run("verification.unitTests");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith("/repo/node_modules/.bin/vitest", ["run", "--coverage"], { cwd: "/repo" });
+	});
+
+	it("forwards passthrough / dryRun / required through to the runner", () => {
+		const astromech = createAstromech({ ...fs({ "package.json": PKG }), print: () => {} });
+		const report = astromech.run("delivery.build", { dryRun: true, required: true });
+		expect(report.status).toBe("fail"); // no build tooling + required
+	});
+
+	it("forwards --filter to turbo", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }) }),
+			exec,
+			print: () => {},
+		}).run("verification.unitTests", { filter: "@scope/x" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "verification.unitTests", "--filter=@scope/x"],
+			{ cwd: "/repo" }
+		);
+	});
+
+	it("forwards --affected and --base to turbo, reading the injected environment", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }) }),
+			exec,
+			env: {},
+			print: () => {},
+		}).run("verification.unitTests", { affected: true, base: "abc" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "verification.unitTests", "--affected"],
+			{ cwd: "/repo", env: { TURBO_SCM_BASE: "abc" } }
+		);
+	});
+
+	it("forwards --affected through a bare namespace and through ci", () => {
+		const exec = vi.fn((_cmd: string, _args: string[], _o: { cwd: string }) => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({
+					tasks: { "sourceQuality.staticAnalysis": {}, "verification.unitTests": {} },
+				}),
+			}),
+			exec,
+			env: {},
+			config: { tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", required: true }] },
+			print: () => {},
+		});
+		astromech.run("sourceQuality", { affected: true, base: "abc" });
+		astromech.ci({ affected: true, base: "abc" });
+		const affected = exec.mock.calls.filter((c) => c[1].includes("--affected"));
+		expect(affected).toHaveLength(2);
+	});
+
+	it("runs a validate leaf by its words — run('validate', { job: 'specs' })", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const report = createAstromech({
+			...fs({ "package.json": PKG }),
+			exec,
+			print: () => {},
+			config: { tasks: ["validate:specs"] },
+		}).run("validate", { job: "specs" });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
+			cwd: "/repo",
+		});
+	});
+
+	it("routes a structured logger through to run lines", () => {
+		const warn = vi.fn();
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG }),
+			logger: { debug: () => {}, warn },
+			print: () => {},
+		});
+		astromech.run("frobnicate");
+		expect(warn).toHaveBeenCalledWith(expect.objectContaining({ status: "unknown" }), expect.any(String));
+	});
+
+	it("runs every task under a bare namespace that isn't an exact task name itself", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({
+					tasks: { "sourceQuality.staticAnalysis": {}, "sourceQuality.deadCodeAnalysis": {} },
+				}),
+			}),
+			exec,
+			config: {
+				tasks: ["sourceQuality.staticAnalysis", "sourceQuality.deadCodeAnalysis", "verification.unitTests"],
+			},
+			print: () => {},
+			warn: (line) => warnings.push(line),
+		});
+		const warnings: string[] = [];
+		const report = astromech.run("sourceQuality");
+		expect(report).toMatchObject({
+			status: "ok",
+			jobs: [
+				{ task: "lint:code", status: "ok" },
+				{ task: "lint:unused", status: "ok" },
+			],
+		});
+		expect(exec).toHaveBeenCalledTimes(2);
+		expect(warnings.join("\n")).toMatch(/"sourceQuality" is a deprecated group name/);
+	});
+
+	it("forwards opts.filter through to runGroup when running a bare namespace", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		astromech.run("sourceQuality", { filter: "@scope/x" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "sourceQuality.staticAnalysis", "--filter=@scope/x"],
+			expect.objectContaining({ cwd: "/repo" })
+		);
+	});
+
+	it("never lets a namespace match shadow a real exact task name", () => {
+		// "sourceQuality.staticAnalysis" is itself a real TASKS entry — must run
+		// as that one task, not be (mis)treated as a namespace with zero matches.
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+			}),
+			exec,
+			config: { tasks: ["sourceQuality.staticAnalysis"] },
+			print: () => {},
+		});
+		const report = astromech.run("sourceQuality.staticAnalysis");
+		expect(report).not.toHaveProperty("jobs");
+		expect(report.status).toBe("ok");
+	});
+
+	it("wires real node:fs / console.log / spawnSync when nothing is injected", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" })); // real readFile
+		await writeFile(join(dir, "tsdown.config.ts"), ""); // real listDir → detect
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const report = createAstromech({ cwd: dir }).run("delivery.build");
+			// real listDir finds tsdown.config.ts → tsdown → mocked spawnSync → status null → exit -1
+			expect(report.status).toBe("fail");
+			expect(spawnSync).toHaveBeenCalledWith("tsdown", [], { cwd: dir, stdio: "inherit" });
+			expect(log).toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("resolves a linterGroup task's tools via the real node_modules/.bin then PATH", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-lint-"));
+		const binDir = await mkdtemp(join(tmpdir(), "astromech-bin-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		await mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
+		await writeFile(join(dir, "node_modules", ".bin", "prettier"), "#!/bin/sh\nexit 0\n", { mode: 0o755 }); // node_modules/.bin hit
+		await writeFile(join(binDir, "editorconfig-checker"), "#!/bin/sh\nexit 0\n", { mode: 0o755 }); // PATH hit
+		// markdownlint-cli2 not installed anywhere → skipped
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const savedPath = process.env["PATH"];
+		process.env["PATH"] = `${binDir}:${savedPath ?? ""}`;
+		try {
+			const report = createAstromech({
+				cwd: dir,
+				config: { tasks: ["lint:editorconfig", "lint:markdown", "format"] },
+			}).run("format", { dryRun: true, check: true });
+			expect(report.status).toBe("dry-run");
+			// A task name (not a suite) always returns RunTaskReport;
+			// the cast narrows past run()'s RunTaskReport | GroupReport union.
+			expect((report as { command?: string }).command).toContain(join(dir, "node_modules", ".bin", "prettier"));
+			expect((report as { command?: string }).command).toContain("--check");
+			const lint = createAstromech({
+				cwd: dir,
+				config: { tasks: ["lint:editorconfig", "lint:markdown"] },
+			}).run("lint", { dryRun: true });
+			const jobs = (lint as { jobs: Array<{ task: string; command?: string }> }).jobs;
+			expect(jobs.find((j) => j.task === "lint:editorconfig")?.command).toContain(
+				join(binDir, "editorconfig-checker")
+			);
+			expect(jobs.find((j) => j.task === "lint:markdown")?.command).toBeUndefined();
+		} finally {
+			process.env["PATH"] = savedPath;
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+			await rm(binDir, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to an empty PATH when process.env.PATH is unset, finding nothing", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "astromech-nopath-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "x" }));
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const savedPath = process.env["PATH"];
+		delete process.env["PATH"];
+		try {
+			const report = createAstromech({
+				cwd: dir,
+				config: { tasks: ["sourceQuality.structuredDataValidation"] },
+			}).run("sourceQuality.structuredDataValidation");
+			// no node_modules/.bin/yamllint, no PATH to search — tool not found, skipped
+			expect(report.status).toBe("skip");
+		} finally {
+			process.env["PATH"] = savedPath;
+			log.mockRestore();
+			await rm(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("createAstromech().thinCallers", () => {
+	it("returns one thin caller per templated task, keyed by <id>.yml", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [
+					"sourceQuality.staticAnalysis",
+					"verification.unitTests",
+					{ name: "delivery.publish", with: { "run-build": false } },
+				],
+			},
+		});
+		const callers = astromech.thinCallers();
+		expect([...callers.keys()].sort()).toEqual(["lint:code.yml", "release.yml", "test:unit.yml"]);
+		expect(callers.get("test:unit.yml")).toContain("secrets: inherit");
+		expect(callers.get("release.yml")).toContain("run-build: false");
+	});
+
+	it("skips tasks with ci: false and tasks with no template", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			// Every real registry task has a template now — use an unknown task
+			// name to exercise the "no template" branch.
+			config: {
+				tasks: [{ name: "security.codeScanning", ci: false }, "made-up.task", "sourceQuality.staticAnalysis"],
+			},
+		});
+		expect([...astromech.thinCallers().keys()]).toEqual(["lint:code.yml"]);
+	});
+
+	it("writes no caller for a task Sentinel runs, but the ci aggregate still expects its check (#2263)", () => {
+		const tasks = [
+			{ name: "lint:code", required: true },
+			{ name: "lint:commits", required: true, sentinel: true },
+			{ name: "lint:markdown", required: true, sentinel: true },
+		];
+		const astromech = createAstromech({ cwd: "/repo", config: { tasks } });
+		expect([...astromech.thinCallers().keys()]).toEqual(["lint:code.yml"]);
+		expect(aggregateChecks({ tasks }).expected).toEqual(
+			expect.arrayContaining(["lint:code", "lint:commits", "lint:markdown"])
+		);
+	});
+
+	it("emits the combined deploy+preview caller when preview resolves", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			orgContext: { org: "acme", domain: "acme.dev" },
+			config: { tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }] },
+		});
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
+		expect(deploy).toContain("pull_request:");
+		expect(deploy).toContain("cloudflare-project: acme-preview");
+		expect(deploy).toContain("- docs/**");
+	});
+
+	it("emits no caller for a release-time deploy (with.on: release) — the release plugin runs it, not a workflow", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }] },
+		});
+		expect(astromech.thinCallers().has("deploy.yml")).toBe(false);
+	});
+
+	it("emits a plain deploy caller when preview is absent", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "delivery.deploy", with: { docs: true } }] },
+		});
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
+		expect(deploy).not.toContain("pull_request:");
+		expect(deploy).toContain("- docs/**");
+	});
+
+	it("emits the delivery.previewCheck caller, triggered by deployment_status (not push/pull_request)", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["delivery.previewCheck"] },
+		});
+		const previewCheck = astromech.thinCallers().get("check-preview.yml")!;
+		expect(previewCheck).toContain("deployment_status:");
+		expect(previewCheck).not.toContain("pull_request:");
+		expect(previewCheck).toContain("environment_url");
+		// No fallback to target_url -- it can point at a deployment-details
+		// page instead of the live app; the job's `if:` skips entirely when
+		// environment_url is empty rather than hitting the wrong page.
+		expect(previewCheck).not.toContain("|| github.event.deployment_status.target_url");
+		expect(previewCheck).toContain("environment_url != ''");
+		// Pins the checked-out commit to the one actually deployed --
+		// deployment_status always resolves the workflow run itself
+		// against the default branch.
+		expect(previewCheck).toContain("sha: ${{ github.event.deployment.sha }}");
+	});
+
+	it("merges a monorepo package's cwd into the delivery.previewCheck caller's existing with: block", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "delivery.previewCheck", with: { cwd: "apps/sentinel" } }] },
+		});
+		const previewCheck = astromech.thinCallers().get("check-preview.yml")!;
+		expect(previewCheck).toContain("cwd: apps/sentinel");
+		// The static, event-derived values still carry over alongside it.
+		expect(previewCheck).toContain("preview-url: ${{ github.event.deployment_status.environment_url }}");
+	});
+
+	it("knowledge.docs implies the docs: true shorthand — a repo never has to spell it out", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			orgContext: { org: "acme", domain: "acme.dev" },
+			config: { tasks: [{ name: "knowledge.docs", with: { preview: true } }] },
+		});
+		const docs = astromech.thinCallers().get("deploy-docs.yml")!;
+		expect(docs).toContain("- docs/**");
+		expect(docs).toContain("cloudflare-project: acme-preview");
+	});
+
+	it("knowledge.components implies the storybook: […] shorthand — a repo never has to spell it out", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			orgContext: { org: "acme", domain: "acme.dev" },
+			config: { tasks: [{ name: "knowledge.components", with: { preview: true } }] },
+		});
+		const components = astromech.thinCallers().get("deploy-components.yml")!;
+		expect(components).toContain("- src/**");
+		expect(components).toContain("cloudflare-project: acme-preview");
+	});
+
+	it("returns an empty map with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).thinCallers().size).toBe(0);
+	});
+
+	it("throws when the unit-tests caller disables both run-unit and run-storybook", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.unitTests", with: { "run-unit": false, "run-storybook": false } }],
+			},
+		});
+		expect(() => astromech.thinCallers()).toThrow(/at least one of "run-unit" or "run-storybook"/);
+	});
+
+	it("does not throw when the unit-tests caller keeps run-unit enabled", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: [{ name: "verification.unitTests", with: { "run-unit": true, "run-storybook": false } }] },
+		});
+		expect(() => astromech.thinCallers()).not.toThrow();
+	});
+});
+
+describe("createAstromech().packageScripts", () => {
+	it("emits the holocron entry plus `holocron run <task>` for runnable registry tasks", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [
+					"sourceQuality.staticAnalysis",
+					"verification.unitTests",
+					"verification.typeSafety",
+					"delivery.build",
+				],
+			},
+		});
+		expect(astromech.packageScripts()).toEqual({
+			holocron: "holocron",
+			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+			"verification.unitTests": "holocron run verification.unitTests --",
+			"verification.typeSafety": "holocron run verification.typeSafety --",
+			"delivery.build": "holocron run delivery.build --",
+		});
+	});
+
+	it("skips local: false and genuinely local:null tasks (delivery.publish — semantic-release runs entirely in CI, not through `holocron run`); still includes a linterGroup task whose own `local` is null", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [
+					{ name: "verification.unitTests", local: false },
+					"delivery.publish",
+					"sourceQuality.staticAnalysis",
+				],
+			},
+		});
+		expect(astromech.packageScripts()).toEqual({
+			holocron: "holocron",
+			"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+		});
+	});
+
+	it("skips a genuinely local: null task (no linterGroup)", () => {
+		const astromech = createAstromech({ cwd: "/repo", config: { tasks: ["security.codeScanning"] } });
+		expect(astromech.packageScripts()).toEqual({ holocron: "holocron" });
+	});
+
+	it("honours a custom holocronScript", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["verification.unitTests"], holocronScript: "node packages/cli/dist/cli.mjs" },
+		});
+		expect(astromech.packageScripts()).toEqual({
+			holocron: "node packages/cli/dist/cli.mjs",
+			"verification.unitTests": "holocron run verification.unitTests --",
+		});
+	});
+
+	it("returns {} with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).packageScripts()).toEqual({});
+	});
+
+	it("returns {} when syncScripts is false", () => {
+		expect(
+			createAstromech({
+				cwd: "/repo",
+				config: { tasks: ["verification.unitTests"], syncScripts: false },
+			}).packageScripts()
+		).toEqual({});
+	});
+
+	it("adds prepare: husky when hooks is true", () => {
+		expect(
+			createAstromech({
+				cwd: "/repo",
+				config: { tasks: ["verification.unitTests"], hooks: true },
+			}).packageScripts()
+		).toMatchObject({ prepare: "husky" });
+	});
+
+	it("adds prepare: husky when hooks.prePush is not disabled", () => {
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["verification.unitTests"], hooks: {} } }).packageScripts()
+				.prepare
+		).toBe("husky");
+	});
+
+	it("omits prepare when hooks is false or unset", () => {
+		expect(
+			createAstromech({
+				cwd: "/repo",
+				config: { tasks: ["verification.unitTests"], hooks: false },
+			}).packageScripts().prepare
+		).toBeUndefined();
+		expect(
+			createAstromech({
+				cwd: "/repo",
+				config: { tasks: ["verification.unitTests"], hooks: { prePush: false } },
+			}).packageScripts().prepare
+		).toBeUndefined();
+		expect(
+			createAstromech({ cwd: "/repo", config: { tasks: ["verification.unitTests"] } }).packageScripts().prepare
+		).toBeUndefined();
+	});
+});
+
+describe("createAstromech().runnableTasks", () => {
+	it("returns the same task names packageScripts() would, minus the holocron/prepare entries", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", { name: "delivery.publish" }],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["sourceQuality.staticAnalysis", "verification.unitTests"]);
+	});
+
+	it("skips local: false and genuinely local: null tasks, same filter as packageScripts()", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.unitTests", local: false }, "security.codeScanning", "delivery.build"],
+			},
+		});
+		expect(astromech.runnableTasks()).toEqual(["delivery.build"]);
+	});
+
+	it("is unaffected by syncScripts: false — the exact gap that silently emptied the picker live", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { tasks: ["verification.unitTests"], syncScripts: false },
+		});
+		expect(astromech.runnableTasks()).toEqual(["verification.unitTests"]);
+	});
+
+	it("returns [] with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).runnableTasks()).toEqual([]);
+	});
+});
+
+describe("createAstromech().reusableTemplates", () => {
+	it("delegates to the bare reusableTemplates() — config-independent", async () => {
+		const { reusableTemplates } =
+			await import("./generators/github-action-reusable-workflows/github-action-reusable-workflows.js");
+		const viaFactory = createAstromech({ cwd: "/repo" }).reusableTemplates();
+		expect([...viaFactory.entries()]).toEqual([...reusableTemplates().entries()]);
+		expect(viaFactory.has(".github/workflows/verification.typeSafety.yml")).toBe(true);
+	});
+});
+
+describe("createAstromech().requiredChecks", () => {
+	it("is `ci / Required checks` and `DCO` with the aggregate", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci / Required checks", DCO_CHECK]);
+	});
+
+	it("without the aggregate, derives contexts from required tasks + extraRequiredChecks after `DCO`", () => {
+		const checks = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [
+					{ name: "sourceQuality.staticAnalysis", required: true },
+					{ name: "verification.unitTests", required: true },
+					"verification.typeSafety",
+				],
+				extraRequiredChecks: ["codecov/patch"],
+			},
+		}).requiredChecks(false);
+		expect(checks).toEqual([
+			DCO_CHECK,
+			"lint:code / Run eslint, actionlint and prettier",
+			"test:unit / Conclusion",
+			"codecov/patch",
+		]);
+	});
+
+	it("returns just `DCO` with no config and no aggregate", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(false)).toEqual([DCO_CHECK]);
+	});
+});
+
+describe("createAstromech().aggregateCaller", () => {
+	it("is null when the manifest has nothing to wait on", () => {
+		expect(createAstromech({ cwd: "/repo" }).aggregateCaller()).toBeNull();
+	});
+
+	it("waits on the required tasks and the extras", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.typeSafety", required: true }],
+				extraRequiredChecks: ["codecov/patch"],
+			},
+		}).aggregateCaller();
+		expect(caller).toContain(`expected: '["typecheck"]'`);
+		expect(caller).toContain(`statuses: '["codecov/patch"]'`);
+	});
+
+	it("is written when only statuses are required", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["codecov/patch"] },
+		}).aggregateCaller();
+		expect(caller).toContain(`expected: '[]'`);
+	});
+
+	it("is written when only checks are required", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["Generated files / Check"] },
+		}).aggregateCaller();
+		expect(caller).toContain(`statuses: '[]'`);
+	});
+
+	it("is null when the manifest says Sentinel posts the check, whatever it waits on", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["codecov/patch"], ci: { aggregate: "sentinel" } },
+		});
+		expect(astromech.aggregatePoster()).toBe("sentinel");
+		expect(astromech.aggregateCaller()).toBeNull();
+	});
+
+	it("is null, and the ruleset lists each check, when the manifest says there is no aggregate", () => {
+		const tasks = [{ name: "typecheck", required: true }];
+		const none = createAstromech({
+			cwd: "/repo",
+			config: { tasks, extraRequiredChecks: ["codecov/patch"], ci: { aggregate: "none" } },
+		});
+		expect(none.aggregatePoster()).toBe("none");
+		expect(none.aggregateCaller()).toBeNull();
+		// the repo that hosts the reusables would require the aggregate; `none` takes it out
+		expect(none.requiredChecks(true)).not.toContain("ci / Required checks");
+		expect(none.requiredChecks(true)).toEqual(none.requiredChecks(false));
+		const actions = createAstromech({ cwd: "/repo", config: { tasks, extraRequiredChecks: ["codecov/patch"] } });
+		expect(actions.requiredChecks(true)).toContain("ci / Required checks");
+	});
+
+	it("keeps the Actions caller for `actions`, and for no `ci` block", () => {
+		const config = { extraRequiredChecks: ["codecov/patch"] };
+		expect(createAstromech({ cwd: "/repo", config }).aggregatePoster()).toBe("actions");
+		expect(createAstromech({ cwd: "/repo" }).aggregatePoster()).toBe("actions");
+		const explicit = createAstromech({ cwd: "/repo", config: { ...config, ci: { aggregate: "actions" } } });
+		expect(explicit.aggregateCaller()).toContain(`statuses: '["codecov/patch"]'`);
+	});
+});
+
+describe("createAstromech() with the statuses a coverage provider reports", () => {
+	const statusContexts = [
+		{ name: "cov/patch", required: true },
+		{ name: "cov/patch/docs", required: false },
+	];
+
+	it("adds the required statuses to the ruleset list and the aggregate", () => {
+		const astromech = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["cov/patch/docs"] },
+			statusContexts,
+		});
+		expect(astromech.requiredChecks(false)).toEqual([DCO_CHECK, "cov/patch/docs", "cov/patch"]);
+		const caller = astromech.aggregateCaller();
+		expect(caller).toContain(`expected: '[]'`);
+		expect(caller).toContain(`statuses: '["cov/patch/docs","cov/patch"]'`);
+	});
+});
+
+describe("createAstromech().turboConfig", () => {
+	it("delegates to the bare turboConfig(config) — null with no config", () => {
+		expect(createAstromech({ cwd: "/repo" }).turboConfig()).toBeNull();
+	});
+
+	it("returns the generated turbo.json for a manifest with fan-out-eligible tasks", async () => {
+		const { turboConfig } = await import("./generators/turbo/turbo.js");
+		const config = { tasks: ["verification.typeSafety", "verification.unitTests"] };
+		const viaFactory = createAstromech({ cwd: "/repo", config }).turboConfig();
+		expect(viaFactory).toEqual(turboConfig(config));
+		expect(viaFactory).toContain("verification.typeSafety");
+	});
+});
+
+describe("createAstromech().ensureRootWorkspaceMember", () => {
+	it("delegates to the bare ensureRootWorkspaceMember(), deriving taskNames from config.tasks (#692)", async () => {
+		const { ensureRootWorkspaceMember } = await import("./generators/turbo/turbo.js");
+		const config = { tasks: ["delivery.build"] };
+		const yaml = 'packages:\n  - "docs"\n';
+		const viaFactory = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"delivery.build": "tsdown",
+		});
+		expect(viaFactory).toEqual(ensureRootWorkspaceMember(yaml, { "delivery.build": "tsdown" }, ["delivery.build"]));
+		expect(viaFactory.changed).toBe(true);
+	});
+
+	it("excludes tasks marked local: false from the derived taskNames — a CI-only task can't need a local workspace member", () => {
+		const config = { tasks: [{ name: "delivery.build", local: false as const }] };
+		const yaml = 'packages:\n  - "docs"\n';
+		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"delivery.build": "tsdown",
+		});
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+
+	it("is a no-op with no config at all", () => {
+		const result = createAstromech({ cwd: "/repo" }).ensureRootWorkspaceMember('packages:\n  - "docs"\n', {
+			"delivery.build": "tsdown",
+		});
+		expect(result.changed).toBe(false);
+	});
+
+	it("treats a pre-existing holocron run <task> -- wrapper as not directly buildable (#846)", () => {
+		const config = { tasks: ["verification.typeSafety"] };
+		const yaml = 'packages:\n  - "packages/*"\n';
+		const result = createAstromech({ cwd: "/repo", config }).ensureRootWorkspaceMember(yaml, {
+			"verification.typeSafety": "holocron run verification.typeSafety --",
+		});
+		expect(result).toEqual({ content: yaml, changed: false });
+	});
+});
+
+describe("createAstromech().ensureTurboDependency", () => {
+	it("delegates to the bare ensureTurboDependency()", async () => {
+		const { ensureTurboDependency } = await import("./generators/turbo/turbo.js");
+		const pkg = JSON.stringify({ name: "demo" });
+		const yaml = "packages:\n  - docs\n";
+		const viaFactory = createAstromech({ cwd: "/repo" }).ensureTurboDependency(pkg, yaml);
+		expect(viaFactory).toEqual(ensureTurboDependency(pkg, yaml));
+		expect(viaFactory.changed).toBe(true);
+	});
+});
+
+describe("createAstromech().ci", () => {
+	it("returns ok with no config (nothing to run)", () => {
+		const report = createAstromech({ cwd: "/repo", print: () => {} }).ci();
+		expect(report.status).toBe("ok");
+		expect(report.jobs).toEqual([]);
+	});
+
+	it("runs the required tasks", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const report = createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }) }),
+			exec,
+			print: () => {},
+			config: { tasks: [{ name: "verification.typeSafety", required: true }] },
+		}).ci();
+		expect(report.status).toBe("ok");
+		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck"]);
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
+			cwd: "/repo",
+		});
+	});
+});

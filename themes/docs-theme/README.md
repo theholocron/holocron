@@ -1,0 +1,43 @@
+# @theholocron/docs-theme
+
+Starlight plugin that injects the shared `@theholocron` docs CSS theme.
+
+## Install
+
+```sh
+pnpm add @theholocron/docs-theme
+```
+
+## Exports
+
+| Export                               | Description                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| `@theholocron/docs-theme`            | `docsTheme()`, the Starlight plugin that injects the CSS                              |
+| `@theholocron/docs-theme/content`    | `createDocsCollections()`, the `docs` collection for a site                           |
+| `@theholocron/docs-theme/loader`     | `createDocsLoader()`, an Astro loader for `.md`/`.mdx` in folders or content packages |
+| `@theholocron/docs-theme/styles.css` | the theme stylesheet on its own                                                       |
+
+## Usage
+
+```ts
+// astro.config.ts
+import { docsTheme } from "@theholocron/docs-theme";
+import starlight from "@astrojs/starlight";
+import { defineConfig } from "astro/config";
+
+export default defineConfig({
+  integrations: [
+    starlight({
+      plugins: [docsTheme()],
+      title: "My Docs",
+    }),
+  ],
+});
+```
+
+## Peer dependencies
+
+| Package              | Version    |
+| -------------------- | ---------- |
+| `astro`              | `>=5.0.0`  |
+| `@astrojs/starlight` | `>=0.30.0` |

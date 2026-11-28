@@ -1,0 +1,35 @@
+info:
+  name: POST with a wrong signature
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-GitHub-Event
+      value: ping
+    - name: X-GitHub-Delivery
+      value: "{{$guid}}"
+    - name: X-Hub-Signature-256
+      value: sha256=0000000000000000000000000000000000000000000000000000000000000000
+  body:
+    type: json
+    data: '{"zen":"Keep it logically awesome.","hook_id":1}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 401", () => expect(res.getStatus()).to.equal(401));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "A signature that is not this body's under the secret: 401."

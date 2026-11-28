@@ -1,4 +1,5 @@
 ---
+id: SPEC-0019
 status: archived
 issue: theholocron/holocron#474
 blocked-by: []
@@ -12,7 +13,11 @@ research:
   - Fern docs.yml JSON schema: https://schema.buildwithfern.dev/docs-yml.json
   - Fern multi-source example: NVIDIA/OpenShell fern/docs.yml
   - Password protection: https://buildwithfern.com/learn/docs/authentication/setup/password-protection
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620487776207050
 ---
+
+<!-- alex disable host-hostess -->
 
 # Wiki capability — engineering knowledge publishing
 
@@ -181,7 +186,7 @@ docs/
     runbooks/         ← Operational runbooks
 ```
 
-Content not published (remains in the repository only):
+Content not published (stays in the repository only):
 
 - `.notes/` — draft specs and working documents
 - `docs/` consumer-facing content — served by the Pages (`docs`) config,

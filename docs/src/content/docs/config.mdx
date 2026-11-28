@@ -3,12 +3,50 @@ title: Configuration
 description: Complete reference for holocron.config.ts — providers, repo metadata, workflows, skills, and more.
 ---
 
-Holocron looks for `holocron.config.ts` (preferred) or `holocron.config.json` in the current working directory (or the path passed to `--cwd`). TypeScript configs require `@theholocron/holocron-config` as a dev dependency.
+Holocron looks for `holocron.config.ts` (preferred) or `holocron.config.json` in the current working directory (or the path passed to `--cwd`). TypeScript configs import `defineConfig` and the ready-made presets from `@theholocron/cli`; see [Presets](#presets).
+
+## Presets
+
+A preset is a ready-made config fragment: spread it into `defineConfig()`. They ship with the CLI, from one entry point, `@theholocron/cli/presets` (they used to be the separate `@theholocron/holocron-config` package, which is deprecated).
+
+```ts
+import { defineConfig } from "@theholocron/cli";
+import { nodePreset } from "@theholocron/cli/presets";
+
+export default defineConfig({
+  ...nodePreset(),
+  name: "my-project",
+});
+```
+
+| Export           | For                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `nodePreset`     | A Node.js repository.                                                                           |
+| `docsPreset`     | A TypeScript library that also publishes a docs site.                                           |
+| `docsSitePreset` | A docs-only site with no TypeScript source to check.                                            |
+| `nextjsPreset`   | A single-package Next.js app: Vercel deploy, Lighthouse, Storybook and interaction tests.       |
+| `reactPreset`    | A single-package React/Vite app: Storybook, interaction tests, and a Knip and Lighthouse audit. |
+| `monorepoPreset` | Wraps another preset for a monorepo root: `monorepoPreset(nextjsPreset())`.                     |
+
+:::caution[Upgrade: `docsPreset` and `docsSitePreset` declare the Codecov provider]
+Both presets set `providers.coverage` to `"codecov"` (the Codecov plugin writes `codecov.yml` and names the `codecov/patch` and `codecov/project` required statuses, so the presets no longer list those two in `extraRequiredChecks`). A repo that spreads either one must have `@theholocron/holocron-plugin-codecov` resolvable: add it to the `holocron` catalog in `pnpm-workspace.yaml` (the version of `@theholocron/holocron-plugin-github`) and to `devDependencies` as `catalog:holocron`. The organization's `holocron_capabilities` property must allow `coverage` (`holocron apply properties`). See the [Codecov plugin](/holocron/plugins/codecov/).
+:::
+
+The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `mark-stale`, `greet`, `update-deps` and `label` (`annotate`, the ReviewDog run, is no longer in the preset. `lint:code` annotates eslint and actionlint findings with problem matchers only where `ci/matchers/*.json` exist, as in this repo; elsewhere, list `annotate` in your own `tasks:` or provide your own matchers. Repos that spread a preset lose the `annotate` task, its thin caller and its `annotate / Post inline lint annotations` check on their next `holocron sync`; that check was never required. A repo that already has the generated caller (`.github/workflows/ci.annotate.yml`, or `annotate.yml` on the legacy gate) must delete it by hand, because `holocron sync` does not remove callers of tasks that are no longer listed); `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure:bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output. {/* holocron-allow-old-name */}
+
+To build your own, `compose()` capabilities. `withCapabilities` holds the factories: `withNode`, `withTypecheck`, `withDocs`, `withAudit`, `withWiki`, `withReact`, `withNextjs` and `withMonorepo`.
+
+```ts
+import { compose, withCapabilities } from "@theholocron/cli/presets";
+
+const { withNode, withTypecheck } = withCapabilities;
+const preset = compose(withNode(), withTypecheck());
+```
 
 ## Full schema
 
 ```ts
-import { defineConfig } from "@theholocron/holocron-config";
+import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
   // Project name. Derived from package.json#name when absent.
@@ -27,10 +65,13 @@ export default defineConfig({
 
     // Branch protection preset applied by `holocron setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
-    // "strict"   — same + required status checks. The required-check list is
-    //              derived from the manifest: every `{ required: true }` task's
-    //              workflow check context (in CI order), plus `extraRequiredChecks`
-    //              below and a hard-prepended "DCO". No hand-maintained list.
+    // "strict"   — same + required status checks. In a repo that contains the `ci`
+    //              aggregate the list is `ci / Required checks` and `DCO`: the aggregate waits on every
+    //              `{ required: true }` task, the hand-written checks and the
+    //              codecov statuses in `extraRequiredChecks`. In any other repo it
+    //              is `DCO`, every required task's check context (in CI order) and
+    //              `extraRequiredChecks`. Or write the list yourself in `repo.requiredChecks`
+    //              (`.holocron/repo.ts`): then it is exactly that list, nothing derived or added.
     // "none"     — no protection applied.
     protection: "balanced",
 
@@ -39,6 +80,34 @@ export default defineConfig({
 
     // GitHub repository topics.
     topics: ["typescript", "node", "cli"],
+    // GitHub Actions variables (workflows read them as `vars.NAME`): literal values, or `sync` names the vault
+    // environment `holocron sync secrets` fills them from (names only; one source per name).
+    variables: {
+      org: { TURBO_TEAM: "my-team" },
+      sync: [{ environment: "Vars", scope: "org=my-org", keys: ["CLOUDFLARE_ACCOUNT_ID"] }],
+    },
+    // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
+    // `sync` names the vault environments `holocron sync secrets` fills secrets from, and where (no `keys` = every key).
+    // An `org=` scope must name its readers: `repos` (visibility "selected"), never every repository.
+    // `deploy` names what a deployment or Worker may receive from `sync secrets` (a `prefix` and/or `keys`; required).
+    secrets: {
+      repo: ["TURBO_TOKEN"],
+      org: ["NPM_TOKEN"],
+      sync: [
+        { environment: "prd" },
+        { environment: "prd", scope: "org=my-org", repos: ["my-repo"], keys: ["NPM_TOKEN"] },
+      ],
+      deploy: [{ environment: "prd", prefix: "MYAPP_" }],
+    },
+
+    // `area:<name>` labels (spec `tech-github-area-labels`). `areas` is a name to the folder patterns it covers: a glob
+    // (`cli/**`), a file or a folder; a pattern starting with `!` takes a path out of the area. `scopes` maps the scope of
+    // a title (`feat(sentinel): ...`) to an area, for issues, which have no changed files; every value must be a declared
+    // area. Names only. `holocron setup` makes the labels, `holocron doctor repo` checks them.
+    labels: {
+      areas: { cli: ["cli/**"], docs: ["docs/**", "!docs/wiki/**"] },
+      scopes: { astromech: "cli" },
+    },
 
     // GitHub org-level custom properties synced by `holocron setup`.
     properties: {
@@ -49,22 +118,17 @@ export default defineConfig({
     },
   },
 
-  // The task manifest — what this repo runs. `@theholocron/astromech` reads it
-  // for `holocron run` / `holocron ci` / the generated CI workflow thin callers.
-  // String form: default inputs. Object form: pass custom `with:` inputs.
-  // Supported: "lint" | "test" | "typecheck" | "codeql" | "review" |
-  //            "release" | "stale" | "greetings" | "dependencies" | "bookkeeping" | "audit"
-  // The `lint` entry takes an optional `linters` array — the one list that
-  // drives both the CI super-linter env and `holocron run lint` locally.
-  // Omitted → auto-detected from the config files present (eslint.config.*,
-  // .markdownlint*, …) plus the org always-on set (prettier, yamllint,
-  // actionlint, gitleaks, editorconfig, commitlint, merge-conflict-markers).
-  // `required: true` marks a task merge-gating: `holocron ci` runs it by
-  // default and `holocron setup` (strict) adds its workflow check context to
-  // branch protection.
+  // The task manifest — what this repo runs, named by intent, not by tool.
+  // `@theholocron/astromech` reads it for `holocron run` / `holocron run ci` /
+  // the generated CI workflow thin callers. String form: default inputs.
+  // Object form: pass custom `with:` inputs. See "Task vocabulary" below
+  // for the full list of task names and what each actually runs.
+  // `required: true` marks a task merge-gating: `holocron run ci` runs it by
+  // default and `holocron setup` (strict) adds its check context to branch
+  // protection.
   tasks: [
-    { name: "lint", required: true, linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] },
-    { name: "test", required: true },
+    { name: "lint:code", required: true },
+    { name: "test:unit", required: true },
     { name: "typecheck", required: true },
     { name: "release", with: { "run-build": false } },
     "stale",
@@ -72,19 +136,33 @@ export default defineConfig({
   ],
 
   // Required status-check contexts **not** backed by a `{ required: true }` task
-  // — codecov gates, a docs/storybook publish job, etc. `holocron setup`
-  // (strict) appends these to the task-derived list.
+  // — codecov gates, a docs/storybook publish job, etc. The `ci` aggregate waits on
+  // them: a coverage provider's status (`codecov/...`, as its `statusContexts()` names them; with no provider loaded, anything starting with `codecov/`) is polled as a commit status, any other entry
+  // (`"Generated files / Check"`) as a check run named `<id> / ...`. List the aggregate
+  // `codecov/patch` and `codecov/project` only: a ruleset takes no wildcards, and a
+  // package a PR does not touch posts no `codecov/patch/<package>` status, so
+  // per-package contexts neither scale nor reliably appear. A loaded `coverage` provider
+  // also adds the statuses it says are required, so these two are the default when none is loaded.
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
+  // Who posts the required `ci / Required checks`: "actions" (the default, the polling
+  // job in `ci.yml`) or "sentinel" (Sentinel, from webhooks; spec
+  // `process-sentinel-posts-ci`). With "sentinel" `holocron setup` and `sync` write
+  // no `ci.ci.yml` caller and no `ci.yml` reusable, and Sentinel posts the check
+  // for a commit whose own config says so. Leave it out until Sentinel's shadow
+  // agrees with the Actions aggregate (`holocron doctor ci --shadow`).
+  // ci: { aggregate: "actions" },
+
   // `holocron sync` reconciles package.json#scripts (merge, never clobber): the
-  // `holocron` entry + a `holocron run <task>` wrapper per runnable task.
+  // `holocron` entry + a script per runnable task: `turbo run <task>` in a workspace,
+  // `holocron run <task>` in a single package.
   // `syncScripts: false` disables it; `holocronScript` sets the `holocron`
   // entry's command (default "holocron", the installed bin).
   // syncScripts: false,
-  // holocronScript: "node packages/cli/dist/cli.mjs",
+  // holocronScript: "node cli/cli/dist/cli.mjs",
 
   // Git hooks installed by `holocron setup`. `true` / `{ prePush: true }`
-  // writes `.husky/pre-push` (runs `holocron ci` before every push) and adds
+  // writes `.husky/pre-push` (runs `holocron run ci` before every push) and adds
   // `prepare: "husky"` to package.json; `false` / `{ prePush: false }` opts out.
   // Omitted → on for `protection: "strict"`, off otherwise. `holocron setup
   // --hooks` / `--no-hooks` override per-run. Bypass a single push with
@@ -93,6 +171,9 @@ export default defineConfig({
 
   // Agent runtime — determines where skills are installed.
   // "claude" → .claude/skills/<name>  (symlinks to .agents/skills/<name>)
+  // A name, or a name with options like a provider: `["claude", { dcg: true }]`
+  // merges a `PreToolUse` hook that runs the destructive command guard (`dcg`)
+  // into `.claude/settings.json` (see "Claude Code settings" below).
   agent: "claude",
 
   // Skill names from @theholocron/skills to install via `holocron setup`.
@@ -117,11 +198,35 @@ export default defineConfig({
     logs: "axiom",
   },
 
+  // The default environment for the `credentials` providers (`providers.credentials`).
+  // A name, not a secret, so it is committed. A provider can name its own instead,
+  // `credentials: ["1password", { environment: "Demo" }]`, which wins; a 1Password entry with
+  // neither derives `<org>/<repo> - <layer>` from the git remote (see /tokens); each
+  // provider needs one or the other. List an entry per Environment to read several
+  // (the same provider twice is fine); a name is found in the first one that has it.
+  credentials: { environment: "Demo" },
+
+  // Every entry that names a vault Environment (`repo.secrets.sync`, `repo.variables.sync`,
+  // `repo.secrets.deploy`, `githubApps`, `dev` and the `vault` provider's options) can name a
+  // `layer` instead: "local", "dev", "ci" or "prod". The Environment is then
+  // `<org>/<repo> - <layer>`, from the git remote. `vault: ["1password", { layer: "ci" }]`.
+
+  // How `holocron dev` runs this directory's application locally behind a development
+  // tunnel. Every field is optional here and has a flag; a flag wins. Names and a
+  // hostname, not secrets, so they are committed.
+  dev: {
+    layer: "dev", // the layer whose Environment its variables come from: <org>/<repo> - dev
+    // (or `environment: "Name"` for a literal name; both together are a ConfigError)
+    tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.example.dev" },
+    port: 3000, // default 3000
+    command: ["pnpm", "run", "serve"],
+  },
+
   // Structured-logging config. `level` is the lowest-priority level source:
   // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. `axiom.dataset`
-  // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET
+  // is a per-repo override of the CLI's dataset (HOLOCRON_AXIOM_DATASET)
   // — the token still comes from an env var or the OS keyring, never here.
-  log: { level: "info", axiom: { dataset: "holocron-local" } },
+  log: { level: "info", axiom: { dataset: "my-repo" } },
 
   // CLI self-telemetry override layer (see /telemetry). Env
   // (HOLOCRON_TELEMETRY=false) still wins and is checked first; this is the
@@ -133,6 +238,205 @@ export default defineConfig({
   telemetry: { enabled: true, analytics: "posthog" },
 });
 ```
+
+### Area labels (`repo.labels`)
+
+`repo.labels.areas` names the places a change can be in (`cli`, `sentinel`, `docs`, ...) and the folder patterns that make a path part of each; the label is `area:<name>`, no space. `repo.labels.scopes` maps the scope of a Conventional Commit title (`feat(sentinel): ...`) to an area, because an issue has no changed files. A scope the map does not name earns no label, so a topic scope such as `deps` is left out on purpose.
+
+```ts
+labels: {
+  areas: {
+    cli: ["cli/**"],
+    docs: ["docs/**", "!docs/wiki/**", "fern/**"], // "!" takes a path out of the area
+    specs: ["docs/wiki/**", ".notes/**"],
+  },
+  scopes: { astromech: "cli", docs: "docs" },
+}
+```
+
+The config load refuses, with a `ConfigError` naming the path (`repo.labels.areas.<name>`), a name that cannot end a label (letters, digits, `.`, `_` and `-`, at most 45 characters), a name given twice whatever its case, an empty pattern list or an empty pattern, a list of only `!` patterns and a scope naming an area that is not declared.
+
+`repo.labels.kinds`, `fallbackKinds` and `repos` configure the one-time [backfill](/holocron/plugins/github/#backfilling-issues) (spec `tech-backfill-config-mapping`, #2495):
+
+```ts
+labels: {
+  // Kind label to the issue Type it means. These always win. Left out: bug Bug, enhancement Feature, chore Task.
+  kinds: { bug: "Bug", enhancement: "Feature", chore: "Task" },
+  // Used only when none of `kinds` is on the issue. Left out: ci, documentation, refactor, test, performance and
+  // dependencies, each Task. `{}` turns it off.
+  fallbackKinds: { ci: "Task", documentation: "Task" },
+  // The repositories the backfill works on when `--repo` is not given. Left out: this repository.
+  repos: ["theholocron/holocron", "theholocron/clients"],
+}
+```
+
+Setting a table replaces it whole, and a table left out keeps its default, so a repository that sets none behaves as before. A label is in one table only, whatever its case. The config load refuses an empty or over-long label name, a Type that is not a name, a label in both tables and a repository that is not `owner/name`. Whether a Type exists is the organization's to say, so the probe checks the names against the organization's issue Types when it runs and fails a row naming an unknown one.
+
+- [`holocron setup`](/holocron/commands/setup/) makes each missing `area:<name>` label (one colour, the description `Changes under <paths>`). It never changes an existing label's colour or description, never deletes one, and the labels are not in the canonical set, so another repo gets none. `--dry-run` writes nothing.
+- [`holocron doctor repo`](/holocron/commands/doctor-repo/) fails a declared area with no label, and notes an `area:` label nobody declared as `info`.
+- `--area <name>` on `new issue`, `new work` and `update issue` takes the declared names; `update work` adds the labels the pull request's changed folders earn.
+- `@theholocron/cli` exports the one mapping for other tools: `areaLabelsForFiles(files, areas)`, `areaLabelsForTitle(title, scopes)`, `areaForScope(scope, scopes)`, `titleScopes(title)`, `pathMatches(path, pattern)`, `areaLabelDefs(areas)` and `AREA_PREFIX`.
+
+This repo's list is in `.holocron/repo.ts`. Renaming an existing label (the old `cli` to `area:cli`) is a manual step (`gh label edit cli --name area:cli`), which keeps the issues that carry it.
+
+## Task vocabulary
+
+Tasks are named by **intent**, not by tool — `tasks: ["test:unit"]`,
+not `["vitest"]`. Tool names never appear in `holocron.config.ts`; the table
+below is the full registry (`@theholocron/astromech`'s `TASKS`) — every task
+name it knows, what it actually runs, and why.
+
+An id is flat and verb-first (spec `ci-flat-task-vocabulary`, epic #1612): `<verb>`, `<verb>-<object>` or
+`<suite>:<leaf>`. A colon means "member of the suite named before it" (`test:unit`, `lint:code`); a hyphen is part of a
+verb phrase and implies no suite (`deploy-preview`). Five **suites** exist, declared by their leaves in the registry:
+`test` (`test:unit`, `test:visual`, `test:perf`), `lint` (`lint:code`, `lint:editorconfig`, `lint:markdown`,
+`lint:data`, `lint:unused`, `lint:commits`), `scan` (`scan:secrets`, `scan:code`), `measure` (`measure:docs`,
+`measure:bundle`) and `validate` (`validate:specs`, `validate:docs`, `validate:deps`, `validate:generated`). A suite is never a `tasks:` entry:
+list the leaves, and the leaves a repo lists are what `holocron run <suite>` runs. `format` is a verb of its own, not a
+suite: prettier only, it writes by default and `--check` is the read-only form.
+
+The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by {/* holocron-allow-old-name */}
+`holocron run`, which prints a one-line deprecation notice on stderr. `sourceQuality.formatting` stands for
+`lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. A manifest spelled either way generates the same files. The workflow callers are named for the flat id (workflow, job and {/* holocron-allow-old-name */}
+file, `ci.test-unit.yml` in holocron) in the repo that contains the reusables; any other repo keeps the old caller names
+until its callers move to the flat reusables (`ci-v1`), because its ruleset lists those checks.
+
+| Task                                 | Runs                                                              | Notes                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `test:unit`                          | vitest                                                            | always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag                               |
+| `typecheck`                          | tsc                                                               | `tsc --noEmit`                                                                                                   |
+| `test:visual`                        | Chromatic                                                         | no local equivalent — CI only; a repo opts in by listing it                                                      |
+| `test:perf`                          | Lighthouse CI                                                     | only runs with a `lighthouse.config.*` present                                                                   |
+| `lint:code`                          | eslint, actionlint, git-merge-conflict-markers                    | bundles more than one tool under one required check; in CI it also runs the `format --check` step                |
+| `lint:editorconfig`, `lint:markdown` | editorconfig-checker, markdownlint-cli2                           | each is a `linterGroup` of one tool                                                                              |
+| `format`                             | prettier                                                          | writes by default, `--check` is read-only; no workflow of its own (its CI step lives in `lint:code`)             |
+| `lint:data`                          | yamllint                                                          |                                                                                                                  |
+| `lint:unused`                        | knip                                                              |                                                                                                                  |
+| `scan:secrets`                       | gitleaks                                                          | a second CI job runs betterleaks as an advisory scan where the repo has a `betterleaks.toml`; it never fails run |
+| `scan:code`                          | CodeQL                                                            | no local equivalent — CI only                                                                                    |
+| `check-tokens`                       | `holocron doctor secrets --verify`                                | scheduled daily in CI; fails on a rejected token or one with 7 days or fewer left                                |
+| `doctor-tokens`                      | `holocron doctor tokens`                                          | scheduled daily in CI; fails on a token that breaks its declared permissions or rotation; unreadable layers skip |
+| `build`                              | tsdown / vite / rollup / tsc, detected from the repo's own config |                                                                                                                  |
+| `release`                            | semantic-release                                                  | no local equivalent — CI only; carries `preview` (npm dist-tags)                                                 |
+| `deploy`                             | Cloudflare Pages / Vercel                                         | no local equivalent — CI only; carries `preview`                                                                 |
+| `deploy-preview`                     | a preview deployment, deleted when the PR closes                  | no local equivalent — CI only; runs when a preview deployment exists                                             |
+| `check-preview`                      | checks against a preview deployment's URL                         | no local equivalent — CI only; runs from the preview's `deployment_status` event                                 |
+| `measure:bundle`                     | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                                    |
+| `measure:docs`                       | `holocron probe docs coverage`                                    | upload to Codecov as the `documentation` flag                                                                    |
+| `sync-repo`                          | `holocron sync`                                                   | keeps generated files current                                                                                    |
+| `sync-templates`                     | `holocron sync github`                                            | holocron's own repo only: opens sync pull requests in `theholocron/.github` and the consumer repos               |
+| `check-notify`                       | `holocron notifications` end-to-end check                         | no local equivalent — a workflow run by hand; never part of `holocron run ci`                                    |
+| `lint:commits`                       | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI                |
+| `validate:specs`                     | ADR/spec frontmatter (`holocron probe specs check`)               | not a linter — a process/governance check                                                                        |
+| `validate:docs`                      | docs presence and token docs (`holocron probe docs validate`)     | not a linter; presence only warns, token docs fails                                                              |
+| `validate:plugin`                    | the plugin package's own `scripts/validate.mjs`                   | a live check against the provider, run by hand; no workflow, not part of `holocron run ci`                       |
+| `publish-wiki`                       | Fern                                                              | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview`                                            |
+| `deploy-docs`                        | Astro build                                                       | the docs site itself; carries `preview` (defaults on)                                                            |
+| `deploy-components`                  | Storybook build                                                   | a browsable component catalog; carries `preview` (defaults on)                                                   |
+
+`preview` is a cross-cutting feature, not a namespace — npm has staging
+dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.
+None of these earn their own task; it's one capability any
+publish/deploy-shaped task can carry, toggled via that task's `with:`.
+
+### Tasks Sentinel runs
+
+A task entry can say that [Sentinel](/holocron/sentinel/) posts its check, so no Actions workflow does:
+
+```ts
+tasks: [{ name: "lint:commits", required: true, sentinel: true }];
+```
+
+`sentinel: true` writes no thin caller, but the task stays in the manifest: `holocron run ci` still runs it locally, and with `required: true` the `ci / Required checks` aggregate still waits for a check named `lint:commits / ...`, which Sentinel posts under the bare task id. `ci: false` is different: it also takes the task out of `holocron run ci`. Sentinel posts `lint:commits`, `lint:editorconfig`, `lint:markdown`, `validate:specs`, `validate:docs`, `format`, `validate:config`, `validate:dco` and `lint:language`; `lint:code` and `typecheck` stay with Actions. A repo that sets `sentinel: true` needs Sentinel installed on it. See `process-sentinel-and-actions-roles`.
+
+### Switching docs presence off
+
+`validate:specs` and `validate:docs` are two tasks of the `validate` suite, each with its own workflow and its own check.
+A repo that does not want one leaves it out of `tasks:` in `astromech.config.ts`; there is no `jobs:` switch (it went with
+the split, and the old `validate` name, which stood for both, still lists both):
+
+```ts
+{ name: "validate:specs", required: true }
+```
+
+The `validate:docs` task runs `holocron probe docs validate`: `docs presence`, which only ever warns, then `docs tokens`, which fails for a token a plugin resolves that [the token reference](/holocron/tokens/) does not list. Presence warns for a new public package with no docs change, and for a `feat`
+that changes a public package's source (`src/**`, or a root `index.ts`) without a docs signal for that package: its
+README, a docs page named after it, or a doc comment in the diff. When no docs change is needed, say why in the pull
+request description or in a commit message:
+
+```text
+[skip docs] the new option is internal and has no page
+[skip docs: array-utils, fs-utils] only these two need no page
+```
+
+Like `[skip ci]`, the marker is read from the text, and the reason after it is required: a bare `[skip docs]` still
+warns. The description is read from the run's event, so editing it after the run needs a new push (a commit message
+works the same way); a re-run uses the old description.
+
+### Who posts the `ci` aggregate (`ci.aggregate`)
+
+`ci: { aggregate: "actions" | "sentinel" | "none" }` says who posts the one required check, `ci / Required checks`. Left
+out, it is `"actions"`: the thin caller `ci.ci.yml` and the reusable `ci.yml` that polls the Checks API, as today. With
+`"sentinel"` neither is generated, because Sentinel computes the check from webhooks and posts it under that name (spec
+`process-sentinel-posts-ci`, SPEC-0099). With `"none"` neither is generated either and there is no such check: the
+ruleset requires each check on its own (`repo.requiredChecks`, below). A value other than the three is a config error. `holocron probe generated check`
+fails on a `ci.ci.yml` or `ci.yml` the config no longer generates, and `holocron doctor ci` fails the `aggregate` row when a
+caller is left beside a `sentinel` or `none` setting, so a commit never has two posters.
+
+### The required checks, written down (`repo.requiredChecks`)
+
+`repo: { requiredChecks: ["typecheck / Run tsc --noEmit", ...] }`, usually in `.holocron/repo.ts`, is the list of status-check
+contexts a `strict` ruleset requires. When it is set it is the **whole list**: `holocron setup` writes exactly these and
+`holocron doctor repo` compares the ruleset with them, so the DCO check and each task's context are listed too, and a task
+that is not listed is not required. Each entry is the context as GitHub shows it, `<workflow or task> / <job>`. A blank
+entry, a repeat and an empty list are config errors. Left out, the list is derived from the tasks and `extraRequiredChecks`
+as before. It does not change what runs, only what the ruleset waits for, so keep it in step when a task is added.
+
+Sentinel reads the setting at the **head** ref of a pull request (when its own `SENTINEL_CI_AGGREGATE` is `on`) (the files that run for a commit and the word that says who
+posts must match), and the list of checks it waits for at the **base** ref (so a pull request cannot shrink its own gate).
+Flipping it is one pull request that changes the setting and the generated files together; do it only after
+`holocron doctor ci --shadow` passes. This repository does not set it.
+
+#### Pinning the check to one App (`ci.pin`)
+
+`ci: { pin: { integrationId: <GitHub App id> } }` is an opt-in, off by default (spec `process-sentinel-posts-ci`, phase 10).
+Rulesets name a required check by its context only, so any App with `checks: write`, or a workflow in a pull request, can
+satisfy `ci / Required checks`. With the pin, `holocron setup` writes `integration_id` on that one entry of a `strict`
+repo's ruleset, so only that App's check run counts; the other required checks (`DCO`, ...) are never pinned. The id is the
+numeric id of Sentinel's production App (a dev instance has another id, so its posts never satisfy a merge); it is typed
+once, here, and is not a secret. The option does nothing unless `ci / Required checks` is a required check of the repo
+(`setup` says so; `doctor repo` fails the `repo-ci-pin` row). Pinning changes an outage from a stale check to one only a
+bypass or the `reconcile-ci` sweep can satisfy, so turn it on only after the bypass question (#1478) is answered. A
+`ci.pin` whose `integrationId` is not a positive integer is a config error. The classic branch-protection fallback (free
+plans) cannot pin and ignores it.
+
+### Doc-comment coverage
+
+`repoValidation.docsCoverage` decides what `holocron probe docs patch` and the `documentation` Codecov flag do about an
+exported function, class, interface, type or constant that a pull request adds or changes without a doc comment (TSDoc is the source of truth for the API
+reference, so this is what keeps it complete):
+
+```ts
+export default defineConfig({
+  repoValidation: { docsCoverage: "required" }, // "off" (default) | "warn" | "required"
+});
+```
+
+| Value        | `holocron probe docs patch`                                 | `documentation` Codecov flag                                                        |
+| ------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `"off"`      | skipped: nothing is measured or written, the check is green | nothing is added to `codecov.yml`                                                   |
+| `"warn"`     | reports each miss, exits 0                                  | `codecov/patch/documentation` and `codecov/project/documentation` are informational |
+| `"required"` | fails for each miss                                         | the statuses are not informational                                                  |
+
+Left out, it is `"off"`, so a repo that does not set it sees no change. `holocron setup` adds the `documentation`
+flag and its two statuses to `codecov.yml` for `"warn"` and `"required"` and moves them between the two; it never removes
+them, and `"off"` leaves what is there alone. The value never puts a check in the branch-protection required checks:
+that is `extraRequiredChecks` and a ruleset change. A value other than the three is a config error. The check itself and
+the `--lcov` upload are described under [`holocron probe`](/holocron/commands/probe/#documentation).
+
+No super-linter: every task above runs its own tool directly, through the
+same mechanism that resolves it locally — CI runs the identical command a
+developer runs.
 
 ## Provider entry forms
 
@@ -155,6 +459,10 @@ Holocron supports multiple entry forms for flexibility:
 ]
 ```
 
+A provider's options hold its own config; for `monitoring` they list the `checks`, each of which may name the `alertChannels` it alerts through, and the alert channel's settings (`feeds.monitoring.alerts`) sit in the `notifications` layout. See the [Checkly plugin](/holocron/plugins/checkly/#alert-channels) and [Server as Code](/holocron/server-as-code/).
+
+An org-wide identifier that is a provider option and that CI does not need (the Vercel `teamId`, a Checkly or Cloudflare `accountId`, the Cloudflare `zone`, the Sentry `org`) can live in `.holocron/org.ts` instead of the tuple: the loader fills an option the entry leaves out, and setting it in both places is an error that names both. The same file can hold `issueTypes`, the organization's issue Types (`[{ name, description?, color?, enabled?, label?, commit? }]`, `color` one of GitHub's `gray`, `blue`, `green`, `yellow`, `orange`, `red`, `pink` or `purple`): `--type` on `new issue`, `update issue`, `new work`, `update work` and `start work` accepts each name in lower case beside `bug`, `feature` and `task`, `commit` is the Conventional Commit type `start work` gives it (none: `chore`, unless the title says otherwise) and `label` is the label Linear carries it as (default the lower-cased name). This repo declares the five (Bug, Feature, Task, Epic and Spike) in `.holocron/org.ts`, and the configs below it inherit them; Bug, Feature and Task match the organization. [`holocron apply issue-types`](/holocron/commands/apply-issue-types/) (and the `setup` step) creates the declared Types the organization lacks. The area is shared with the configs in subdirectories of the repository: an app's config also reads the root's `.holocron/org.ts`, and its own file wins for a key set in both (that is not an error). See [The `.holocron/` directory](https://github.com/theholocron/holocron/blob/alpha/cli/cli/README.md#the-holocron-directory).
+
 Short provider names (e.g. `"github"`) are resolved to `@theholocron/holocron-plugin-github`. Fully-qualified package names and community plugins (prefixed `holocron-plugin-`) are passed through verbatim.
 
 ## Agent and engineering knowledge
@@ -174,11 +482,11 @@ When `agent` is set, `holocron setup` also writes nine AI engineering workflow r
 
 When `docs` is configured, `holocron setup` also provisions the engineering knowledge structure on first run. Existing files are never overwritten, so existing ADRs are safe.
 
-| Path                         | Created                                     |
-| ---------------------------- | ------------------------------------------- |
-| `docs/decisions/template.md` | MADR ADR template with required frontmatter |
-| `docs/decisions/README.md`   | Index and usage guide                       |
-| `docs/engineering/README.md` | Internal engineering site stub              |
+| Path                              | Created                                     |
+| --------------------------------- | ------------------------------------------- |
+| `docs/wiki/decisions/template.md` | MADR ADR template with required frontmatter |
+| `docs/wiki/decisions/README.md`   | Index and usage guide                       |
+| `docs/engineering/README.md`      | Internal engineering site stub              |
 
 Any repo with a docs site gets the structure — it costs nothing and is ready when needed, even if ADRs are never written.
 
@@ -201,6 +509,7 @@ Any repo with a docs site gets the structure — it costs nothing and is ready w
 | `tooling`       | **many**    | Sync external tool state                                                                                                          |
 | `notifications` | **many**    | Send messages                                                                                                                     |
 | `analytics`     | **many**    | Analytics providers                                                                                                               |
+| `credentials`   | **many**    | Where this machine reads its own tokens (a 1Password Environment), tried in order before the keyring                              |
 
 `many` capabilities accept a list of providers; `single` accept exactly one.
 
@@ -208,6 +517,16 @@ Any repo with a docs site gets the structure — it costs nothing and is ready w
 vars are present, regardless of whether a provider entry exists in config. The
 config entry is for `holocron setup` (provisioning the dataset/project) and
 `holocron doctor` (connectivity checks) only.
+
+## Claude Code settings
+
+```ts
+agent: ["claude", { dcg: true }],
+```
+
+Opt-in, in the same form a provider takes: `agent` is a name, or a name with its options. With `dcg: true`, `holocron setup` and `holocron sync` merge a `PreToolUse` hook for Bash calls into `.claude/settings.json`, so the [destructive command guard](/holocron/skills/destructive-command-guard/) (`dcg`) checks each command before Claude Code runs it. The file already there is read and merged, so a repo's own `permissions` and hooks stay, and a second run changes nothing. A file that is not valid JSON, or whose `hooks` is not an object, fails the step and is left as it is. `holocron probe generated check` fails when the hook is missing. A repo that sets nothing gets no file.
+
+Each machine needs the `dcg` binary on its `PATH`. It is not in Homebrew; `./.humans/setup.sh` checks for it in a repo that wires it in and prints the install command, and `./.humans/setup.sh doctor` fails when it is missing.
 
 ## JSON format
 
@@ -222,7 +541,7 @@ If you prefer not to use TypeScript:
     "protection": "balanced",
     "topics": ["typescript", "node"]
   },
-  "workflows": ["lint", "test"],
+  "workflows": ["lint:code", "test:unit"],
   "providers": {
     "source": "github",
     "vault": ["doppler", { "project": "my-project", "config": "prd" }]

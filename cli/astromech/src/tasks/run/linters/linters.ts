@@ -1,0 +1,162 @@
+import type { LinterDef } from "./linters.type.js";
+/**
+ * The linter registry — one list of linter names (from `config.tasks`'
+ * `{ name: "lint", linters: [...] }`, or auto-detected) maps to both the
+ * CI super-linter `VALIDATE_*` env and the native local run. This table is
+ * the single source of truth for that mapping; {@link superLinterConfig}
+ * (CI) and the `holocron run lint` aggregate (local) both read it.
+ *
+ * Spec: `docs/wiki/specifications/tech-astromech-task-runner.spec.md` "Lint parity".
+ */
+
+/**
+ * Known linters, in execution order. `always` entries are the current
+ * hard-coded super-linter baseline; `prettier` is always-on because the org
+ * applies it universally (super-linter only lints files that exist).
+ */
+export const LINTERS: Record<string, LinterDef> = {
+	eslint: {
+		validate: ["VALIDATE_JAVASCRIPT_ES", "VALIDATE_TYPESCRIPT_ES"],
+		localBin: "eslint",
+		localArgs: ["."],
+		detect: [
+			"eslint.config.ts",
+			"eslint.config.js",
+			"eslint.config.mjs",
+			"eslint.config.cjs",
+			".eslintrc",
+			".eslintrc.json",
+			".eslintrc.yml",
+			".eslintrc.yaml",
+			".eslintrc.cjs",
+		],
+		configInput: "eslint-config",
+	},
+	prettier: {
+		validate: [
+			"VALIDATE_JAVASCRIPT_PRETTIER",
+			"VALIDATE_JSX_PRETTIER",
+			"VALIDATE_TYPESCRIPT_PRETTIER",
+			"VALIDATE_TSX",
+			"VALIDATE_MARKDOWN_PRETTIER",
+		],
+		fix: [
+			"FIX_JAVASCRIPT_PRETTIER",
+			"FIX_JSX_PRETTIER",
+			"FIX_TYPESCRIPT_PRETTIER",
+			"FIX_TSX",
+			"FIX_MARKDOWN_PRETTIER",
+		],
+		always: true,
+		localBin: "prettier",
+		localArgs: ["--check", "."],
+		configInput: "prettier-config",
+	},
+	yamllint: {
+		validate: ["VALIDATE_YAML"],
+		always: true,
+		localBin: "yamllint",
+		localArgs: ["."],
+		installHint: "brew install yamllint",
+		configInput: "yaml-config",
+	},
+	actionlint: {
+		validate: ["VALIDATE_GITHUB_ACTIONS"],
+		always: true,
+		localBin: "actionlint",
+		localArgs: [],
+		installHint: "brew install actionlint",
+	},
+	gitleaks: {
+		validate: ["VALIDATE_GITLEAKS"],
+		always: true,
+		localBin: "gitleaks",
+		localArgs: ["dir", "--no-banner", "--config", ".gitleaks.toml"],
+		installHint: "brew install gitleaks",
+	},
+	editorconfig: {
+		validate: ["VALIDATE_EDITORCONFIG"],
+		always: true,
+		localBin: "editorconfig-checker",
+		localArgs: [],
+		installHint: "brew install editorconfig-checker",
+	},
+	commitlint: {
+		// A commit-message check, not a file linter — enforced at commit time
+		// (the `commit-msg` hook) and in CI (super-linter, PR range). No local
+		// slot in `holocron run lint`.
+		validate: ["VALIDATE_GIT_COMMITLINT"],
+		always: true,
+	},
+	"git-merge-conflict-markers": {
+		validate: ["VALIDATE_GIT_MERGE_CONFLICT_MARKERS"],
+		always: true,
+	},
+	markdownlint: {
+		validate: ["VALIDATE_MARKDOWN"],
+		localBin: "markdownlint-cli2",
+		localArgs: ["**/*.md"],
+		detect: [
+			".markdownlint.json",
+			".markdownlint.jsonc",
+			".markdownlint.yaml",
+			".markdownlint.yml",
+			".markdownlint-cli2.jsonc",
+			".markdownlint-cli2.yaml",
+			".markdownlint-cli2.mjs",
+		],
+	},
+};
+
+/** Every linter name the registry knows. */
+export const LINTER_NAMES: ReadonlySet<string> = new Set(Object.keys(LINTERS));
+
+/**
+ * Resolve the linter set for a repo. An `explicit` list (from `config.tasks`)
+ * picks the candidate set; otherwise the candidates are every `always` linter
+ * plus every `detect`-gated linter whose filenames are present at the repo
+ * root, OR whose mapped `@theholocron/*-config` package resolves per
+ * {@link sharedConfigAvailable} — a repo can't run eslint with genuinely no
+ * config anywhere (super-linter FATALs if you ask it to,
+ * theholocron/holocron#654), but a *shared* one it has installed counts
+ * (holocron#795: proving `clients`' eslint.config.ts files reduce to zero
+ * remaining content is only half the story — the file itself was still load-
+ * bearing here as the sole "eslint is even configured" signal until this
+ * fallback existed). `always` linters are unconditional. Result is ordered
+ * by {@link LINTERS} declaration order.
+ *
+ * `sharedConfigAvailable` is caller-computed (`run.ts`'s `runLinterGroup`
+ * already resolves each linter's `resolveToolConfig()` per member to build
+ * its actual command — reusing that instead of duplicating the package-
+ * resolution logic here keeps this function itself pure and file-I/O-free).
+ *
+ * @throws when an `explicit` name is not in the registry — a typo is a
+ * config bug, not a linter to silently skip.
+ */
+export function resolveLinters(opts: {
+	explicit?: string[];
+	rootFiles: string[];
+	sharedConfigAvailable?: ReadonlySet<string>;
+}): Array<{ name: string; def: LinterDef }> {
+	const order = Object.keys(LINTERS);
+	const present = new Set(opts.rootFiles);
+	const shared = opts.sharedConfigAvailable ?? new Set<string>();
+	const configPresent = (name: string, def: LinterDef): boolean =>
+		def.always === true || (def.detect ?? []).some((f) => present.has(f)) || shared.has(name);
+
+	if (opts.explicit && opts.explicit.length > 0) {
+		const unknown = opts.explicit.filter((n) => !LINTER_NAMES.has(n));
+		if (unknown.length > 0) {
+			throw new Error(
+				`unknown linter${unknown.length > 1 ? "s" : ""} ${unknown.map((n) => `"${n}"`).join(", ")} — ` +
+					`known: ${order.join(", ")}`
+			);
+		}
+		const wanted = new Set(opts.explicit);
+		return order
+			.filter((n) => wanted.has(n) && configPresent(n, LINTERS[n]))
+			.map((name) => ({ name, def: LINTERS[name] }));
+	}
+
+	return order.filter((name) => configPresent(name, LINTERS[name])).map((name) => ({ name, def: LINTERS[name] }));
+}

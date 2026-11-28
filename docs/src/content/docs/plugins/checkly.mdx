@@ -1,0 +1,250 @@
+---
+title: Checkly Plugin
+description: Implements the monitoring capability via Checkly's REST API (API checks).
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-checkly"]} capability="monitoring" />
+
+<Installation package={getPlugins()["holocron-plugin-checkly"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "monitoring", token: "HOLOCRON_CHECKLY_TOKEN (checkly)" }]} />
+
+Only API checks, dashboards, status pages and heartbeats are managed. Browser checks are out of scope until a real consumer needs them.
+
+## Config
+
+```ts
+providers: {
+  monitoring: ["checkly", {
+    // Required: sent as the x-checkly-account header on every request
+    accountId: "<your Checkly account id>",
+    // Checks `holocron setup` ensures exist, matched and upserted by exact name
+    checks: [
+      {
+        name: "Sentinel webhook uptime",
+        url: "https://sentinel.theholocron.dev/api/webhook",
+        method: "GET",
+        locations: ["us-east-1"],
+        shouldFail: true, // 405 is the EXPECTED healthy response here
+        assertions: [
+          { source: "status_code", comparison: "equals", target: "405" },
+        ],
+      },
+    ],
+  }],
+}
+```
+
+### Options
+
+| Option       | Required | Description                                                                           |
+| ------------ | -------- | ------------------------------------------------------------------------------------- |
+| `accountId`  | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)               |
+| `checks`     | No       | The API checks `holocron setup` ensures exist; each is matched and upserted by `name` |
+| `dashboards` | No       | The dashboards `holocron setup` ensures exist; see [Dashboards](#dashboards)          |
+| `heartbeats` | No       | The heartbeats `holocron setup` ensures exist; each is matched and upserted by `name` |
+
+### Check fields
+
+| Field           | Description                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`          | Exact name used to find the check                                                                                                                            |
+| `url`           | URL to request                                                                                                                                               |
+| `method`        | HTTP method, `GET` when omitted                                                                                                                              |
+| `body`          | Request body, to simulate a real request (for example an unsigned `POST`)                                                                                    |
+| `locations`     | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default                                                  |
+| `frequency`     | How often the check runs                                                                                                                                     |
+| `activated`     | Whether the check is enabled                                                                                                                                 |
+| `shouldFail`    | Required when the healthy response is itself an HTTP error status (see below)                                                                                |
+| `assertions`    | List of `{ source, comparison, property?, target? }`                                                                                                         |
+| `tags`          | Labels that group checks, which a dashboard and a status page pick checks by. An existing check's tags are set to exactly this list; left out, none are sent |
+| `alertChannels` | Names of the alert channels this check alerts through. Left out, it alerts through all of them                                                               |
+
+Assertion `source` is one of `status_code`, `response_time`, `body` or `header`. `comparison` is one of `equals`, `not_equals`, `contains`, `not_contains`, `greater_than` or `less_than`.
+
+:::caution
+Checkly classifies any response of 400 or above as a platform-level failure before assertions run. When the healthy response is an error status (a 405 or 401 that proves an endpoint is wired correctly), set `shouldFail: true`. An assertion matching that status does not override it.
+:::
+
+## Heartbeats
+
+A heartbeat is a dead man's switch: a scheduled job calls a ping URL each time it succeeds, and Checkly alerts when no ping arrives within the period plus the grace. It catches the run that never starts, which a failing-run alert cannot.
+
+```ts
+heartbeats: [{ name: "check-tokens", period: 1, periodUnit: "days", grace: 2, graceUnit: "hours", tags: ["ci"] }];
+```
+
+`period` and `grace` take the unit Checkly takes: `seconds`, `minutes`, `hours` or `days`. `tags` and `alertChannels` work as on a check. `ensureHeartbeat` finds the heartbeat by exact name, makes it when absent and puts `period` and `grace` (and `tags`, when stated) right when they differ. It never deletes, and a field left out is left alone. An update sends back the heartbeat's own ping token, so its URL does not change.
+
+Checkly lists a heartbeat among the other checks, so an alert channel subscribes it with the rest (`ensureAlertChannel`), and a heartbeat's `alertChannels` routes it like a check's.
+
+The **ping URL is a credential**: anyone holding it can fake a success. Checkly returns it on every read, not only on create, but the CLI hands it over once, when `holocron setup` makes the heartbeat. The CLI cannot write to 1Password, so the URL goes to the private import file `.holocron/.private/.credentials` as `HOLOCRON_HEARTBEAT_<NAME>=<url>` (the name upper-snake-cased), the way `export tokens` does: mode 0600, never overwritten, deleted once you have imported it (or left, with a warning, when there is no terminal), and never printed, logged or written to a terminal or a redirected file. Import it into the `ci` layer's Environment and sync it to the repository only with a `repo.secrets.sync` entry; see [Environment variables](/holocron/environment-variables/). `--dry-run` makes nothing and writes no file.
+
+### Pinging from a workflow
+
+A scheduled workflow ends with a step that reads the secret into `PING_URL` through `env` (never into the script text), and does nothing, with a notice, when it is unset, so the workflow runs before the secret exists. It masks the URL, calls `curl -fsS --retry 3 --max-time 10`, and turns a failed ping into a warning, never a failed job. It is the last step, so only a run that got that far pings: a red run and a run that never started are both noticed.
+
+```yaml
+- name: Ping the heartbeat
+  env:
+    PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_CHECK_TOKENS }}
+  run: |
+    if [ -z "$PING_URL" ]; then
+      echo "::notice::HOLOCRON_HEARTBEAT_CHECK_TOKENS is not set, so no heartbeat was sent."
+      exit 0
+    fi
+    echo "::add-mask::$PING_URL"
+    curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."
+```
+
+GitHub scopes a secret to a repository or an Environment, never to one workflow, so the URLs, held as repository secrets (`repo.secrets.sync` with `scope: "repo"`), are readable by every workflow of the repository that runs with secrets. What that exposes is bounded: someone with that access could mask a missed run, and read nothing else. An Actions Environment limited to the protected branches is the stricter choice if that matters more.
+
+The Holocron repository declares four, tagged `scheduled`: `check-tokens` and `doctor-tokens` (period 1 day, grace 6 hours) and `sync-specs` and `reconcile-projects` (period 1 hour, grace 2 hours, because GitHub delays and sometimes drops scheduled runs). To add one, declare it, add its secret name to `repo.secrets.sync`, add the step to the workflow's source in `ci/workflows/`, and run `holocron setup`, import the URL into the `ci` Environment and run `holocron sync secrets --env ci`.
+
+`holocron doctor monitoring` has a row for the heartbeats: each declared one must exist with the declared period, grace and (when stated) tags; heartbeats the account holds beyond the config are an `info` row, by name.
+
+## Alert channels
+
+The alert channel itself is declared in the notification layout (`feeds.monitoring`), see [Server as Code](/holocron/server-as-code/). Two things about it are declared here and there:
+
+```ts
+// holocron.config.ts, notifications layout: what the channel alerts about
+feeds: { monitoring: { alerts: { degraded: false, sslExpiry: true, sslExpiryThreshold: 14 } } }
+
+// the monitoring provider's checks: which channels a check alerts through
+checks: [{ name: "Sentinel webhook uptime", url: "...", alertChannels: ["Message to #uptime"] }]
+```
+
+`alerts` takes `failure`, `recovery`, `degraded`, `sslExpiry` and `sslExpiryThreshold` (days before expiry). A new channel starts with failure, recovery and degraded on and SSL expiry off; on an existing channel a setting left out is left as it is and one given is put back if it differs. A check with no `alertChannels` (or an empty list) is subscribed to every alert channel, as before; one that names some is subscribed to those only. Names are compared without regard to case. A check that is in Checkly but not in the config is not subject to routing and stays on every channel. A check group's subscription alerts for every check in the group and the API does not say which checks a group holds, so `doctor notifications` names the groups a channel alerts for when some check is routed away from it, and it is up to you to check them. `setup` adds subscriptions and does not remove them, so a check routed away from a channel it was already on is reported by `doctor notifications`, and is unsubscribed in Checkly.
+
+## Authentication
+
+Create a regular **User API key** under **Account settings → API keys** in [Checkly](https://app.checklyhq.com/settings/user/api-keys). Account-scoped Service API keys survive personnel changes and carry granular roles, but they need the Starter tier or above, so they are not available on the free Hobby tier.
+
+Store it:
+
+```bash
+holocron new token checkly <KEY>
+holocron check token checkly
+```
+
+`check token` verifies the key with `GET /v1/accounts`, the one Checkly endpoint that does not require `x-checkly-account`. It works before any `accountId` is in scope.
+
+`holocron probe checkly token [--environment <layer>]` is read-only: it lists the account's status pages and the first one's incidents with the key (what `sync-incidents` reads) and fails on a refusal. The key is declared for the `ci` layer. Checkly reports no role for a key, so the probe cannot tell a Read Only key from a Read & Write one; `sync-incidents` only reads, so a Read Only key is enough.
+
+Or via env var:
+
+```bash
+export HOLOCRON_CHECKLY_TOKEN=...
+# Also recognized:
+export CHECKLY_API_KEY=...
+```
+
+Resolution order: the `--token` flag, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY`, the OS keyring (service `com.theholocron.cli`, account `checkly`), then an error naming all four.
+
+## Dashboards
+
+A Checkly dashboard shows the checks whose `tags` match its own. It has no name, only a `header`, so `name` is matched against the header exactly, and an existing dashboard is updated, never duplicated.
+
+```ts
+monitoring: ["checkly", {
+  accountId: "<your Checkly account id>",
+  dashboards: [{ name: "The Holocron", tags: ["sentinel", "comlink", "docs"] }],
+}],
+```
+
+| Field                     | Description                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                    | The dashboard's title (its header), and what it is found by                                                                                                                     |
+| `tags`                    | Checks carrying any of these tags are shown                                                                                                                                     |
+| `description`             | Text under the title. Left out, an existing dashboard keeps its own                                                                                                             |
+| `private`                 | Default `true`: a dashboard shows check URLs and timings, so it needs a key. Set `false` to make it public                                                                      |
+| `domain`                  | A hostname on your zone (`status.example.com`). Left out, an existing dashboard keeps its own. Checkly verifies it by a DNS record                                              |
+| `logo`, `favicon`, `link` | An image URL shown at the top (PNG or JPEG: Checkly refuses WebP), an image URL for the icon, and where a click on the logo goes. Left out, an existing dashboard keeps its own |
+
+`setup` creates a missing dashboard, and brings an existing one in line for the fields the config states (tags, description, domain) and for privacy, which always has a value (private unless declared otherwise). It never deletes, and a field left out is left alone. `--dry-run` makes no call.
+
+**The view key.** Checkly returns a private dashboard's keys with the dashboard (`keys[].rawKey`), so a key is returned when `setup` makes the dashboard or switches it to private, and not on a later run. The key is a credential: it is never printed, logged or written to the config. `setup` writes one `HOLOCRON_CHECKLY_DASHBOARD_KEY=<value>` line to the private, git-ignored `.holocron/.private/.credentials` (never overwritten, deleted once you have imported it in 1Password, as with `holocron export tokens`), for the `dev` layer's Environment, which nothing syncs. It is listed under `doctor.manualSecrets`. If Checkly returns no key, nothing is written; read the key in the dashboard's settings in Checkly.
+
+`holocron doctor monitoring` checks each declared dashboard: it exists, its privacy matches (a public dashboard declared private fails), its tags and domain match. Dashboards the account holds that the config does not declare are an `info` row.
+
+**Plan limits.** Checkly's free plan refuses a private dashboard (`400`, "Private dashboards are not supported on your current plan") and a custom domain on a status page (`402`); a dashboard does take a custom domain there, but `setup` does not make its DNS records (the CNAME and the TXT record Checkly asks for), so make them by hand. On that plan declare `private: false` and leave `domain` out of the page, which is then served at `<slug>.checkly-status-page.com`; a public dashboard shows check names, uptime and response times to anyone with the link. This repo does that. On a paid plan drop `private: false` and add the domain. The same plan refuses automated incidents on a status page (`403`, "Automated incident management for status pages is not part of your plan"), so a page there sets `automation: false`: `setup` then neither reads nor makes the rules that tie a check to a component, `doctor monitoring` does not compare them and says in a skipped row that incidents are opened by hand, and the page's components do not change when a check fails. A rule the page already has is left as it is, never removed or switched off, so switch it off in Checkly if it should stop opening incidents. Drop `automation: false` when the plan allows automation. Changing a page sends it back whole, and the free plan refuses the page's theme colours as custom CSS (`402`), so that update is sent again without them; the page keeps its default colours. Taking `domain` out of the config later does not remove one a page already has: `setup` leaves a field the config omits alone and never deletes a DNS record, so clear the domain in Checkly and delete its records by hand.
+
+## What `monitoring` provides
+
+- `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
+- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, applies the `alerts` settings the config states, and subscribes the checks routed to it (every check unless a check names its `alertChannels`). This is how `holocron setup notifications` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
+- `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), its alert settings, and the names of the checks routed to it that it is not subscribed to or has switched off, and of the checks it is still subscribed to though they are routed elsewhere.
+- `ensureDashboard(input)`: finds a dashboard by its exact header, then creates or updates it (private by default). It returns the id and, only when it made the dashboard or switched it to private, the view key (never logged).
+- `inspectDashboard(name)`: reads a dashboard without changing it, for `holocron doctor monitoring`: whether it exists, its privacy, tags and domain, and the headers of the account's other dashboards. Never the key.
+- `ensureStatusPage(input)`: finds a status page by exact name or creates it (public unless `private: true`), then its components in the declared order and one automation rule per component. See [Status pages](#status-pages).
+- `inspectStatusPage(input)`: reads the page without changing it, for `holocron doctor monitoring`: whether it exists and is public, which components and rules are missing or misplaced, which exist that the config does not declare, and whether the custom domain is verified (with the DNS record still to make).
+- `ensureHeartbeat(input)`: finds a heartbeat by exact name and creates or updates it, returning the ping URL (a credential) with the result. `listHeartbeats()` reads them back for the doctor, without the URL.
+- `listIncidents({ statusPage, since? })`: reads a status page's incidents, read-only, for `holocron sync incidents` (#2366): every incident still open and those resolved since `since`, each with its updates oldest first and its components named. It compares days, never an exact time, because Checkly types `updated_at` as a date. Not yet checked against a live account.
+- `openIncident({ statusPage, title, status, message, notify, impacts })`, `updateIncident({ statusPage, id, status, message, notify })` and `resolveIncident(...)`: write to the live status page (#2591). A component is named as on the page and an impact is the neutral word (`maintenance`, `degraded`, `partial`, `major`), translated to Checkly's. Checkly has no resolve endpoint, so `resolveIncident` appends a `RESOLVED` update; every write sends `notifySubscribers` explicitly because the API defaults it to `false`. An unknown component, a title over 255 characters and an unknown page fail before anything is written. Every request the plugin's API client makes is abandoned after 30 seconds (the token check and the connection probe use their own requests and keep no limit). Opening, updating and resolving were tried against a throwaway incident on the live page (2026-11-24); component impacts were not.
+- `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
+- `checks`: the configured check list, which `holocron setup` loops over.
+- `dashboards`: the configured dashboard list, which `holocron setup` loops over.
+- `statusPages`: the configured status pages, which `holocron setup` and `holocron doctor monitoring` loop over.
+
+## Status pages
+
+A page is a list of components, and a component holds no check: an automation rule ties them. A failing check whose tags overlap the rule's opens one incident on the component, as a full outage (`MAJOR_OUTAGE`), so give each check the tag of the component it belongs to.
+
+```ts
+monitoring: [
+  "checkly",
+  {
+    statusPages: [
+      {
+        name: "The Holocron", // the page's title, and how it is found
+        slug: "theholocron", // <slug>.checkly-status-page.com
+        domain: `status.${domain}`, // optional custom domain
+        description: "Text under the title", // optional
+        footer: "Text in the footer", // optional
+        logo: `https://docs.${domain}/logo.jpeg`, // optional, not WebP (Checkly refuses it); `logoDark` shows in the dark theme
+        favicon: `https://docs.${domain}/favicon.svg`, // optional
+        link: `https://docs.${domain}/`, // optional: where a click on the logo goes
+        privacyUrl: `https://docs.${domain}/privacy/`, // optional links, shown in the footer
+        termsUrl: `https://docs.${domain}/terms/`,
+        supportUrl: `https://docs.${domain}/`,
+        // private: false is the default: the point of the page is that people can read it
+        // automation: false on a plan without automated incidents (default true): no rule is read or made
+        components: [
+          { name: "Sentinel", tags: ["sentinel"], group: "Services" },
+          { name: "Docs", tags: ["docs"] },
+        ],
+      },
+    ],
+  },
+];
+```
+
+`holocron setup` makes the page after the checks. Components keep the order you list them in; a `group` is shown as a group of that name, made when absent. Nothing is ever deleted: a component, group or rule you stop listing stays on the page and `holocron doctor monitoring` reports it as an `info` row. A field you leave out is left alone on an existing page.
+
+`footer`, `privacyUrl`, `termsUrl` and `supportUrl` are written when you state them and left alone when you do not; `holocron doctor monitoring` does not compare them.
+
+With a `domain`, Checkly asks for DNS records before it serves the page there. `holocron setup` reads them and makes them through the `dns` provider, as DNS-only records (Checkly's answer does not say they may be proxied). With no `dns` provider, or on a failure, each record is a failing `todo` row naming it, so it can be made by hand. `--dry-run` writes nothing, DNS included. `holocron doctor monitoring` fails a page declared `private` that is public, and fails while the domain is unverified.
+
+The plugin also contributes probes for `holocron probe` (see the [probe command](/holocron/commands/probe/)).
+
+## Example
+
+```ts
+import { createPlugin } from "@theholocron/holocron-plugin-checkly";
+
+const plugin = createPlugin({
+  accountId: "<your Checkly account id>",
+  checks: [{ name: "API uptime", url: "https://api.example.com/health", locations: ["us-east-1"] }],
+});
+const monitoring = plugin.capabilities.monitoring();
+
+await monitoring.ensureCheck(monitoring.checks[0]);
+```
+
+The HTTP calls go through [`@theholocron/checkly-client`](/holocron/clients/checkly/).
+
+The full [API reference](/holocron/plugins/holocron-plugin-checkly/api/readme/) is generated from the package's TSDoc comments.

@@ -1,0 +1,154 @@
+import { branches } from "./branches/branches.js";
+import { checks } from "./checks/checks.js";
+import { environments } from "./environments/environments.js";
+import { git } from "./git/git.js";
+import { hooks } from "./hooks/hooks.js";
+import { issueFields } from "./issue-fields/issue-fields.js";
+import { issueTypes } from "./issue-types/issue-types.js";
+import { issues } from "./issues/issues.js";
+import { labels } from "./labels/labels.js";
+import { pages } from "./pages/pages.js";
+import { properties } from "./properties/properties.js";
+import { pulls } from "./pulls/pulls.js";
+import { repos } from "./repos/repos.js";
+import { rulesets } from "./rulesets/rulesets.js";
+import { secrets } from "./secrets/secrets.js";
+import { security } from "./security/security.js";
+import { statuses } from "./statuses/statuses.js";
+import { teams } from "./teams/teams.js";
+import { topics } from "./topics/topics.js";
+import { user } from "./user/user.js";
+import { createGitHubGraphQLApiClient, createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
+import { variables } from "./variables/variables.js";
+import { workflows } from "./workflows/workflows.js";
+
+export {
+	createAppJWT,
+	createInstallationClient,
+	getInstallationAccessToken,
+	type GitHubAppCredentials,
+	type InstallationAccessToken,
+} from "./app-auth/app-auth.js";
+export {
+	getApp,
+	getRepoInstallation,
+	type GitHubApp,
+	type GitHubAppAccount,
+	type GitHubAppDelivery,
+	type GitHubAppInstallation,
+	listAppDeliveries,
+	type ListAppDeliveriesOptions,
+	listAppInstallations,
+	redeliverAppDelivery,
+	suspendAppInstallation,
+	unsuspendAppInstallation,
+} from "./app-info/app-info.js";
+export {
+	type CheckRunAnnotation,
+	type CheckRunAnnotationLevel,
+	type CheckRunConclusion,
+	type CheckRunOutput,
+	type CheckRunStatus,
+	type CreateCheckRunInput,
+	type GitHubCheckRun,
+	MAX_CHECK_RUN_ANNOTATIONS,
+	type UpdateCheckRunInput,
+} from "./checks/checks.js";
+export type { GitHubEnvironment } from "./environments/environments.js";
+export type {
+	CreatePullInput,
+	GitBlob,
+	GitCommit,
+	GitContents,
+	GitDirectoryEntry,
+	GitPull,
+	GitRef,
+	GitTree,
+	GitTreeItem,
+	ListDirectoryOptions,
+	PutContentsInput,
+	PutContentsResult,
+} from "./git/git.js";
+export type { CreateHookInput, GitHubHook, HookScope, UpdateHookInput } from "./hooks/hooks.js";
+export type {
+	GitHubIssueField,
+	GitHubIssueFieldOption,
+	GitHubIssueFieldValue,
+	IssueFieldValueInput,
+} from "./issue-fields/issue-fields.js";
+export type { IssueTypeColor, IssueTypeInput, OrgIssueTypeInfo } from "./issue-types/issue-types.js";
+export type { GitHubIssue, GitHubIssueComment, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
+export type { GitHubLabel } from "./labels/labels.js";
+export type {
+	CreatePagesPayload,
+	GitHubPages,
+	PagesBuildStatus,
+	PagesBuildType,
+	UpdatePagesPayload,
+} from "./pages/pages.js";
+export type { OrgProperty, RepoPropertyValue } from "./properties/properties.js";
+export type {
+	CreatePullRequestInput,
+	CreateReviewComment,
+	CreateReviewInput,
+	GitHubPullRequest,
+	GitHubPullRequestCommit,
+	GitHubPullRequestFile,
+	GitHubPullRequestReview,
+	ReviewThread,
+	UpdatePullRequestInput,
+} from "./pulls/pulls.js";
+export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
+export type { GitHubRuleset, GitHubRulesetDetail } from "./rulesets/rulesets.js";
+export type { GitHubPublicKey, OrgSecretInfo, OrgSecretVisibility, SecretScope } from "./secrets/secrets.js";
+export type { CodeScanningSetupResult } from "./security/security.js";
+export type { CommitStatusState, GitHubCommitStatus } from "./statuses/statuses.js";
+export type { RepoTeam, TeamMember, TeamPermission } from "./teams/teams.js";
+export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";
+export { parseTokenExpiration } from "./user/user.js";
+export type { GitHubClientOptions, GraphQLClient } from "./utils.js";
+export type { GitHubVariable, VariableScope, VariableVisibility } from "./variables/variables.js";
+export {
+	type GitHubInstallationWebhookPayload,
+	type GitHubPullRequestWebhookPayload,
+	type GitHubPushWebhookPayload,
+	type GitHubWebhookHeaders,
+	parseGitHubWebhookHeaders,
+	verifyGitHubWebhookSignature,
+} from "./webhooks/webhooks.js";
+export type { GitHubWorkflowRun, WorkflowRunFilter } from "./workflows/workflows.js";
+
+/** Creates a GitHub client with a group of methods per API area (branches, pulls, issues, secrets and so on), backed by one REST client and one GraphQL client built from the same options. */
+export function createGitHubClient(opts: GitHubClientOptions) {
+	const rest = createGitHubRestClient(opts);
+	const graphql = createGitHubGraphQLApiClient(opts);
+	return {
+		branches: branches(rest),
+		checks: checks(rest),
+		statuses: statuses(rest),
+		environments: environments(rest),
+		git: git(rest),
+		/** The GraphQL client, for the callers whose API (Projects v2) has no REST form. */
+		graphql,
+		hooks: hooks(rest),
+		issueFields: issueFields(rest),
+		issueTypes: issueTypes(rest),
+		issues: issues(rest),
+		labels: labels(rest),
+		pages: pages(rest),
+		properties: properties(rest),
+		pulls: pulls(rest, graphql),
+		repos: repos(rest),
+		rulesets: rulesets(rest),
+		secrets: secrets(rest),
+		security: security(rest),
+		teams: teams(rest),
+		topics: topics(rest),
+		variables: variables(rest),
+		user: user(rest),
+		workflows: workflows(rest),
+	};
+}
+
+/** The client returned by `createGitHubClient()`: one group of methods per GitHub API area. */
+export type GitHubClient = ReturnType<typeof createGitHubClient>;

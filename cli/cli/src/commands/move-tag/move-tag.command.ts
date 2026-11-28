@@ -1,0 +1,24 @@
+import { promptForPositionals } from "@theholocron/kyber/prompts";
+import type { CommandModule } from "yargs";
+
+import { getEntry } from "../../interactive-menu/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { runMoveTag } from "./index.js";
+import { type MoveTagArgs, moveTagArgs } from "./move-tag.args.js";
+
+export const moveTagCommand: CommandModule<GlobalArgs, MoveTagArgs> = {
+	command: "tag [group] [release]",
+	describe: "Move a version group's major tag (ci-v1) to its latest stable release (semantic-release publishCmd)",
+	builder: moveTagArgs,
+	handler: async (argv) => {
+		const [group] = await promptForPositionals(getEntry("publish tag"), argv);
+		const report = await runMoveTag({
+			group: group,
+			cwd: argv.cwd,
+			dryRun: argv.dryRun,
+			remote: argv.remote,
+			...(argv.release ? { version: argv.release } : {}),
+		});
+		if (report.status === "fail") process.exitCode = 1;
+	},
+};

@@ -1,8 +1,13 @@
 ---
+id: SPEC-0009
 status: archived
 issue: theholocron/holocron#77
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620485293449399
 ---
+
+<!-- alex disable clearly postman-postwoman remains -->
 
 <!-- editorconfig-checker-disable-file -->
 
@@ -45,7 +50,7 @@ same template drift; we consolidate on the CLI.
   scaffolding, but the CLI is what an operator reaches for from a
   regular shell — and it's what a _downstream_ project reaches for
   when they need to author their own vendor plugin.
-- The scaffolding logic is already codified in the skill; it just
+- The scaffolding logic is already codified in the skill; it only
   needs to be re-hosted as TS code invoked through the existing
   yargs subcommand plumbing.
 - The 3 plugins built with the skill (Clerk, 1Password, Postman)

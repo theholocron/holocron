@@ -1,0 +1,173 @@
+{
+  "name": "@theholocron/observability",
+  "version": "0.7.0-alpha.8",
+  "description": "Logging, error tracking, and analytics — one interface, swappable backends.",
+  "keywords": [
+    "typescript",
+    "observability",
+    "logging",
+    "telemetry",
+    "sentry",
+    "posthog",
+    "pino",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/observability/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "observability"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./core": {
+      "types": "./dist/core.d.mts",
+      "import": "./dist/core.mjs",
+      "default": "./dist/core.mjs"
+    },
+    "./logger": {
+      "types": "./dist/logger.d.mts",
+      "import": "./dist/logger.mjs",
+      "default": "./dist/logger.mjs"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.mts",
+      "import": "./dist/errors.mjs",
+      "default": "./dist/errors.mjs"
+    },
+    "./analytics": {
+      "types": "./dist/analytics.d.mts",
+      "import": "./dist/analytics.mjs",
+      "default": "./dist/analytics.mjs"
+    },
+    "./browser/sentry": {
+      "types": "./dist/browser-sentry.d.mts",
+      "import": "./dist/browser-sentry.mjs",
+      "default": "./dist/browser-sentry.mjs"
+    },
+    "./browser/posthog": {
+      "types": "./dist/browser-posthog.d.mts",
+      "import": "./dist/browser-posthog.mjs",
+      "default": "./dist/browser-posthog.mjs"
+    },
+    "./edge/sentry": {
+      "types": "./dist/edge-sentry.d.mts",
+      "import": "./dist/edge-sentry.mjs",
+      "default": "./dist/edge-sentry.mjs"
+    },
+    "./edge/posthog": {
+      "types": "./dist/edge-posthog.d.mts",
+      "import": "./dist/edge-posthog.mjs",
+      "default": "./dist/edge-posthog.mjs"
+    },
+    "./react-native": {
+      "types": "./dist/react-native.d.mts",
+      "import": "./dist/react-native.mjs",
+      "default": "./dist/react-native.mjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs",
+      "default": "./dist/testing.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
+  "devDependencies": {
+    "@axiomhq/pino": "catalog:",
+    "@sentry/browser": "catalog:observability",
+    "@sentry/node": "catalog:",
+    "@sentry/vercel-edge": "catalog:observability",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "pino": "catalog:",
+    "pino-pretty": "catalog:",
+    "posthog-js": "catalog:observability",
+    "posthog-node": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@axiomhq/pino": ">=2",
+    "@sentry/browser": ">=10",
+    "@sentry/node": ">=10",
+    "@sentry/react-native": ">=7",
+    "@sentry/vercel-edge": ">=10",
+    "pino": ">=10",
+    "pino-pretty": ">=13",
+    "posthog-js": ">=1",
+    "posthog-node": ">=5",
+    "posthog-react-native": ">=4",
+    "vitest": ">=4"
+  },
+  "peerDependenciesMeta": {
+    "@axiomhq/pino": {
+      "optional": true
+    },
+    "@sentry/browser": {
+      "optional": true
+    },
+    "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/react-native": {
+      "optional": true
+    },
+    "@sentry/vercel-edge": {
+      "optional": true
+    },
+    "pino": {
+      "optional": true
+    },
+    "pino-pretty": {
+      "optional": true
+    },
+    "posthog-js": {
+      "optional": true
+    },
+    "posthog-node": {
+      "optional": true
+    },
+    "posthog-react-native": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

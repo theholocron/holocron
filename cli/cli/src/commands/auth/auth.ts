@@ -1,0 +1,294 @@
+/**
+ * The token commands — manage bootstrap credentials in the OS keyring.
+ *
+ * Commands:
+ *   new token <provider> [token]   verify + store
+ *   remove token <provider>         remove
+ *   check token <provider>         re-verify a stored token
+ *   list tokens                     every provider with a stored entry
+ *
+ * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
+ *
+ * Verification lives in each plugin as a top-level `verifyToken(token)`
+ * export. The auth command dynamically imports
+ * `@theholocron/holocron-plugin-<provider>` and calls it. Plugins that
+ * don't export `verifyToken` can still store — with a warning — because
+ * "no verify path" shouldn't block credential storage.
+ */
+
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
+import { holocronEnv } from "@theholocron/env-utils/lookup";
+import { style, withSpinner } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { keyring } from "../../auth/index.js";
+import { resolvePluginPackage } from "../../config/index.js";
+import { getLogger } from "../../observability/logger/index.js";
+import { isModuleNotFound } from "../../plugin/index.js";
+import type {
+	AuthCommandStatus,
+	AuthImporter,
+	AuthPluginModule,
+	PluginToken,
+	RunAuthCheckInput,
+	RunAuthListInput,
+	RunAuthSetInput,
+	RunAuthUnsetInput,
+} from "./auth.type.js";
+
+/**
+ * An importer that loads a plugin package for its module-level exports (`verifyToken`, `tokens`), resolving it from
+ * `dir` first (the working directory by default) and from the CLI's own install after that. A command run with `--cwd`
+ * passes the directory of the config it loaded, so it finds the plugins installed there.
+ */
+export function createDefaultImporter(dir?: string): AuthImporter {
+	return async (pkg) => {
+		try {
+			const localRequire = createRequire((dir ?? process.cwd()) + "/");
+			const resolved = localRequire.resolve(pkg);
+			return (await import(pathToFileURL(resolved).href)) as AuthPluginModule;
+		} catch {
+			return (await import(pkg)) as AuthPluginModule;
+		}
+	};
+}
+
+/** Loads a plugin package for its module-level exports (`verifyToken`, `tokens`), from the working directory first. */
+export const defaultImporter: AuthImporter = (pkg) => createDefaultImporter()(pkg);
+
+// ── Token resolution ─────────────────────────────────────────────────
+
+/**
+ * Resolve a token from (positional → HOLOCRON_<X> → vendor-native env).
+ * Keyring is NOT consulted here — `new token` writes TO the keyring, so
+ * pulling FROM it would just re-store the same value.
+ */
+export function resolveAuthSetToken(input: {
+	provider: string;
+	positional?: string;
+	env?: NodeJS.ProcessEnv;
+}): string | null {
+	const e = holocronEnv(input.env);
+	return input.positional || e.get(`${input.provider.toUpperCase()}_TOKEN`) || null;
+}
+
+/**
+ * The environment variable a stored token is named by in a `credentials` environment: the plugin's own `envName` for
+ * the keyring entry when it lists one, else `HOLOCRON_<PROVIDER>_TOKEN` (`HOLOCRON_<FEATURE>_TOKEN` for a feature
+ * key such as `github.read`), which is what the token resolvers read first.
+ */
+function credentialVariable(provider: string, keyringKey: string, listed: PluginToken[]): string {
+	const entry = listed.find((t) => t.keyringKey === keyringKey) ?? listed.find((t) => t.keyringKey === provider);
+	if (entry) return entry.envName;
+	const name = provider.includes(".") ? provider.slice(provider.lastIndexOf(".") + 1) : provider;
+	return `HOLOCRON_${name.toUpperCase()}_TOKEN`;
+}
+
+export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandStatus> {
+	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
+	const importer = input.importer ?? defaultImporter;
+	const { provider } = input;
+	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
+
+	const token = resolveAuthSetToken({ provider, positional: input.positional, env: input.env });
+
+	// Feature sub-keys (e.g. "github.read") are stored directly — there is no
+	// per-feature plugin package to load for verification.
+	const isFeatureKey = provider.includes(".");
+	const packageName = isFeatureKey ? null : resolvePluginPackage(provider);
+
+	if (!token) {
+		print(style.fail(`no token supplied for \`${keyringKey}\`.`));
+		print(style.hint(`  pass as positional arg: holocron new token ${provider} <token>`));
+		if (!isFeatureKey) {
+			print(
+				style.hint(`  or via env: HOLOCRON_${provider.toUpperCase()}_TOKEN / ${provider.toUpperCase()}_TOKEN`)
+			);
+			const hint = await tryLoadHint(importer, packageName!);
+			if (hint) {
+				print(style.hint(`  hint: ${hint}`));
+			}
+		}
+		logger.warn({ provider, keyringKey, reason: "no token supplied" }, `new token: ${keyringKey}`);
+		return { status: "fail", message: "no token supplied" };
+	}
+
+	// Verify via the plugin if it exports verifyToken (skipped for feature sub-keys).
+	let subject: string | undefined;
+	let listed: PluginToken[] = [];
+	if (!isFeatureKey && packageName) {
+		try {
+			const module = await importer(packageName);
+			listed = module.tokens ?? [];
+			if (typeof module.verifyToken === "function") {
+				const verified = await module.verifyToken(token);
+				if (!verified.ok) {
+					print(style.fail(`token rejected by ${provider}: ${verified.message}`));
+					if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
+					logger.warn(
+						{ provider, keyringKey, verified: false, reason: verified.message },
+						`new token: ${keyringKey}`
+					);
+					return { status: "fail", message: verified.message };
+				}
+				subject = verified.subject;
+			} else {
+				print(style.warn(`${provider} plugin has no verifyToken; storing without verification`));
+			}
+		} catch (err) {
+			const msg = errorMessage(err);
+			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
+			print(
+				style.hint(
+					`  storing token anyway; run 'holocron check token ${provider}' once the plugin is installed`
+				)
+			);
+		}
+	}
+
+	const stored = keyring.set(keyringKey, token);
+	if (!stored) {
+		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
+		logger.warn({ provider, keyringKey, reason: "keyring unavailable" }, `new token: ${keyringKey}`);
+		return { status: "fail", message: "keyring unavailable" };
+	}
+
+	print(style.success(`stored ${keyringKey} token${subject ? ` (${subject})` : ""}`));
+	if (input.credentials) {
+		const { provider: from, environment } = input.credentials;
+		const variable = credentialVariable(provider, keyringKey, listed);
+		print(
+			style.hint(
+				`  ${from} cannot be written to from the CLI: add ${variable} to its "${environment}" environment yourself, so the token follows you to other machines`
+			)
+		);
+	}
+	logger.info(
+		{ provider, keyringKey, verified: subject !== undefined, ...(subject ? { subject } : {}), status: "ok" },
+		`new token: ${keyringKey}`
+	);
+	return { status: "ok", ...(subject ? { message: subject } : {}) };
+}
+
+export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
+	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
+	const removed = keyring.delete(input.provider);
+	if (removed) {
+		print(style.success(`removed ${input.provider} token`));
+		logger.info({ provider: input.provider, status: "ok" }, `remove token: ${input.provider}`);
+		return { status: "ok" };
+	}
+	print(style.dim(`no stored token for ${input.provider}`));
+	logger.info({ provider: input.provider, status: "skip" }, `remove token: ${input.provider}`);
+	return { status: "skip", message: "nothing to remove" };
+}
+
+export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthCommandStatus> {
+	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
+	const importer = input.importer ?? defaultImporter;
+	const { provider } = input;
+	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
+
+	const token = keyring.get(keyringKey);
+	if (!token) {
+		print(style.dim(`no stored token for ${keyringKey}`));
+		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `check token: ${keyringKey}`);
+		return { status: "skip", message: "no stored token" };
+	}
+
+	// Feature sub-keys have no plugin to verify against — report stored only.
+	if (provider.includes(".")) {
+		print(style.success(`${keyringKey}: token stored (feature key — no plugin verification)`));
+		return { status: "ok", message: "stored" };
+	}
+
+	const packageName = resolvePluginPackage(provider);
+	try {
+		const module = await importer(packageName);
+		if (typeof module.verifyToken !== "function") {
+			print(style.warn(`${keyringKey}: token stored (plugin has no verifyToken; can't confirm validity)`));
+			return { status: "ok", message: "stored, unverified" };
+		}
+		const verify = () => module.verifyToken!(token);
+		const verified =
+			input.showSpinner !== false ? await withSpinner(`Verifying ${keyringKey} token…`, verify) : await verify();
+		if (verified.ok) {
+			print(style.success(`${keyringKey}: ok — ${verified.subject}`));
+			logger.info(
+				{ provider, keyringKey, verified: true, subject: verified.subject, status: "ok" },
+				`check token: ${keyringKey}`
+			);
+			return { status: "ok", message: verified.subject };
+		}
+		print(style.fail(`${keyringKey}: rejected — ${verified.message}`));
+		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
+		logger.warn(
+			{ provider, keyringKey, verified: false, reason: verified.message, status: "fail" },
+			`check token: ${keyringKey}`
+		);
+		return { status: "fail", message: verified.message };
+	} catch (err) {
+		const msg = errorMessage(err);
+		// Global install: the plugin package isn't resolvable here. `new token` /
+		// `list tokens` already work plugin-free — `check token` degrades to the
+		// same "we have a token, we just can't confirm it" report rather than
+		// failing outright (theholocron/holocron#576).
+		if (isModuleNotFound(err)) {
+			print(style.warn(`${keyringKey}: token present — verification skipped (plugin not available here)`));
+			logger.info(
+				{ provider, keyringKey, status: "ok", reason: "plugin not resolvable" },
+				`check token: ${keyringKey}`
+			);
+			return { status: "ok", message: "stored, unverified (plugin not available)" };
+		}
+		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
+		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `check token: ${keyringKey}`);
+		return { status: "fail", message: msg };
+	}
+}
+
+export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCommandStatus> {
+	const print = input.print ?? ((l: string) => console.log(l));
+	const logger = input.logger ?? getLogger();
+	const importer = input.importer ?? defaultImporter;
+	const providers = keyring.list();
+
+	if (providers.length === 0) {
+		print(style.dim("no stored tokens."));
+		print(style.hint("run: holocron new token <provider> <token>"));
+		logger.info({ providers: 0 }, "list tokens: done");
+		return { status: "ok", message: "none" };
+	}
+
+	let ok = 0;
+	let fail = 0;
+	for (const provider of providers.sort()) {
+		const check = await runAuthCheck({ provider, importer, print: () => {}, logger, showSpinner: false });
+		const label = `${provider}${check.message ? ` — ${check.message}` : ""}`;
+		if (check.status === "ok") {
+			ok += 1;
+			print(`  ${style.success(label)}`);
+		} else if (check.status === "fail") {
+			fail += 1;
+			print(`  ${style.fail(label)}`);
+		} else print(`  ${style.dim(`· ${label}`)}`);
+	}
+	logger.info({ providers: providers.length, ok, fail }, "list tokens: done");
+	return { status: "ok" };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+async function tryLoadHint(importer: AuthImporter, packageName: string): Promise<string | null> {
+	try {
+		const module = await importer(packageName);
+		return module.AUTH_HINT ?? null;
+	} catch {
+		return null;
+	}
+}

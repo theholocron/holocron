@@ -1,0 +1,9 @@
+{
+  "display": "Filesystem Utilities",
+  "extends": "@tsconfig/node-lts/tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
+  "include": ["./src/**/*.ts"],
+  "exclude": ["./node_modules", "**/*.test.ts"]
+}

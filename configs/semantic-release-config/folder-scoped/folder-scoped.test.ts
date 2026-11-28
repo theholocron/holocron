@@ -1,0 +1,220 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { ReleaseContext } from "../release.type.js";
+import { commentOnlyFor, folderScoped, resolvePlugin, ungroupedScoped } from "./folder-scoped.js";
+
+const commit = (hash: string, message = hash) => ({ hash, message });
+
+const FILES = new Map([
+	["a", ["clients/a.ts"]],
+	["b", ["utils/b.ts"]],
+	["c", ["README.md", "clients/c.ts"]],
+]);
+
+function setup(step: "analyzeCommits" | "generateNotes" = "analyzeCommits") {
+	const inner = vi.fn(() => "minor");
+	const load = vi.fn(async () => ({ [step]: inner }));
+	const listFiles = vi.fn(() => FILES);
+	const plugin = folderScoped(step, ["clients"], { load, listFiles });
+	return { inner, load, listFiles, plugin };
+}
+
+describe("folderScoped", () => {
+	it("passes only the commits that touched the paths to the stock plugin, with its config and the rest of the context", async () => {
+		const { inner, plugin } = setup();
+		const context: ReleaseContext = {
+			cwd: "/repo",
+			commits: [commit("a"), commit("b"), commit("c")],
+			lastRelease: { x: 1 },
+		};
+		const result = await plugin.analyzeCommits!({ preset: "conventionalcommits" }, context);
+
+		expect(result).toBe("minor");
+		expect(inner).toHaveBeenCalledWith(
+			{ preset: "conventionalcommits" },
+			expect.objectContaining({ cwd: "/repo", lastRelease: { x: 1 }, commits: [commit("a"), commit("c")] })
+		);
+	});
+
+	it("lists the files in the context's working directory, once, for every commit", async () => {
+		const { listFiles, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(listFiles).toHaveBeenCalledTimes(1);
+		expect(listFiles).toHaveBeenCalledWith("/repo", ["a", "b"]);
+	});
+
+	it("hands the stock plugin no commits when none touched the paths", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("b")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+
+	it("treats a commit git reports nothing for as outside the paths", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("unknown")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+
+	it("works with no commits in the context", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo" });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+
+	it("wraps generateNotes of the release-notes generator the same way", async () => {
+		const { inner, load, plugin } = setup("generateNotes");
+		await plugin.generateNotes!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator", "/repo");
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("a")] }));
+	});
+
+	it("loads the commit analyzer for analyzeCommits", async () => {
+		const { load, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [] });
+		expect(load).toHaveBeenCalledWith("@semantic-release/commit-analyzer", "/repo");
+	});
+
+	it("exposes only the one step", () => {
+		expect(Object.keys(setup().plugin)).toEqual(["analyzeCommits"]);
+	});
+
+	it("falls back to the process working directory and a real `import()` when nothing is injected", async () => {
+		const plugin = folderScoped("analyzeCommits", ["clients"]);
+		// no commits, so git is never asked; the stock analyzer is imported for real and finds no release
+		const logger = { log: () => {} };
+		await expect(plugin.analyzeCommits!({}, { commits: [], logger })).resolves.toBeNull();
+	});
+});
+
+describe("ungroupedScoped", () => {
+	const FILES_UNGROUPED = new Map([
+		["a", ["observability/src/a.ts"]],
+		["b", ["cli/cli/src/b.ts"]],
+		["c", ["observability/src/c.ts", "package.json"]],
+		["d", ["skills/d.md"]],
+	]);
+
+	function setup(step: "analyzeCommits" | "generateNotes" = "analyzeCommits") {
+		const inner = vi.fn(() => "patch");
+		const load = vi.fn(async () => ({ [step]: inner }));
+		const plugin = ungroupedScoped(step, ["observability", "skills"], { load, listFiles: () => FILES_UNGROUPED });
+		return { inner, load, plugin };
+	}
+
+	it("keeps only commits that changed something outside every group folder", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!(
+			{ preset: "x" },
+			{ cwd: "/repo", commits: [commit("a"), commit("b"), commit("c"), commit("d")] }
+		);
+		expect(inner).toHaveBeenCalledWith(
+			{ preset: "x" },
+			expect.objectContaining({ commits: [commit("b"), commit("c")] })
+		);
+	});
+
+	it("hands the stock plugin no commits when every commit is inside a group", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("a"), commit("d")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+
+	it("wraps generateNotes the same way, loading the notes generator", async () => {
+		const { inner, load, plugin } = setup("generateNotes");
+		await plugin.generateNotes!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator", "/repo");
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("b")] }));
+	});
+
+	it("treats a commit git reports nothing for as inside no group, so it is kept out of the way", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("unknown")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+});
+
+describe("commentOnlyFor", () => {
+	const scoped = folderScoped("success", ["clients"], { load: async () => ({}), listFiles: () => new Map() });
+
+	it("turns the GitHub plugin's own comments and labels off and hands them to the scoped step with the same config", () => {
+		expect(commentOnlyFor(["@semantic-release/github", { assets: "x" }], scoped)).toEqual([
+			["@semantic-release/github", { assets: "x", successComment: false, releasedLabels: false }],
+			[scoped, { assets: "x" }],
+		]);
+	});
+
+	it("accepts the plugin named without a config", () => {
+		expect(commentOnlyFor("@semantic-release/github", scoped)).toEqual([
+			["@semantic-release/github", { successComment: false, releasedLabels: false }],
+			[scoped, undefined],
+		]);
+	});
+
+	it("runs the stock GitHub plugin's success over only the kept commits", async () => {
+		const inner = vi.fn();
+		const plugin = folderScoped("success", ["clients"], {
+			load: async () => ({ success: inner }),
+			listFiles: () => FILES,
+		});
+		await plugin.success!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("a")] }));
+	});
+});
+
+describe("default plugin loading", () => {
+	let dir: string | undefined;
+	afterEach(() => {
+		if (dir) rmSync(dir, { recursive: true, force: true });
+		dir = undefined;
+	});
+
+	it("loads the stock plugin as the repo being released resolves it, not as astromech does", async () => {
+		dir = mkdtempSync(join(tmpdir(), "folder-scoped-"));
+		const pkg = join(dir, "node_modules", "@semantic-release", "github");
+		mkdirSync(pkg, { recursive: true });
+		writeFileSync(join(dir, "package.json"), '{"name":"repo"}');
+		writeFileSync(
+			join(pkg, "package.json"),
+			'{"name":"@semantic-release/github","type":"module","exports":"./index.js"}'
+		);
+		writeFileSync(join(pkg, "index.js"), "export const success = (config, context) => context.commits.length;");
+
+		const plugin = folderScoped("success", ["clients"], { listFiles: () => FILES });
+		const result = await plugin.success!({}, { cwd: dir, commits: [commit("a"), commit("b"), commit("c")] });
+
+		expect(result).toBe(2);
+	});
+});
+
+describe("resolvePlugin", () => {
+	const notFound = () => {
+		throw new Error("MODULE_NOT_FOUND");
+	};
+
+	it("prefers the plugin the repo resolves itself", () => {
+		const requireFrom = vi.fn(() => ({ resolve: (id: string) => `/repo/node_modules/${id}/index.js` }));
+		expect(resolvePlugin("@semantic-release/github", "/repo", requireFrom)).toBe(
+			"/repo/node_modules/@semantic-release/github/index.js"
+		);
+		expect(requireFrom).toHaveBeenCalledTimes(1);
+		expect(requireFrom).toHaveBeenCalledWith("/repo/package.json");
+	});
+
+	it("falls back to the plugin as semantic-release resolves it when the repo has none", () => {
+		const fromSemanticRelease = { resolve: (id: string) => `/store/semantic-release/node_modules/${id}/index.js` };
+		const fromRepo = {
+			resolve: (id: string) =>
+				id === "semantic-release" ? "/repo/node_modules/semantic-release/index.js" : notFound(),
+		};
+		const requireFrom = vi.fn((file: string) => (file === "/repo/package.json" ? fromRepo : fromSemanticRelease));
+
+		expect(resolvePlugin("@semantic-release/github", "/repo", requireFrom)).toBe(
+			"/store/semantic-release/node_modules/@semantic-release/github/index.js"
+		);
+		expect(requireFrom).toHaveBeenLastCalledWith("/repo/node_modules/semantic-release/index.js");
+	});
+});

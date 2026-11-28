@@ -1,0 +1,12 @@
+name: Sentinel (prod)
+variables:
+  - name: baseUrl
+    value: https://sentinel.theholocron.dev
+  - name: webhookSecret
+    value: "{{process.env.PROD_SENTINEL_WEBHOOK_SECRET}}"
+  - name: repo
+    value: theholocron/sandbox
+  - name: pullNumber
+    value: "1"
+  - name: installationId
+    value: "1"

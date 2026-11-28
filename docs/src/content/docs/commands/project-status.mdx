@@ -1,0 +1,37 @@
+---
+title: "project status"
+description: Set the status of an issue on a project board by the issue's key, so nobody looks up a project item id.
+---
+
+```bash
+holocron project status 1234 "In Progress"
+holocron project status '#1234' done
+holocron project status theholocron/holocron#1234 Todo --board v5
+holocron project status 1234 "In Progress" --dry-run  # print the change, set nothing
+```
+
+It sets one item's status on a board `providers.projects` declares, by the issue's key. It is for the start of work, the one event the board's rules cannot see: an agent or a person says "I am on this" and the issue moves to `In Progress`. It prints one line and exits.
+
+```text
+#1234 Todo → In Progress
+```
+
+## The issue
+
+`#1234`, `1234` and `owner/repo#1234` all work (`owner/repo#1234` of this repository is the same item as `#1234`). A key that is not a number, such as a Linear key (`ENG-42`), is matched as written, in any case. An issue in another repository is matched only by its full `owner/repo#1234`, never by its bare number.
+
+The issue has to be on the board already. If it is not, the command stops and says how to add it (`gh project item-add <number> --owner <owner> --url <issue url>`, or the board's auto-add rule). It never adds an item itself.
+
+## The status
+
+The status is a name from the board's template (`roadmap`, `sprint` or the repo's own), in any case: `done` sets `Done`. A name the template does not have fails with the list of valid ones. Only the status changes; priority and every other field stay as they are.
+
+## The board
+
+`--board <name>` picks one of the declared boards. Without it the first declared board is used. The board has to be open; `holocron setup project` makes it.
+
+## It asks nothing
+
+A status is easy to set back, so there is no confirmation. `--dry-run` prints `would set #1234 Todo → In Progress` and calls nothing that writes. Setting the status an item already has changes nothing and says `(already)`.
+
+It needs a `projects` provider whose package resolves, and that provider must be able to list items and set a status (GitHub can). Without one the command stops and says so.

@@ -1,0 +1,381 @@
+import type { GraphQLClient, RestClient } from "../utils.js";
+import { repoBase, splitRepo } from "../utils.js";
+
+/** A pull request as GitHub returns it, with only the fields this client reads. */
+export interface GitHubPullRequest {
+	/** The pull request's number. */
+	number: number;
+	/** The pull request's GraphQL node id (what `markReadyForReview` and a board's `addProjectV2ItemById` take). */
+	node_id?: string;
+	/** The pull request's title. */
+	title: string;
+	/** The pull request's description, as written (markdown); `null` when it has none. */
+	body?: string | null;
+	/** Whether the pull request is open or closed. */
+	state: "open" | "closed";
+	/** When the pull request was merged as an ISO 8601 timestamp, or `null` if it was not merged. */
+	merged_at: string | null;
+	/** The URL of the pull request's page on GitHub. */
+	html_url: string;
+	/** The head branch: its name and the commit it pointed at when the PR was read. */
+	head: {
+		/** The branch name, e.g. `fix/my-change`. */
+		ref: string;
+		/** The head commit. */
+		sha: string;
+	};
+	/** Whether the pull request is a draft. */
+	draft?: boolean;
+	/** When the pull request was opened, as an ISO 8601 timestamp. */
+	created_at?: string;
+	/** The author. */
+	user?: {
+		/** The author's login. */
+		login: string;
+		/** The account type: `User` or `Bot` (Dependabot is a `Bot`). */
+		type: string;
+	};
+	/** Who merged it; `null` for a pull request that is not merged. */
+	merged_by?: { login: string } | null;
+	/** The base branch. */
+	base?: {
+		/** The base branch's name, e.g. `alpha`. */
+		ref: string;
+	};
+	/** The people whose review is still asked for. */
+	requested_reviewers?: { login: string }[];
+	/** Lines added, as the single-pull-request endpoint returns it (the list endpoint omits it). */
+	additions?: number;
+	/** Lines removed; see `additions`. */
+	deletions?: number;
+	/** Files changed; see `additions`. */
+	changed_files?: number;
+	/** Whether it merges cleanly; `null` while GitHub is still working it out. */
+	mergeable?: boolean | null;
+	/** `dirty` means it conflicts with its base; see `mergeable`. */
+	mergeable_state?: string;
+}
+
+/** The body of {@link pulls}`.createPullRequest`. */
+export interface CreatePullRequestInput {
+	/** The title. */
+	title: string;
+	/** The branch with the changes. */
+	head: string;
+	/** The branch to merge into. */
+	base: string;
+	/** The description (markdown). */
+	body?: string;
+	/** Open it as a draft. */
+	draft?: boolean;
+}
+
+/** The fields {@link pulls}`.updatePullRequest` can change; a field left out is left alone. */
+export interface UpdatePullRequestInput {
+	/** The title. */
+	title?: string;
+	/** The description (markdown). */
+	body?: string;
+	/** The branch to merge into. */
+	base?: string;
+	/** Open or close it. */
+	state?: "open" | "closed";
+}
+
+/** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
+export interface GitHubCommitIdentity {
+	name: string;
+	email: string;
+}
+
+/** One commit as returned by `GET /pulls/{pull_number}/commits` — only the fields any known consumer needs. */
+export interface GitHubPullRequestCommit {
+	/** The commit's SHA. */
+	sha: string;
+	/** The commit's message and git identities. */
+	commit: {
+		/** The commit message. */
+		message: string;
+		/** The commit's author, as git recorded it. */
+		author: GitHubCommitIdentity;
+		/** The commit's committer, as git recorded it. */
+		committer: GitHubCommitIdentity;
+	};
+	/** The commit's linked GitHub account, when GitHub can associate one — `null` for a commit email with no linked account. `type: "Bot"` identifies an app-authored commit (e.g. Dependabot, a prior Sentinel auto-fix-commit). */
+	author: { login: string; type: "User" | "Bot" } | null;
+	/** More than one entry marks a merge commit — it has no authorship of its own beyond its parents', the reason DCO enforcement (and this org's own CI) never requires a signoff on one. */
+	parents: Array<{ sha: string }>;
+}
+
+/** One file as returned by `GET /pulls/{pull_number}/files` — only the fields any known consumer needs. */
+export interface GitHubPullRequestFile {
+	/** The file's path in the repository. */
+	filename: string;
+	/** How the pull request changes the file. */
+	status: "added" | "removed" | "modified" | "renamed" | "copied" | "changed" | "unchanged";
+	/** Set only when `status === "renamed"`. */
+	previous_filename?: string;
+	/**
+	 * This file's unified-diff hunks (`@@ -a,b +c,d @@` headers plus
+	 * context/added/removed lines) — what a consumer needs to know which
+	 * RIGHT-side lines a PR review comment can anchor to. Absent for binary
+	 * files and for diffs too large for GitHub to include.
+	 */
+	patch?: string;
+}
+
+/** One inline comment in a `POST /pulls/{pull_number}/reviews` request body. */
+export interface CreateReviewComment {
+	/** File path relative to the repo root. */
+	path: string;
+	/** 1-indexed line in the file's current (`RIGHT`) version — GitHub anchors a review comment to a line, not a column. */
+	line: number;
+	/** Almost always `"RIGHT"` (the PR's own new content) — `"LEFT"` targets the base/pre-PR version instead. */
+	side: "LEFT" | "RIGHT";
+	/** The comment text. */
+	body: string;
+}
+
+/** The body of a review creation request. */
+export interface CreateReviewInput {
+	/** The PR's head SHA the review attaches to. */
+	commit_id: string;
+	/** The review's own top-level summary, shown above its inline comments. */
+	body: string;
+	/**
+	 * `"COMMENT"` never blocks a merge by itself — the right choice for an
+	 * advisory bot review. `"REQUEST_CHANGES"`/`"APPROVE"` carry the same
+	 * real weight as a human reviewer's own review state, affecting
+	 * required-approval counts and dismissal.
+	 */
+	event: "COMMENT" | "REQUEST_CHANGES" | "APPROVE";
+	/** Inline comments to post with the review. */
+	comments?: CreateReviewComment[];
+}
+
+/** `POST /pulls/{pull_number}/reviews`'s response — only the fields any known consumer needs. */
+export interface GitHubPullRequestReview {
+	/** The review's numeric id. */
+	id: number;
+	/** The URL of the review on GitHub. */
+	html_url: string;
+	/** `APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED` or `PENDING`; set on a review read back. */
+	state?: string;
+	/** The reviewer; set on a review read back. */
+	user?: { login: string } | null;
+	/** The review's summary text (markdown); set on a review read back, and `null` or empty when it has none. */
+	body?: string | null;
+}
+
+/**
+ * One review thread — GraphQL-only (`resolveReviewThread`, the mutation
+ * this exists to support, has no REST equivalent at all). `id` here is a
+ * GraphQL node ID (`PRRT_...`), not the same numeric ID space as REST's
+ * review-comment `id` — pass it straight through to `resolveReviewThread()`,
+ * never compare it against a REST-sourced ID.
+ */
+export interface ReviewThread {
+	/** The thread's GraphQL node id. */
+	id: string;
+	/** Whether the thread is resolved. */
+	isResolved: boolean;
+	/** The thread's first comment's author login (e.g. `"the-holocron-sentinel[bot]"`) — `undefined` if GitHub ever returns a thread with no comments, which shouldn't happen in practice. Callers filter on this before resolving anything, so a bot never touches a human reviewer's own thread. */
+	authorLogin: string | undefined;
+	/** The file the thread is anchored to on the PR's current diff — `null` once GitHub can no longer place it there (e.g. the file was since deleted). */
+	path: string | null;
+	/** 1-indexed line the thread is anchored to — `null` in the same "can no longer place it" case as `path`. */
+	line: number | null;
+	/**
+	 * The thread's first comment's own body — the exact text a caller like
+	 * Sentinel posted for a specific finding. Lets a caller diff a prior
+	 * thread's own content against the current push's findings (holocron#860)
+	 * to decide whether that finding is still live, rather than only knowing
+	 * a thread exists. `undefined` in the same no-comments case as
+	 * `authorLogin`.
+	 */
+	body: string | undefined;
+}
+
+interface ListReviewThreadsResponse {
+	repository: {
+		pullRequest: {
+			reviewThreads: {
+				nodes: Array<{
+					id: string;
+					isResolved: boolean;
+					path: string | null;
+					line: number | null;
+					comments: { nodes: Array<{ author: { login: string } | null; body: string }> };
+				}>;
+			};
+		};
+	};
+}
+
+const LIST_REVIEW_THREADS_QUERY = `
+	query($owner: String!, $name: String!, $number: Int!) {
+		repository(owner: $owner, name: $name) {
+			pullRequest(number: $number) {
+				reviewThreads(first: 100) {
+					nodes {
+						id
+						isResolved
+						path
+						line
+						comments(first: 1) {
+							nodes {
+								author { login }
+								body
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+`;
+
+const MARK_READY_MUTATION = `
+	mutation($pullRequestId: ID!) {
+		markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
+			pullRequest { id isDraft }
+		}
+	}
+`;
+
+const RESOLVE_REVIEW_THREAD_MUTATION = `
+	mutation($threadId: ID!) {
+		resolveReviewThread(input: { threadId: $threadId }) {
+			thread { id isResolved }
+		}
+	}
+`;
+
+/** Page size and the most pages {@link pulls}`.listPullRequests` reads: 100 a page (GitHub's maximum) over 100 pages, so 10,000 pull requests. */
+const PULL_REQUEST_PAGE_SIZE = 100;
+const PULL_REQUEST_MAX_PAGES = 100;
+
+/** Page size and the most pages {@link pulls}`.listFiles` reads: 100 a page over 30 pages, the 3000 files GitHub serves. */
+const FILE_PAGE_SIZE = 100;
+const FILE_MAX_PAGES = 30;
+
+export function pulls(rest: RestClient, graphql: GraphQLClient) {
+	return {
+		getPullRequest: (repo: string, number: number): Promise<GitHubPullRequest> =>
+			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls/${number}`),
+
+		/**
+		 * Opens a pull request (`POST /pulls`). GitHub answers 422 when the head has no commit beyond the base or a pull
+		 * request for the same head and base is already open.
+		 */
+		createPullRequest: (repo: string, input: CreatePullRequestInput): Promise<GitHubPullRequest> =>
+			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls`, { method: "POST", body: { ...input } }),
+
+		/** Changes a pull request's own fields (`PATCH /pulls/{number}`). Labels, assignees and the milestone are the issues API's. */
+		updatePullRequest: (repo: string, number: number, input: UpdatePullRequestInput): Promise<GitHubPullRequest> =>
+			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls/${number}`, {
+				method: "PATCH",
+				body: { ...input },
+			}),
+
+		/** The open pull requests whose head is `branch` of the repository itself (`GET /pulls?head=owner:branch`). */
+		listOpenByHead: (repo: string, branch: string): Promise<GitHubPullRequest[]> => {
+			const [owner] = splitRepo(repo);
+			return rest.request<GitHubPullRequest[]>(
+				`${repoBase(repo)}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}&per_page=100`
+			);
+		},
+
+		/**
+		 * Takes a draft pull request out of draft (GraphQL `markPullRequestReadyForReview`; REST has no call). Takes the
+		 * node id, which a pull request read carries as `node_id`.
+		 */
+		markReadyForReview: (nodeId: string): Promise<void> =>
+			graphql.query(MARK_READY_MUTATION, { pullRequestId: nodeId }),
+
+		/**
+		 * Every pull request in one state, newest first, read a page at a time until a page comes back short.
+		 * `closed` includes the merged ones; tell them apart by `merged_at`.
+		 */
+		listPullRequests: async (repo: string, state: "open" | "closed"): Promise<GitHubPullRequest[]> => {
+			const all: GitHubPullRequest[] = [];
+			for (let page = 1; page <= PULL_REQUEST_MAX_PAGES; page++) {
+				const batch = await rest.request<GitHubPullRequest[]>(
+					`${repoBase(repo)}/pulls?state=${state}&sort=created&direction=desc&per_page=${PULL_REQUEST_PAGE_SIZE}&page=${page}`
+				);
+				all.push(...batch);
+				if (batch.length < PULL_REQUEST_PAGE_SIZE) break;
+			}
+			return all;
+		},
+
+		/**
+		 * A PR's own commits, in commit order. `per_page=100` — GitHub's max —
+		 * covers every real PR in this org; a PR genuinely exceeding 100
+		 * commits (GitHub caps this endpoint at 250 regardless of pagination)
+		 * is an edge case no consumer here needs to paginate for today.
+		 */
+		listCommits: (repo: string, number: number): Promise<GitHubPullRequestCommit[]> =>
+			rest.request<GitHubPullRequestCommit[]>(`${repoBase(repo)}/pulls/${number}/commits?per_page=100`),
+
+		/**
+		 * A PR's own changed files, read a page at a time until a page comes back short. GitHub serves at most
+		 * 3000 files from this endpoint, so a larger PR is cut at that cap.
+		 */
+		listFiles: async (repo: string, number: number): Promise<GitHubPullRequestFile[]> => {
+			const all: GitHubPullRequestFile[] = [];
+			for (let page = 1; page <= FILE_MAX_PAGES; page++) {
+				const batch = await rest.request<GitHubPullRequestFile[]>(
+					`${repoBase(repo)}/pulls/${number}/files?per_page=${FILE_PAGE_SIZE}&page=${page}`
+				);
+				all.push(...batch);
+				if (batch.length < FILE_PAGE_SIZE) break;
+			}
+			return all;
+		},
+
+		/** A PR's reviews, oldest first. `per_page=100` covers every real PR in this org. */
+		listReviews: (repo: string, number: number): Promise<GitHubPullRequestReview[]> =>
+			rest.request<GitHubPullRequestReview[]>(`${repoBase(repo)}/pulls/${number}/reviews?per_page=100`),
+
+		/**
+		 * Submits a review in one call — GitHub has no separate "create draft,
+		 * then submit" step when `event` is provided directly (the multi-step
+		 * `PENDING` review flow exists for the web UI's own draft-comments
+		 * experience, not needed here).
+		 */
+		createReview: (repo: string, number: number, input: CreateReviewInput): Promise<GitHubPullRequestReview> =>
+			rest.request<GitHubPullRequestReview>(`${repoBase(repo)}/pulls/${number}/reviews`, {
+				method: "POST",
+				body: input,
+			}),
+
+		/** Every review thread on a PR, resolved or not — GraphQL-only, `first: 100` covers every real PR's review-thread count in this org today; no consumer needs pagination yet. */
+		listReviewThreads: async (repo: string, number: number): Promise<ReviewThread[]> => {
+			const [owner, name] = splitRepo(repo);
+			const result = await graphql.query<ListReviewThreadsResponse>(LIST_REVIEW_THREADS_QUERY, {
+				owner,
+				name,
+				number,
+			});
+			return result.repository.pullRequest.reviewThreads.nodes.map((node) => ({
+				id: node.id,
+				isResolved: node.isResolved,
+				path: node.path,
+				line: node.line,
+				authorLogin: node.comments.nodes[0]?.author?.login,
+				body: node.comments.nodes[0]?.body,
+			}));
+		},
+
+		/**
+		 * Marks one review thread resolved. Requires `Contents: Write` —
+		 * confirmed directly against GitHub's own behavior (surprising, since
+		 * resolving a thread creates no commit, touches no file, moves no
+		 * ref — it only toggles a boolean on PR conversation metadata), not
+		 * `Pull requests: Write` the way `createReview()` needs.
+		 */
+		resolveReviewThread: (threadId: string): Promise<void> =>
+			graphql.query(RESOLVE_REVIEW_THREAD_MUTATION, { threadId }),
+	};
+}

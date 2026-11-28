@@ -1,0 +1,91 @@
+import type { ProbeRow } from "@theholocron/cli";
+import { describe, expect, it } from "vitest";
+
+import { createPlugin } from "./index.js";
+
+async function connection(options: Record<string, unknown>) {
+	const rows: ProbeRow[] = [];
+	const secrets: Array<string | undefined> = [];
+	const plugin = createPlugin({ ...{}, ...options } as never);
+	await plugin.probes.connection.run({
+		dryRun: false,
+		say: (r) => void rows.push(r),
+		secret: (v) => void secrets.push(v),
+		write: async () => undefined,
+		cleanup: () => {},
+	});
+	return { rows, secrets };
+}
+
+describe("connection probe", () => {
+	it("reaches the provider's host, finds the token, and asks the provider about it", async () => {
+		const urls: string[] = [];
+		const { rows, secrets } = await connection({
+			cliToken: "tok-123",
+			fetch: (async (input: string | URL) => {
+				urls.push(String(input));
+				return new Response("{}", { status: 401 });
+			}) as typeof fetch,
+		});
+		expect(urls[0]).toBe("https://discord.com");
+		expect(rows.find((r) => r.label.startsWith("reach"))).toMatchObject({ status: "ok" });
+		expect(rows.find((r) => r.label === "token")).toMatchObject({ status: "ok" });
+		expect(rows.at(-1)?.label).toBe("accepted");
+		// The runner scrubs whatever is marked secret from what it prints.
+		expect(secrets).toEqual(["tok-123"]);
+	});
+
+	it("says there is no token when none is configured", async () => {
+		const { rows } = await connection({
+			env: {},
+			keyring: () => null,
+			fetch: (async () => new Response("{}", { status: 200 })) as typeof fetch,
+		});
+		expect(rows.find((r) => r.label === "token")).toMatchObject({ status: "fail" });
+	});
+
+	describe("when there is no webhook", () => {
+		const BASE = "https://discord.test/api/v10";
+		const stubbed = (urls: string[]) =>
+			(async (input: string | URL) => {
+				urls.push(String(input));
+				return new Response(JSON.stringify({ id: "9", name: "Holonet" }), { status: 200 });
+			}) as typeof fetch;
+
+		it("checks the bot token instead, so a missing fallback webhook is not a failed connection", async () => {
+			const urls: string[] = [];
+			const { rows, secrets } = await connection({
+				env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot-tok" },
+				keyring: () => null,
+				baseUrl: BASE,
+				unsafeBotBaseUrl: true,
+				fetch: stubbed(urls),
+			});
+			expect(rows.find((r) => r.label === "token")).toMatchObject({ status: "ok" });
+			expect(rows.at(-1)).toMatchObject({ label: "accepted", status: "ok" });
+			expect(JSON.stringify(rows.at(-1))).toContain("bot: Holonet (id: 9)");
+			expect(urls).toContain(`${BASE}/applications/@me`);
+			expect(secrets).toEqual(["bot-tok"]);
+		});
+
+		it("still checks the webhook when there is one, and does not ask about the bot", async () => {
+			const urls: string[] = [];
+			await connection({
+				cliToken: "https://discord.com/api/webhooks/111/abc",
+				env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot-tok" },
+				keyring: () => null,
+				baseUrl: BASE,
+				fetch: stubbed(urls),
+			});
+			expect(urls.some((u) => u.includes("/applications/@me"))).toBe(false);
+			expect(urls.some((u) => u.includes("/webhooks/111/abc"))).toBe(true);
+		});
+
+		it("fails on the missing webhook, naming where to put one, when there is no bot token either", async () => {
+			const { rows } = await connection({ env: {}, keyring: () => null, fetch: stubbed([]) });
+			const token = rows.find((r) => r.label === "token");
+			expect(token).toMatchObject({ status: "fail" });
+			expect(JSON.stringify(token)).toContain("webhook");
+		});
+	});
+});

@@ -1,0 +1,80 @@
+name: Static Analysis
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  static-analysis:
+    name: Run eslint, actionlint and prettier
+    permissions:
+      contents: read
+      statuses: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # actionlint has no npm distribution — install the prebuilt binary via
+      # the maintainer's own documented download script.
+      # NOTE: unverified against a live CI run at authoring time (D12) — flag
+      # here if this needs adjustment.
+      - name: Install actionlint
+        run: |
+          bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+
+      - name: Check for merge-conflict markers
+        # No package distributes this as a standalone tool — a plain grep for
+        # the marker lines (the same check the old bundled linter ran, D12).
+        run: |
+          if grep -rlnE '^(<{7}|={7}|>{7})( |$)' \
+            --exclude-dir=.git --exclude-dir=node_modules .; then
+            echo "::error::merge-conflict markers found"
+            exit 1
+          fi
+
+      # Problem matchers turn the tools' own output into inline annotations on the pull request's diff (the job the
+      # old `annotate` task did with ReviewDog, on a second checkout). They are files of this repo, so a copy of this
+      # workflow that runs where they are missing skips them. `ci/matchers/eslint.json` reads stylish output, whose
+      # paths are absolute, so turbo's `<package>:<task>:` prefix does not hide them.
+      - name: Annotate eslint and actionlint findings
+        run: |
+          for matcher in eslint actionlint; do
+            if [ -f "ci/matchers/$matcher.json" ]; then
+              echo "::add-matcher::ci/matchers/$matcher.json"
+            fi
+          done
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run eslint and actionlint
+        with:
+          task: lint:code
+
+      # `holocron run lint:code` runs turbo, which runs each package's eslint and nothing else, so actionlint (installed
+      # above) is run here, on the repo's workflows. It ran in the old `annotate` job; `!cancelled()` runs it even when
+      # eslint failed, so one run shows both.
+      - name: Run actionlint
+        if: ${{ !cancelled() }}
+        run: actionlint
+
+      # prettier's check is the `format` action, not a workflow
+      # of its own. It is called by path because the action is new and `theholocron/.github` is frozen, so no
+      # remote copy of it exists; the path resolves in the repo that hosts the reusables, which is the only caller of
+      # this file until `ci-v1` exists (then it becomes `theholocron/holocron/ci/actions/format@ci-v1`).
+      - uses: ./ci/actions/format
+        name: Run prettier

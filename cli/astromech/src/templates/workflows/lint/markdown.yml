@@ -1,0 +1,19 @@
+name: lint:markdown
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: lint-markdown-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-markdown:
+    name: lint:markdown
+    uses: theholocron/.github/.github/workflows/lint-markdown.yml@main
+    secrets: inherit

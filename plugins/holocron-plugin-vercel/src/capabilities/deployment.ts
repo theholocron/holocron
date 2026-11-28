@@ -1,0 +1,372 @@
+/**
+ * `deployment` capability for Vercel.
+ *
+ * Ported from rando-id/rando.id `cli/cli/src/adapters/vercel.ts`,
+ * adapted to the holocron `Deployment` interface:
+ *
+ *   - `ensureProject` is the idempotent create (GET-then-POST), since
+ *     `holocron setup` re-runs on every invocation
+ *   - `setEnvVar` uses Vercel's `upsert=true` so it's idempotent
+ *     create-or-update
+ *   - `triggerDeployment` infers a branch preview when `target` is
+ *     omitted; named targets ('production' / 'staging') opt into
+ *     environment-scoped deploys
+ *
+ * Vercel encrypts env-var values at rest server-side; we send them as
+ * `type: 'encrypted'`. Unlike GitHub Actions secrets, there's no
+ * sealed-box / libsodium step on the client.
+ */
+
+import type {
+	DeployFunctionConfig,
+	DeployFunctionResult,
+	Deployment,
+	DeploymentProject,
+	DeploymentProjectSettings,
+	DeploymentRecord,
+	DeploymentTarget,
+	DeploymentTrigger,
+	DnsRecordRequest,
+	EnsureRelaySourceInput,
+	EnsureRelaySourceResult,
+	InspectRelaySourceInput,
+	RelaySourceState,
+} from "@theholocron/cli";
+import { ProviderApiError } from "@theholocron/cli";
+import type { VercelClient, VercelProject } from "@theholocron/vercel-client";
+
+import { ensureVercelRelaySource, inspectVercelRelaySource } from "./relay-source.js";
+
+/** The `meta` key a file deploy tags a preview with: the pull request it belongs to, as `<repo>-pr-<number>`. */
+const PREVIEW_META_KEY = "holocronPreview";
+
+/** How many pages of a project's deployments a cleanup reads (100 to a page) before it stops looking. */
+const MAX_LIST_PAGES = 20;
+
+export interface DeploymentOptions {
+	/** Optional framework hint passed to project creates. Defaults to "nextjs". */
+	defaultFramework?: string;
+	/** Custom domain that `holocron setup` should attach to this project. */
+	domain?: string;
+}
+
+/** The `deployment` capability for Vercel: projects, environment variables, deployments, functions and custom domains. */
+export class VercelDeployment implements Deployment {
+	/** The capability key, always `deployment`. */
+	readonly key = "deployment" as const;
+	/** The provider name, `vercel`. */
+	readonly providerName = "vercel";
+	readonly domain?: string;
+
+	private readonly defaultFramework: string;
+
+	constructor(
+		private readonly client: () => VercelClient,
+		opts: DeploymentOptions = {}
+	) {
+		this.defaultFramework = opts.defaultFramework ?? "nextjs";
+		this.domain = opts.domain;
+	}
+
+	// ── projects ────────────────────────────────────────────────────────
+
+	/** Lists the projects the token can see, mapped to the provider-neutral shape. */
+	async listProjects(): Promise<DeploymentProject[]> {
+		const { projects } = await this.client().projects.list();
+		return projects.map(mapProject);
+	}
+
+	async ensureProject(input: {
+		name: string;
+		framework?: string;
+		repo?: string;
+		rootDirectory?: string;
+	}): Promise<DeploymentProject> {
+		const existing = await this.getProjectByName(input.name);
+		if (existing) return existing;
+
+		const result = await this.client().projects.create({
+			name: input.name,
+			framework: input.framework ?? this.defaultFramework,
+			repo: input.repo,
+			rootDirectory: input.rootDirectory,
+		});
+		return mapProject(result);
+	}
+
+	/** Updates a project's preview-deployment and Git-provider deployment settings and returns the updated project. */
+	async updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject> {
+		const result = await this.client().projects.update(projectId, {
+			previewDeploymentsDisabled: settings.previewDeploymentsDisabled,
+			// createDeployments accepts boolean at runtime; client type is narrower than needed
+			gitProviderOptions:
+				settings.gitProviderCreateDeployments !== undefined
+					? { createDeployments: settings.gitProviderCreateDeployments }
+					: undefined,
+		});
+		return mapProject(result);
+	}
+
+	// ── relay source ────────────────────────────────────────────────────
+
+	/** Makes (or adopts) the team webhook for a Comlink relay source, found by its URL; returns the secret only when made now. */
+	ensureRelaySource(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult> {
+		return ensureVercelRelaySource(this.client(), input);
+	}
+
+	/** Reads the relay source's webhook back without changing it. */
+	inspectRelaySource(input: InspectRelaySourceInput): Promise<RelaySourceState> {
+		return inspectVercelRelaySource(this.client(), input);
+	}
+
+	// ── env vars ────────────────────────────────────────────────────────
+
+	/** Lists the names of the project's environment variables that apply to `target`. */
+	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
+		const { envs } = await this.client().env.list(projectId);
+		return envs.filter((e) => e.target.includes(target)).map((e) => e.key);
+	}
+
+	/** Creates or updates (upsert) an environment variable on the project for `target`. */
+	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
+		await this.client().env.set(projectId, target, name, value);
+	}
+
+	// ── deployments ─────────────────────────────────────────────────────
+
+	async triggerDeployment(input: {
+		projectId: string;
+		branch: string;
+		target?: DeploymentTrigger;
+	}): Promise<DeploymentRecord> {
+		const project = await this.client().projects.get(input.projectId);
+		const repoId = project.link?.repoId;
+		if (!repoId) {
+			throw new ProviderApiError(
+				`Vercel project "${project.name}" has no linked GitHub repo — cannot trigger a deployment. Link the repo first.`,
+				400,
+				undefined
+			);
+		}
+		const raw = await this.client().deployments.trigger({
+			projectName: project.name,
+			branch: input.branch,
+			repoId,
+			target: input.target,
+		});
+		return mapDeployment(raw, input.branch);
+	}
+
+	/** Fetches a deployment by id; the record's branch is the deployment's Git commit ref, or `null` when it has none. */
+	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
+		const raw = await this.client().deployments.get(deploymentId);
+		return mapDeployment(raw, raw.meta?.githubCommitRef ?? null);
+	}
+
+	async deployFunction(projectId: string, config: DeployFunctionConfig): Promise<DeployFunctionResult> {
+		const raw = await this.client().deployments.create({
+			projectName: projectId,
+			files: Object.entries(config.files).map(([file, content]) => ({ file, content })),
+			// No framework preset — deployFunction() ships a bare function,
+			// never an app; this.defaultFramework only applies to
+			// ensureProject()'s Git-linked-project path.
+			framework: null,
+			...installCommandOf(config.files),
+			target: config.target,
+			...(config.meta ? { meta: config.meta } : {}),
+		});
+		return { deploymentId: raw.id, url: raw.url };
+	}
+
+	// ── preview cleanup ─────────────────────────────────────────────────
+
+	/**
+	 * The project's preview deployments tagged for `branch` (the `<repo>-pr-<number>` alias a file deploy puts in its
+	 * `meta.holocronPreview`), found by reading the project's deployments page by page and matching the tag here, so
+	 * only this project's deployments are ever candidates. A production or staging deployment is never one.
+	 */
+	async listPreviewDeployments(projectId: string, branch: string): Promise<DeploymentRecord[]> {
+		const found: DeploymentRecord[] = [];
+		let until: number | undefined;
+		for (let page = 0; page < MAX_LIST_PAGES; page++) {
+			const { deployments, pagination } = await this.client().deployments.list({
+				projectId,
+				...(until !== undefined ? { until } : {}),
+			});
+			for (const raw of deployments) {
+				if (raw.target || raw.meta?.[PREVIEW_META_KEY] !== branch) continue;
+				found.push({
+					...mapDeployment(raw, raw.meta?.githubCommitRef ?? null),
+					...(raw.createdAt ? { createdAt: new Date(raw.createdAt).toISOString() } : {}),
+				});
+			}
+			const next = pagination?.next;
+			if (!next) break;
+			until = next;
+		}
+		return found;
+	}
+
+	/** The newest production deployment of the project in its latest page of deployments, or null. Reads only. */
+	async latestDeployment(projectId: string): Promise<DeploymentRecord | null> {
+		const { deployments } = await this.client().deployments.list({ projectId });
+		const newest = deployments.find((d) => d.target === "production");
+		if (!newest) return null;
+		return {
+			...mapDeployment(newest, newest.meta?.githubCommitRef ?? null),
+			...(newest.createdAt ? { createdAt: new Date(newest.createdAt).toISOString() } : {}),
+		};
+	}
+
+	/** The hostnames attached to the project. Reads only. */
+	async listDomains(projectId: string): Promise<string[]> {
+		return (await this.client().domains.list(projectId)).domains.map((d) => d.name);
+	}
+
+	/** Deletes the deployments by id; one already gone (404) is not counted and is not an error. */
+	async deletePreviewDeployments(_projectId: string, deploymentIds: string[]): Promise<number> {
+		let deleted = 0;
+		for (const id of deploymentIds) {
+			try {
+				await this.client().deployments.remove(id);
+				deleted++;
+			} catch (err) {
+				if (!(err instanceof ProviderApiError && err.status === 404)) throw err;
+			}
+		}
+		return deleted;
+	}
+
+	// ── custom domains ─────────────────────────────────────────────────
+
+	/**
+	 * Idempotent — matches `Deployment.ensureCustomDomain`'s contract
+	 * (never break on re-runs, per CLAUDE.md's probe-then-act standard).
+	 *
+	 * Ownership (`domains.add`'s `verified`) and DNS routing are separate
+	 * concerns: once a team already owns the domain's apex (true for any
+	 * org with more than one project on the same domain), every new
+	 * subdomain auto-verifies immediately with no `verification`
+	 * challenge — re-adding an already-attached domain returns 409, not
+	 * a fresh one. So attachment alone can't tell us whether traffic is
+	 * actually routed to Vercel yet. `domains.config()` (Vercel's DNS
+	 * *configuration* check) answers that regardless of ownership state:
+	 * `misconfigured` + a `recommendedCNAME`, per-project, never a fixed
+	 * well-known host — always read it from this response, never
+	 * hardcode it. Returned as a `DnsRecordRequest` — the caller (e.g.
+	 * `holocron setup`'s custom-domain step) hands it straight to
+	 * `dns.upsertRecord()`, same as `Wiki.dnsRecord()` already does for
+	 * the wiki's own domain.
+	 */
+	async ensureCustomDomain(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
+		const { domains: existing } = await this.client().domains.list(projectId);
+		let apexName = existing.find((d) => d.name === hostname)?.apexName;
+		if (!apexName) {
+			try {
+				apexName = (await this.client().domains.add(projectId, hostname)).apexName;
+			} catch (err) {
+				if (!(err instanceof ProviderApiError && err.status === 409)) throw err;
+				const { domains: refreshed } = await this.client().domains.list(projectId);
+				apexName = refreshed.find((d) => d.name === hostname)?.apexName;
+			}
+		}
+		if (!apexName) return null;
+
+		const config = await this.client().domains.config(hostname, projectId);
+		if (!config.misconfigured) return null;
+		const cname = config.recommendedCNAME[0]?.value;
+		if (!cname) return null;
+		return { zone: apexName, record: { type: "CNAME", name: hostname, content: cname } };
+	}
+
+	/**
+	 * Read-only: the CNAME Vercel recommends for `hostname`, whether or not the domain already resolves. Unlike
+	 * `ensureCustomDomain` it never attaches the domain, and it keeps the answer when `misconfigured` is false, so
+	 * `holocron doctor dns` can compare it with the zone. The record is DNS-only: a proxied record breaks Vercel's
+	 * certificate issuance.
+	 */
+	async expectedDomainRecord(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
+		const config = await this.client().domains.config(hostname, projectId);
+		const cname = config.recommendedCNAME[0]?.value;
+		if (!cname) return null;
+		return { zone: hostname, record: { type: "CNAME", name: hostname, content: cname, proxied: false } };
+	}
+
+	// ── internals ───────────────────────────────────────────────────────
+
+	private async getProjectByName(name: string): Promise<DeploymentProject | null> {
+		try {
+			const result = await this.client().projects.get(name);
+			return mapProject(result);
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 404) return null;
+			throw err;
+		}
+	}
+}
+
+// ── mappers ──────────────────────────────────────────────────────────
+
+/**
+ * The `installCommand` of an uploaded `vercel.json`, as the field `deployments.create()` takes.
+ * A deployment made from uploaded files ignores the file's `installCommand` in favour of the
+ * project's setting, so it is sent in the request too. Empty when there is no such file, it is
+ * not JSON, or it sets none.
+ */
+function installCommandOf(files: Record<string, string>): { installCommand?: string } {
+	const raw = files["vercel.json"];
+	if (raw === undefined) return {};
+	try {
+		const { installCommand } = JSON.parse(raw) as { installCommand?: unknown };
+		return typeof installCommand === "string" && installCommand ? { installCommand } : {};
+	} catch {
+		return {};
+	}
+}
+
+function mapProject(raw: VercelProject): DeploymentProject {
+	const project: DeploymentProject = {
+		id: raw.id,
+		name: raw.name,
+		gitLinked: Boolean(raw.link?.repoId),
+		rootDirectory: raw.rootDirectory ?? null,
+	};
+	if (raw.framework) project.framework = raw.framework;
+	return project;
+}
+
+/**
+ * Vercel's deployment object also carries `errorMessage` (e.g. `Command "npm
+ * install" exited with 1`) once `readyState` is `ERROR` —
+ * `@theholocron/vercel-client`'s `VercelDeployment` doesn't declare it yet,
+ * so it's widened here until it does (holocron#911).
+ */
+type RawDeployment = Awaited<ReturnType<VercelClient["deployments"]["get"]>> & { errorMessage?: string | null };
+
+function mapDeployment(raw: RawDeployment, branch: string | null): DeploymentRecord {
+	const record: DeploymentRecord = {
+		id: raw.id,
+		url: raw.url,
+		branch,
+		status: normalizeState(raw.readyState),
+	};
+	if (raw.target) record.target = raw.target;
+	if (raw.errorMessage) record.errorMessage = raw.errorMessage;
+	return record;
+}
+
+function normalizeState(s: RawDeployment["readyState"]): DeploymentRecord["status"] {
+	switch (s) {
+		case "INITIALIZING":
+		case "QUEUED":
+			return "queued";
+		case "BUILDING":
+			return "building";
+		case "READY":
+			return "ready";
+		case "ERROR":
+			return "error";
+		case "CANCELED":
+			return "cancelled";
+	}
+}

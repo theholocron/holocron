@@ -1,4 +1,5 @@
 ---
+id: SPEC-0005
 status: archived
 completed: 2026-07-15
 prs:
@@ -9,6 +10,8 @@ prs:
   - theholocron/clients#123
   - theholocron/.github#41
   - theholocron/.github-private#16
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620401671610378
 ---
 
 <!-- editorconfig-checker-disable-file -->
@@ -146,6 +149,6 @@ Key implementation decisions made during development:
 ## Resolved open questions
 
 - **String form kept permanently?** No — dropped entirely once all repos migrated.
-- **`uses_external_packages` auto-derived?** No — remains manual config for now.
-- **Org schema automation?** Remains a one-time scripted step; no `setup-org` command.
+- **`uses_external_packages` auto-derived?** No — stays manual config for now.
+- **Org schema automation?** Stays a one-time scripted step; no `setup-org` command.
 - **Ruleset targeting via properties?** Deferred pending GitHub Team+ upgrade (issue #142).

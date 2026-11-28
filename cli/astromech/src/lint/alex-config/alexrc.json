@@ -1,0 +1,16 @@
+{
+  "allow": [
+    "dead",
+    "execute",
+    "execution",
+    "executes",
+    "failure",
+    "failures",
+    "hook",
+    "hooks",
+    "host-hostess",
+    "husky",
+    "period",
+    "postman-postwoman"
+  ]
+}

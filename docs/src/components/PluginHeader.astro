@@ -1,0 +1,22 @@
+---
+import type { LinkEntry } from "../lib/registry.ts";
+interface PluginHeaderProps {
+	entry: LinkEntry;
+	capability: string;
+	description?: string;
+}
+
+type Props = PluginHeaderProps;
+
+const { entry, capability, description } = Astro.props;
+---
+
+<div class="plugin-header">
+	<p><code>{entry.package}</code> <span class="capability-badge">{capability}</span></p>
+	{description && <p>{description}</p>}
+	<p>
+		<a href={entry.npmUrl} target="_blank" rel="noopener noreferrer">npm</a>
+		{" · "}
+		<a href={entry.githubUrl} target="_blank" rel="noopener noreferrer">GitHub</a>
+	</p>
+</div>

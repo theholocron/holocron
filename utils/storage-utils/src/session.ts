@@ -1,0 +1,211 @@
+type NamespacedStorageData = {
+	[key: string]: unknown;
+};
+
+type AppStorageData = {
+	[namespace: string]: {
+		[appName: string]: NamespacedStorageData;
+	};
+};
+
+/** The API of a session store. */
+export type TSessionStorage = {
+	/** Registers an app and makes it the target of later writes. */
+	registerApp: (appName: string) => void;
+	/** Writes `value` under the dotted `key` in the most recently registered app; throws when no app is registered. */
+	sendTo: (key: string, value: unknown) => void;
+	/** Returns everything stored. */
+	getAll: () => object;
+	/** Returns the data stored under `key`, or `null` when there is none. */
+	getFrom: (key: string) => NamespacedStorageData | null;
+	/** Removes the data stored under `key`. */
+	removeFrom: (key: string) => void;
+	/** Removes everything stored. */
+	clear: () => void;
+};
+
+const ERROR_MSG = "Nothing is currently registered!";
+
+/** Path segments that would reach an object's prototype instead of the store (prototype pollution). */
+const RESERVED_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Throws when a dotted key writes under a segment that would reach an object's prototype. */
+function assertWritablePath(keys: readonly string[]): void {
+	const reserved = keys.find((segment) => RESERVED_KEYS.has(segment));
+	if (reserved !== undefined) {
+		throw new Error(`Refusing to write under the reserved key "${reserved}"`);
+	}
+}
+
+const isSessionStorageAvailable: boolean = typeof window !== "undefined" && "sessionStorage" in window;
+
+/**
+ * Minimal structural logger seam — accept any object shaped like this
+ * (including a real `@theholocron/observability` `Logger` via a thin
+ * adapter) without this package taking a dependency on it. Defaults to
+ * `console.error` so behavior is unchanged when nothing is injected.
+ */
+export interface StorageLogger {
+	/** Logs an error. */
+	error(message: string, meta?: unknown): void;
+}
+
+const consoleLogger: StorageLogger = {
+	error: (message, meta) => (meta === undefined ? console.error(message) : console.error(message, meta)),
+};
+
+function createStorage(namespace = "theholocron", logger: StorageLogger = consoleLogger): TSessionStorage {
+	const prefixedNamespace = `@${namespace}`;
+	let lastRegisteredApp: string | undefined;
+	const storage: AppStorageData = {};
+
+	function getAppStorage(appName: string): NamespacedStorageData {
+		if (!storage[prefixedNamespace]) {
+			storage[prefixedNamespace] = {};
+		}
+		if (!storage[prefixedNamespace][appName]) {
+			storage[prefixedNamespace][appName] = {};
+		}
+		lastRegisteredApp = appName;
+
+		return storage[prefixedNamespace][appName];
+	}
+
+	return {
+		registerApp(appName: string) {
+			getAppStorage(appName);
+		},
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		sendTo(key: string, value: any) {
+			if (!lastRegisteredApp) {
+				throw new Error(ERROR_MSG);
+			}
+			const appStorage = getAppStorage(lastRegisteredApp);
+			const keys = key.split("."); // Split the key by '.'
+			assertWritablePath(keys);
+			let currentLevel = appStorage;
+
+			// Traverse through the keys except the last one
+			for (let i = 0; i < keys.length - 1; i++) {
+				const subKey = keys[i];
+
+				// If the key doesn't exist, create an empty object
+				if (!Object.hasOwn(currentLevel, subKey)) {
+					Object.defineProperty(currentLevel, subKey, {
+						value: {},
+						enumerable: true,
+						writable: true,
+						configurable: true,
+					});
+				}
+
+				currentLevel = currentLevel[subKey] as NamespacedStorageData; // Move deeper into the object
+			}
+
+			// Assign the value to the last key in the chain
+			Object.defineProperty(currentLevel, keys[keys.length - 1], {
+				value,
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			});
+
+			if (isSessionStorageAvailable) {
+				try {
+					sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
+				} catch (error) {
+					logger.error("Failed to store data in sessionStorage", error);
+				}
+			}
+		},
+		getAll() {
+			if (!lastRegisteredApp) {
+				throw new Error(ERROR_MSG);
+			}
+			return storage;
+		},
+		getFrom(key: string) {
+			if (!lastRegisteredApp) {
+				throw new Error(ERROR_MSG);
+			}
+
+			if (isSessionStorageAvailable) {
+				try {
+					const storedData = sessionStorage.getItem(prefixedNamespace);
+					if (storedData) {
+						const parsedData = JSON.parse(storedData) as object;
+						Object.assign(storage, parsedData); // Merge stored data into current storage
+					}
+				} catch (error) {
+					logger.error("Failed to read data in sessionStorage", error);
+				}
+			}
+
+			// Split key by dot notation for nested access
+			const appStorage = getAppStorage(lastRegisteredApp);
+			const keys = key.split(".");
+			let currentLevel = appStorage;
+
+			for (let i = 0; i < keys.length; i++) {
+				const subKey = keys[i];
+
+				if (Object.hasOwn(currentLevel, subKey)) {
+					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
+				} else {
+					return null; // Return null if any part of the key is missing
+				}
+			}
+
+			return currentLevel; // Return the nested value if found
+		},
+		removeFrom(key: string) {
+			if (!lastRegisteredApp) {
+				throw new Error(ERROR_MSG);
+			}
+			const appStorage = getAppStorage(lastRegisteredApp);
+
+			// Split key by dot notation for nested access
+			const keys = key.split(".");
+			let currentLevel = appStorage;
+
+			// Traverse to the second-to-last key
+			for (let i = 0; i < keys.length - 1; i++) {
+				const subKey = keys[i];
+				if (Object.hasOwn(currentLevel, subKey)) {
+					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
+				} else {
+					return; // Key doesn't exist, so nothing to remove
+				}
+			}
+
+			const lastKey = keys[keys.length - 1];
+			if (Object.hasOwn(currentLevel, lastKey)) {
+				delete currentLevel[lastKey]; // Delete the final key in the path
+
+				if (isSessionStorageAvailable) {
+					try {
+						sessionStorage.setItem(prefixedNamespace, JSON.stringify(storage));
+					} catch (error) {
+						logger.error("Failed to remove data from sessionStorage", error);
+					}
+				}
+			}
+		},
+		clear() {
+			delete storage[prefixedNamespace];
+
+			if (isSessionStorageAvailable) {
+				try {
+					sessionStorage.removeItem(prefixedNamespace);
+				} catch (error) {
+					logger.error("Failed to clear sessionStorage", error);
+				}
+			}
+		},
+	};
+}
+
+export const session = {
+	/** Creates a store for an optional namespace (default `theholocron`) and logger. */
+	create: createStorage,
+};

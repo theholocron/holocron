@@ -1,0 +1,123 @@
+---
+title: Sentinel
+description: Holocron's GitHub App. It receives webhooks, validates holocron.config.ts, syncs repo properties and posts check runs.
+---
+
+`@theholocron/sentinel` is Holocron's GitHub App: a webhook receiver that validates a repo's `holocron.config.ts` on its default branch, syncs the resolved capabilities to GitHub custom properties, and posts check runs. It watches, validates and reports.
+
+:::note
+Sentinel is a **private app, deployed rather than published**. It is not on npm, so there is nothing to `pnpm add`. It is deployed as its own product, with its own `holocron.config.ts` separate from the monorepo root's.
+:::
+
+## How it fits
+
+Sentinel reads the same configuration the [CLI](/holocron/cli/) acts on, so a repo is checked centrally by the rules it runs locally:
+
+- [`@theholocron/datapad`](/holocron/datapad/) executes the `holocron.config.*` fetched from GitHub (as content, not a local file).
+- [`@theholocron/astromech`](/holocron/astromech/) supplies the task registry that config is validated against, the merge of `astromech.config.*` over `holocron.config.*`, and the lint ignore lists.
+- `@theholocron/cli` supplies the derivations behind the custom properties and the compliance baseline, imported unchanged so a check and `holocron sync` can never disagree.
+- `@theholocron/github-client` does every GitHub call, including webhook signature verification.
+
+## What it does
+
+| Piece                                | Job                                                                                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parseWebhookEvent`                  | Verifies the `X-Hub-Signature-256` signature and normalizes the delivery. Handles installation events, pushes to the default branch and PR opened or synchronized               |
+| `validateConfig`                     | Reads `holocron.config.*` (and an optional `astromech.config.*`) and checks every task name against the registry. Returns `valid`, `no-config`, `unknown-tasks` or `load-error` |
+| `syncPropertiesFromConfig`           | Syncs the resolved capabilities and profile to GitHub custom properties, the same fields `holocron sync` computes                                                               |
+| `postCheckRun`                       | Posts one capability-compliance check run, `validate:config / Run Holocron config compatibility`                                                                                |
+| `handleWebhookRequest(request, env)` | A plain `(Request, Env) => Response` function that runs the pipeline above plus the central source-quality checks                                                               |
+
+The central checks run in the same pipeline: commit standards, DCO, inclusive language, formatting, editorconfig, markdown lint, repo validation, and an advisory PR config validation. Eslint, actionlint and the typecheck are not Sentinel's: the Actions `lint:code` and `typecheck` run them with the repo's own config (`process-sentinel-and-actions-roles`, #2263). The advisory docs-presence check runs the same shared rules as `holocron probe docs presence`: it warns about a new public package, or a `feat` to one, that ships without a docs change, unless `[skip docs] <reason>` is in the PR description or a commit message, and it re-runs when the PR title or description is edited. An opt-out auto-fix commit can repair the mechanical formatting, editorconfig and markdown failures. The handler's module docstring in `src/handler/handler.ts` is the source of truth for the current list.
+
+Every check Sentinel posts is named `<task id> / <Action>`, for example `lint:markdown / Run markdownlint` or `validate:specs / Validate ADRs and specs`. The task id is lowercase, as in the Actions checks, and the action starts with `Run` or `Validate`. The names are the task ids the `ci / Required checks` aggregate waits for, so a task whose Actions workflow is removed is still satisfied by Sentinel's check of the same name (`process-sentinel-and-actions-roles`, #2263). Sentinel posts ten checks (config validation and its pull-request form, DCO, commit standards, specs, docs, formatting, editorconfig, markdown lint, language); `lint:code` and `typecheck` stay with Actions. The specs and docs checks run for a repo whose config names `validate`, `validate:specs`, `validate:docs` or the old `platform.repoValidation`. See `ci-sentinel-check-names`. {/* holocron-allow-old-name */}
+
+## Role sync
+
+Sentinel also keeps Discord roles equal to GitHub teams, so nobody has to run [`holocron sync roles`](/holocron/commands/sync-roles/). It acts on two org-level deliveries: a person added to or removed from a team (`membership`), and a member removed from the org (`organization`). A team delivery syncs the roles that follow that team; an org delivery syncs every role that follows a team. It runs the same `syncRoles()` function as the command, so what counts as in sync, and that a holder nobody has linked is never removed, are identical.
+
+It is off until three settings exist in Sentinel's environment:
+
+| Setting                      | What it is                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `SENTINEL_REPO`              | `owner/repo` whose default-branch `holocron.config.ts` declares the Discord layout (its `roles[].team`) |
+| `HOLOCRON_DISCORD_BOT_TOKEN` | The Holonet bot token                                                                                   |
+| `HOLOCRON_USER_SYNC_TOKEN`   | The `github.user-sync` token that reads the links file in the org's private config repo                 |
+
+The GitHub App also needs the organization permission Members: read and the `membership` and `organization` events. A sync that fails or only partly works answers HTTP 500 and logs an error, so the delivery shows as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent). Design: `docs/wiki/specifications/tech-sentinel-role-sync.spec.md`.
+
+## The `ci` aggregate
+
+Sentinel can post the required check `ci / Required checks` from webhooks instead of an Actions job that polls (spec `process-sentinel-posts-ci`, holocron#2426). The first step is a **shadow**: with `SENTINEL_CI_AGGREGATE=shadow` it posts the same verdict as `ci / Required checks (sentinel)`, which nothing requires, beside the Actions result. With `SENTINEL_CI_AGGREGATE=on` it also posts the **real** check for a pull request whose head config says `ci: { aggregate: "sentinel" }` (the shadow for every other), then runs the `#prs` feed and the board's status for it in the same invocation. Unset, it does nothing. It needs the GitHub App subscribed to `status` with Commit statuses: read, which a person sets on each installed App. See `apps/sentinel/README.md` for the events it reads and the order of the human steps.
+
+## Starting scheduled workflows
+
+GitHub starts a `schedule` workflow late, or not at all, when it is busy: the ten minute `sync-incidents` cron started 2 times of 144 in a day. Sentinel starts those workflows itself (spec `tech-sentinel-scheduled-dispatch`, holocron#2609). A cron entry in `apps/sentinel/vercel.json` calls `/api/scheduled?task=<id>`; the function checks that the call carries `CRON_SECRET` (Vercel sends it as `Authorization: Bearer <value>`), finds the App's installation on `SENTINEL_REPO` and asks GitHub to run the task's workflow (`workflow_dispatch`) on the repository's default branch. The workflow, its command and its heartbeat ping do not move, and its own `schedule` stays as a fallback; the workflow's `concurrency` group keeps two starts from running at once. A dispatched run is titled `(manual)`, because its event is `workflow_dispatch`.
+
+It fails closed: no `CRON_SECRET` is `503`, a wrong secret `401`, no `SENTINEL_REPO` `404`, an App not installed on the repository or a refused dispatch `502`. Which workflows it can start is a table in `src/actions/scheduled-dispatch/scheduled-tasks/` (today `sync-incidents` every ten minutes, `sync-specs` at :17 and `reconcile-projects` at :23 every hour, `check-tokens` daily at 06:17 UTC, the minutes of their own `schedule`); a new task is a row there and a cron entry. The App needs Actions: read and write, which a person sets on each installed App (`doctor github-app` reports the difference until then), and Vercel's cron interval depends on the plan.
+
+## Key points
+
+- **Default branch only.** The config is read from a repo's default branch, never a fork or an unreviewed PR branch, and `validateConfig` only validates and never writes. This is the hard security boundary of the design. The exception is the auto-fix check, which reads a same-repo PR branch to see what that branch declares.
+- **Org-portable.** The repo and installation id come from the webhook payload, so one registration handles any number of orgs and accounts.
+- **Quiet on a bad config.** A missing or broken config is acknowledged without a check run.
+- **Out of scope for v1.** Autonomous fix PRs or comments triggered by an event, and dashboards, are tracked in issue 674.
+- **Environment.** `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET` (a deployment that still has the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` keeps working: the `SENTINEL_` name is read first, then the bare one), plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`), the optional error-tracking DSN (`SENTINEL_SENTRY_DSN`; unset means no error tracking), and the three optional role-sync settings above. They live in the `prod` layer of the 1Password Environments (`theholocron/holocron - prod`) and are fanned out with [`holocron sync secrets`](/holocron/commands/sync-secrets/).
+
+## Deployment
+
+Sentinel runs as a serverless function: it needs a real filesystem and dynamic `import()` to execute a fetched config, which Workers-style isolates do not offer. Its own config wires the `deployment`, `dns` and `vault` providers (Vercel, Cloudflare and 1Password today). A Netlify deploy target is the subject of the `tech-sentinel-deploy-target-netlify` wiki spec, and the [Netlify plugin](/holocron/plugins/netlify/) was built for it.
+
+```bash
+# Recurring: build, stage, deploy to production
+pnpm run deploy
+
+# One time: attach the custom domain and hand the DNS challenge to the dns provider
+holocron setup --cwd apps/sentinel
+```
+
+- **A development instance.** `pnpm dev` in `apps/sentinel` ([`holocron dev`](/holocron/commands/dev/)) runs the same handler locally, with a second GitHub App and its own secrets (the `dev` layer, `theholocron/holocron - dev`) behind a named tunnel (`holocron new tunnel`); the Sentinel README has the steps. Production stays the only deployment.
+- **Production only.** A GitHub App has a single webhook URL, so there is no staging deployment. `holocron deploy --dry-run` verifies the wiring, and the unit tests exercise the handler directly.
+- **Automated.** A workflow deploys on merges to `main` that touch the app, and a `deploy` task with `on: "release"` deploys it after a release that changes it (see [`holocron deploy`](/holocron/commands/deploy/)).
+- **Secrets.** `holocron sync secrets --env prod --cwd apps/sentinel` syncs the 1Password Environment of the `prod` layer to the deployment. It targets production only, deliberately, so the app's private key is never exposed to PR preview deployments. The sync writes nothing to repository Actions secrets here (an Environment with no `repo.secrets.sync` entry is refused unless `--github-secret` names the destination, #2104). GitHub refuses names that start with `GITHUB_`, which is why the App's id and key are `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`. An Environment that still holds the old bare names has them reported as skipped (`invalid name`) rather than failing with a 422; they are read by the deployed app from Vercel, not by Actions, so nothing is lost. Pass `--github-secret SENTINEL_AXIOM_INGEST_TOKEN` (as the Sentinel Secrets Sync workflow does) to keep the other keys out of GitHub as well.
+
+## Area labels
+
+Sentinel adds `area:<name>` labels (holocron#2430, `tech-github-area-labels`). A pull request, when it is opened, reopened, pushed to or has its title edited, gets the labels of the folders it changes (read from the API); an issue, when it is opened or has its title edited, gets the label its title's scope maps to. Both maps are `repo.labels` (`areas` and `scopes`) in the repository's own config, so a repo that declares no `areas` is left alone.
+
+It only adds. It never removes a label a person put there and never makes a label: a wanted label the repository lacks is logged, and [`holocron setup`](/holocron/commands/setup/) makes the declared ones. An item carries at most four `area:` labels, counting the ones already on it; for a pull request the files' areas come first and the title's scopes fill what is left. A closed item and a delivery a bot caused do nothing. It needs the App's existing Issues and Pull requests write permissions and a subscription to the `issues` event, which is added by hand to an App that already exists.
+
+## GitHub App registration
+
+Registering the App is a one-time, manual web-UI flow, done under the org. Deploy first and attach the custom domain, then register with `https://sentinel.theholocron.dev/api/webhook` as the webhook URL.
+
+| Setting                | Value                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Repository permissions | Contents, Checks, Custom properties, Issues, Pull requests and Actions at write; Metadata at read |
+| Subscribed events      | `push`, `pull_request`, `installation`                                                            |
+| User authorization     | Not used. Sentinel only uses installation access tokens                                           |
+| Webhook secret         | Generated by you, stored as `SENTINEL_WEBHOOK_SECRET`                                             |
+| Private key            | Generated once after creation, stored as `SENTINEL_GITHUB_APP_PRIVATE_KEY`                        |
+
+The package README on [GitHub](https://github.com/theholocron/holocron/tree/alpha/apps/sentinel) has the full permission rationale and the registration walkthrough. The design is in the `tech-sentinel-v1` and `tech-sentinel-ci-runner` wiki specs.
+
+## Sending a delivery by hand
+
+`apps/sentinel/api/` holds, beside the function `webhook.mjs`, a collection of requests (`webhook.collection.json`) and three environments (`webhook.environment.json`, `.dev.json`, `.prod.json`; `.vercelignore` keeps them out of the deploy): `Sentinel (local)` (`http://127.0.0.1:3000`), `Sentinel (dev)` (the dev instance through its tunnel, `https://sentinel-dev.theholocron.dev`) and `Sentinel (prod)` (`https://sentinel.theholocron.dev`). A pre-request script signs each body with `webhookSecret` (an empty secret-type variable in each environment) as `X-Hub-Signature-256`. The requests run from harmless to acting:
+
+| Folder                   | What it sends                                                     | What Sentinel does                                                              |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `Rejected`               | a GET, a POST with no signature, a POST with a wrong one          | 405, 401, 401; nothing is read                                                  |
+| `Signed, no effect`      | `ping`, a push to a non-default branch, `installation` `created`  | answers without a GitHub call, a check or a comment                             |
+| `Signed, acts on GitHub` | a `pull_request` `opened` for the `repo` and `pullNumber` you set | runs every check on that pull request with the App's token and posts the result |
+
+Use the local or dev environment (see the package README) and a sandbox repository for the last folder. `Sentinel (prod)` is there for the first two folders; the last one runs the real checks as the production App.
+
+[`holocron sync tooling --cwd apps/sentinel`](/holocron/commands/sync-tooling/) pushes the collection and the environment through the app's `tooling` provider into the `Holocron` workspace (made when missing; one collection per app). The environment keeps a `webhookSecret` you set there. Add `--dry-run` to see the step first.
+
+The two JSON files are the one source. For a tool that reads another format, `holocron export requests --to bruno --cwd apps/sentinel` generates it (`webhook.bruno.json`, the requests and the three environments in one file, into the git-ignored `api/.export/bruno/`); see [`export requests`](/holocron/commands/export-requests/). Bruno can also open them in place: the repo's `.bruno/` workspace holds Bruno's own files for this collection and its three environments (under `collections/sentinel-webhook/`), kept equal to the JSON by [`holocron sync requests`](/holocron/commands/sync-requests/); in Bruno choose Open Workspace and pick `.bruno`. `webhookSecret` is left empty in the files, so set it in Bruno.
+
+## Related
+
+- [Server as Code](/holocron/server-as-code/): the other half of org-level setup, which the CLI applies and checks from the same config
+- [Configuration](/holocron/config/)

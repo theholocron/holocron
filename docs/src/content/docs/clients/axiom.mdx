@@ -1,0 +1,31 @@
+---
+title: Axiom Client
+description: A TypeScript client for the Axiom API.
+---
+
+A TypeScript client for the Axiom API — wraps the dataset and current-user endpoints.
+
+## Installation
+
+```bash
+pnpm add @theholocron/axiom-client
+```
+
+## Usage
+
+```ts
+import { createAxiomClient } from "@theholocron/axiom-client";
+
+const client = createAxiomClient({
+  token: process.env.AXIOM_TOKEN!,
+});
+
+// Get the current token's user (token check)
+const me = await client.user.me();
+
+// Find or create a dataset
+const dataset = await client.datasets.get("my-logs").catch(() => client.datasets.create({ name: "my-logs" }));
+console.log(dataset.id);
+```
+
+The full [API reference](/holocron/clients/axiom-client/api/readme/) is generated from the package's TSDoc comments.

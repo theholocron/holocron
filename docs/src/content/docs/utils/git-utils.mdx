@@ -1,0 +1,37 @@
+---
+title: Git Utils
+description: Parse git remote URLs, read a repo's remote, and maintain managed blocks in .gitignore.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/git-utils
+```
+
+Node-only: it shells out to `git` and touches the filesystem. Zero dependencies.
+
+## Usage
+
+```ts
+import { parseGitRemoteUrl, upsertManagedBlock } from "@theholocron/git-utils";
+
+parseGitRemoteUrl("git@github.com:theholocron/holocron.git");
+// { host: "github.com", owner: "theholocron", repo: "holocron", slug: "theholocron/holocron" }
+
+upsertManagedBlock("node_modules\n", {
+  start: "# managed: skills",
+  end: "# end managed: skills",
+  lines: ["/.agents/"],
+});
+// "node_modules\n\n# managed: skills\n/.agents/\n# end managed: skills\n"
+```
+
+## How the pieces fit
+
+- `parseGitRemoteUrl` and `upsertManagedBlock` are pure. `readGitRemote` runs `git remote get-url` and parses the
+  result with `parseGitRemoteUrl`; `updateGitignore` applies `upsertManagedBlock` to a file.
+- A managed block has no default markers. Choose them and keep them stable, because they are how an existing block is
+  found again.
+
+The full [API reference](/holocron/utils/git-utils/api/readme/) is generated from the package's TSDoc comments.
