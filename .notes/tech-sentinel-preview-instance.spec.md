@@ -62,6 +62,14 @@ Decided with the maintainer on 2026-11-27 and 2026-11-28.
   and the release job covers it. `workflow_dispatch` stays, as the way to re-run a deploy by hand. Both run under the
   `sentinel-deploy` concurrency group, so two never overlap. Because `alpha` reaches `main` only when a stable release is cut,
   production runs stable code and the preview instance runs `alpha`.
+- **A production deploy waits for an approval.** The production deploy job (the `deploy` job of the release workflow that
+  `deploy on-release` runs in, and the manual `deploy-sentinel` job) declares a GitHub Environment, `sentinel-production`,
+  with required reviewers, so the job stops at "waiting" until a reviewer approves it. A rejected or unanswered deploy
+  fails the job with no deploy and no `deployed/` tag, so the next stable release makes it up. The Vercel token the deploy
+  uses is stored as a secret of that Environment, so no other job can read it. The preview instance has no gate. Not
+  verified: that required reviewers are available on this repository's plan (they are free on a public repository and need a
+  paid plan on a private one), and whether the `environments` capability's GitHub implementation can set reviewers; if it
+  cannot, `setup` reports the reviewers as a `todo` and the maintainer sets them in the repository settings.
 - **Crons stay with production.** `/api/scheduled` and its `CRON_SECRET` belong to the production project (the dispatch
   of `sync-incidents` and the others, #2609). The preview Environment leaves `CRON_SECRET` and `SENTINEL_SCHEDULE_REPO`
   out, so its `/api/scheduled` answers 503 and a call that reaches it does nothing. The staged preview payload leaves
@@ -97,8 +105,7 @@ and is made with `holocron new github-app`, which writes its id, key and webhook
   project's Vercel preview target today, which holds production's variables; moving it is a separate change.
 - A second Discord bot or Checkly checks for the preview instance. Its Environment can hold copies of the same values, by
   hand; monitoring a second hostname is not part of this.
-- Who may approve a production deploy. It is automatic on a stable release, like every other deploy-on-release; a gate
-  (a protected Environment with a reviewer) is a separate choice.
+- Who the reviewers are beyond the maintainer, and whether the preview instance's token moves into an Environment too.
 
 ## Verification
 
@@ -117,7 +124,7 @@ domain creation, that a project's own production deployment serves the domain, t
 3. `instances.preview` in the config schema; `deploy <app>` and `sync <app>` use it; the staged payload without `crons`.
 4. `setup` makes the project and domain; the manifest and `githubApps` entry; `doctor github-app` reads it.
 5. The `workflow_run` deploy caller for the preview instance; Sentinel's `deploy` task moved to the `main` channel; the push
-   trigger dropped from production's caller.
+   trigger dropped from production's caller; the `sentinel-production` Environment on both production deploy jobs.
 6. Human steps, in order: the `preview` Environment in 1Password, `new github-app` and its installation, `setup`, `sync
 sentinel --env preview`, the first deploy, a pull request's checks read from the preview App, then moving this repository's
    installation from the production App to it.
