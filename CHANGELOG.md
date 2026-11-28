@@ -1,3 +1,13 @@
+## [5.0.0-alpha.548](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.547...v5.0.0-alpha.548) (2026-11-28)
+
+### Features
+
+* **sentinel:** ✨ 🚀 dispatch sync-specs, reconcile-projects and check-tokens from cron ([#2656](https://github.com/theholocron/holocron/issues/2656)) ([4d1044f](https://github.com/theholocron/holocron/commit/4d1044f8d5fef7e176b5bde44cf69db6f2153430)), references [#2655](https://github.com/theholocron/holocron/issues/2655)
+
+### Bug Fixes
+
+* **cli:** 🐛 deploy stage waits for npm's alpha tags to agree before pinning ([#2658](https://github.com/theholocron/holocron/issues/2658)) ([363bc69](https://github.com/theholocron/holocron/commit/363bc69cf999db39b9a5a17dbd873f3c7683287b)), closes [#2657](https://github.com/theholocron/holocron/issues/2657), references [#2203](https://github.com/theholocron/holocron/issues/2203)
+
 ## [5.0.0-alpha.547](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.546...v5.0.0-alpha.547) (2026-11-28)
 
 ### Bug Fixes
