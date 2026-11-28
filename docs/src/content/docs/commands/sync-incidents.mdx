@@ -1,0 +1,34 @@
+---
+title: sync incidents
+description: Mirror a status page's incidents into a Discord forum, one post for each, updates appended.
+---
+
+```bash
+holocron sync incidents [--since <time>] [--provider <name>] [--yes] [--dry-run]
+```
+
+An incident on the status page reaches only the page's subscribers, who are email addresses. This puts the same words where the people who watch Discord will see them: its opening, each update and its resolution (#2366, spec `tech-incidents-to-discord`).
+
+It is polling, because the status page offers nothing to receive: the `monitoring` provider's `listIncidents` reads the incidents, and the `notifications` provider keeps a post for each in the forum whose layout entry has [`feeds.incidents`](/holocron/commands/setup-notifications/). The value of the feed is the status page's name as `monitoring.statusPages` declares it, or `true` when exactly one page is declared. Nothing is a webhook, so the bot must be able to post in the forum and manage its threads (`doctor notifications` checks it).
+
+Each run reads state, not events: every incident still open, and those resolved since `--since`. For each one:
+
+- a missing post is made quietly, titled with the incident's name; its first message is a summary (status, what is affected, when it started, how long it lasted once resolved, a link to the status page);
+- each update whose marker (`-# update: <id>`) is not in the post is appended once, so a rerun, an overlap or a retry adds nothing;
+- the summary, title and tag (`investigating`, `identified`, `monitoring`, `resolved`, or `maintenance` while an open incident marks nothing but maintenance) follow the incident;
+- a resolved incident's post is closed, and a closed post whose incident is open again is opened.
+
+An update already posted is not rewritten when it is edited on the page; only the summary follows an edit. Nothing is ever deleted, and an incident deleted on the page leaves its post. Nothing pings anyone.
+
+| Flag         | Meaning                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `--since`    | also read incidents resolved since a date (`2026-03-01`) or a span back from now (`30m`, `12h`, `7d`); default `2d` |
+| `--provider` | the `notifications` provider to post through, when several are configured                                           |
+| `--yes`      | do not ask first (a scheduled run needs it; without a terminal the command refuses instead of hanging)              |
+| `--dry-run`  | read Checkly and the forum and print what would be done for each incident (`create post`, `append update <id>`, …)  |
+
+The window also decides the first run: incidents older than it are never posted, so a page with history is not dumped into the forum. An incident resolved inside the window is posted whole.
+
+A rate limit from Discord stops the run cleanly and the next one continues. A `403` from the status page API (a plan that does not allow the read) is a skipped run, not a failure. With no forum that has `feeds.incidents`, or no `monitoring` provider, the command is a quiet skip.
+
+Not checked against a live account: the incident endpoints, their field names and statuses are taken from the provider's published OpenAPI document.

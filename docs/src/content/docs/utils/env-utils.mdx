@@ -1,0 +1,125 @@
+---
+title: Environment Utils
+description: Runtime environment detection and typed env-var parsing.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/env-utils
+```
+
+## Environment detection
+
+### `environment`
+
+Detects the current runtime environment from `HOLOCRON_ENVIRONMENT`, `ENVIRONMENT`, `ENV`, or `NODE_ENV` (first set wins).
+
+```ts
+import { environment } from "@theholocron/env-utils";
+
+environment.get(); // "local" | "development" | "ci" | "test" | "preview" | "production"
+environment.isDeployed(); // true when env is "test", "preview" or "production"
+environment.normalize("prod"); // "production"
+```
+
+### Constants
+
+```ts
+import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS } from "@theholocron/env-utils";
+
+ENVIRONMENTS; // ["local", "development", "ci", "test", "preview", "production"]
+DEFAULT_ENVIRONMENT; // "production"
+DEPLOYED_ENVIRONMENTS; // Set { "test", "preview", "production" }
+```
+
+The five names are `local` (a laptop), `development` (a development instance), `ci`, `test` (a deployed pre-production instance) and `production`. They are the long forms Node's `NODE_ENV` and Vercel use. Short and vendor spellings are read as aliases, in any case: `dev` as `development`, `stage`, `stg`, `staging` and `qa` as `test`, `prod` and `prd` as `production`. Unit tests under CI are `ci`, not `test`.
+
+### `detectEnvironment` and `isCI`
+
+`environment.get()` is for an application that should assume production unless told otherwise. `detectEnvironment()` is for telemetry, which must never mistake a laptop for production: it reads only `HOLOCRON_ENVIRONMENT` and `ENVIRONMENT` and never falls back to `prod`.
+
+```ts
+import { detectEnvironment, isCI } from "@theholocron/env-utils/lookup";
+
+detectEnvironment({ ENVIRONMENT: "prod" }); // "production"
+detectEnvironment({ CI: "true" }); // "ci"
+detectEnvironment({}); // "local"
+isCI({ CI: "false" }); // false
+```
+
+`HOLOCRON_ENVIRONMENT` and `ENVIRONMENT` win over `CI`, so a deploy job can say it is `production`. `ENV` and `NODE_ENV` are ignored, since many tools set them for their own reasons. Both helpers, and `environment` and its constants, are also exported from `@theholocron/env-utils/lookup`, which does not load a `.env` when imported. The logger in `@theholocron/observability` binds the result as `env` on every line.
+
+### `DotenvLoader`
+
+Default loader strategy that reads `process.env`. Pass a custom loader to `createEnvParser` to swap it out.
+
+## Env lookup
+
+### `firstEnv(env, names, fallback?)`
+
+Returns the first variable in `names` that is set and non-empty, or `fallback` when none is. `env` is any `EnvLookup`, such as the result of `createEnvLookup()`. Without a `fallback` the return type includes `undefined`.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils";
+
+const env = createEnvLookup();
+const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
+```
+
+### `withEnvPrefix(env, prefix)`
+
+Wraps an `EnvLookup` so `get("KEY")` tries `<prefix>_KEY` first and falls back to `KEY`. Pass the prefix without a trailing underscore, in upper case: it is matched with exact case, because an `EnvLookup` only answers exact-name `get` calls (unlike `filterByNamespace`, which scans a whole env record). The result is itself an `EnvLookup`, so it works anywhere one is expected, including with `firstEnv`.
+
+```ts
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils";
+
+const env = withEnvPrefix(createEnvLookup(), "MYAPP");
+env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
+```
+
+### `PREFIX` and `holocronEnv(source?)`
+
+`PREFIX` is `"HOLOCRON"`, the one definition of the prefix every Holocron-owned variable carries. `holocronEnv()` is `withEnvPrefix(createEnvLookup(source), PREFIX)`: `get("AXIOM_DATASET")` tries `HOLOCRON_AXIOM_DATASET` and then the bare `AXIOM_DATASET`, which stays as a fallback. Use it for a name Holocron chooses; a name a third party reads itself (`GITHUB_TOKEN`, `CI`, `NO_UPDATE_NOTIFIER`) is read bare.
+
+```ts
+import { holocronEnv, PREFIX } from "@theholocron/env-utils/lookup";
+
+holocronEnv().get("AXIOM_DATASET"); // HOLOCRON_AXIOM_DATASET, else AXIOM_DATASET
+holocronEnv({ AXIOM_DATASET: "old" }).get("AXIOM_DATASET"); // "old": a bare name still works
+```
+
+### Importing without side effects
+
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv`, `withEnvPrefix`, `holocronEnv` and `PREFIX`, and never loads dotenv. `dotenv` is an optional peer dependency: install it if you import the package entry, and skip it if you only use `/lookup`.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+```
+
+## Typed env parsing
+
+### `createEnvParser(options)`
+
+Creates a typed env parser. All four key forms resolve to the same value for nested keys:
+
+```ts
+import { createEnvParser } from "@theholocron/env-utils";
+
+const parser = createEnvParser({ appName: "my-app" });
+
+// All equivalent for nested keys
+parser.get("SERVICE__DB__URL");
+parser.get("service__db__url");
+parser.get("service.db.url");
+
+// Map to a typed config object
+export const config = parser.map((get) => ({
+  port: get("port") ?? 3000,
+  database: {
+    url: get("db.primary.url") ?? get("database_url"),
+  },
+}));
+```
+
+The full [API reference](/holocron/utils/env-utils/api/readme/) is generated from the package's TSDoc comments.

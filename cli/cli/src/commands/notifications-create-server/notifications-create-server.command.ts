@@ -1,0 +1,39 @@
+import type { CommandModule } from "yargs";
+
+import { loadConfig } from "../../config/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
+import { tokenContext } from "../token-context/index.js";
+import { runNotificationsCreateServer } from "./index.js";
+import {
+	type NotificationsCreateServerArgs,
+	notificationsCreateServerArgs,
+} from "./notifications-create-server.args.js";
+
+export const notificationsCreateServerCommand: CommandModule<GlobalArgs, NotificationsCreateServerArgs> = {
+	command: "server",
+	describe: "Create the server the layout describes, apply it, invite its owner and hand it over",
+	builder: notificationsCreateServerArgs,
+	handler: async (argv) => {
+		const tokens = tokenContext(argv.token);
+		if (!tokens) return;
+		const loaded = await loadConfig(argv.cwd);
+		applyResolvedConfig(argv, loaded.resolved);
+		const report = await runNotificationsCreateServer({
+			loaded,
+			context: {
+				repoRoot: argv.cwd,
+				dryRun: argv.dryRun,
+				...tokens,
+				org: resolveOrg(argv, loaded.resolved),
+			},
+			owner: argv.owner,
+			...(argv.name ? { name: argv.name } : {}),
+			...(argv.provider ? { provider: argv.provider } : {}),
+			...(argv.force ? { force: true } : {}),
+			...(argv.resume ? { resume: true } : {}),
+		});
+		if (report.status === "fail") process.exitCode = 1;
+	},
+};

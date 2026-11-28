@@ -1,0 +1,4594 @@
+import type { StackName } from "../../commands/setup/derived-properties/index.js";
+import type { CARDINALITY } from "./capabilities.js";
+/**
+ * Capability interfaces — the contracts that providers implement.
+ *
+ * Each capability has a stable key (`'source'`, `'ci'`, …) and a
+ * cardinality (`'single'` = one provider; `'many'` = several active
+ * at once). The cardinality is part of the type contract via
+ * `CardinalityFor<K>` so config resolution + command code can branch
+ * statically.
+ *
+ * See `docs/wiki/specifications/tech-architecture.spec.md` for the design narrative
+ * (issue: #74).
+ */
+
+export type CapabilityKey =
+	| "source"
+	| "ci"
+	| "secrets"
+	| "environments"
+	| "issues"
+	| "deployment"
+	| "storage"
+	| "auth"
+	| "vault"
+	| "dns"
+	| "tooling"
+	| "notifications"
+	| "analytics"
+	| "errors"
+	| "logs"
+	| "monitoring"
+	| "wiki"
+	| "workers"
+	| "tunnels"
+	| "credentials"
+	| "projects"
+	| "ideas"
+	| "coverage"
+	| "cache";
+
+/** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
+export type Cardinality = "single" | "many";
+
+// ───────────────────────────────────────────────────────────────────────
+// Common shapes
+// ───────────────────────────────────────────────────────────────────────
+
+/** What every capability implementation carries: which capability it is and which provider backs it. */
+export interface ProviderIdentity {
+	/** The capability this implementation provides. */
+	readonly key: CapabilityKey;
+	/** The provider's name, e.g. `github` or `vercel`. */
+	readonly providerName: string;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// source — repos, branches, PRs, rulesets, settings, workflow files
+// ───────────────────────────────────────────────────────────────────────
+
+/** A repository ruleset as {@link Source.listRulesets} reports it. */
+export interface Ruleset {
+	/** The provider's numeric id for the ruleset. */
+	id: number;
+	/** The ruleset's name. */
+	name: string;
+	/** Whether the ruleset is enforced (`active`), only logged (`evaluate`) or off (`disabled`). */
+	enforcement: "active" | "evaluate" | "disabled";
+	/** What the ruleset applies to, e.g. `branch`; `undefined` when the provider does not say. */
+	target?: string;
+}
+
+/** The repository settings {@link Source.updateRepoSettings} can change; a field left out is left alone. */
+export interface RepoSettings {
+	/** Allow merging a pull request by squashing its commits. */
+	allow_squash_merge?: boolean;
+	/** Allow merging a pull request with a merge commit. */
+	allow_merge_commit?: boolean;
+	/** Allow merging a pull request by rebasing its commits. */
+	allow_rebase_merge?: boolean;
+	/** Allow a pull request to be set to merge itself once its checks pass. */
+	allow_auto_merge?: boolean;
+	/** Always suggest updating PR branches when the base branch has new commits. */
+	allow_update_branch?: boolean;
+	/** Delete a pull request's head branch once it is merged. */
+	delete_branch_on_merge?: boolean;
+	/** The branch a fresh clone checks out. */
+	default_branch?: string;
+	/** Whether the repository has an issue tracker. */
+	has_issues?: boolean;
+	/** Whether the repository has discussions. */
+	has_discussions?: boolean;
+	/** Whether the repository has project boards. */
+	has_projects?: boolean;
+	/** Whether the repository has a wiki. */
+	has_wiki?: boolean;
+}
+
+/** The repository a {@link Source} provider is scoped to. */
+export interface RepoRef {
+	/** The account or organization that owns the repository. */
+	owner: string;
+	/** The repository's name, without the owner. */
+	name: string;
+	/** The branch a fresh clone checks out. */
+	defaultBranch: string;
+}
+
+/** A repository label as the canonical set passed to {@link Source.syncLabels} defines it. */
+export interface LabelDef {
+	/** The label's name. */
+	readonly name: string;
+	/** The label's colour as a hex string. */
+	readonly color: string;
+	/** What the label is for; an empty string when it has none. */
+	readonly description: string;
+}
+
+/** The access level a team can hold on a repository, from least (`pull`) to most (`admin`). */
+export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
+
+/** Shorthand `"slug"` defaults to `push` permission. */
+export type TeamEntry = string | { slug: string; permission: TeamPermission };
+
+/** The repository's own settings, as {@link Source.getRepoInfo} reports them. */
+export interface SourceRepoInfo {
+	/** `null` when none is set. */
+	description: string | null;
+	/** `null` when none is set. */
+	homepage: string | null;
+	/** The branch a fresh clone checks out. */
+	defaultBranch: string;
+	/** The topics set on the repository. */
+	topics: string[];
+	/** The merge and feature settings the provider reports; one it does not report is left out. */
+	settings: RepoSettings;
+}
+
+/** A ruleset in full, as {@link Source.getRulesetDetail} reports it. */
+export interface SourceRulesetDetail {
+	/** The ruleset's name. */
+	name: string;
+	/** Whether the ruleset is enforced. */
+	enforcement: Ruleset["enforcement"];
+	/** The `type` of each rule, e.g. `deletion`, `pull_request`. */
+	ruleTypes: string[];
+	/** The status check contexts the ruleset requires. */
+	requiredChecks: string[];
+	/**
+	 * For each required context that names a source app, that app's integration id (GitHub's `integration_id`). A context
+	 * that any app may satisfy has no entry; the field is left out when no context names one.
+	 */
+	requiredCheckSources?: Record<string, number>;
+}
+
+/** Which security features are on, as {@link Source.getSecurity} reports them. A feature left out was not reported. */
+export interface SourceSecurity {
+	/** Vulnerability alerts are on. */
+	vulnerabilityAlerts?: boolean;
+	/** Automated security updates are on. */
+	automatedSecurityFixes?: boolean;
+	/** Secret scanning is on. */
+	secretScanning?: boolean;
+	/** Secret scanning push protection is on. */
+	secretScanningPushProtection?: boolean;
+	/** Private vulnerability reporting is on. */
+	privateVulnerabilityReporting?: boolean;
+	/** Whether CodeQL default setup is configured. */
+	codeScanningDefaultSetup?: boolean;
+}
+
+/** A member of a team, as {@link Source.teamMembers} reports it. */
+export interface SourceTeamMember {
+	/** The provider's stable id for the person; for GitHub, the numeric user id as a string. */
+	id: string;
+	/** What they are called now. Can change; never use it as a key. */
+	login: string;
+}
+
+/** A file read by {@link Source.readFile}. */
+export interface SourceFile {
+	/** The file's text. */
+	content: string;
+	/** Opaque; hand it back to {@link Source.writeFile} to replace this exact version. */
+	version: string;
+}
+
+/** Source hosting: the repository, its rulesets, settings, security features, workflow files and pull requests. */
+export interface Source extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `source` capability. */
+	readonly key: "source";
+
+	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
+	whoami(): Promise<{ login: string }>;
+
+	/** The repository this provider is scoped to: its owner, name and default branch. */
+	getRepo(): Promise<RepoRef>;
+
+	// Rulesets / branch protection
+	/** Every ruleset on the repository. */
+	listRulesets(): Promise<Ruleset[]>;
+	/** Create a ruleset from the provider's own payload shape and return it. */
+	createRuleset(payload: Record<string, unknown>): Promise<Ruleset>;
+	/** Replace the ruleset with the given id using the provider's own payload shape. */
+	updateRuleset(id: number, payload: Record<string, unknown>): Promise<Ruleset>;
+
+	// Repo settings
+	/** Change the repository's merge and feature settings; only the fields given are changed. */
+	updateRepoSettings(settings: RepoSettings): Promise<void>;
+
+	/**
+	 * Classic branch protection — fallback for private repos on free plans
+	 * where the Rulesets API (requires Team+) returns 403.
+	 */
+	protectBranch(branch: string, payload: Record<string, unknown>): Promise<void>;
+
+	// Security toggles (idempotent; flip-or-noop)
+	/** Turn on vulnerability alerts (dependency advisories) for the repository. */
+	enableVulnerabilityAlerts(): Promise<void>;
+	/** Turn on automated security updates, which open pull requests for vulnerable dependencies. */
+	enableAutomatedSecurityFixes(): Promise<void>;
+	/** Turn on secret scanning, and push protection with it. */
+	enableSecretScanning(): Promise<void>;
+	/** Turn on private vulnerability reporting, so people can report a vulnerability to the maintainers privately. */
+	enablePrivateVulnerabilityReporting(): Promise<void>;
+	/**
+	 * Enables the dependency graph and automatic dependency snapshot
+	 * submission. Also enables secret-scanning validity checks and
+	 * non-provider pattern detection — these require GitHub Advanced
+	 * Security at the org level; the call is accepted but may be a no-op
+	 * until that is configured.
+	 */
+	enableDependencyGraph(): Promise<void>;
+
+	/**
+	 * Enables CodeQL default setup with the extended query suite and
+	 * `threat_model: all` (scans both remote and local exploit paths).
+	 * Triggers a new analysis run; returns the run id.
+	 */
+	enableCodeScanning(): Promise<string>;
+
+	/**
+	 * Disables CodeQL default setup. Required when the repo uses an advanced
+	 * CodeQL workflow instead — GitHub rejects SARIF from advanced workflows
+	 * while default setup is active.
+	 */
+	disableDefaultCodeScanning(): Promise<void>;
+
+	// Workflow files — local YAML files in `.github/workflows/` (or
+	// equivalent). These are conceptually repo content; providers may
+	// throw `NotImplementedError` if the underlying VCS has no notion
+	// of declarative CI files.
+	/** The file names in the workflow directory, sorted; empty when the directory does not exist. */
+	listWorkflowFiles(): Promise<string[]>;
+	/** The contents of one workflow file, or `null` when it does not exist. */
+	readWorkflowFile(name: string): Promise<string | null>;
+	/** Write one workflow file, creating the workflow directory if needed and replacing a file of that name. */
+	writeWorkflowFile(name: string, contents: string): Promise<void>;
+	/** Delete one workflow file; one that is already gone is not an error. */
+	removeWorkflowFile(name: string): Promise<void>;
+
+	/**
+	 * Write an arbitrary file relative to the repo root. Used for
+	 * provisioning config files that live outside `.github/workflows/`
+	 * (e.g. `.github/dependabot.yml`).
+	 */
+	writeRepoFile(path: string, contents: string): Promise<void>;
+
+	/**
+	 * Idempotently sync repo labels to a canonical set. Creates missing
+	 * labels, patches color/description drift, deletes stale labels.
+	 * Optional — providers that have no label concept omit this.
+	 */
+	syncLabels?(canonical: ReadonlyArray<LabelDef>, stale: ReadonlyArray<string>): Promise<string>;
+
+	/**
+	 * Make the labels that are missing and leave every existing one exactly as it is (name case aside): no colour or
+	 * description is patched and nothing is deleted. For per-repo label families such as `area:<name>`, which are not
+	 * in the canonical set `syncLabels` owns.
+	 * Optional — providers that have no label concept omit this.
+	 */
+	ensureLabels?(labels: ReadonlyArray<LabelDef>): Promise<string>;
+
+	/**
+	 * Set org-level custom property values on the repo. `string[]` for
+	 * `multi_select` properties, plain `string` for everything else.
+	 * Optional — providers that don't support custom properties omit this.
+	 */
+	syncProperties?(values: Record<string, string | string[]>): Promise<string>;
+
+	/**
+	 * Replace the repo's topic set with the supplied list.
+	 * Optional — providers that don't support topics omit this.
+	 */
+	syncTopics?(topics: string[]): Promise<string>;
+
+	/**
+	 * Bring the repository's Actions variables in line with the declared ones: create what is missing, update what
+	 * differs, leave the rest. With `prune`, also delete the ones the declaration does not name. With `dryRun`, read the current
+	 * state and report what would change without writing. Returns a summary.
+	 * Optional — providers without Actions variables omit this.
+	 */
+	syncVariables?(variables: Record<string, string>, opts?: { prune?: boolean; dryRun?: boolean }): Promise<string>;
+
+	/**
+	 * The same for the organization's variables, each with the repositories that can read it (`all` or `private`).
+	 * Optional — providers without organization variables omit this.
+	 */
+	syncOrgVariables?(
+		org: string,
+		variables: Record<string, { value: string; visibility: "all" | "private" }>,
+		opts?: { prune?: boolean; dryRun?: boolean }
+	): Promise<string>;
+
+	/**
+	 * The repository's Actions variables as they are now, by name, with their values. Read-only.
+	 * Optional — providers without Actions variables omit this.
+	 */
+	listVariables?(): Promise<Record<string, string>>;
+
+	/**
+	 * The organization's Actions variables as they are now, by name, with each value and the repositories that can read
+	 * it (`selected` is a list this interface does not manage). Read-only. Throws {@link MissingTokenError} when the
+	 * provider has no token that can read them.
+	 * Optional — providers without organization variables omit this.
+	 */
+	listOrgVariables?(
+		org: string
+	): Promise<Record<string, { value: string; visibility: "all" | "private" | "selected" }>>;
+
+	/**
+	 * The repository's description, homepage, default branch, topics and merge/feature settings as they are now.
+	 * Read-only. Optional — providers that cannot report them omit this.
+	 */
+	getRepoInfo?(): Promise<SourceRepoInfo>;
+
+	/**
+	 * The repository's custom property values as they are now, by property name. A property that is not set is left out.
+	 * Read-only. Optional — providers without custom properties omit this.
+	 */
+	getProperties?(): Promise<Record<string, string | string[]>>;
+
+	/**
+	 * What is wrong with `values` when compared with the organization's custom property definitions: one sentence per
+	 * value a `single_select` or `multi_select` property does not allow, per property the organization does not
+	 * define, or per `true_false` property that is not `true` or `false`. Empty when every value is allowed, and
+	 * `undefined` when the definitions cannot be read (the token lacks the organization's custom properties
+	 * permission). Read-only. Optional — providers without custom properties omit this.
+	 */
+	checkPropertyValues?(values: Record<string, string | string[]>): Promise<string[] | undefined>;
+
+	/**
+	 * The values the organization's `single_select` or `multi_select` custom property `name` allows, or `undefined` when
+	 * the definitions cannot be read, the property does not exist or it takes any value. Read-only. Optional.
+	 */
+	getOrgPropertyValues?(name: string): Promise<string[] | undefined>;
+
+	/**
+	 * Adds the values the organization's custom property `name` does not allow yet and returns the ones it added. Never
+	 * removes or reorders a value, and keeps the rest of the definition as it is. Rejects when the property does not
+	 * exist or the token cannot write it (the organization's Custom properties: admin). Optional.
+	 */
+	addOrgPropertyValues?(name: string, values: string[]): Promise<string[]>;
+
+	/**
+	 * The repository's labels as they are now. Read-only.
+	 * Optional — providers without labels omit this.
+	 */
+	listLabels?(): Promise<LabelDef[]>;
+
+	/**
+	 * The teams that have access to the repository, with each team's permission. Read-only.
+	 * Optional — providers without a team concept omit this.
+	 */
+	listTeamAccess?(): Promise<Array<{ slug: string; permission: TeamPermission }>>;
+
+	/**
+	 * One ruleset in full: its enforcement, the types of its rules and the status checks it requires. Read-only.
+	 * Optional — providers without rulesets omit this.
+	 */
+	getRulesetDetail?(id: number): Promise<SourceRulesetDetail>;
+
+	/**
+	 * Which security features are on. A feature the provider cannot report (the token cannot see it, the plan lacks it)
+	 * is left out rather than reported as off. Read-only.
+	 * Optional — providers without security toggles omit this.
+	 */
+	getSecurity?(): Promise<SourceSecurity>;
+
+	/**
+	 * Sync GitHub team repository access. String shorthand defaults to `push`.
+	 * Optional — providers without a team concept omit this.
+	 */
+	syncTeams?(teams: TeamEntry[]): Promise<string>;
+
+	/**
+	 * The members of a team in `org` (default: the repo's organisation), by the provider's own stable id (for GitHub, the
+	 * numeric user id, which survives a rename) and current login.
+	 * Optional — providers without a team concept omit this.
+	 */
+	teamMembers?(teamSlug: string, org?: string): Promise<SourceTeamMember[]>;
+
+	/**
+	 * Read one file from a repository (default: this one), with the `version` a later {@link writeFile} must
+	 * hand back. `null` when the file does not exist.
+	 * Optional — providers that cannot read file contents omit this.
+	 */
+	readFile?(path: string, repo?: string): Promise<SourceFile | null>;
+
+	/**
+	 * Create or replace one file in a single commit. Pass the `version` {@link readFile} returned when
+	 * replacing, and leave it out when creating: a write on top of a version that has since changed is
+	 * refused (throws a `ProviderApiError` with status 409 or 422), so two writers cannot overwrite each other.
+	 * Optional — providers that cannot write file contents omit this.
+	 */
+	writeFile?(
+		path: string,
+		content: string,
+		opts: { message: string; version?: string; repo?: string }
+	): Promise<void>;
+
+	/**
+	 * Set the repository description.
+	 * Optional — providers that don't support setting descriptions omit this.
+	 */
+	syncDescription?(description: string): Promise<string>;
+
+	/**
+	 * Set the repository homepage URL (the "Website" field on the repo landing page).
+	 * Optional — providers that don't support setting a homepage omit this.
+	 */
+	syncHomepage?(homepage: string): Promise<string>;
+
+	/**
+	 * Fetch a pull request by number. The `repo` override lets callers look up
+	 * a PR in a different repo than the one the plugin is scoped to — useful
+	 * when the cleanup command targets another repo's PR (e.g. docs PR from
+	 * the holocron repo context).
+	 * Optional — providers without a PR concept omit this.
+	 */
+	getPullRequest?(number: number, repo?: string): Promise<PullRequest>;
+
+	/**
+	 * Every pull request in one state, newest first. `closed` includes the merged ones (`merged` tells them
+	 * apart). Optional — providers without a PR concept omit this.
+	 */
+	listPullRequests?(state: "open" | "closed", repo?: string): Promise<PullRequest[]>;
+
+	/**
+	 * The commit SHAs of one pull request, in commit order. A squash-merged branch is not an ancestor of the
+	 * base, so this is how a local tip is matched to a PR whose head commit is not in the checkout.
+	 * Optional — providers without a PR concept omit this.
+	 */
+	listPullRequestCommits?(number: number, repo?: string): Promise<string[]>;
+
+	/**
+	 * The paths one pull request changes, as the repository spells them (a renamed file lists both its new and its old
+	 * path), each once. A provider that caps the list returns what it has. `update work` reads the changed folders from
+	 * it for the area labels. Optional — providers without a PR concept omit this.
+	 */
+	listPullRequestFiles?(number: number, repo?: string): Promise<string[]>;
+
+	/**
+	 * Every branch on the remote, with the commit each points at.
+	 * Optional — providers without branches omit this.
+	 */
+	listBranches?(repo?: string): Promise<SourceBranch[]>;
+
+	/**
+	 * Delete one branch on the remote. Idempotent: a branch that is already gone is success, not an error.
+	 * Optional — providers that cannot delete a branch omit this.
+	 */
+	deleteBranch?(name: string, repo?: string): Promise<void>;
+
+	/**
+	 * Opens a pull request, a draft by default, and links it to an issue with a `Closes` or `Refs` line in the body.
+	 * Idempotent: an open pull request for the same head is returned (`created: false`), never a second one. Labels,
+	 * assignees, milestone and projects are applied after it is made, and what the provider cannot apply comes back in
+	 * `dropped`. Optional — providers without pull requests omit this.
+	 */
+	createPullRequest?(input: PullRequestInput, repo?: string): Promise<PullRequestResult>;
+
+	/**
+	 * Changes a pull request: a field not in the patch is left alone and nothing is cleared unless the patch says so.
+	 * Optional — providers without pull requests omit this.
+	 */
+	updatePullRequest?(number: number, patch: PullRequestPatch, repo?: string): Promise<PullRequestResult>;
+
+	/**
+	 * Takes a draft pull request out of draft. Idempotent: one that is not a draft (or is closed or merged) is
+	 * left as it is and reported as `false`. Optional — providers without drafts omit this.
+	 *
+	 * @returns `true` when the pull request was a draft and now is not.
+	 */
+	markReady?(number: number, repo?: string): Promise<boolean>;
+
+	/**
+	 * The verdict of the aggregate check (`ci / Required checks`) on a pull request's newest commit, read each time it
+	 * is asked, with the checks that failed. `close work` reads it before it marks a pull request ready. Optional —
+	 * providers without checks omit this.
+	 */
+	getPullRequestChecks?(number: number, repo?: string): Promise<PullRequestChecks>;
+
+	/**
+	 * Every check run on a commit, whoever posted it, as the aggregate reads them (`reconcile ci`). Optional —
+	 * providers without checks omit this.
+	 */
+	listCheckRuns?(ref: string, repo?: string): Promise<SourceCheckRun[]>;
+
+	/**
+	 * The commit statuses on a commit, newest first (a context that posted twice appears twice). Optional — providers
+	 * without commit statuses omit this.
+	 */
+	listCommitStatuses?(ref: string, repo?: string): Promise<SourceCommitStatus[]>;
+
+	/**
+	 * Posts a check run on a commit and returns its id: in progress while the verdict can still change, completed
+	 * once it is final. Optional — providers that cannot post checks omit this.
+	 */
+	createCheckRun?(sha: string, name: string, write: SourceCheckRunWrite, repo?: string): Promise<number>;
+
+	/**
+	 * Changes a check run this caller posted. A provider that will not reopen a completed run throws. Optional —
+	 * providers that cannot post checks omit this.
+	 */
+	updateCheckRun?(id: number, write: SourceCheckRunWrite, repo?: string): Promise<void>;
+
+	/**
+	 * Enable or update GitHub Pages for the repository.
+	 * Idempotent: POST to create, PUT to update existing settings.
+	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
+	 * explicitly because it is a different PAT from the main admin token.
+	 * Optional — providers without a Pages concept omit this.
+	 */
+	configurePages?(config: PagesConfig, token: string): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Pages
+// ───────────────────────────────────────────────────────────────────────
+
+/** How GitHub Pages is set up for a repository, as {@link Source.configurePages} takes it. */
+export interface PagesConfig {
+	/** GitHub Pages build source. */
+	build: "workflow" | "branch";
+	/**
+	 * Custom domain / CNAME (e.g. "docs.theholocron.dev").
+	 * When set and `homepage` is absent in holocron.config, setup derives
+	 * homepage as `https://{domain}/`.
+	 */
+	domain?: string;
+	/** Enforce HTTPS. Only effective once the custom domain is DNS-verified. */
+	https?: boolean;
+}
+
+/** A branch on the remote and the commit it points at. */
+export interface SourceBranch {
+	/** The branch name, e.g. `fix/my-change`. */
+	name: string;
+	/** The commit the branch points at. */
+	sha: string;
+}
+
+/** What {@link Source.createPullRequest} takes. */
+export interface PullRequestInput extends PullRequestFields {
+	/** The pull request's title; a Conventional Commit line, since the squashed title is what a release reads. */
+	title: string;
+	/** The branch with the changes. */
+	head: string;
+	/** The branch to merge into. */
+	base: string;
+	/** Open it as a draft. Default `true`. */
+	draft?: boolean;
+	/** The issue the pull request is for; a `Closes` or `Refs` line is added to the body unless the body already names it. */
+	link?: PullRequestLink;
+}
+
+/** A pull request's link to the issue it is for. */
+export interface PullRequestLink {
+	/** The issue, as the tracker spells it: `#12`, `12`, `owner/repo#12` or `ENG-42`. */
+	issue: string;
+	/** `Closes` closes the issue on merge; `Refs` only mentions it. Default `Refs`. */
+	keyword?: "Closes" | "Refs";
+}
+
+/** What {@link Source.updatePullRequest} takes; every field is optional. */
+export interface PullRequestPatch extends PullRequestFields {
+	/** A new title. */
+	title?: string;
+	/** A new base branch. */
+	base?: string;
+	/** Open or close it. */
+	state?: "open" | "closed";
+	/** Labels to take off; those in `labels` are added. */
+	removeLabels?: string[];
+}
+
+/** The fields a pull request mirrors from its issue, shared by {@link PullRequestInput} and {@link PullRequestPatch}. */
+export interface PullRequestFields {
+	/** The description (markdown). */
+	body?: string;
+	/** Labels to add; existing ones are kept. */
+	labels?: string[];
+	/** Assignee logins to add; existing ones are kept. */
+	assignees?: string[];
+	/** The milestone's title; a title that does not exist is dropped, never created. */
+	milestone?: string;
+	/** Titles of the boards to put the pull request on; one already there or not found is left or dropped. */
+	projects?: string[];
+}
+
+/** What {@link Source.createPullRequest} and {@link Source.updatePullRequest} return. */
+export interface PullRequestResult {
+	/** The pull request as it now stands. */
+	pullRequest: PullRequest;
+	/** Whether this call made it; `false` when an open one for the same head was reused. Always `false` for an update. */
+	created: boolean;
+	/** Whether it is a draft. */
+	draft: boolean;
+	/** What the provider could not apply (a milestone or board it does not have, a label it refused), by name. */
+	dropped: string[];
+}
+
+/** One check run on a commit, in the plain shape {@link Source.listCheckRuns} returns. */
+export interface SourceCheckRun {
+	/** The provider's id for the run, `null` when it gave none. */
+	id: number | null;
+	/** The run's name, such as `test:unit / Conclusion`. */
+	name: string;
+	/** `completed`, or `queued` / `in_progress` while it runs. */
+	status: string;
+	/** The run's result, `null` until it is completed. */
+	conclusion: string | null;
+	/** ISO time the run started, `null` when the provider set none. */
+	startedAt: string | null;
+	/** A link to the run, `null` when there is none. */
+	url: string | null;
+	/** The slug of the app that posted the run (`github-actions` for a workflow's), `null` or absent when unknown. */
+	appSlug?: string | null;
+}
+
+/** One commit status, as {@link Source.listCommitStatuses} returns it. */
+export interface SourceCommitStatus {
+	/** The context that posted it, such as `codecov/patch`. */
+	context: string;
+	/** `success`, `pending`, `failure` or `error`. */
+	state: string;
+	/** A link to the status, `null` when there is none. */
+	url: string | null;
+}
+
+/** What {@link Source.createCheckRun} and {@link Source.updateCheckRun} write. */
+export interface SourceCheckRunWrite {
+	/** `in_progress` while the verdict can still change, `completed` once it is final. */
+	status: "in_progress" | "completed";
+	/** The verdict; only with `completed`. */
+	conclusion?: "success" | "failure" | "neutral";
+	/** The run's title. */
+	title: string;
+	/** The run's Markdown summary. */
+	summary: string;
+	/** Longer details; an empty string leaves them out. */
+	text: string;
+	/** ISO time the run began, set when the run is created. */
+	startedAt?: string;
+}
+
+/** Where the aggregate check of a pull request stands. */
+export type PullRequestChecksState = "success" | "failure" | "pending" | "none";
+
+/** What {@link Source.getPullRequestChecks} returns. */
+export interface PullRequestChecks {
+	/** The aggregate's verdict: `pending` while it runs (a cancelled run counts), `none` when it has not been posted. */
+	state: PullRequestChecksState;
+	/** The commit the verdict is for. */
+	sha?: string;
+	/** The checks that failed on that commit, newest run of each name; empty unless something failed. */
+	failing: Array<{ name: string; url?: string }>;
+}
+
+/** A pull request as {@link Source.getPullRequest} and {@link Source.listPullRequests} report it. */
+export interface PullRequest {
+	/** The pull request's number within the repository. */
+	number: number;
+	/** The pull request's title. */
+	title: string;
+	/** "open" | "closed" — GitHub marks merged PRs as "closed". */
+	state: "open" | "closed";
+	/** True when the PR was merged (as opposed to closed without merging). */
+	merged: boolean;
+	/** The head branch name (e.g. "fix/my-change"). */
+	branch: string;
+	/** The commit the head branch pointed at when the PR was last read. */
+	headSha?: string;
+	/** The address of the pull request's page. */
+	url: string;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// ci — workflow runs (history + status only)
+// ───────────────────────────────────────────────────────────────────────
+
+/** Where a workflow run is in its life; a finished run carries its outcome (`success`, `failure`, ...). */
+export type CiRunStatus = "queued" | "in_progress" | "completed" | "cancelled" | "failure" | "success" | "skipped";
+
+/** One run of a CI workflow. */
+export interface CiRun {
+	/** The provider's id for the run. */
+	id: string | number;
+	/** The workflow's name, falling back to the run's display title. */
+	workflowName: string;
+	/** The branch the run was triggered on. */
+	branch: string;
+	/** The commit the run was for. */
+	sha: string;
+	/** Where the run is, or how it ended once finished. */
+	status: CiRunStatus;
+	/** The address of the run's page. */
+	url: string;
+	/** When the run started, as an ISO timestamp. */
+	startedAt: string;
+	/** When the run finished, as an ISO timestamp; `undefined` while it is still going. */
+	completedAt?: string;
+}
+
+/** What {@link Ci.listRuns} narrows its result by; a field left out does not filter. */
+export interface CiRunFilter {
+	/** Only runs on this branch. */
+	branch?: string;
+	/** Only runs in this state. */
+	status?: CiRunStatus;
+	/** The most runs to return. */
+	limit?: number;
+}
+
+/** CI history: lists workflow runs and reads one back, with no way to start or change one. */
+export interface Ci extends ProviderIdentity {
+	/** Identifies this provider as the `ci` capability. */
+	readonly key: "ci";
+	/** Recent workflow runs, narrowed by `filter` when given. */
+	listRuns(filter?: CiRunFilter): Promise<CiRun[]>;
+	/** One workflow run by its id. */
+	getRun(id: string | number): Promise<CiRun>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// secrets — CI/platform sync secrets destination (multi-scope)
+// ───────────────────────────────────────────────────────────────────────
+
+/** An organization scope, with who can read what is written there. */
+export interface OrganizationSecretScope {
+	/** Always `organization`. */
+	kind: "organization";
+	/** The organization's login. */
+	name: string;
+	/**
+	 * Who can read the secret. `selected` needs `repos`. Left out, the provider keeps its older default (every
+	 * repository), which `holocron sync secrets` never relies on: it always names the readers (spec
+	 * `tech-org-secret-visibility`, #2062).
+	 */
+	visibility?: SecretVisibility;
+	/** The repositories that can read the secret, by name in the organization, when `visibility` is `selected`. */
+	repos?: string[];
+}
+
+/** Where a secret lives: the repository, one of its environments, or the organization. */
+export type SecretScope = { kind: "repo" } | { kind: "environment"; name: string } | OrganizationSecretScope;
+
+/** Who can read an organization secret: every repository, every private one, or a named list. */
+export type SecretVisibility = "all" | "private" | "selected";
+
+/** Who can read one organization secret now, names only. */
+export interface SecretAccess {
+	/** The secret's visibility. */
+	visibility: SecretVisibility;
+	/** The repository names that can read it, when `visibility` is `selected`. */
+	repos?: string[];
+}
+
+/** A destination for secrets (CI or platform secrets) that `holocron sync secrets` writes into. */
+export interface Secrets extends ProviderIdentity {
+	/** Identifies this provider as the `secrets` capability. */
+	readonly key: "secrets";
+
+	/** List secret NAMES (not values) at the given scope. */
+	listSecrets(scope: SecretScope): Promise<string[]>;
+
+	/** Idempotent upsert. Adapter handles encryption. */
+	setSecret(scope: SecretScope, name: string, value: string): Promise<void>;
+
+	/** Remove a secret at the given scope. */
+	deleteSecret(scope: SecretScope, name: string): Promise<void>;
+
+	/**
+	 * Who can read each secret of an organization scope, by secret name (never a value). Optional: a provider whose
+	 * secrets have no visibility leaves it out, and the sync and the doctor skip the comparison.
+	 */
+	listSecretAccess?(scope: SecretScope): Promise<Record<string, SecretAccess>>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// environments — named deployment environments
+// ───────────────────────────────────────────────────────────────────────
+
+/** Someone whose approval a deployment to an environment needs. */
+export interface EnvironmentReviewer {
+	/** Whether the reviewer is a person (`User`) or a team (`Team`). */
+	type: "User" | "Team";
+	/** Numeric id — GitHub's reviewer API silently ignores login strings. */
+	id: number;
+}
+
+/** A named deployment environment and the protection rules on it. */
+export interface Environment {
+	/** The environment's name, e.g. `production`. */
+	name: string;
+	/** Who must approve a deployment to the environment. */
+	reviewers?: EnvironmentReviewer[];
+	/** Minutes a deployment waits before it proceeds. */
+	waitTimer?: number;
+	/** Whether the person who started a deployment is barred from approving it. */
+	preventSelfReview?: boolean;
+}
+
+/** Named deployment environments and their protection rules. */
+export interface Environments extends ProviderIdentity {
+	/** Identifies this provider as the `environments` capability. */
+	readonly key: "environments";
+	/** Every environment on the repository. */
+	listEnvironments(): Promise<Environment[]>;
+	/** Create the environment, or bring an existing one of that name in line with `env`. */
+	upsertEnvironment(env: Environment): Promise<void>;
+	/** Delete the environment with the given name. */
+	deleteEnvironment(name: string): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// issues — tracker
+// ───────────────────────────────────────────────────────────────────────
+
+/** A step in an issue's life that {@link Issues.transition} can move it to. */
+export type LifecycleSlot = "inProgress" | "inReview" | "done";
+
+/** The tracker-neutral group a provider's own status names fall into. */
+export type StatusCategory = "open" | "in-progress" | "in-review" | "done" | "other";
+
+/** A person in the issue tracker. */
+export interface TrackerUser {
+	/** The tracker's id for the person. */
+	id: string;
+	/** The name shown for the person. */
+	displayName: string;
+	/** Their email address, when the tracker shares it. */
+	emailAddress?: string;
+	/** Their GitHub login, when `sync issues` found it in the assignees file (a source that is not GitHub knows none). */
+	login?: string;
+}
+
+/** An issue in the tracker, in a shape that does not depend on the provider. */
+export interface Issue {
+	/** Human-readable key — "#42" for GitHub, "RANDO-42" for Jira. */
+	key: string;
+	/** Internal opaque id. */
+	id: string;
+	/** The issue's title. */
+	summary: string;
+	/** The issue's description; `undefined` when the provider did not return one. */
+	body?: string;
+	/** The provider's own status name. */
+	status: string;
+	/** The group the status falls into. */
+	statusCategory: StatusCategory;
+	/** Who the issue is assigned to; `null` when nobody. */
+	assignee: TrackerUser | null;
+	/** When the issue last changed, as an ISO timestamp. */
+	updated: string;
+	/** The address of the issue's page, when the provider gives one. */
+	url?: string;
+}
+
+/** What {@link Issues.search} narrows its result by; a field left out does not filter. */
+export interface IssueSearchFilter {
+	/** Restrict to issues assigned to a specific id, or 'currentUser'. */
+	assignee?: string | "currentUser";
+	/** Exclude issues in the `done` category. */
+	openOnly?: boolean;
+	/** Max number of issues to return. Adapters apply a sensible default. */
+	limit?: number;
+	/**
+	 * Only issues whose title or body contains this text, compared without regard to case. The text is matched
+	 * literally, markup such as an HTML comment included. Left out, nothing is filtered by text.
+	 */
+	text?: string;
+}
+
+/** What {@link Issues.transition} did. */
+export interface LifecycleResult {
+	/** False when no API write happened (already at target state). */
+	transitioned: boolean;
+	/** Status name the issue is in after this call. */
+	status: string;
+	/** Adapter-specific note (e.g., "label set" / "closed (completed)"). */
+	via?: string;
+}
+
+/** What {@link Issues.doctor} found about the tracker connection, for `holocron doctor` to print. */
+export interface TrackerDoctorReport {
+	/** "Authenticated as ..." subject for the spinner. */
+	authedAs: string;
+	/** Free-form "Project: RANDO" / "Repo: rando-id/rando" identifier. */
+	projectLabel: string;
+	/** Status values the adapter exposes. */
+	statuses: Array<{ name: string; category: StatusCategory }>;
+	/**
+	 * Per-lifecycle-slot readiness check. `resolved` indicates whether
+	 * the configured value actually maps to something the tracker
+	 * recognizes; the `note` is the rendered explanation.
+	 */
+	lifecycle: Array<{
+		slot: LifecycleSlot;
+		value: string | null;
+		resolved: boolean;
+		note: string;
+	}>;
+}
+
+/** How urgent an issue is, in words no tracker owns. Linear has all five natively; GitHub holds it in a project field. */
+export type IssuePriority = "none" | "urgent" | "high" | "medium" | "low";
+
+/** How much work an issue is, in words no tracker owns. GitHub holds it in the `Effort` issue field, Linear as an estimate. */
+export type IssueEffort = "high" | "medium" | "low";
+
+/** The kinds the CLI always knows: GitHub's default issue Types (Bug, Feature, Task). */
+export type CoreIssueKind = "bug" | "feature" | "task";
+
+/**
+ * What kind of issue it is: a core kind or the lower-cased name of a Type the organization declares (`issueTypes`,
+ * spec `tech-org-issue-types`, #2512). GitHub holds it as the issue Type; Linear has no Type, so the kind is a label.
+ */
+export type IssueKind = CoreIssueKind | (string & {});
+
+/** An issue field that `Issues.update` can clear: the value is removed, never replaced by a default. */
+export type IssueClearable =
+	"assignees" | "milestone" | "parent" | "kind" | "priority" | "effort" | "startDate" | "targetDate";
+
+/**
+ * The fields of an issue beyond its title, text, labels, assignees and milestone, shared by `Issues.create` and
+ * `Issues.update`. A field left out is left alone (on a new issue, unset).
+ */
+export interface IssueFields {
+	/** The kind of issue. */
+	kind?: IssueKind;
+	/** How urgent it is; `none` sets nothing. */
+	priority?: IssuePriority;
+	/** How much work it is. */
+	effort?: IssueEffort;
+	/** When work starts, `YYYY-MM-DD`. */
+	startDate?: string;
+	/** When it is due, `YYYY-MM-DD`. */
+	targetDate?: string;
+	/** The key of the issue it is a sub-issue of. */
+	parent?: string;
+	/** Keys of the issues that block it. */
+	blockedBy?: string[];
+}
+
+/** What {@link Issues.create} makes an issue from. */
+export interface IssueCreateInput extends IssueFields {
+	/** The title. */
+	summary: string;
+	/** The text. */
+	body?: string;
+	/** Label names; a label the tracker lacks is made where the tracker can. */
+	labels?: string[];
+	/** Numeric id or exact title (case-insensitive). */
+	milestone?: string;
+	/** People to assign, by login (or email or name on a tracker that has no logins); `me` is the token's user. */
+	assignees?: string[];
+}
+
+/** What {@link Issues.update} changes. Only what is set is touched; nothing is cleared unless `clear` names it. */
+export interface IssuePatch extends IssueFields {
+	/** The new title. */
+	title?: string;
+	/** The new text, replacing the old. */
+	body?: string;
+	/** Open or close the issue. */
+	state?: "open" | "closed";
+	/** Why it is closed, for a provider that records one (GitHub's state reason); only read with `state: "closed"`. Default `completed`. */
+	stateReason?: "completed" | "not_planned";
+	/** Labels to add. */
+	addLabels?: string[];
+	/** Labels to remove; one the issue lacks is left. */
+	removeLabels?: string[];
+	/** The people it is assigned to, replacing the current ones. */
+	assignees?: string[];
+	/** The milestone (numeric id or exact title), replacing the current one. */
+	milestone?: string;
+	/** Keys of blockers to take off (`blockedBy` adds). */
+	unblock?: string[];
+	/** Fields to empty. A field named here and also set is refused by the caller, never by the provider. */
+	clear?: IssueClearable[];
+}
+
+/** What {@link Issues.update} did. */
+export interface IssueUpdateResult {
+	/** The issue's key in the tracker's syntax. */
+	key: string;
+	/** What was changed, one phrase each, e.g. `effort: high`; empty when the issue was already as asked. */
+	changed: string[];
+	/** What the tracker cannot hold of the patch and so left out, e.g. `startDate (Linear has no start date)`. */
+	dropped?: string[];
+}
+
+/** A comment on an issue, as a migration carries it. */
+export interface IssueComment {
+	/** Who wrote it, as a display name; the target cannot post as them, so it is named in the text. */
+	author?: string;
+	/** The comment's text. */
+	body: string;
+	/** When it was written, as an ISO timestamp. */
+	createdAt: string;
+}
+
+/**
+ * An issue with everything a migration can carry, in a shape that does not depend on the provider. `export` produces
+ * it and `import` consumes it, so a move between two trackers is one provider's `export` into the other's `import`.
+ */
+export interface IssueRecord {
+	/** The key in the tracker it was read from (`#42`, `ENG-42`). */
+	key: string;
+	/** The address of the issue's page, which the target records so a second run finds what a first one made. */
+	url: string;
+	/** The issue's title. */
+	title: string;
+	/** The issue's description. */
+	body?: string;
+	/** The provider's own status name, e.g. `In Progress`. */
+	status?: string;
+	/** The group the status falls into. */
+	statusCategory: StatusCategory;
+	/** Whether the issue is finished (done or canceled). */
+	closed: boolean;
+	/** How urgent it is; `undefined` when the source does not hold one. */
+	priority?: IssuePriority;
+	/** Label names. */
+	labels: string[];
+	/** What kind of issue it is: the Type or the kind label on GitHub, the kind label on Linear. `undefined` when the source names none. */
+	kind?: IssueKind;
+	/** How much work it is; `undefined` when the source holds none (Linear: an estimate other than 1, 3 or 5 is none). */
+	effort?: IssueEffort;
+	/** When work starts, `YYYY-MM-DD`; `undefined` when the source holds none (Linear has no start date). */
+	startDate?: string;
+	/** When it is due, `YYYY-MM-DD`: GitHub's `Target date` field, Linear's `dueDate`. */
+	targetDate?: string;
+	/** Who it is assigned to. */
+	assignee?: TrackerUser;
+	/** The milestone (GitHub) or project (Linear) it belongs to, by name. */
+	milestone?: string;
+	/** The key of its parent issue, in the source tracker. */
+	parent?: string;
+	/** Keys, in the source tracker, of the issues that block it. */
+	blockedBy: string[];
+	/** Its comments, oldest first. */
+	comments: IssueComment[];
+	/** When it was created, as an ISO timestamp. */
+	createdAt: string;
+	/** When it last changed, as an ISO timestamp. */
+	updatedAt: string;
+	/**
+	 * The source address this issue itself carries because a migration or a sync made it from another tracker (the
+	 * `holocron:migrated-from` marker on GitHub, the `Migrated from` attachment on Linear). A sync skips such an issue,
+	 * which is what keeps two one-way syncs from echoing each other's work.
+	 */
+	migratedFrom?: string;
+}
+
+/** Which issues {@link Issues.export} reads. Set one of `keys`, `milestone` or `all`. */
+export interface IssueSelector {
+	/** Exactly these issues. */
+	keys?: string[];
+	/** Every issue of this milestone (GitHub) or project (Linear), by name. */
+	milestone?: string;
+	/** Every issue the provider is configured for. */
+	all?: boolean;
+	/** Leave out closed issues. */
+	openOnly?: boolean;
+	/** Leave out issues last changed before this moment, as an ISO timestamp. */
+	since?: string;
+	/**
+	 * Read at most this many issues, a positive integer, counted after `openOnly`, `since` and the skipping of pull
+	 * requests, so those filters never use up the budget. Which ones is decided by `order`. Without it, every issue the
+	 * rest of the selector names is read.
+	 */
+	limit?: number;
+	/**
+	 * With `limit`, which end of the creation order is kept: `oldest` (the default) the first created, `newest` the last
+	 * created. The records come back oldest first either way. Without `limit` it has no effect.
+	 */
+	order?: IssueOrder;
+}
+
+/** Which end of the creation order a limited {@link Issues.export} keeps: the first-created or the last-created issues. */
+export type IssueOrder = "oldest" | "newest";
+
+/** What {@link Issues.export} reports back about the selection, through its optional second argument. */
+export interface ExportInfo {
+	/** How many issues the selection matched before `limit` cut it, when the provider knows; for a list of keys, how many keys. */
+	matched?: number;
+	/**
+	 * Called after each issue is read, with how many are done and how many are about to be read (after `limit` and the
+	 * filters where the provider knows, else the number of keys or listed issues). Optional; a provider must never let it
+	 * throw into the read, and it changes no result. The command uses it for a progress counter on a terminal.
+	 */
+	onProgress?: (done: number, total: number) => void;
+}
+
+/** What {@link Issues.import} needs besides the records. */
+export interface ImportOptions {
+	/** Put every imported issue in this milestone (GitHub) or project (Linear), by name; made if missing. */
+	milestone?: string;
+	/** Change nothing; report what would be made. */
+	dryRun?: boolean;
+	/**
+	 * Called after each record is handled (written, or found already there), with how many are done and the number of
+	 * records. Optional; a provider must never let it throw into the write, and it changes no result. The command uses it
+	 * for a progress counter on a terminal.
+	 */
+	onProgress?: (done: number, total: number) => void;
+}
+
+/** What {@link Issues.import} did with one record. */
+export interface ImportResult {
+	/** The key of the record in the source tracker. */
+	source: string;
+	/** The key it has in the target, or undefined on a dry run of an issue that does not exist yet. */
+	key?: string;
+	/** Whether it was made now; false when an earlier run had already made it. */
+	created: boolean;
+	/** What the target cannot hold of this record and so left out, e.g. `assignee (no matching user)`. */
+	dropped: string[];
+}
+
+/** What {@link Issues.sync} did with one record: an {@link ImportResult} plus what it changed on an issue it already had. */
+export interface SyncResult extends ImportResult {
+	/** Whether an issue an earlier run made was changed now (or, on a dry run, would be). */
+	updated: boolean;
+	/** The fields that differed from the source and were set: `title`, `description`, `state`, `priority`, `labels`, `assignee`, `comments`. */
+	changes: string[];
+}
+
+/** An issue tracker: finds, reads, creates, moves and comments on issues. */
+/** One issue Type of the organization (spec `tech-org-issue-types`, #2512). */
+export interface IssueTypeInfo {
+	/** The tracker's id for it. */
+	id: number | string;
+	/** The Type's name. */
+	name: string;
+	/** One line. */
+	description?: string;
+	/** The tracker's colour word. */
+	color?: string;
+	/** Whether new issues may take it. */
+	enabled: boolean;
+}
+
+/** A Type to make: what `OrgIssueType` declares that a tracker's own Type holds. */
+export interface IssueTypeDeclaration {
+	/** The Type's name. */
+	name: string;
+	/** One line. */
+	description?: string;
+	/** The tracker's colour word. */
+	color?: string;
+	/** Whether new issues may take it. Default `true`. */
+	enabled?: boolean;
+}
+
+export interface Issues extends ProviderIdentity {
+	/** Identifies this provider as the `issues` capability. */
+	readonly key: "issues";
+
+	/** Currently-authenticated user. */
+	getMyself(): Promise<TrackerUser>;
+
+	/** Issues matching `filter`. */
+	search(filter: IssueSearchFilter): Promise<Issue[]>;
+	/** One issue by its human-readable key (e.g. `#42`). */
+	get(key: string): Promise<Issue>;
+
+	/** Open a new issue and return its key. */
+	create(input: IssueCreateInput): Promise<{
+		key: string;
+		/** What the tracker cannot hold of the input and so left out, e.g. `assignee (no matching user): bob`. */
+		dropped?: string[];
+	}>;
+
+	/**
+	 * Change an issue: title, text, state, labels, assignees, milestone and the {@link IssueFields}. Idempotent: what is
+	 * already as asked is not written again and is not in `changed`. A field the tracker cannot hold is in `dropped`,
+	 * never a failure. Optional: a provider without it is "not supported" to the caller.
+	 */
+	update?(key: string, patch: IssuePatch): Promise<IssueUpdateResult>;
+
+	/** Idempotent — `transitioned: false` if the issue is already at the target. */
+	transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult>;
+
+	/** Add a comment to the issue. */
+	comment(key: string, body: string): Promise<void>;
+
+	/** Check the tracker connection and how the lifecycle slots map onto the tracker's statuses. */
+	doctor(): Promise<TrackerDoctorReport>;
+
+	/** Read issues with everything a migration carries. Optional: a provider that cannot be migrated from leaves it out. */
+	export?(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]>;
+	/**
+	 * Make the records in this tracker, with their comments, labels, priority and state, and record each one's source
+	 * address so a second run skips what exists. Two passes: every record is made first, then the `parent` and
+	 * `blockedBy` links are set, because they point at records made in the same call. Optional.
+	 */
+	import?(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]>;
+	/**
+	 * Like `import`, and it also brings up to date what an earlier import or sync made: title, description, state,
+	 * priority, labels and assignee when they differ from the record, and the comments the issue lacks, oldest first
+	 * (a comment is never edited or deleted). An issue is changed only when its recorded source address says a
+	 * migration or sync made it. A rate limit stops the run cleanly: the results returned are the records done, and
+	 * the caller counts the rest as left. A write that failed is not repeated. Optional: a provider without it cannot
+	 * be a sync target.
+	 */
+	sync?(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]>;
+
+	/**
+	 * The organization's issue Types (#2512). `undefined` when they cannot be read (no token for it). A tracker with
+	 * no Type (Linear) leaves the three Type methods out. Optional.
+	 */
+	listTypes?(): Promise<IssueTypeInfo[] | undefined>;
+	/** Makes a Type; never replaces one that exists. Throws when it cannot (no token, a refusal). Optional. */
+	createType?(type: IssueTypeDeclaration): Promise<IssueTypeInfo>;
+	/**
+	 * Sets a Type's description and colour, keeping its name and whether it is enabled. Nothing else changes. Optional.
+	 */
+	updateType?(id: IssueTypeInfo["id"], patch: { description?: string; color?: string }): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// deployment — preview/prod deploy targets
+// ───────────────────────────────────────────────────────────────────────
+
+/** Env-var scope on the deploy platform. */
+export type DeploymentTarget = "development" | "preview" | "production";
+
+/**
+ * Named deployment trigger target — `undefined` means a branch
+ * preview (no named environment).
+ */
+export type DeploymentTrigger = "production" | "staging";
+
+/** A project on the deployment platform. */
+export interface DeploymentProject {
+	/** The platform's id for the project. */
+	id: string;
+	/** The project's name. */
+	name: string;
+	/** The framework preset the project uses, when the platform reports one. */
+	framework?: string;
+	/** True when the project is linked to a Git provider. */
+	gitLinked?: boolean;
+	/** The directory in the repository the project builds from; `null` or `undefined` for the repository root. */
+	rootDirectory?: string | null;
+}
+
+/** The project settings {@link Deployment.updateProjectSettings} can change; a field left out is left alone. */
+export interface DeploymentProjectSettings {
+	/** Turn off preview deployments for the project. */
+	previewDeploymentsDisabled?: boolean;
+	/** Vercel-specific: whether the GitHub integration creates deployments
+	 * for every push (false → only on-demand triggers). */
+	gitProviderCreateDeployments?: boolean;
+}
+
+/** One deployment on the platform. */
+export interface DeploymentRecord {
+	/** The platform's id for the deployment. */
+	id: string;
+	/** The address the deployment is served at. */
+	url: string;
+	/** Branch this deployment was made from (null if not git-sourced). */
+	branch: string | null;
+	/** Named environment if one was targeted; undefined for branch previews. */
+	target?: DeploymentTrigger;
+	/** Where the deployment is in its build. */
+	status: "queued" | "building" | "ready" | "error" | "cancelled";
+	/** When the deployment was created, as an ISO timestamp. */
+	createdAt?: string;
+	/** The provider's own reason when `status` is `"error"` (e.g. Vercel's `Command "npm install" exited with 1`). */
+	errorMessage?: string;
+}
+
+/** Config for `Deployment.deployFunction()` — source files, not a Git ref. */
+export interface DeployFunctionConfig {
+	/**
+	 * Files to deploy, keyed by path relative to the project root (e.g.
+	 * `"api/webhook.js"`, `"package.json"`). Content is plain text — the
+	 * provider handles any wire-format encoding.
+	 */
+	files: Record<string, string>;
+	/**
+	 * Named deployment target. Omit for a preview deployment — same
+	 * semantics as `triggerDeployment`'s `target`.
+	 */
+	target?: DeploymentTrigger;
+	/**
+	 * Key-value tags stored on the deployment, for a provider that keeps them. `holocronPreview` names the pull request
+	 * a preview belongs to (`<repo>-pr-<number>`), which is what {@link Deployment.listPreviewDeployments} finds it by.
+	 */
+	meta?: Record<string, string>;
+}
+
+/** What {@link Deployment.deployFunction} made. */
+export interface DeployFunctionResult {
+	/** The platform's id for the new deployment. */
+	deploymentId: string;
+	/** The address the deployment is served at. */
+	url: string;
+}
+
+/** A deployment platform: projects, environment variables and deployments. */
+export interface Deployment extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `deployment` capability. */
+	readonly key: "deployment";
+	/**
+	 * Custom domain declared in the deployment provider's configuration.
+	 * `holocron setup` attaches it to the configured project and hands any
+	 * returned verification record to the `dns` capability.
+	 */
+	readonly domain?: string;
+
+	/** Every project the account can see. */
+	listProjects(): Promise<DeploymentProject[]>;
+	/** Create if missing, otherwise return existing. Idempotent. */
+	ensureProject(input: {
+		name: string;
+		framework?: string;
+		/** "owner/repo" — passed when linking to a Git provider. */
+		repo?: string;
+		rootDirectory?: string;
+	}): Promise<DeploymentProject>;
+
+	/** Change the project's settings; only the fields given are changed. Returns the project afterwards. */
+	updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject>;
+
+	// Env vars on the deploy platform (Vercel-style: per-target).
+	/** The names (not values) of the environment variables set on the project for `target`. */
+	listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]>;
+	/** Set an environment variable on the project for `target`, replacing any existing value. */
+	setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void>;
+
+	/**
+	 * Kick off a deployment of the given branch. Omit `target` for a
+	 * branch preview; pass `'production'` / `'staging'` to deploy into
+	 * a named environment.
+	 */
+	triggerDeployment(input: {
+		projectId: string;
+		branch: string;
+		target?: DeploymentTrigger;
+	}): Promise<DeploymentRecord>;
+
+	/** One deployment by its id. */
+	getDeployment(deploymentId: string): Promise<DeploymentRecord>;
+
+	/**
+	 * Deploy (or update) a project directly from source files, bypassing
+	 * Git entirely — the non-git counterpart to `triggerDeployment`, for a
+	 * consumer with no repo to link (a webhook receiver shipped as an npm
+	 * package, for instance, rather than deployed from its own Git
+	 * history). `projectId` may be a project name for providers that
+	 * accept either. Optional — providers without a files-based deploy API
+	 * omit this (e.g. Cloudflare Pages, git-source only today).
+	 */
+	deployFunction?(projectId: string, config: DeployFunctionConfig): Promise<DeployFunctionResult>;
+
+	/**
+	 * List preview deployments for a specific branch alias (e.g. "repo-pr-42").
+	 * Optional — providers that don't support listing by branch omit this.
+	 */
+	listPreviewDeployments?(projectId: string, branch: string): Promise<DeploymentRecord[]>;
+
+	/**
+	 * Delete specific preview deployments by id. Returns the count deleted.
+	 * Optional — providers that don't support deletion omit this.
+	 */
+	deletePreviewDeployments?(projectId: string, deploymentIds: string[]): Promise<number>;
+
+	/**
+	 * Add a custom domain (or wildcard) to the project. Idempotent — no-op
+	 * when the domain is already present. Optional: providers without a
+	 * custom domain API omit this.
+	 *
+	 * Returns the DNS record needed to finish verification — `null` when
+	 * the domain is already verified, or when the provider's API doesn't
+	 * surface DNS-challenge details at all (e.g. Cloudflare Pages, whose
+	 * custom-domain flow doesn't expose the same per-request verification
+	 * handshake Vercel's does). Callers hand a non-null result straight
+	 * to `dns.upsertRecord(result.zone, result.record)` — the exact
+	 * pattern `setup` already uses for `Wiki.dnsRecord()`.
+	 */
+	ensureCustomDomain?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
+	/**
+	 * The DNS record that points `hostname` at the project, read without changing anything: the read-only half of
+	 * {@link Deployment.ensureCustomDomain}, which attaches the domain. Unlike `ensureCustomDomain` it returns the
+	 * record even when the domain already resolves, so `holocron doctor dns` can compare it with the zone. `null`
+	 * when the provider has no record to recommend. Optional: a provider that cannot be asked omits it.
+	 */
+	expectedDomainRecord?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
+	/**
+	 * The hostnames attached to the project as custom domains, read without changing anything. `holocron doctor
+	 * workers` compares them with the domain the config declares. Optional: a provider that cannot be asked omits it.
+	 */
+	listDomains?(projectId: string): Promise<string[]>;
+	/**
+	 * The newest production deployment of the project, or null when it has none. Read-only; `holocron doctor workers`
+	 * uses its `status` to say whether the latest deploy is healthy. Optional: a provider that cannot list its
+	 * deployments omits it.
+	 */
+	latestDeployment?(projectId: string): Promise<DeploymentRecord | null>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// storage — DB / object / file store
+// ───────────────────────────────────────────────────────────────────────
+
+/** A branch of a database or other store, as {@link Storage.listBranches} reports it. */
+export interface StorageBranch {
+	/** The provider's id for the branch. */
+	id: string;
+	/** The branch's name. */
+	name: string;
+	/** Parent branch id; null for the root/main branch. */
+	parentId: string | null;
+	/** When the branch was created, as an ISO timestamp. */
+	createdAt: string;
+}
+
+/** Options for {@link Storage.getConnectionString}. */
+export interface ConnectionStringOptions {
+	/** Use the pooled (PgBouncer) URL when available. Defaults to false. */
+	pooled?: boolean;
+}
+
+/** A database or file store: connection strings and, for providers that have them, branches. */
+export interface Storage extends ProviderIdentity {
+	/** Identifies this provider as the `storage` capability. */
+	readonly key: "storage";
+
+	/**
+	 * Connection string for the given scope. Scope is provider-specific:
+	 *
+	 *   - branch-based providers (Neon, PlanetScale): scope = branch
+	 *     name or id
+	 *   - flat providers (single Postgres instance): scope is ignored
+	 *
+	 * Callers (or the orchestrator) decide how a deploy target maps to
+	 * a scope; the storage plugin doesn't own that mapping.
+	 */
+	getConnectionString(scope: string, options?: ConnectionStringOptions): Promise<string>;
+
+	// Branch operations (optional — flat providers can omit).
+	/** Every branch of the store. */
+	listBranches?(): Promise<StorageBranch[]>;
+	/** Create a branch named `name`, copied from the `from` branch when given. */
+	createBranch?(input: { name: string; from?: string }): Promise<StorageBranch>;
+	/** Delete the branch (by name or id). */
+	destroyBranch?(branch: string): Promise<void>;
+	/** Restore one branch to match another (e.g., reset preview → main). */
+	resetBranch?(input: { branch: string; from: string }): Promise<void>;
+
+	/**
+	 * Provider-specific feature toggle. For Postgres providers this is
+	 * `CREATE EXTENSION IF NOT EXISTS ...` per branch.
+	 */
+	enableExtension?(input: { branch: string; extension: string }): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// auth — identity provider
+// ───────────────────────────────────────────────────────────────────────
+
+/** What the auth provider needs the app to be given at runtime. */
+export interface AuthDescription {
+	/** The provider's name. */
+	provider: string;
+	/** Env-var names the app needs at runtime (CLERK_PUBLISHABLE_KEY, etc.). */
+	envKeys: string[];
+}
+
+/** What {@link Auth.whoami} found out about the configured credentials. */
+export interface AuthIdentity {
+	/** The provider's name. */
+	provider: string;
+	/** Provider-specific health signal (user count, role, account name, etc.). */
+	details?: Record<string, unknown>;
+}
+
+/** A user in the auth provider. */
+export interface AuthUser {
+	/** The provider's id for the user. */
+	id: string;
+	/** The user's email address. */
+	email: string;
+}
+
+/** What {@link Auth.createUser} needs to make a user. */
+export interface CreateAuthUserInput {
+	/** The new user's email address. */
+	email: string;
+	/** The new user's password. */
+	password: string;
+	/** The new user's first name. */
+	firstName?: string;
+	/** The new user's last name. */
+	lastName?: string;
+}
+
+/** Where to configure the auth provider's webhooks. */
+export interface WebhookDashboardInfo {
+	/** The address of the provider's webhook settings page. */
+	url: string;
+}
+
+/** An identity provider: describes what an app needs from it, proves the credentials work and, where the provider allows, manages users and webhooks. */
+export interface Auth extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `auth` capability. */
+	readonly key: "auth";
+
+	/** Env-var keys the runtime app needs. */
+	describe(): Promise<AuthDescription>;
+
+	/** Reachability probe — proves the configured key works. */
+	whoami(): Promise<AuthIdentity>;
+
+	// Optional capabilities — providers implement what they support.
+
+	/** Idempotent webhook backend provisioning (Clerk: Svix app). */
+	ensureWebhookApp?(): Promise<{ alreadyExists: boolean }>;
+
+	/** Deep-link to the provider's webhook config dashboard. */
+	getWebhookDashboardUrl?(): Promise<WebhookDashboardInfo>;
+
+	/** Seed a user (test fixtures, admin bootstrap). */
+	createUser?(input: CreateAuthUserInput): Promise<AuthUser>;
+
+	/** Wire the auth provider's webhook into the project's repo. */
+	syncWebhook?(input: { repo: string; secretRef: string }): Promise<void>;
+}
+
+// ── Normalized webhook events (cross-provider sync) ──────────────────
+//
+// Plugins implementing `auth` may also expose a `parseWebhook` utility
+// (NOT a capability method — exported alongside the plugin's
+// createPlugin) that translates the vendor's webhook payload into one
+// of these normalized event shapes. Your app's webhook handler then
+// reads the normalized event and is vendor-agnostic:
+//
+//   import { parseWebhook } from '@theholocron/holocron-plugin-clerk'
+//   import type { AuthEvent } from '@theholocron/cli'
+//
+//   app.post('/webhooks/clerk', async (req) => {
+//     const event: AuthEvent = await parseWebhook({
+//       body: req.body,
+//       headers: req.headers,
+//       signingSecret: process.env.CLERK_WEBHOOK_SECRET!,
+//     })
+//     await db.users.upsert(event.user)
+//   })
+//
+// Swap clerk for another auth plugin → change one import line; the
+// handler logic stays the same.
+
+/** What happened to a user, in a form that does not depend on the auth provider. */
+export type AuthEventType = "user.created" | "user.updated" | "user.deleted";
+
+/** A user as a webhook event reports it, in a form that does not depend on the auth provider. */
+export interface NormalizedAuthUser {
+	/** The provider's id for the user. */
+	id: string;
+	/** The user's email address. */
+	email: string;
+	/** The user's first name; `null` or `undefined` when none is set. */
+	firstName?: string | null;
+	/** The user's last name; `null` or `undefined` when none is set. */
+	lastName?: string | null;
+	/** Provider-native fields preserved verbatim for consumers that need them. */
+	raw?: Record<string, unknown>;
+}
+
+/** A webhook event from the auth provider, in a form that does not depend on the provider. */
+export interface AuthEvent {
+	/** What happened to the user. */
+	type: AuthEventType;
+	/** The user the event is about. */
+	user: NormalizedAuthUser;
+	/** ISO timestamp of when the event occurred. */
+	occurredAt: string;
+}
+
+/** What a plugin's `parseWebhook` needs to verify and translate an incoming webhook request. */
+export interface ParseWebhookInput {
+	/** Raw request body (string or Buffer). */
+	body: string | Buffer;
+	/** Incoming HTTP headers — needed for signature verification. */
+	headers: Record<string, string | string[] | undefined>;
+	/** The signing secret the auth provider issued for this webhook endpoint. */
+	signingSecret: string;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// vault — REQUIRED source-of-truth for secrets
+// ───────────────────────────────────────────────────────────────────────
+
+/** The outcome of an idempotent `ensure*` call that creates a container. */
+export interface EnsureResult {
+	/** True when the resource already existed (idempotent no-op). */
+	alreadyExists: boolean;
+}
+
+/** One variable of a vault environment, as `Vault.readEnvironmentEntries` returns it. */
+export interface EnvironmentEntry {
+	/** The variable's name. */
+	name: string;
+	/** Its value. Never print or log it. */
+	value: string;
+	/** Whether the vault holds it concealed (a secret), as against visible. */
+	concealed: boolean;
+}
+
+/** A secret store, the source of truth that `holocron sync secrets` reads from. */
+export interface Vault extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `vault` capability. */
+	readonly key: "vault";
+
+	/**
+	 * Read a secret by reference. The reference format is
+	 * provider-specific (1P: "op://Vault/Item/field"; HashiCorp Vault:
+	 * "kv/path#field"; etc.). Adapters validate the reference shape.
+	 */
+	read(reference: string): Promise<string>;
+
+	/**
+	 * Optional — read a secret by its bare name from the project and config this vault was set up with, instead of by a
+	 * full reference. For a provider whose references name the project and config the options already carry (Doppler).
+	 */
+	readSecret?(name: string): Promise<string>;
+
+	/** Write or update a secret. */
+	write(reference: string, value: string): Promise<void>;
+
+	/** List secret keys available to the project. */
+	list(): Promise<string[]>;
+
+	/**
+	 * Optional environment notion within the vault (e.g., 1P
+	 * Environments — named KEY=VALUE bundles). Adapters without
+	 * environments return [].
+	 */
+	environments?(): Promise<string[]>;
+
+	/**
+	 * Optional bulk read of an environment's KEY=VALUE pairs. Powers
+	 * the `holocron sync secrets` flow where the orchestrator pulls a
+	 * whole environment from the vault then fans the values out to
+	 * destinations (CI secrets, deployment env vars, local .env).
+	 */
+	readEnvironment?(environmentId: string): Promise<Record<string, string>>;
+
+	/**
+	 * Optional — like `readEnvironment`, but each entry says whether the vault holds it concealed (a secret) or
+	 * visible (a plain value). `holocron doctor secrets --shared` compares only the concealed ones. The values are for
+	 * in-memory comparison and are never printed. A provider that cannot tell omits this.
+	 */
+	readEnvironmentEntries?(environmentId: string): Promise<EnvironmentEntry[]>;
+
+	/**
+	 * Optional — create the top-level project container in the vault
+	 * if it does not exist. Idempotent: `alreadyExists: true` when the
+	 * project was already there. Providers whose data model has no
+	 * project notion (or that gate this behind a paid tier) omit this.
+	 */
+	ensureProject?(name: string): Promise<EnsureResult>;
+
+	/**
+	 * Optional — create a named environment/config inside a project
+	 * (e.g., Doppler config `dev` / `stg` / `prd`). Idempotent.
+	 * Providers whose data model has a single flat namespace omit this.
+	 */
+	ensureEnvironment?(project: string, name: string): Promise<EnsureResult>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// dns — DNS record management
+// ───────────────────────────────────────────────────────────────────────
+
+/** The DNS record types a provider can manage. */
+export type DnsRecordType = "A" | "AAAA" | "CNAME" | "TXT" | "MX" | "NS" | "SRV" | "CAA";
+
+/** A DNS record. */
+export interface DnsRecord {
+	/** The provider's id for the record; absent on a record not yet created. */
+	id?: string;
+	/** The record's type. */
+	type: DnsRecordType;
+	/** The record's name (the host it answers for). */
+	name: string;
+	/** The record's value, e.g. an address for `A` or a target host for `CNAME`. */
+	content: string;
+	/** Time to live in seconds; the provider's default when absent. */
+	ttl?: number;
+	/** Priority, for the record types that have one (`MX`, `SRV`). */
+	priority?: number;
+	/** Whether traffic goes through the provider's proxy; only providers that offer one use it. */
+	proxied?: boolean;
+}
+
+/**
+ * A DNS record a capability wants created, plus which zone it belongs
+ * to — the shape `Wiki.dnsRecord()` and `Deployment.ensureCustomDomain()`
+ * both hand off to `Dns.upsertRecord()`. Not tied to either capability;
+ * any provider that needs "here's a record, go create it" returns this.
+ */
+export interface DnsRecordRequest {
+	/** Zone apex passed as the first argument to `dns.upsertRecord`. */
+	zone: string;
+	/** The record to create or update. */
+	record: DnsRecord;
+}
+
+/** DNS record management for a domain. */
+export interface Dns extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `dns` capability. */
+	readonly key: "dns";
+	/** Every record in the domain's zone. */
+	listRecords(domain: string): Promise<DnsRecord[]>;
+	/** Create the record, or update the existing one that matches it, and return the result. */
+	upsertRecord(domain: string, record: DnsRecord): Promise<DnsRecord>;
+	/** Delete the record with the given id from the domain's zone. */
+	deleteRecord(domain: string, id: string): Promise<void>;
+	/**
+	 * A `holocron doctor` smoke check with no specific domain to ask about —
+	 * `listRecords` needs one, but doctor doesn't have one on hand. Verifies
+	 * the token and reports how many zones it can see.
+	 */
+	whoami?(): Promise<{ ok: boolean; zones: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// errors — error tracking / crash reporting
+// logs — structured log aggregation
+//
+// Both are self-contained: they activate at runtime from env vars alone
+// (`HOLOCRON_SENTRY_DSN`, `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET`)
+// with no provider entry in `holocron.config`. The provider entry only
+// enables `holocron setup` provisioning and `holocron doctor` checks.
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * The capabilities whose provider may carry a relay source (`NotificationsLayout.relay.sources`): the vendors whose
+ * webhook is made through a service they already offer. The tracker (`errors`) has its own, richer pair
+ * (`ensureRelay`).
+ */
+export type RelaySourceCapability = "deployment" | "dns" | "vault" | "auth" | "workers" | "source";
+
+/** What {@link RelaySourceMethods.ensureRelaySource} sets up at the vendor. */
+export interface EnsureRelaySourceInput {
+	/** The source's id, the path the relay serves it at (`vercel`). */
+	source: string;
+	/** Where the vendor posts, e.g. `https://comlink.theholocron.dev/vercel`. The webhook is found again by this. */
+	url: string;
+	/** The webhook's name at the vendor, when it has one (also how a provider may find it). */
+	name: string;
+	/** The vendor's own event names to subscribe to, as the layout gives them. */
+	events?: string[];
+	/** What the webhook covers, in the vendor's terms (project ids, config slugs, alert types). */
+	scope?: string[];
+	/** Anything else the vendor takes, copied from the layout and judged by the provider. */
+	options?: Record<string, unknown>;
+	/**
+	 * A fresh signing secret, for a vendor that lets the caller choose it. Use it only when making the webhook: an
+	 * existing one keeps its secret, which cannot be read back. A credential: never print or log it.
+	 */
+	secret?: string;
+}
+
+/** Which webhook to read back: the names {@link EnsureRelaySourceInput} was given, without the parts that write. */
+export type InspectRelaySourceInput = Omit<EnsureRelaySourceInput, "secret">;
+
+/** What {@link RelaySourceMethods.ensureRelaySource} did. */
+export interface EnsureRelaySourceResult {
+	/** Whether the webhook was made now rather than adopted. */
+	created: boolean;
+	/** For one adopted, the settings that differed and were changed. */
+	updated: string[];
+	/**
+	 * The secret the relay verifies this vendor's requests with: the one the provider made or the `secret` it was given,
+	 * returned only when the webhook was made (or its secret changed) now. Absent for an adopted webhook, so the Worker
+	 * keeps the secret it has. A credential: never print or store it.
+	 */
+	secret?: string;
+	/** Steps the provider's API cannot do (a dashboard setting, a redirect), each one sentence. Any fails the run. */
+	todo?: string[];
+}
+
+/** A vendor's webhook as the provider holds it. Never carries the signing secret. */
+export interface RelaySourceState {
+	/** Whether a webhook for this URL exists. */
+	exists: boolean;
+	/** Whether it is on. Undefined when the vendor has no such switch. */
+	enabled?: boolean;
+	/** The events it subscribes to, when the vendor reports them. */
+	events?: string[];
+	/** What it covers, when the vendor reports it. */
+	scope?: string[];
+	/** Whether it has a signing secret, when the vendor says (the value is never read). */
+	hasSecret?: boolean;
+}
+
+/**
+ * The optional methods a vendor plugin adds to its capability to make its own webhook for a relay source (spec
+ * `tech-relay-sources`). Idempotent like `ensureRelay`: a webhook found by its URL is adopted and only what differs is
+ * changed, nothing is deleted.
+ */
+export interface RelaySourceMethods {
+	/** Make or adopt the vendor's webhook for `input.url` and say what was done, with the secret when it was just set. */
+	ensureRelaySource?(input: EnsureRelaySourceInput): Promise<EnsureRelaySourceResult>;
+	/** Read the webhook back without changing anything (`holocron doctor notifications`). Never reads the secret. */
+	inspectRelaySource?(input: InspectRelaySourceInput): Promise<RelaySourceState>;
+}
+
+/** Error tracking: describes what an app needs at runtime and, where the provider allows, creates projects and relays alerts. */
+export interface Errors extends ProviderIdentity {
+	/** Identifies this provider as the `errors` capability. */
+	readonly key: "errors";
+	/**
+	 * Returns the env var names the app reads at runtime for this provider.
+	 * `envKeys` are always pushed; the optional `frameworkEnvKeys` maps a
+	 * framework name, as `deriveStack()` spells it (`next`), to the extra keys
+	 * pushed only when that framework is in the repo's detected stack (the root
+	 * `package.json` and every workspace package's).
+	 */
+	describe(): Promise<{
+		provider: string;
+		envKeys: string[];
+		frameworkEnvKeys?: Partial<Record<StackName, string[]>>;
+	}>;
+	/**
+	 * Reachability probe. `null` means the check genuinely can't run right
+	 * now on an otherwise-valid configuration (e.g. Sentry's optional `org`
+	 * setting is unset — error ingestion still works from the DSN alone,
+	 * `org` is only needed for the management-API calls `whoami` makes) —
+	 * callers should fall back to `describe()`, not treat it as a failure.
+	 * Still throws for a genuine failure (bad token, network error, etc.).
+	 */
+	whoami?(): Promise<{ org: string } | null>;
+	/** Create the project if it is missing and return its DSN; `alreadyExists` is true when it was already there. */
+	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
+	/**
+	 * Make the tracker send its alerts to a relay (the Comlink Worker): an integration that posts to `webhookUrl`, and
+	 * an alert rule on each project that uses it. Idempotent: an integration or rule with the same name is adopted and
+	 * only what differs is changed. `clientSecret` is the integration's signing secret, handed to the caller to give
+	 * the relay; it is a credential and must not be printed or stored anywhere but there. It is absent when the
+	 * provider did not give it (some show it only when the integration is made).
+	 */
+	ensureRelay?(input: EnsureRelayInput): Promise<EnsureRelayResult>;
+	/**
+	 * Read back what `ensureRelay` makes without changing anything: the integration and, for each project, whether the
+	 * alert rule is on it, enabled and sends through the integration. Never reads the signing secret.
+	 * Optional — a provider with no relay omits it.
+	 */
+	inspectRelay?(input: InspectRelayInput): Promise<RelayState>;
+	/**
+	 * Read the tracker's organization and the named projects without changing anything: whether each exists, whether it
+	 * has a client key (a DSN to give an SDK) and how many enabled alert rules watch it. Never returns a DSN or a key.
+	 * `holocron doctor errors` uses it. Optional — a provider with no management API omits it.
+	 */
+	inspect?(input: InspectErrorsInput): Promise<ErrorsInspection>;
+}
+
+/** What {@link Errors.inspect} reads. */
+export interface InspectErrorsInput {
+	/** The project slugs to look for. */
+	projects: string[];
+}
+
+/** The organization {@link Errors.inspect} asked for. */
+export interface ErrorsOrgState {
+	/** The slug that was asked for. */
+	slug: string;
+	/** Whether the provider has an organization by that slug. */
+	exists: boolean;
+	/** Its display name, when it exists. */
+	name?: string;
+}
+
+/** One project {@link Errors.inspect} looked for. */
+export interface ErrorsProjectState {
+	/** The project slug that was asked for. */
+	slug: string;
+	/** Whether the project exists in the organization. */
+	exists: boolean;
+	/** Whether it has at least one client key (a DSN). Undefined when the project is missing. */
+	hasDsn?: boolean;
+	/** How many enabled alert rules watch its issues. Undefined when the project is missing or the rules could not be read. */
+	alertRules?: number;
+}
+
+/** The tracker as the provider holds it. Carries counts and booleans only: no DSN, key or token. */
+export interface ErrorsInspection {
+	/** The organization asked for, and whether the provider has it. */
+	org: ErrorsOrgState;
+	/** One entry per requested project, in the order asked. */
+	projects: ErrorsProjectState[];
+	/** Why the alert rules could not be read (a token without the scope), when that is so. */
+	alertsUnreadable?: string;
+}
+
+/** What {@link Errors.ensureRelay} sets up at the error tracker. */
+export interface EnsureRelayInput {
+	/** The integration's name at the provider (also how an existing one is found). */
+	name: string;
+	/** Where the provider posts its alerts, e.g. `https://comlink.theholocron.dev/sentry`. */
+	webhookUrl: string;
+	/** The projects whose issues are sent. */
+	projects: string[];
+	/** The alert rule: its name, and the minutes between two notifications for one issue (default 5). */
+	rule: {
+		/** The alert rule's name at the provider (also how an existing one is found). */
+		name: string;
+		/** Minutes between two notifications for one issue; 5 when absent. */
+		frequency?: number;
+	};
+}
+
+/** Which integration and alert rule to read back: the names `ensureRelay` was given, without the parts that write. */
+export interface InspectRelayInput {
+	/** The integration's name at the provider. */
+	name: string;
+	/** The projects whose issues are sent. */
+	projects: string[];
+	/** The alert rule to look for. */
+	rule: {
+		/** Its name at the provider. */
+		name: string;
+	};
+}
+
+/**
+ * The tracker's side of a relay as the provider holds it. Never carries the integration's signing secret: the read
+ * does not ask for it.
+ */
+export interface RelayState {
+	/** The integration, or undefined when none has that name. */
+	integration?: {
+		/** Where it posts alerts, or null when it has no webhook. */
+		webhookUrl: string | null;
+		/** Whether it is offered as an alert action. */
+		alertAction: boolean;
+	};
+	/** One entry per requested project the rule is attached to; a project missing here has no such rule. */
+	rules: Array<{
+		project: string;
+		enabled: boolean;
+		/** Whether the rule sends through the integration. */
+		sends: boolean;
+	}>;
+}
+
+/** What {@link Errors.ensureRelay} did. */
+export interface EnsureRelayResult {
+	/** The integration that posts to the relay. */
+	integration: {
+		/** Whether it was made now rather than adopted. */
+		created: boolean;
+		/** For one adopted, the settings that differed and were changed. */
+		updated: string[];
+	};
+	/** The alert rule that sends through the integration. */
+	rule: {
+		/** Whether it was made now rather than adopted. */
+		created: boolean;
+		/** For one adopted, the settings that differed and were changed. */
+		updated: string[];
+	};
+	/** The integration's signing secret, for the relay to verify alerts with. A credential: never print or store it. */
+	clientSecret?: string;
+}
+
+/** Log aggregation: describes what an app needs at runtime and, where the provider allows, creates the dataset. */
+export interface Logs extends ProviderIdentity {
+	/** Identifies this provider as the `logs` capability. */
+	readonly key: "logs";
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	/** Verify the token by fetching the target dataset's info. */
+	whoami?(): Promise<{ ok: boolean; dataset: string }>;
+	/** Create the aggregation dataset if it does not already exist. Idempotent. */
+	ensureDataset?(name: string): Promise<{ alreadyExists: boolean }>;
+	/**
+	 * Read a dataset without changing anything (`holocron doctor logs`). A dataset that is not there is `exists: false`,
+	 * not an error, and one the token may not see is `forbidden: true`; any other failure throws.
+	 */
+	readDataset?(name: string): Promise<LogsDataset>;
+	/**
+	 * Ask the provider whether it accepts the token. `dataset` names one the token is expected to hold (the caller's
+	 * own), which a provider may probe in place of a name it makes up: a token that cannot see a dataset that does not
+	 * exist may still reach its own. `ok: false` only when the provider refused it; an error that says nothing about the
+	 * token (a network failure, a missing token, an answer that could mean either) throws.
+	 */
+	checkToken?(dataset?: string): Promise<{ ok: boolean; reason?: string }>;
+}
+
+/** What {@link Logs.readDataset} found. */
+export interface LogsDataset {
+	/** Whether the dataset exists. */
+	exists: boolean;
+	/**
+	 * `true` when the provider refused the read (403) for this token: the dataset is not visible to it, and the provider
+	 * may answer the same for one that does not exist, so `exists` is `false` but says nothing.
+	 */
+	forbidden?: boolean;
+	/** Days the provider keeps data in the dataset, when it reports one. One setting for the whole dataset. */
+	retentionDays?: number;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// cache — a remote build cache and the token that reaches it
+// ───────────────────────────────────────────────────────────────────────
+
+/** What {@link Cache.checkToken} found. Names and states only; never the token. */
+export interface CacheTokenCheck {
+	/** `true` when the token is accepted for the team and the remote cache is on and reachable with it. */
+	ok: boolean;
+	/** Why `ok` is `false`, or a note when it is `true`. */
+	reason?: string;
+	/** The remote cache's own word for its state (`enabled`, `disabled`, `over_limit`, `paused`), when it answered one. */
+	status?: string;
+	/** `true` when the token can read the cache but not write to it, where the provider reports it. */
+	readOnly?: boolean;
+	/**
+	 * Which part failed, when `ok` is `false`: the provider refused the `token`, the token has no access to the
+	 * configured `team`, or the cache answered but is not usable. Absent when the cache answered a state `ok` can say.
+	 */
+	problem?: "token" | "team" | "cache";
+}
+
+/** A remote build cache: whether a token is accepted for the configured team and the cache answers with it. */
+export interface Cache extends ProviderIdentity {
+	/** Identifies this provider as the `cache` capability. */
+	readonly key: "cache";
+	/**
+	 * Is the token valid for the configured team, and is the remote cache reachable with it? `ok: false` only for what
+	 * the provider answered (a refused token, a team the token cannot reach, a cache that is off); a network failure or
+	 * a missing token throws.
+	 */
+	checkToken(): Promise<CacheTokenCheck>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// monitoring — external uptime / synthetic checks
+//
+// Unlike `errors`/`logs`, this one is NOT self-contained: there is no
+// runtime SDK a monitored app imports — the check runs on the provider's
+// own infrastructure, hitting a deployed URL from outside. The plugin's
+// token is only ever used by `holocron setup`/`doctor` themselves
+// (the standard 4-step `--token` / `HOLOCRON_<VENDOR>_TOKEN` /
+// `<VENDOR_NATIVE_ENV>` / keyring precedence every other plugin uses),
+// never by the monitored app. Vendor-neutral by design — a future
+// Datadog/Pingdom/UptimeRobot provider implements the same shape;
+// Checkly's own STATUS_CODE/EQUALS-style enums stay internal to that
+// adapter, not leaked into this interface.
+// ───────────────────────────────────────────────────────────────────────
+
+/** What part of a response a {@link MonitoringAssertion} looks at. */
+export type MonitoringAssertionSource = "status_code" | "response_time" | "body" | "header";
+
+/** How a {@link MonitoringAssertion} compares the part of the response with its target. */
+export type MonitoringAssertionComparison =
+	"equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
+
+/** A condition a monitoring check's response must meet to pass. */
+export interface MonitoringAssertion {
+	/** The part of the response to look at. */
+	source: MonitoringAssertionSource;
+	/** How to compare it with `target`. */
+	comparison: MonitoringAssertionComparison;
+	/** Header name / JSON path — required when `source` needs one (e.g. `"header"`). */
+	property?: string;
+	/** The value to compare against. */
+	target?: string;
+}
+
+/** The HTTP methods a monitoring check can use. */
+export type MonitoringHttpMethod = "GET" | "POST" | "PUT" | "HEAD" | "DELETE" | "PATCH";
+
+/** A monitoring check, in a form that does not depend on the provider. */
+export interface MonitoringCheckInput {
+	/** Also the idempotency key — `ensureCheck` finds-or-creates by this name. */
+	name: string;
+	/** The address to request. */
+	url: string;
+	/** The HTTP method; the provider's default when absent. */
+	method?: MonitoringHttpMethod;
+	/** Minutes between runs. Adapters round to their own supported values. */
+	frequency?: number;
+	/** Conditions the response must meet; the provider's default check when absent. */
+	assertions?: MonitoringAssertion[];
+	/** Whether the check runs; the provider's default when absent. */
+	activated?: boolean;
+	/**
+	 * Provider-specific region/datacenter ids to run the check from (e.g.
+	 * Checkly's `"us-east-1"`). Required by some providers — there's no
+	 * universal default; an account with none configured rejects a check
+	 * that omits this entirely.
+	 */
+	locations?: string[];
+	/**
+	 * Inverts pass/fail: set this when the check's expected-healthy
+	 * response is itself an HTTP error status (e.g. asserting a 404/405
+	 * on an endpoint that should reject certain requests). Without it,
+	 * most providers classify any 4xx/5xx response as a failure at the
+	 * platform level *before* evaluating `assertions` at all — a custom
+	 * assertion that matches the "expected" error status does not
+	 * override that baseline classification on its own.
+	 */
+	shouldFail?: boolean;
+	/**
+	 * Raw request body to send with the check — e.g. simulating a webhook
+	 * delivery to verify signature/auth checking is wired correctly
+	 * end-to-end, rather than just confirming the endpoint is reachable.
+	 * Omitted entirely by default (no body sent).
+	 */
+	body?: string;
+	/**
+	 * Route this check to specific alert channels, by their names (the `feeds.monitoring` name of a notifications channel,
+	 * `Message to #uptime` by default). Absent, the check alerts through every alert channel; given, only through the
+	 * ones named. A name no alert channel carries is refused by `setup notifications`.
+	 */
+	alertChannels?: string[];
+	/**
+	 * Labels that group checks: a dashboard and a status page component pick the checks they show by them. `ensureCheck`
+	 * sends them, so an existing check's tags become exactly this list; absent, none are sent.
+	 */
+	tags?: string[];
+}
+
+/** A check as the provider holds it. */
+export interface MonitoringCheck {
+	/** The provider's id for the check. */
+	id: string;
+	/** The check's name. */
+	name: string;
+}
+
+/**
+ * What an alert channel alerts about. A field left out is left alone on an existing channel and, on a new one, takes
+ * the default: `failure`, `recovery` and `degraded` on, `sslExpiry` off.
+ */
+export interface MonitoringAlertSettings {
+	/** Alert when a check fails. */
+	failure?: boolean;
+	/** Alert when a failing check recovers. */
+	recovery?: boolean;
+	/** Alert when a check turns degraded (slower than its degraded threshold). */
+	degraded?: boolean;
+	/** Alert before a certificate expires. */
+	sslExpiry?: boolean;
+	/** Days before expiry that `sslExpiry` alerts at. */
+	sslExpiryThreshold?: number;
+}
+
+/** A place the monitoring provider sends its alerts: a webhook that posts into a chat channel. */
+export interface MonitoringAlertChannelInput {
+	/** Also the idempotency key: an existing channel with this name is adopted and brought in line. */
+	name: string;
+	/** The chat service the message is formatted for. */
+	format: "discord";
+	/**
+	 * Where alerts post: a credential, because anyone holding it can post to the channel. Absent when the webhook already
+	 * existed and cannot be read back, in which case an existing alert channel keeps the URL it has and a missing one
+	 * cannot be created.
+	 */
+	url?: string;
+	/** What the channel alerts about; see {@link MonitoringAlertSettings}. */
+	alerts?: MonitoringAlertSettings;
+}
+
+/** What {@link Monitoring.ensureAlertChannel} did. */
+export interface MonitoringAlertChannelResult {
+	/** Whether the channel was made now rather than already existing. */
+	created: boolean;
+	/** For an existing channel, what was brought in line (`"url"`, `"alerts"`, `"subscriptions"`). */
+	updated: string[];
+	/** How many checks the channel is subscribed to afterwards. */
+	subscribed: number;
+}
+
+/**
+ * An alert channel as the provider holds it, for `doctor notifications`. The URL it posts to is a credential and is not
+ * returned: `webhookId` is the public part of a Discord webhook's URL, enough to tell which webhook it posts through.
+ */
+export interface MonitoringAlertChannelState {
+	/** Whether a webhook alert channel with that name exists. */
+	exists: boolean;
+	/** Whether the provider formats its message for Discord. Absent when the channel does not exist. */
+	discord?: boolean;
+	/** The id of the Discord webhook the channel posts through, read from its URL. Absent when the URL is not one. */
+	webhookId?: string;
+	/** What the channel alerts about now. Absent when the channel does not exist. */
+	alerts?: Required<MonitoringAlertSettings>;
+	/** Names of the checks routed to the channel (all of them, unless a check names its `alertChannels`) that it is not subscribed to. */
+	unsubscribed: string[];
+	/** Names of the checks routed away from the channel (by their `alertChannels`) that it is still subscribed to. */
+	misrouted: string[];
+	/**
+	 * How many check groups the channel is subscribed to (and has switched on), reported only when some check is routed
+	 * away from the channel. A group's subscription alerts for every check in the group, including one routed elsewhere,
+	 * and which checks a group holds cannot be read, so these are named for a person to check.
+	 */
+	groupSubscriptions?: number;
+	/** Names of the checks the channel is subscribed to but has switched off. */
+	deactivated: string[];
+}
+
+/** A dashboard over the checks that carry some tags, for {@link Monitoring.ensureDashboard}. */
+export interface MonitoringDashboardInput {
+	/** The title; also the idempotency key. */
+	name: string;
+	/** Text under the title. A dashboard that leaves it out keeps the one it has. */
+	description?: string;
+	/** Checks carrying any of these tags are shown. */
+	tags: string[];
+	/** Default true: a dashboard shows check URLs and timings, so only people holding its key read it. */
+	private?: boolean;
+	/** A hostname on the org's zone, if wanted. */
+	domain?: string;
+	/** A picture shown at the top (http or https URL). */
+	logo?: string;
+	/** The picture used as the page's icon (http or https URL). */
+	favicon?: string;
+	/** Where a click on the logo goes (http or https URL). */
+	link?: string;
+}
+
+/**
+ * A dashboard as the provider holds it, for `doctor monitoring`. The view key of a private dashboard is a credential
+ * and is never returned here.
+ */
+export interface MonitoringDashboardState {
+	/** Whether a dashboard with that name exists. */
+	exists: boolean;
+	/** Whether anyone with the link can read it. Absent when the dashboard does not exist. */
+	private?: boolean;
+	/** The tags it shows checks by. Absent when the dashboard does not exist. */
+	tags?: string[];
+	/** The custom hostname it is served on, when it has one. */
+	domain?: string;
+	/** Names of the other dashboards the account holds, for an `info` row. */
+	others: string[];
+}
+
+/** One thing a status page shows: it goes down when a check carrying one of its tags fails. */
+export interface MonitoringStatusComponentInput {
+	/** Also the idempotency key within the page. */
+	name: string;
+	/** Text shown under the component's name. */
+	description?: string;
+	/** A failing check carrying any of these tags opens an incident on this component. */
+	tags: string[];
+	/** A group to show it under; made if absent. */
+	group?: string;
+}
+
+/** A public page that shows whether the org's services are up, and its components. */
+export interface MonitoringStatusPageInput {
+	/** The page's title; also the idempotency key. */
+	name: string;
+	/** The page's address segment on the provider. */
+	slug: string;
+	/** A hostname on the org's zone, `status.<domain>`. */
+	domain?: string;
+	/** Text shown under the page's title. */
+	description?: string;
+	/** A picture (http or https URL). */
+	logo?: string;
+	/** The picture shown instead of `logo` in the dark theme (http or https URL). */
+	logoDark?: string;
+	/** The picture used as the page's icon (http or https URL). */
+	favicon?: string;
+	/** Where a click on the logo goes (http or https URL). */
+	link?: string;
+	/** Text in the page's footer. */
+	footer?: string;
+	/** A link to the privacy policy, in the footer (http or https URL). */
+	privacyUrl?: string;
+	/** A link to the terms of service, in the footer (http or https URL). */
+	termsUrl?: string;
+	/** A link to where people get help (http or https URL). */
+	supportUrl?: string;
+	/** Default false: the point of the page is that people can read it. */
+	private?: boolean;
+	/**
+	 * Default true: each component gets an automation rule that opens an incident on it when a check carrying its tags
+	 * fails. Set false on a plan without automated incidents: no rule is read or made, the doctor does not compare them
+	 * and says so, and incidents are opened by hand.
+	 */
+	automation?: boolean;
+	/** In the order they are shown. */
+	components: MonitoringStatusComponentInput[];
+}
+
+/** What {@link Monitoring.ensureStatusPage} did. */
+export interface MonitoringStatusPageResult extends EnsuredResource {
+	/** Names of the components made, and of those brought in line (a field or its place changed). */
+	components: {
+		/** Names of the components made now. */
+		created: string[];
+		/** Names of the components brought in line. */
+		updated: string[];
+	};
+	/** Names of the rules (one per component) made, and of those brought in line. */
+	rules: {
+		/** Names of the rules made now. */
+		created: string[];
+		/** Names of the rules brought in line. */
+		updated: string[];
+	};
+	/** Present when the page declares a custom domain. */
+	domain?: {
+		/** The custom domain's host name. */
+		name: string;
+		/** The DNS record the provider asks for, when it has not found it yet. */
+		record?: {
+			/** The record's type. */
+			type: "CNAME";
+			/** The host name to make the record at. */
+			name: string;
+			/** What the record points at. */
+			value: string;
+		};
+		/** `TXT` records the provider also asks for (ownership, certificate), when it does. */
+		extraRecords?: Array<{ type: "TXT"; name: string; value: string }>;
+		/** Whether the provider has verified the domain. */
+		verified: boolean;
+	};
+}
+
+/** A status page as the provider holds it, for `doctor monitoring`. Names only, no credentials. */
+export interface MonitoringStatusPageState {
+	/** Whether a page with that name exists. */
+	exists: boolean;
+	/** Whether anyone can read it. Absent when the page does not exist. */
+	public?: boolean;
+	/** The custom domain it serves, if any. */
+	domain?: string;
+	/** Whether the provider has verified the domain. Absent when the page has no custom domain. */
+	domainVerified?: boolean;
+	/** The DNS record still to make for the domain. */
+	domainRecord?: {
+		/** The record's type. */
+		type: "CNAME";
+		/** The host name to make the record at. */
+		name: string;
+		/** What the record points at. */
+		value: string;
+	};
+	/** What the provider says is wrong with the domain, when it says. */
+	domainProblems: string[];
+	/** Names of declared components the page lacks. */
+	missingComponents: string[];
+	/** Declared components that are not in the declared group or order, as `name: how`. */
+	misplacedComponents: string[];
+	/** Names of declared components that no rule ties to the right tags and impact. */
+	missingRules: string[];
+	/** Names of components on the page that the config does not declare (left alone, reported). */
+	extraComponents: string[];
+	/** Names of rules on the page that the config does not declare (left alone, reported). */
+	extraRules: string[];
+}
+
+/** A unit of time a heartbeat's period and grace are given in, as the provider takes them. */
+export type MonitoringHeartbeatUnit = "seconds" | "minutes" | "hours" | "days";
+
+/**
+ * A heartbeat (a dead man's switch): a job calls a ping URL each time it succeeds, and the provider alerts when no
+ * ping arrives within `period` plus `grace`. A field left out is left alone on an existing heartbeat.
+ */
+export interface MonitoringHeartbeatInput {
+	/** Also the idempotency key: `ensureHeartbeat` finds-or-creates by this exact name. */
+	name: string;
+	/** How often the job is expected to ping. */
+	period: number;
+	/** The unit of `period`. */
+	periodUnit: MonitoringHeartbeatUnit;
+	/** How long past the period a ping may be late before the heartbeat alerts. */
+	grace: number;
+	/** The unit of `grace`. */
+	graceUnit: MonitoringHeartbeatUnit;
+	/** Labels that group checks, as on {@link MonitoringCheckInput.tags}. */
+	tags?: string[];
+	/** Route this heartbeat to specific alert channels, as on {@link MonitoringCheckInput.alertChannels}. */
+	alertChannels?: string[];
+}
+
+/** What {@link Monitoring.ensureHeartbeat} did. */
+export interface MonitoringHeartbeatResult {
+	/** The heartbeat as the provider holds it. */
+	heartbeat: MonitoringCheck;
+	/** False when this call made it. */
+	alreadyExists: boolean;
+	/**
+	 * The address the job calls on success. A credential: anyone holding it can fake a success, so it is handed to a
+	 * secret store and never printed, logged or written to the config. Absent when the provider did not return it.
+	 */
+	pingUrl?: string;
+}
+
+/** Where a status page incident stands, from its newest update. */
+export type MonitoringIncidentStatus = "investigating" | "identified" | "monitoring" | "resolved";
+
+/** How badly a component is marked by an incident. */
+export type MonitoringIncidentImpact = "maintenance" | "degraded" | "partial" | "major";
+
+/** One update on a status page incident. */
+export interface MonitoringIncidentUpdate {
+	/** The provider's id for the update; the de-duplication key of a message. */
+	id: string;
+	/** The status the update puts the incident in. */
+	status: MonitoringIncidentStatus;
+	/** What the people running the page said. */
+	text: string;
+	/** When the update was made (an ISO time or date). */
+	at: string;
+}
+
+/** A status page incident in a vocabulary no status page vendor owns. */
+export interface MonitoringIncident {
+	/** The provider's id for the incident. */
+	id: string;
+	/** The incident's name. */
+	title: string;
+	/** The status of the newest update. */
+	status: MonitoringIncidentStatus;
+	/** The components the incident marks and how badly. */
+	impacts: { component: string; impact: MonitoringIncidentImpact }[];
+	/** When the incident was opened. */
+	startedAt: string;
+	/** When it was resolved, when it has been. */
+	resolvedAt?: string;
+	/** Seconds from opening to resolution, when resolved. */
+	durationSeconds?: number;
+	/** The updates, oldest first. */
+	updates: MonitoringIncidentUpdate[];
+}
+
+/** What {@link Monitoring.openIncident} opens: no provider-made field (id, start time, updates) is in it. */
+export interface MonitoringIncidentInput {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** The incident's name. */
+	title: string;
+	/** The status the opening update carries. */
+	status: MonitoringIncidentStatus;
+	/** What the opening update says. */
+	message: string;
+	/** Whether the page's subscribers are told. */
+	notify: boolean;
+	/** The components to mark, by their name on the page, and how badly; one left out is untouched. */
+	impacts: { component: string; impact: MonitoringIncidentImpact }[];
+}
+
+/** What {@link Monitoring.updateIncident} appends. */
+export interface MonitoringIncidentUpdateInput {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** The provider's id for the incident. */
+	id: string;
+	/** The status the update puts the incident in. */
+	status: MonitoringIncidentStatus;
+	/** What the update says. */
+	message: string;
+	/** Whether the page's subscribers are told. */
+	notify: boolean;
+}
+
+/** What {@link Monitoring.resolveIncident} appends: an update whose status is always `resolved`, so it carries none. */
+export type MonitoringIncidentResolveInput = Omit<MonitoringIncidentUpdateInput, "status">;
+
+/** What a write to an incident answers: its id and the status it is in now. */
+export interface MonitoringIncidentWrite {
+	/** The provider's id for the incident. */
+	id: string;
+	/** The status of the newest update after the write. */
+	status: MonitoringIncidentStatus;
+}
+
+/** What {@link Monitoring.listIncidents} reads. */
+export interface MonitoringIncidentQuery {
+	/** The declared name of the status page. */
+	statusPage: string;
+	/** Leave out incidents that are resolved and were last updated before this ISO time or date. */
+	since?: string;
+}
+
+/** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
+export interface Monitoring extends ProviderIdentity {
+	/** Identifies this provider as the `monitoring` capability. */
+	readonly key: "monitoring";
+	/**
+	 * Checks this provider is configured to ensure exist — populated from
+	 * the provider's own config (`holocron.config.ts`'s provider tuple),
+	 * the same place `Deployment.domain` comes from. `holocron setup`
+	 * loops this list and calls `ensureCheck` for each; empty when none
+	 * are configured.
+	 */
+	readonly checks: readonly MonitoringCheckInput[];
+	/**
+	 * The service's own picture, for the webhook it posts through (see `feeds.monitoring`): where to fetch it, and the
+	 * image itself as a `data:` URI for when that cannot be reached. Used when the config names no picture of its own.
+	 */
+	readonly icon?: {
+		/** Where to fetch the picture. */
+		url?: string;
+		/** The picture itself as a `data:` URI, for when `url` cannot be reached. */
+		dataUri?: string;
+	};
+	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
+	whoami?(): Promise<{ ok: boolean }>;
+	/** Idempotent find-or-create-or-update by `input.name`. */
+	ensureCheck(input: MonitoringCheckInput): Promise<{ check: MonitoringCheck; alreadyExists: boolean }>;
+	/**
+	 * Every check the provider's account holds now, in the same shape `checks` declares them, so the two can be
+	 * compared. Read-only. Settings the provider cannot return are left out of each entry.
+	 * Optional — a provider that cannot list its checks omits it.
+	 */
+	listChecks?(): Promise<MonitoringCheckInput[]>;
+	/**
+	 * Find-or-create-or-update an alert channel by name, apply the alert settings `input.alerts` states, and subscribe the
+	 * checks routed to it: every check the provider has, except a configured check whose `alertChannels` names others.
+	 * Checks made through an API are never subscribed automatically, so a later run subscribes the ones added since.
+	 * Subscriptions are only added, never removed.
+	 * Optional — a provider with no alert channels omits it.
+	 */
+	ensureAlertChannel?(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult>;
+	/**
+	 * Read the alert channel named `name` and which of the account's checks it alerts for. Read-only, and never returns
+	 * the URL it posts to. Optional — a provider with no alert channels omits it.
+	 */
+	inspectAlertChannel?(name: string): Promise<MonitoringAlertChannelState>;
+
+	/**
+	 * Dashboards this provider is configured to ensure exist, from its own config like `checks`. `holocron setup` calls
+	 * `ensureDashboard` for each; absent or empty when none are configured.
+	 */
+	readonly dashboards?: readonly MonitoringDashboardInput[];
+	/**
+	 * Find-or-create-or-update a dashboard by `input.name`. Private unless `input.private` is false. Never deletes, and a
+	 * field the input leaves out is left alone on an existing dashboard. When the provider holds a view key for a private
+	 * dashboard it is returned once as `key`: a credential, never logged or printed. Optional: a provider with no
+	 * dashboards omits it.
+	 */
+	ensureDashboard?(input: MonitoringDashboardInput): Promise<EnsuredResource & { key?: string }>;
+	/** Read the dashboard named `name` and the names of the account's others. Read-only, and never returns its key. */
+	inspectDashboard?(name: string): Promise<MonitoringDashboardState>;
+	/** Status pages this provider is configured to ensure exist, from its own config; `holocron setup` loops them. */
+	readonly statusPages?: readonly MonitoringStatusPageInput[];
+	/**
+	 * Find-or-create-or-update a status page by name, its components in the order declared, and one automation rule per
+	 * component that ties its tags to it. Never deletes a page, component, group or rule; a field left out is left alone
+	 * on an existing page. Returns the DNS record the custom domain needs when it is not verified yet.
+	 * Optional — a provider with no status pages omits it.
+	 */
+	ensureStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageResult>;
+	/** Read the status page `input.name` and compare it with the declaration. Read-only. Optional. */
+	inspectStatusPage?(input: MonitoringStatusPageInput): Promise<MonitoringStatusPageState>;
+	// ── Heartbeats ──
+	/** Heartbeats this provider is configured to ensure exist; `holocron setup` ensures each. Empty or absent when none. */
+	readonly heartbeats?: readonly MonitoringHeartbeatInput[];
+	/**
+	 * Find-or-create-or-update a heartbeat by name, never deleting one. Returns the ping URL when the provider gives it.
+	 * Optional: a provider with no heartbeats omits it.
+	 */
+	ensureHeartbeat?(input: MonitoringHeartbeatInput): Promise<MonitoringHeartbeatResult>;
+	/** Every heartbeat the account holds now, in the shape `heartbeats` declares them and without the ping URL. Read-only. */
+	listHeartbeats?(): Promise<MonitoringHeartbeatInput[]>;
+	/**
+	 * The incidents of the status page named `query.statusPage`: every one still open and, with `since`, those resolved
+	 * since then; updates oldest first. Read-only. Optional: a provider with no status page incidents omits it.
+	 */
+	listIncidents?(query: MonitoringIncidentQuery): Promise<MonitoringIncident[]>;
+	/**
+	 * Opens an incident on the status page `input.statusPage` with its first update and the components it marks.
+	 * Writes to the live service and is repeatable, so the caller checks for an open incident of the same title first.
+	 * Optional: a provider with no status page incidents omits it.
+	 */
+	openIncident?(input: MonitoringIncidentInput): Promise<MonitoringIncidentWrite>;
+	/** Appends an update to an incident (never rewrites one). Optional, like {@link Monitoring.openIncident}. */
+	updateIncident?(input: MonitoringIncidentUpdateInput): Promise<MonitoringIncidentWrite>;
+	/**
+	 * Appends a `resolved` update, which closes the incident. Optional, like {@link Monitoring.openIncident}.
+	 */
+	resolveIncident?(input: MonitoringIncidentResolveInput): Promise<MonitoringIncidentWrite>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Multi-provider capabilities — many can be active at once
+// ───────────────────────────────────────────────────────────────────────
+
+/** What {@link Tooling.doctor} found. */
+export interface ToolingDoctorReport {
+	/** Whether the tool is in a good state. */
+	ok: boolean;
+	/** What to show the person: what was found, or what is wrong. */
+	message: string;
+}
+
+/** A developer tool kept in step with the repo; several can be active at once. */
+export interface Tooling extends ProviderIdentity {
+	/** Identifies this provider as the `tooling` capability. */
+	readonly key: "tooling";
+
+	/** Sync the tool's authoritative state from the repo. */
+	sync(): Promise<void>;
+
+	/** Check the tool is set up and working, and report what was found. */
+	doctor(): Promise<ToolingDoctorReport>;
+
+	/**
+	 * Write the repo's request collections (and environments) in this tool's own format into `input.outDir`, so a
+	 * person can open them in the tool. The repo's files stay the one source: nothing is written back, and the tool's
+	 * account is never touched. With `input.dryRun` the files are converted but not written, and `files` lists what
+	 * would be. Optional — a tool that reads the source format as it is omits it. Used by `holocron export requests`.
+	 */
+	export?(input: ToolingExportInput): Promise<ToolingExportResult>;
+
+	/**
+	 * Keep a workspace of this tool's own files, committed in the repo, in step with the repo's request files, both
+	 * ways: the tool opens the workspace in place and saves its edits there, where `export` only writes a throwaway
+	 * copy. The provider owns the folder (Bruno's is `.bruno/` at the repo root) and the layout, and records for each
+	 * pair of files what both sides looked like at the last sync (a baseline it commits beside the workspace). A run
+	 * compares each side with that baseline: only the request file changed, so the workspace is regenerated from it;
+	 * only the workspace changed, so the request file is regenerated from the workspace (what the request file cannot
+	 * hold stays in the workspace and is reported as an issue); both changed to different content, a `conflict`
+	 * that is written to neither side unless `input.prefer` names the winner. Each file is reported as `new`,
+	 * `changed`, `unchanged`, `removed` (a workspace file it no longer generates) or `conflict`, so a caller can check
+	 * without writing. With `input.dryRun` it converts and compares but writes and deletes nothing, and with a
+	 * `conflict` it writes nothing at all. Optional — a tool with no files of its own omits it. Used by
+	 * `holocron sync requests`.
+	 */
+	workspace?(input: ToolingWorkspaceInput): Promise<ToolingWorkspaceResult>;
+
+	/**
+	 * Say what it takes to open the tool's workspace with its secrets filled in from outside: which values the
+	 * workspace reads (each a variable that refers to a named entry, e.g. an entry of a vault Environment), where the
+	 * tool reads them from, how to start it and how to tell it is already running. It reads the workspace and nothing
+	 * else: no value, no network, nothing written. The caller reads the entries, writes them where the tool looks and
+	 * starts it, so the provider holds no secret. Optional — a tool with no way to be started this way omits it. Used
+	 * by `holocron open requests`.
+	 */
+	open?(input: ToolingOpenInput): Promise<ToolingOpenPlan>;
+}
+
+/** What {@link Tooling.open} is given. */
+export interface ToolingOpenInput {
+	/** The collection files, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+}
+
+/** One value the workspace reads from outside: a variable of a collection, and the entry it refers to. */
+export interface ToolingOpenWant {
+	/** The collection's folder name, for the report. */
+	collection: string;
+	/** The variable the requests use, e.g. `webhookSecret`. */
+	variable: string;
+	/** The vault layer (`local`, `dev` or `prod`) whose Environment holds the value. */
+	layer: string;
+	/** The name of the entry that holds its value in that Environment, e.g. `SENTINEL_WEBHOOK_SECRET`. */
+	entry: string;
+	/** The name the value is given in the file the tool reads, e.g. `DEV_SENTINEL_WEBHOOK_SECRET`: what the workspace refers to. */
+	name: string;
+}
+
+/** The program {@link Tooling.open} starts. */
+export interface ToolingOpenLaunch {
+	/** The executable to run. */
+	command: string;
+	/** Its arguments. */
+	args: string[];
+}
+
+/** What {@link Tooling.open} found. Names and paths only; never a value. */
+export interface ToolingOpenPlan {
+	/** The tool's name, for the report (`Bruno`). */
+	app: string;
+	/** The values the workspace reads from outside, one per variable and collection, deduplicated. */
+	wants: ToolingOpenWant[];
+	/** Secret variables (`<collection>: <variable>`) that refer to no entry: nobody fills them. */
+	unfilled: string[];
+	/** The absolute paths where the tool looks for the file that holds the values (one per collection). */
+	targets: string[];
+	/** The program to start, with its arguments; started in the foreground so the values live as long as it does. */
+	launch: ToolingOpenLaunch;
+	/** A text that appears in the command line of a running instance of the tool, to refuse a second start. */
+	running: string;
+}
+
+/** What {@link Tooling.workspace} is given. */
+export interface ToolingWorkspaceInput {
+	/** The collection files to convert, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files to convert, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+	/** Convert and compare, but write and delete nothing. */
+	dryRun?: boolean;
+	/**
+	 * Settles a `conflict` for this run: `source` regenerates the workspace from the request files, `workspace`
+	 * regenerates the request files from the workspace. Without it a conflict is reported and nothing is written.
+	 */
+	prefer?: ToolingWorkspaceSide;
+}
+
+/** One of the two sides {@link Tooling.workspace} keeps equal: the repo's request files, or the tool's own workspace. */
+export type ToolingWorkspaceSide = "source" | "workspace";
+
+/**
+ * How a file compares with what {@link Tooling.workspace} would write: `new` is not on disk yet, `changed` differs,
+ * `unchanged` is equal, `removed` is on disk but no longer generated, `conflict` is a pair whose two sides both
+ * changed since the last sync (its `path` is the request file).
+ */
+export type ToolingWorkspaceState = "new" | "changed" | "unchanged" | "removed" | "conflict";
+
+/** One file of the workspace, as {@link Tooling.workspace} found it. */
+export interface ToolingWorkspaceFile {
+	/** The path relative to the repo root, with `/` separators. */
+	path: string;
+	/** How it compares; see {@link ToolingWorkspaceState}. */
+	state: ToolingWorkspaceState;
+	/** For a `conflict`, what to do about it. */
+	note?: string;
+}
+
+/** What {@link Tooling.workspace} found, and wrote unless it was a dry run. */
+export interface ToolingWorkspaceResult {
+	/** Every file the workspace holds or held, sorted by path. */
+	files: ToolingWorkspaceFile[];
+	/** What the conversion could not carry across; an issue is reported, never a failure on its own. */
+	issues: ToolingExportIssue[];
+}
+
+/** What {@link Tooling.export} is given. */
+export interface ToolingExportInput {
+	/** The collection files to convert, relative to `repoRoot`. */
+	collectionFiles: string[];
+	/** The environment files to convert, relative to `repoRoot`; empty when the repo has none. */
+	envFiles: string[];
+	/** The absolute folder to write into. The provider makes it and only writes below it. */
+	outDir: string;
+	/** The absolute repo root the file paths are relative to. */
+	repoRoot: string;
+	/** Convert and report, but write nothing. */
+	dryRun?: boolean;
+}
+
+/** Something the conversion could not carry across faithfully, found by {@link Tooling.export}. */
+export interface ToolingExportIssue {
+	/** The source file it concerns, as listed in the input. */
+	file: string;
+	/** What was lost or changed. */
+	message: string;
+}
+
+/** What {@link Tooling.export} wrote. */
+export interface ToolingExportResult {
+	/** The files written (or, on a dry run, that would be), as paths relative to `outDir`. */
+	files: string[];
+	/** What the conversion could not carry across; an issue is reported, never a failure on its own. */
+	issues: ToolingExportIssue[];
+}
+
+/** What {@link Notifications.checkEmoji} found out about one server emoji. */
+export interface EmojiCheck {
+	/** Whether the server lacks the emoji, holds the same picture, holds a different one, or could not be compared. */
+	state: "missing" | "same" | "different" | "unknown";
+	/** Why the pictures could not be compared, for `unknown`. */
+	note?: string;
+}
+
+/** What an `ensure*` call found or made. `created: false` means it already existed. */
+export interface EnsuredResource {
+	/** The provider's id for the resource. */
+	id: string;
+	/** Whether the resource was made now rather than already existing. */
+	created: boolean;
+	/** For something that already existed: the settings that disagreed with the layout and were changed. */
+	updated?: string[];
+}
+
+/**
+ * A conversation about one document (an ADR or a spec) in a forum channel, as the provider has it. `key` identifies
+ * the document, the repo-relative path of its file; the provider records it on the post so the post can be found again.
+ */
+export interface DiscussionPost {
+	/** The post's address, for the document's `discussion.url`. */
+	url: string;
+	/** The post's title as it is now; `undefined` when the provider does not say. */
+	title?: string;
+	/** The key the post records: the path of the document it was made for, which is not the document's path now when the file moved. */
+	key?: string;
+	/**
+	 * The post's state: the name of the one tag it carries. `undefined` when it carries none, or more than one, so there
+	 * is no single state to read.
+	 */
+	state?: string;
+	/** The state the post was last in step with the document, as the post records it; `undefined` when it records none. */
+	synced?: string;
+	/** The line of the post's first message that names the pull request (`PR: [#1538](<address>)`); `undefined` when it names none. */
+	prLine?: string;
+	/**
+	 * The first line of the post's first message, which names the document: its id (`SPEC-0007`), or the id as a link to
+	 * the file (`[SPEC-0007](<address>)`); `undefined` when the message does not start with an id.
+	 */
+	idLine?: string;
+	/** Whether the post is closed: finished with, and locked so that only people who manage it can reply or reopen it. Absent when it is open. */
+	closed?: boolean;
+}
+
+/** What {@link Notifications.ensureDiscussion} takes. */
+export interface EnsureDiscussionInput {
+	/** The forum channel's name, as in the layout. */
+	channel: string;
+	/** Identifies the document: its repo-relative path. */
+	key: string;
+	/** The post's title. */
+	title: string;
+	/** The post's first message, without the line the provider adds to record `key` and the synced state. */
+	body: string;
+	/** The state to open the post in: the name of one of the forum's tags. It is also recorded as the state last synced. */
+	state: string;
+	/** Post without notifying anyone, as a backfill of many posts should. */
+	quiet?: boolean;
+	/** Close the post as it is made, for a document that is already finished with. */
+	closed?: boolean;
+	/**
+	 * The address the document already records for its post. A post is found by `key`; when none has it, the one this
+	 * address names is the document's, moved, and its key is changed to `key` instead of a second post being made.
+	 */
+	url?: string;
+}
+
+/** What {@link Notifications.ensureDiscussion} found or made. */
+export interface EnsuredDiscussion {
+	/** The post, as it is now. */
+	post: DiscussionPost;
+	/** Whether the post was made now rather than already existing. */
+	created: boolean;
+	/** Whether the post was found under the path the document had before it moved, and now records the new one. */
+	rekeyed?: boolean;
+}
+
+/** A key with more than one post in a forum, from {@link Notifications.duplicateDiscussions}. */
+export interface DuplicateDiscussion {
+	/** The key every one of the posts carries. */
+	key: string;
+	/** How many posts there are beyond the oldest, which is the one kept. */
+	extra: number;
+}
+
+/** What {@link Notifications.updateDiscussion} changes; a field left out is left alone. */
+export interface DiscussionPatch {
+	/** A new key: the document moved, and the post records its new path. */
+	key?: string;
+	/** A new title. */
+	title?: string;
+	/** A new state: the name of one of the forum's tags. It replaces the post's tags. */
+	state?: string;
+	/** The state the post and the document now agree on. */
+	synced?: string;
+	/**
+	 * The line that names the pull request in the post's first message. The provider rewrites that line and keeps the rest
+	 * of the message, the synced line above all; an empty string takes the line out. For repairing posts made under an
+	 * older rule, not for every sync.
+	 */
+	prLine?: string;
+	/**
+	 * The line that names the document in the post's first message (its first line): the id, plain or as a link to the
+	 * file. The provider rewrites that line and keeps the rest of the message, the synced line above all; it must not be
+	 * empty. A message that does not start with an id is refused. For following a file that moved and for repairing posts
+	 * made under an older rule, not for every sync.
+	 */
+	idLine?: string;
+	/**
+	 * The text of the post's first message, replacing what is there. The provider keeps its footer (`-# sync: <key> |
+	 * <synced>`) and cuts the text to fit the message limit. A `prLine` or `idLine` in the same patch is applied to the new
+	 * text.
+	 */
+	body?: string;
+	/** Close the post (archive and lock it) or reopen it (unlock and unarchive it). */
+	closed?: boolean;
+}
+
+/** A webhook (or equivalent inbound URL) for a channel. */
+export interface EnsureWebhookResult {
+	/** Whether the webhook was made now rather than already existing. */
+	created: boolean;
+	/**
+	 * The posting URL — a credential. Absent when the webhook already existed and
+	 * the provider will not reveal it again (Discord returns the token only to
+	 * the application that created the webhook, and only on creation).
+	 */
+	url?: string;
+	/** For a webhook that already existed, or was just made: the settings that were set (`"avatar"`). */
+	updated?: string[];
+	/** Set when the webhook is fine but setting its avatar failed; the webhook and its `url` are still good. */
+	avatarError?: string;
+}
+
+/**
+ * Who may see a channel and post in it. Roles are named as in the layout's `roles`.
+ * A channel inherits its category's access; stating `view` or `post` on the channel
+ * replaces that field only.
+ */
+export interface NotificationsAccess {
+	/** `"everyone"` (the default), or the roles that can see it: everyone else cannot. */
+	view?: "everyone" | string[];
+	/** `"everyone"` (the default), or the roles that can post; `[]` means only bots and webhooks. */
+	post?: "everyone" | string[];
+}
+
+/** A tag a post in a forum channel can carry. */
+export interface NotificationsForumTag {
+	/** The tag's name, up to 20 characters. */
+	name: string;
+	/**
+	 * An emoji shown beside the name: a Unicode emoji such as `💬`, or one of the server's own written `:name:`
+	 * (`":git_merge:"`). A server emoji needs a picture declared somewhere in the layout (a reaction's or an `emojis`
+	 * entry's `image`), so `setup` can make it before the channel; the tag itself carries only the name.
+	 */
+	emoji?: string;
+	/** Whether only members who can manage threads (and the provider's own bot) may apply the tag. Defaults to `false`. */
+	moderated?: boolean;
+}
+
+/**
+ * A picture (PNG, JPEG or GIF) as a layout writes it: a file path (relative to the repository root) or an `https://` URL, or
+ * `{ url, image }`, where the `url` is tried first and the `image`, a file in the repo, is the fallback.
+ */
+export type NotificationsPicture = string | { url?: string; image?: string };
+
+/**
+ * A forum reaction as a layout writes it: a Unicode emoji (`"✅"`, used as it stands), or one of the server's own emoji
+ * with its name between colons (`":git_merge:"`, the name Discord shows; 2 to 32 letters, digits and underscores).
+ * The object form, `{ emoji: ":git_merge:", image: ".holocron/media/emoji/git_merge.png" }`, also says where `setup`
+ * finds a picture to make the emoji from when the server has none (a file under `.holocron/media/`: PNG, JPEG, GIF,
+ * WebP or AVIF, at most 256 KiB). `setup` leaves an emoji the server already has alone, unless its picture differs from `image`, when it makes it again (new id; reactions made with the old one are lost).
+ */
+export type NotificationsReaction = string | { emoji: string; image?: string };
+
+/** The object form of a channel's `feeds.monitoring`: the names, picture and alert settings of its monitoring feed. */
+export interface NotificationsMonitoringFeed {
+	/** The alert channel's name; default `Message to #<channel>`. */
+	name?: string;
+	/** The dedicated webhook's name; default the provider's name, capitalised. */
+	webhook?: string;
+	/** A picture for that webhook: a path or `https://` URL, or `{ url, image }`. */
+	avatar?: NotificationsPicture;
+	/** What the alert channel alerts about: `failure`, `recovery`, `degraded`, `sslExpiry`, `sslExpiryThreshold`. */
+	alerts?: MonitoringAlertSettings;
+}
+
+/** One channel in a {@link NotificationsLayout}. */
+export interface NotificationsChannelLayout {
+	/** The channel's name. */
+	name: string;
+	/** The channel's topic text. For a forum, this is the guidelines shown above its posts. */
+	topic?: string;
+	/**
+	 * What kind of channel it is: `"text"` (the default) or `"forum"`, where every conversation is a post of its own
+	 * and cannot take a webhook post. A text channel cannot be turned into a forum or back: if the other kind already
+	 * has this name, `setup` stops and says to delete it first. A forum takes no `webhook` and only the `prs` feed.
+	 */
+	kind?: "text" | "forum";
+	/**
+	 * The tags a forum's posts can carry, each with an emoji. Only for `kind: "forum"`. `setup` adds the ones that are
+	 * missing and fixes the emoji and `moderated` of the ones that differ, and never removes a tag the layout does not
+	 * list, so a post keeps the tags it has.
+	 */
+	tags?: NotificationsForumTag[];
+	/**
+	 * The emoji Discord offers as the first reaction on every post of a forum (Get Started: "Set a default reaction
+	 * for posts"). Only for `kind: "forum"`. Discord allows exactly one per forum, so the rest of a set go in
+	 * {@link NotificationsChannelLayout.starterReactions}. A Unicode emoji (`"👍"`) or one of the server's own, named
+	 * between colons (`":git_merge:"`; see {@link NotificationsReaction}).
+	 */
+	defaultReaction?: NotificationsReaction;
+	/**
+	 * Reactions the bot adds to the first message of each post it makes, so a conversation starts with the ways to
+	 * answer already there (`["✅", "❌", "❓"]` for approve, disapprove, question). Only for `kind: "forum"`. Posts that
+	 * exist are left alone. Reacting needs the Add Reactions permission. Each is a Unicode emoji or a server emoji
+	 * (see {@link NotificationsReaction}).
+	 */
+	starterReactions?: NotificationsReaction[];
+	/** Who may see and post. Overrides the category's, field by field. */
+	access?: NotificationsAccess;
+	/**
+	 * Create an inbound webhook for the channel and store its URL in a secret.
+	 * `true` uses the defaults; the object form overrides the webhook's display
+	 * name and the secret's name.
+	 */
+	webhook?: boolean | { name?: string; secret?: string; avatar?: NotificationsPicture };
+	/**
+	 * Other services that post into this channel through a webhook of their own. Each gets a dedicated webhook, whose
+	 * URL goes straight to that service and is never stored as a secret, so revoking one service leaves the rest alone.
+	 */
+	feeds?: {
+		/**
+		 * The monitoring provider's alerts. `true` uses the defaults; the object form overrides the alert channel's name
+		 * (default `Message to #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised), and
+		 * `avatar` gives that webhook a picture (PNG, JPEG or GIF; see {@link NotificationsPicture}: a path or URL, or
+		 * `{ url, image }` with a fallback) in the provider's list of integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
+		 * webhook that has none; the posts carry the service's own name and icon either way.
+		 */
+		monitoring?: boolean | NotificationsMonitoringFeed;
+		/**
+		 * The error tracker's alerts, carried in by the relay Worker (see `relay`). The channel gets a dedicated webhook
+		 * (default the `errors` provider's name, capitalised) whose URL goes to the Worker as a secret and nowhere else.
+		 * `avatar` is as for `monitoring`.
+		 */
+		errors?: boolean | { webhook?: string; avatar?: NotificationsPicture };
+		/**
+		 * Relay sources whose alerts this channel carries, keyed by the source's id (`relay.sources`). Each gets a
+		 * dedicated webhook (default the id, capitalised) whose URL goes to the Worker as `COMLINK_<ID>_WEBHOOK` and
+		 * nowhere else; `avatar` is as for `monitoring`. One source feeds one channel.
+		 */
+		relay?: Record<string, boolean | { webhook?: string; avatar?: NotificationsPicture }>;
+		/**
+		 * The pull-request feed: Sentinel keeps one post in this forum for each pull request, tagged with its state
+		 * (spec `tech-sentinel-pr-feed`). Only for `kind: "forum"`, and the forum's `tags` must hold all eight state tags:
+		 * `draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged` and `closed`. `true` follows every
+		 * pull request; the object form leaves out the pull requests of some repositories (`owner/name`) or authors (logins).
+		 * Needs no webhook: the bot makes and tags the posts, so it must be able to post in the forum and manage its threads.
+		 * The forum's messages carry no link previews (the posts are links to pull requests, and the previews bury the status).
+		 */
+		prs?: boolean | NotificationsPrsFeed;
+		/**
+		 * The status page incident feed: `holocron sync incidents` keeps one post in this forum for each incident of the
+		 * named status page (spec `tech-incidents-to-discord`), tagged with its state, each update appended. The value is
+		 * the status page's name as `monitoring.statusPages` declares it, or `true` when exactly one page is declared.
+		 * Only for `kind: "forum"`, whose `tags` must hold the five state tags: `investigating`, `identified`,
+		 * `monitoring`, `resolved` and `maintenance`. Needs no webhook: the bot makes and tags the posts, so it must be
+		 * able to post in the forum and manage its threads. The forum's messages carry no link previews.
+		 */
+		incidents?: boolean | string;
+	};
+}
+
+/** One relay source in the layout: which provider makes the vendor's webhook and what it covers. */
+export interface NotificationsRelaySource {
+	/** The capability whose provider makes the webhook (`deployment` for Vercel). Its plugin implements `ensureRelaySource`. */
+	capability: RelaySourceCapability;
+	/**
+	 * The plugin that makes the webhook, by the name `providers.<capability>` takes (`vercel`), for a capability the
+	 * root config gives to another plugin: `deployment` is single, so Cloudflare is the root's and Vercel can be named
+	 * only here. Left out, the configured provider of `capability` is used. Its plugin implements `ensureRelaySource`.
+	 */
+	provider?: string;
+	/** The webhook's name at the vendor; the id, capitalised, when absent. */
+	name?: string;
+	/** The vendor's event names to subscribe to; the provider's default when absent. */
+	events?: string[];
+	/** What it covers, in the vendor's terms (project ids, config slugs, alert types); everything the token sees when absent. */
+	scope?: string[];
+	/** Anything else the vendor takes, judged by its provider. */
+	options?: Record<string, unknown>;
+}
+
+/** The object form of a forum's `feeds.prs`: what the pull-request feed leaves out. */
+export interface NotificationsPrsFeed {
+	/** Pull requests not to follow. */
+	exclude?: {
+		/** Repositories, as `owner/name`. */
+		repos?: string[];
+		/** Authors, by GitHub login. */
+		authors?: string[];
+	};
+}
+
+/**
+ * Settings of the server itself. Channels are named as in the layout's `categories`; each field
+ * left out is left alone.
+ */
+export interface NotificationsServerLayout {
+	/** How established an account must be to talk: `none`, `low` (verified email), `medium` (5 minutes old), `high` (10 minutes in the server), `highest` (verified phone). */
+	verification?: "none" | "low" | "medium" | "high" | "highest";
+	/** Whether members are notified for every message or only when mentioned. */
+	defaultNotifications?: "all" | "mentions";
+	/** Which members' media is scanned: `off`, `noRoles` (members without a role) or `all`. */
+	contentFilter?: "off" | "noRoles" | "all";
+	/** Where the provider posts its own notices (member joins, boosts). */
+	systemChannel?: string;
+	/** The channel holding the server rules; required to turn community features on. */
+	rulesChannel?: string;
+	/** Where the provider sends its notices to the owners; required to turn community features on. */
+	updatesChannel?: string;
+	/** Turn community features (welcome screen, onboarding, discovery) on or off. */
+	community?: boolean;
+	/** The server's public description. Only providers that support one for the server's current state accept it. */
+	description?: string;
+	/** Preferred language, as a locale such as `en-US`. */
+	locale?: string;
+}
+
+/**
+ * A message the provider posts in a channel and pins, so it stays at the top. Give the text as `content`, or as
+ * a `file` in the repository that is its source of truth (never both). The CLI reads the file before it calls the
+ * provider, so a provider only ever sees `content`.
+ */
+export interface NotificationsPinnedLayout {
+	/** A channel in the layout. */
+	channel: string;
+	/** The message text (Discord allows up to 2000 characters). Absent when the text comes from `file`. */
+	content?: string;
+	/**
+	 * A text file in the repository, relative to its root, whose contents are the message, such as `.holocron/pinned/rules.md`. The
+	 * file wins: a hand edit of the pinned message is replaced on the next `setup`, and `doctor` reports it until then.
+	 */
+	file?: string;
+}
+
+/**
+ * The screen a new member sees on joining: a short text and the channels worth visiting first.
+ * Declaring it describes the whole screen: the text and the channels are set to exactly this, so to
+ * switch it off, state them as well.
+ */
+export interface NotificationsWelcomeLayout {
+	/** Whether the screen is shown. Defaults to `true`. */
+	enabled?: boolean;
+	/** A sentence or two about the server (Discord allows up to 140 characters). */
+	description: string;
+	/** The channels it points to, in order (Discord allows up to five). */
+	channels: Array<{
+		/** A channel in the layout. */
+		channel: string;
+		/** Why to visit it (Discord allows up to 50 characters). */
+		description: string;
+		/** A single emoji shown beside it. */
+		emoji?: string;
+	}>;
+}
+
+/** The questions a new member answers to be shown the channels that fit them. */
+export interface NotificationsOnboardingLayout {
+	/** Turn onboarding on or off. Left out, it is left as it is (Discord has requirements for turning it on). */
+	enabled?: boolean;
+	/** Channels every member starts with, by name. */
+	defaultChannels?: string[];
+	/** The questions asked, in order. */
+	prompts?: Array<{
+		title: string;
+		/** One answer only (`true`) or any number. Defaults to `false`. */
+		singleSelect?: boolean;
+		/** The member must answer. Defaults to `false`. */
+		required?: boolean;
+		options: Array<{
+			title: string;
+			description?: string;
+			emoji?: string;
+			/** Channels this answer shows, by name. */
+			channels?: string[];
+			/** Roles this answer gives, by name from the layout's `roles`. */
+			roles?: string[];
+		}>;
+	}>;
+}
+
+/**
+ * Settings of the bot's own application (for Discord, what the developer portal shows). A field left
+ * out is left alone.
+ */
+export interface NotificationsApplicationLayout {
+	/** What the application's page says it is (Discord allows up to 400 characters). */
+	description?: string;
+	/** Short labels, up to five of up to twenty characters each. */
+	tags?: string[];
+	/** The default install link: what the bot is added with. Permissions are named, as in a role's. */
+	install?: {
+		/** The OAuth2 scopes the install link asks for. */
+		scopes: string[];
+		/** The permissions the bot is added with, named as in a role's. */
+		permissions: string[];
+	};
+	/** `https://` link to the terms of service. */
+	termsUrl?: string;
+	/** `https://` link to the privacy policy. */
+	privacyUrl?: string;
+	/** `https://` link the provider calls to verify linked roles. */
+	roleConnectionsUrl?: string;
+	/**
+	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync roles` needs to
+	 * find who holds a role. `true` switches it on from code; `false` switches it off.
+	 */
+	intents?: {
+		/** The server members intent: lets the bot list who is in the server. */
+		members?: boolean;
+	};
+	/**
+	 * OAuth2 redirect URIs that must be registered, for `link account`. The provider's API does not allow
+	 * setting them, so these are only checked: `setup` and the doctor say what to add and where.
+	 */
+	redirectUris?: string[];
+}
+
+/**
+ * Permissions of everyone on the server (for Discord, the @everyone role). Unlike a role's `permissions`,
+ * these name only what to change: the rest of the set is left as it is.
+ */
+export interface NotificationsEveryoneLayout {
+	/** Permissions to grant. */
+	allow?: string[];
+	/** Permissions to take away. */
+	deny?: string[];
+}
+
+/** Where the person-to-member links live: one file in a repo, written by the sign-in flow and read by `sync roles`. */
+export interface NotificationsLinksLayout {
+	/**
+	 * The base URL of the hosted sign-in service (Sentinel), for example `https://sentinel.theholocron.dev`.
+	 * `link account` asks it for `/api/link`; when it answers, sign-in happens there, and when it does not
+	 * (down, out of quota, no route yet) the command signs in on this machine instead.
+	 */
+	hostedUrl?: string;
+	/** The port the local sign-in listens on, which must be registered as `http://localhost:<port>/callback`. Defaults to 53682. */
+	localPort?: number;
+	/** `owner/name`. Defaults to `<org>/.github-private`. Keep it private: the file pairs two identities. */
+	repo?: string;
+	/** Defaults to `notifications/<provider>-links.json`. */
+	path?: string;
+}
+
+/** A declared server layout, applied idempotently by `holocron setup notifications`. */
+export interface NotificationsLayout {
+	/**
+	 * The repositories (`owner/repo`) that can read the organization secrets this layout fills (the webhook URLs and
+	 * role ids). Setup and `new channel` write them with visibility `selected` for these repositories only, and
+	 * refuse to write an organization secret when the list is missing or empty, so a webhook is never readable by
+	 * every repository (#2131). `holocron doctor secrets` compares it with who can read them. Not used for a
+	 * repository or environment scope.
+	 */
+	readers?: string[];
+	/**
+	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
+	 * leaves one labelled test message there through its webhook (read back to prove delivery works) for a
+	 * person to look at; the real channels are never given one unless `--deliver` posts and removes it.
+	 */
+	testChannel?: string;
+	/** Where `sync roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
+	links?: NotificationsLinksLayout;
+	/** The bot's own application settings, applied with the server's. */
+	application?: NotificationsApplicationLayout;
+	/** What everyone on the server may do, applied with the server's settings. */
+	everyone?: NotificationsEveryoneLayout;
+	/**
+	 * The picture every webhook gets unless its own `webhook.avatar` says otherwise: a path to a PNG,
+	 * JPEG or GIF (a path is relative to the repository root) or an `https://` URL, or `{ url, image }` (see
+	 * {@link NotificationsPicture}), where the `url` is tried first and the `image`, a file in the repo, is the fallback.
+	 * It is set only on a webhook that has no picture yet -- a provider cannot say whether the one it holds is the same image.
+	 */
+	webhookAvatar?: NotificationsPicture;
+	/**
+	 * Server emoji to make that no reaction names, each `{ emoji: ":name:", image }` (a file under `.holocron/media/`, as
+	 * for a reaction). `setup` makes the ones the server lacks, with the emoji the forums' reactions name, and never
+	 * replaces, renames or deletes one; `doctor notifications` expects every one on the server. A name given here and in
+	 * a reaction takes one picture. A server holds a limited number of emoji, so list only what is wanted.
+	 */
+	emojis?: Array<{ emoji: string; image: string }>;
+	/**
+	 * The Worker that carries other services' alerts into the channels with a `feeds.errors`: built beforehand
+	 * (`apps/comlink`), deployed by `setup notifications` with each channel's webhook URL as a secret, and served at
+	 * `host`. Secrets set some other way (the service's signing secret) are kept across deploys.
+	 */
+	relay?: {
+		/** Where the Worker answers, e.g. `comlink.theholocron.dev`. Its DNS record and route are managed. */
+		host: string;
+		/** The DNS zone the host is in. Default: found by the `dns` provider from the host itself, so rarely needed. */
+		zone?: string;
+		/** The Worker's name at the provider. Default `comlink`. */
+		script?: string;
+		/** The built Worker, relative to the repo root. Default `apps/comlink/dist/worker.js`. */
+		code?: string;
+		/**
+		 * Other services whose webhook the relay carries, keyed by id (the path it is served at, `vercel`; lower-case
+		 * letters, digits and `-`). A channel takes one with `feeds.relay`. `setup notifications` asks the provider of
+		 * `capability` to make the webhook (`ensureRelaySource`), gives the Worker its secret as `COMLINK_<ID>_SECRET`,
+		 * and `doctor notifications` checks it. The relay must have a source of that id (`apps/comlink`).
+		 */
+		sources?: Record<string, NotificationsRelaySource>;
+		/**
+		 * The error tracker's side, when its provider can manage it (`Errors.ensureRelay`): the projects whose issues
+		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
+		 * `Errors to Discord (Comlink)`) and throttle in minutes (default 5). Left out, nothing is done at the tracker.
+		 */
+		errors?: {
+			/** The tracker projects whose issues are sent. */
+			projects: string[];
+			/** The integration's name at the tracker; `Comlink` when absent. */
+			integration?: string;
+			/** The alert rule's name; `Errors to Discord (Comlink)` when absent. */
+			rule?: string;
+			/** Minutes between two notifications for one issue; 5 when absent. */
+			frequency?: number;
+		};
+	};
+	/** What a new member sees on joining, applied after the channels exist. */
+	welcome?: NotificationsWelcomeLayout;
+	/** The questions a new member answers, applied after the channels and roles exist. */
+	onboarding?: NotificationsOnboardingLayout;
+	/**
+	 * Messages the provider posts and pins, applied after the channels exist. One that already says exactly this
+	 * (posted by the provider and still pinned) is left alone; one that says something else is replaced.
+	 */
+	pinned?: NotificationsPinnedLayout[];
+	/** Settings of the server itself, applied after its channels exist. */
+	server?: NotificationsServerLayout;
+	/** The categories to create, each with the channels under it. */
+	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
+	/** The roles to create. */
+	roles?: Array<{
+		name: string;
+		mentionable?: boolean;
+		/** `#rrggbb`. Omit to leave the colour alone. */
+		color?: string;
+		/** Show the role's members as their own group in the member list. */
+		hoist?: boolean;
+		/**
+		 * The permissions the role holds, by the provider's own names (for Discord, `ViewChannel`,
+		 * `SendMessages`, …). The list is exact: a permission not named is not granted.
+		 */
+		permissions?: string[];
+		/**
+		 * Keep this role's members equal to a team of the `source` provider (for GitHub, a team slug in
+		 * the org): `holocron sync roles` gives the role to every team member who has linked
+		 * their account, and takes it from linked people who have left the team.
+		 */
+		team?: string;
+		/**
+		 * Store the role's id in this secret, so a workflow can ping the role
+		 * without anyone copying the id by hand. The id is not sensitive; a secret
+		 * is used because the same token that writes the webhook secrets can write
+		 * it, with no extra permission.
+		 */
+		secret?: string;
+	}>;
+}
+
+/**
+ * What a provider found on the server, limited to what a {@link NotificationsLayout}
+ * asks about. Read-only: this is what `holocron doctor notifications` compares the
+ * layout against.
+ */
+export interface ServerInspection {
+	/** The bot's application as the provider has it, in the layout's terms, when the layout declares `application`. */
+	application?: NotificationsApplicationLayout;
+	/** Set when reading the application failed; `application` is then absent and means nothing. */
+	applicationError?: string;
+	/** What everyone may do, by permission name, when the layout declares `everyone`. */
+	everyone?: {
+		/** The permissions everyone holds now, by name. */
+		permissions: string[];
+	};
+	/** Set when reading everyone's permissions failed; `everyone` is then absent and means nothing. */
+	everyoneError?: string;
+	/** The welcome screen as the server has it, in the layout's terms, when the layout declares `welcome`. */
+	welcome?: NotificationsWelcomeLayout;
+	/** Set when reading the welcome screen failed; `welcome` is then absent and means nothing. */
+	welcomeError?: string;
+	/** Whether each pinned message the layout declares is in place, in the layout's order. */
+	pinned?: Array<{ channel: string; state: "ok" | "missing" | "different" }>;
+	/** Set when reading the pinned messages failed; `pinned` is then absent and means nothing. */
+	pinnedError?: string;
+	/** Onboarding as the server has it, in the layout's terms, when the layout declares `onboarding`. */
+	onboarding?: NotificationsOnboardingLayout;
+	/** Set when reading onboarding failed; `onboarding` is then absent and means nothing. */
+	onboardingError?: string;
+	/** The server's own settings, in the layout's terms, when the layout declares `server`. */
+	server?: NotificationsServerLayout;
+	/** Set when reading the server's settings failed; `server` is then absent and means nothing. */
+	serverError?: string;
+	/**
+	 * Which of the permissions the provider's bot needs its roles do not give it server-wide, in plain words
+	 * ("Manage Threads"; empty when none is missing, and always empty for the owner or an Administrator), with the link
+	 * that invites the bot again asking for them when some are missing. Channel overwrites are not looked at. The link
+	 * is not a credential.
+	 */
+	botPermissions?: {
+		/** The permissions that are missing, in plain words; empty when the bot holds everything it needs. */
+		missing: string[];
+		/** The link that invites the bot again asking for the full set; only present when something is missing. */
+		inviteUrl?: string;
+	};
+	/** Set when reading the bot's roles failed; `botPermissions` is then absent and means nothing. */
+	botPermissionsError?: string;
+	/** The names (without colons) of the server's emoji, read only when the layout names a server emoji. */
+	emojis?: string[];
+	/** Set when reading the server's emoji failed; `emojis` is then absent and means nothing. */
+	emojisError?: string;
+	/** Names of the categories on the server. */
+	categories: string[];
+	/**
+	 * Who can see and post in each category. `"custom"` means its overwrites are not an access the layout
+	 * can state (a role-specific deny, a member overwrite, only some of the posting permissions).
+	 */
+	categoryAccess?: Record<string, Required<NotificationsAccess> | "custom">;
+	/** The channels the layout asks about, as the server has them. */
+	channels: Array<{
+		name: string;
+		/** The category it sits under, if any. */
+		category?: string;
+		topic?: string;
+		/** `"forum"` for a forum channel; absent for a text channel. */
+		kind?: "text" | "forum";
+		/** The tags of a forum, in the layout's terms. Absent for a text channel. */
+		tags?: NotificationsForumTag[];
+		/**
+		 * The default reaction of a forum, as the layout would spell it (`":name:"` for a server emoji, the character for
+		 * a Unicode one). Absent when none is set or for a text channel.
+		 */
+		defaultReaction?: string;
+		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook or a feed. */
+		webhooks: string[];
+		/** Which of those webhooks have a picture of their own. */
+		webhookAvatars?: string[];
+		/** The id of each of those webhooks, by lower-cased name: the public part of its URL, never the token. */
+		webhookIds?: Record<string, string>;
+		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
+		webhooksError?: string;
+		/** Who can see and post; `"custom"` as for `categoryAccess`. */
+		access?: Required<NotificationsAccess> | "custom";
+		/**
+		 * Whether the bot itself can start posts and reply in this forum (`post`) and manage its threads (`manage`: tag and
+		 * close them), after the channel's own overwrites. Only filled in for a forum the layout gives a `feeds.prs` or `feeds.incidents`.
+		 */
+		botThreads?: { post: boolean; manage: boolean };
+		/** Set when working out `botThreads` failed; it is then absent and means nothing. */
+		botThreadsError?: string;
+	}>;
+	/** The roles on the server. */
+	roles: Array<{
+		name: string;
+		id: string;
+		mentionable: boolean;
+		/** `#rrggbb`, or absent for the default colour. */
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}>;
+	/** Set when reading the roles failed; `roles` is then empty and means nothing. Not read at all when the layout declares none. */
+	rolesError?: string;
+}
+
+/** Who a member turned out to be after signing in with the provider. */
+export interface NotificationsSignedIn {
+	/** Their id on the provider; for Discord, the user id. */
+	member: string;
+	/** Their name on the provider, when it gives one. */
+	name?: string;
+	/** The GitHub account the provider has verified they own; absent when they have none linked. */
+	github?: {
+		/** The GitHub user id, as a string. */
+		id: string;
+		/** The GitHub login. */
+		login: string;
+	};
+}
+
+/** The provider's "sign in" half: build the page a member opens, then learn who they are from the code it sends back. */
+export interface NotificationsSignIn {
+	/** The address of the provider's sign-in page, carrying the redirect address and state given. */
+	authorizeUrl(input: { redirectUri: string; state: string }): Promise<string>;
+	/** Trades the one-use `code` for who they are, and discards the token it was given. */
+	complete(input: { redirectUri: string; code: string }): Promise<NotificationsSignedIn>;
+}
+
+/** What {@link Notifications.checkDelivery} saw: each step that went wrong is named in `problems`. */
+export interface NotificationsDelivery {
+	/** The message was posted through the channel's webhook. */
+	posted: boolean;
+	/** The message was found in the channel afterwards. */
+	readBack: boolean;
+	/** The message was deleted again. */
+	removed: boolean;
+	/** Set when the message was deliberately left in the channel (`keep`), so `removed` is false on purpose. */
+	kept?: boolean;
+	/** What went wrong at each failed step; empty when delivery worked. */
+	problems: string[];
+}
+
+/** A member of the server, as {@link Notifications.roleMembers} reports it. */
+export interface NotificationsMember {
+	/** The provider's id for them; for Discord, the user id. */
+	id: string;
+	/** A display name for reports; absent when the provider does not give one. */
+	name?: string;
+}
+
+/** Chat notifications: posts messages and, where the provider allows, builds the server a layout describes. */
+export interface Notifications extends ProviderIdentity {
+	/** Identifies this provider as the `notifications` capability. */
+	readonly key: "notifications";
+
+	/**
+	 * Send a message. `channel` is provider-specific (Slack channel id,
+	 * Discord webhook url-name, etc.); adapters resolve from config.
+	 */
+	send(channel: string, message: string): Promise<void>;
+
+	/**
+	 * The server layout the owner declared for this provider, if any. Read by
+	 * `holocron setup notifications`; the provider just carries it from its options.
+	 */
+	readonly layout?: NotificationsLayout;
+
+	/**
+	 * Provisioning. All optional, all idempotent (look up by name, create only
+	 * what is missing), and all need provider credentials beyond the posting
+	 * URL — so a provider that only posts simply omits them.
+	 */
+	ensureCategory?(name: string, opts?: { access?: NotificationsAccess }): Promise<EnsuredResource>;
+	/** Find or create a channel, under its category when named, with its topic and access. */
+	ensureChannel?(input: {
+		name: string;
+		category?: string;
+		topic?: string;
+		access?: NotificationsAccess;
+		/** `"forum"` for a forum channel; a text channel when absent. */
+		kind?: "text" | "forum";
+		/** The tags of a forum; see {@link NotificationsChannelLayout.tags}. */
+		tags?: NotificationsForumTag[];
+		/**
+		 * The default reaction of a forum; see {@link NotificationsChannelLayout.defaultReaction}. A server emoji that
+		 * the server does not have is an error naming it.
+		 */
+		defaultReaction?: NotificationsReaction;
+	}): Promise<EnsuredResource>;
+	/**
+	 * Find the server emoji named `name` (without colons) or make it from `image`, a `data:` URI. An emoji that
+	 * exists is left exactly as it is, never renamed or deleted, unless `replace` is true: then it is made again from
+	 * `image` (it gets a new id, and what was reacted with the old one is gone), the new one made before the old one is
+	 * removed so a failure never leaves the server without it. The result then has `created: false` and
+	 * `updated: ["image"]`, with the new id. `setup` passes `replace` only for an emoji {@link checkEmoji} found
+	 * different, and has asked first.
+	 */
+	ensureEmoji?(input: { name: string; image: string; replace?: boolean }): Promise<EnsuredResource>;
+	/**
+	 * Read-only: whether the server emoji named `name` shows `image` (a `data:` URI). `missing` when the server has no
+	 * such emoji, `same` or `different` when the provider compared the pictures, `unknown` (with a `note`) when it could
+	 * not, in which case `setup` leaves the emoji alone: a picture that cannot be read is never taken for a changed one.
+	 */
+	checkEmoji?(input: { name: string; image: string }): Promise<EmojiCheck>;
+	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
+	ensureWebhook?(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		/** An image as a `data:` URI, set when the webhook has none. */
+		avatar?: string;
+	}): Promise<EnsureWebhookResult>;
+	/**
+	 * Proves a channel's webhook delivers: posts `text` through it, reads the post back from the channel and
+	 * removes it again, unless `keep` is true, in which case the post is left in the channel (and the result
+	 * has `kept` instead of `removed`). Never throws for a failed step; the result says which one failed.
+	 * Posts a visible message, so callers choose the channel with care.
+	 */
+	checkDelivery?(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		/** The message. The provider may format it (Discord renders markdown) and replaces `{channel}` with its link to the channel. */
+		text: string;
+		/** Leave the message in the channel instead of removing it, so a person can see it. */
+		keep?: boolean;
+	}): Promise<NotificationsDelivery>;
+
+	/**
+	 * Creates the server the layout describes, empty, owned by the provider's own bot, and makes it the server
+	 * every other call in this run works on. Refuses when the config already names a server unless `force`.
+	 */
+	createServer?(input: { name: string; force?: boolean }): Promise<{ id: string; name: string }>;
+
+	/** A single-use link, valid for a day, that lets one person join the server through the named channel. */
+	inviteLink?(channel: string): Promise<string>;
+
+	/** Whether a person is in the server. */
+	hasMember?(memberId: string): Promise<boolean>;
+
+	/** Hands the server to a member who has joined, so the bot no longer owns it. */
+	transferServer?(memberId: string): Promise<void>;
+
+	/** Who owns the server, and whether that is the provider's own bot. */
+	serverOwner?(): Promise<{ id: string; isBot: boolean; name?: string }>;
+
+	/**
+	 * Who holds a role, by the provider's member id. Needs whatever permission the provider asks for to list
+	 * members (for Discord, the privileged Server Members Intent). Throws if the role does not exist.
+	 */
+	roleMembers?(roleName: string): Promise<NotificationsMember[]>;
+
+	/** Give a member the role; one who has it already is left alone. */
+	addRoleMember?(roleName: string, memberId: string): Promise<void>;
+
+	/** Take the role from a member; one who lacks it is left alone. */
+	removeRoleMember?(roleName: string, memberId: string): Promise<void>;
+
+	/** Sign-in used to learn which GitHub account a member is. Optional; needs an OAuth client secret. */
+	signIn?(): NotificationsSignIn;
+
+	/** Find or create a role; one that exists has its settings brought in line. */
+	ensureRole?(input: {
+		name: string;
+		mentionable?: boolean;
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}): Promise<EnsuredResource>;
+
+	/**
+	 * Bring the server's own settings in line with the layout, changing only what differs. Returns the
+	 * names of what it changed, empty when the server already matched.
+	 */
+	ensureServer?(settings: NotificationsServerLayout): Promise<{ updated: string[] }>;
+
+	/** Bring the welcome screen in line with the layout, changing only what differs. Returns what it changed. */
+	ensureWelcome?(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }>;
+
+	/**
+	 * Posts `content` in a channel of the layout as the provider's own bot, mentioning no one. For a result a person
+	 * asked to share (`doctor notifications --post`); a notification goes through a webhook (`send`).
+	 */
+	postMessage?(channel: string, content: string): Promise<void>;
+	/** Post and pin the layout's messages, replacing any that differ. Returns the channels it changed. */
+	ensurePinned?(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }>;
+
+	/**
+	 * Find the discussion post for `key` in a forum channel, or make it. Never changes a post that exists: its state and
+	 * its text are the caller's to reconcile through {@link Notifications.readDiscussion} and
+	 * {@link Notifications.updateDiscussion}. Idempotent, and the lookup reads archived posts too.
+	 */
+	ensureDiscussion?(input: EnsureDiscussionInput): Promise<EnsuredDiscussion>;
+	/**
+	 * The discussion post for `key` in a forum channel, or `undefined` when there is none. When none has `key`, the one the
+	 * document's recorded address (`url`) names is it, moved; its `key` then differs from the one asked for.
+	 */
+	readDiscussion?(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined>;
+	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced, the first message's text, the pull request line and the id line. Throws when there is no post. */
+	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
+	/**
+	 * Append a message to the discussion post for `key`, mentioning no one; `quiet` posts it without notifying anyone. A post
+	 * that is archived or locked is unarchived and unlocked, written to, and put back as it was. Throws when there is no post.
+	 */
+	postDiscussionMessage?(channel: string, key: string, content: string, opts?: { quiet?: boolean }): Promise<void>;
+	/**
+	 * The text of the post for `key`'s recent messages, newest first (`limit` of them, 50 by default, at most 100); the
+	 * first message, with its footer, is the oldest. Reads archived posts too. Empty when there is no post.
+	 */
+	readDiscussionMessages?(channel: string, key: string, limit?: number): Promise<string[]>;
+	/**
+	 * When more than one post carries `key`, keep the oldest and delete the rest. Returns how many it deleted (0 when there
+	 * is one post or none). `refresh` reads the forum again first: a provider that keeps its own copy of the posts (the
+	 * Discord one reads them once per instance) would otherwise not see a post another instance made a moment ago, so two
+	 * deliveries that raced each make a post and neither finds the other.
+	 */
+	dedupeDiscussion?(channel: string, key: string, opts?: { refresh?: boolean }): Promise<number>;
+	/**
+	 * The keys that have more than one post in a forum channel, each with how many posts beyond the one
+	 * {@link Notifications.dedupeDiscussion} keeps, in key order. Reads the forum afresh and changes nothing, so a repair
+	 * can say what it would delete before it deletes.
+	 */
+	duplicateDiscussions?(channel: string): Promise<DuplicateDiscussion[]>;
+
+	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
+	holdsPermission?(permission: string): Promise<boolean>;
+
+	/** Bring onboarding in line with the layout, changing only what differs. Returns what it changed. */
+	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;
+
+	/** Bring the bot's application settings in line with the layout, changing only what differs. Returns what it changed. */
+	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[]; todo?: string[] }>;
+
+	/** Grant or take away the named permissions from everyone, changing only what differs. Returns what it changed. */
+	ensureEveryone?(everyone: NotificationsEveryoneLayout): Promise<{ updated: string[] }>;
+
+	/**
+	 * Before anything is created, prove the credentials can do the parts of the layout that need
+	 * more than the rest (for Discord, change the server's settings). Throws with the reason and how
+	 * to fix it, so `setup` stops before it leaves a half-applied layout. Not called on a dry run.
+	 */
+	preflight?(layout: NotificationsLayout): Promise<void>;
+
+	/**
+	 * Check the provider-specific parts of the layout (colours, permission names, …) without
+	 * touching the server, so `setup` can refuse a bad layout before it creates anything.
+	 * Returns the first problem, or `undefined` when the layout is fine.
+	 */
+	validateLayout?(layout: NotificationsLayout): string | undefined;
+
+	/**
+	 * Smoke check for `holocron doctor`: prove the provisioning credentials work
+	 * and name what they reach. Returns `null` when there is nothing to check (a
+	 * config that only posts has no provisioning credentials), which doctor shows
+	 * as "loaded" rather than as a failure. Throws when it is configured to
+	 * provision but cannot (missing token, no access).
+	 */
+	whoami?(): Promise<{ target: string } | null>;
+
+	/**
+	 * Read what exists on the server, for the parts the layout cares about, without
+	 * changing anything. Backs `holocron doctor notifications`.
+	 */
+	inspect?(layout: NotificationsLayout): Promise<ServerInspection>;
+}
+
+/** Product analytics: describes what an app needs at runtime and, where the provider allows, creates projects. */
+export interface Analytics extends ProviderIdentity {
+	/** Identifies this provider as the `analytics` capability. */
+	readonly key: "analytics";
+	/** Returns the env var names the app reads at runtime for this provider. */
+	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	/** Reachability probe: proves the credentials work and names the organization they belong to. */
+	whoami?(): Promise<{ org: string }>;
+	/** Create the project if it is missing and return its ingestion token; `alreadyExists` is true when it was there. */
+	ensureProject?(name: string): Promise<{ token: string; alreadyExists: boolean }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// wiki — engineering knowledge publishing platform
+// ───────────────────────────────────────────────────────────────────────
+
+/** Options for {@link Wiki.provision}. */
+export interface WikiProvisionOpts {
+	/** Project display name used in the wiki title (e.g. "Holocron"). */
+	name?: string;
+}
+
+/**
+ * Reverse-proxy configuration returned by `Wiki.proxyConfig()`.
+ * Used by `setup` to deploy a Worker that forwards traffic to the wiki
+ * provider's ingress with the required headers injected.
+ */
+export interface WikiProxyConfig {
+	/** Proxy target URL (e.g. "https://app.buildwithfern.com"). */
+	target: string;
+	/** Headers injected on every proxied request. */
+	headers: Record<string, string>;
+}
+
+/** One address the wiki provider asked, and what came back. Never carries a body or a header. */
+export interface WikiProbe {
+	/** The address asked, without a scheme. */
+	url: string;
+	/** The HTTP status, when an answer came back. */
+	status?: number;
+	/** Why no answer came back (a timeout, a refused connection), when none did. */
+	error?: string;
+}
+
+/** The wiki provider's organization, as declared and as its own config file has it. */
+export interface WikiOrganizationState {
+	/** The organization the config declares. */
+	declared: string;
+	/** The one in the provider's own config file, or null when none is readable. */
+	found: string | null;
+}
+
+/** The docs instance, as the config implies it and as the provider's docs file has it. */
+export interface WikiInstanceState {
+	/** The instance address the config implies. */
+	expectedUrl: string;
+	/** The one in the docs file, or null when it names none. */
+	foundUrl: string | null;
+	/** The custom domain the config implies, when it declares one. */
+	expectedDomain?: string;
+	/** The one in the docs file, or null when it names none; present only with `expectedDomain`. */
+	foundDomain?: string | null;
+}
+
+/** The navigation's pages against the source files. */
+export interface WikiNavigationState {
+	/** How many distinct pages the navigation lists. */
+	listed: number;
+	/** Listed pages that are not on disk (the publish would fail). */
+	missing: string[];
+	/** Source pages on disk that the navigation does not list (never published). */
+	unlisted: string[];
+}
+
+/** The published site's page index. */
+export interface WikiPublishedState extends WikiProbe {
+	/** How many pages the index lists, when it was served. */
+	pages?: number;
+}
+
+/**
+ * The wiki as it stands, read without changing anything: the local config the provider publishes from, the sources
+ * it lists, and the live site. `holocron doctor wiki` turns it into rows.
+ */
+export interface WikiInspection {
+	/** The provider's organization: declared against the one in its own config file. */
+	organization: WikiOrganizationState;
+	/** The docs instance the config declares against the one in the provider's docs file (null when there is no file). */
+	instance: WikiInstanceState | null;
+	/** The site's own address and, when a custom domain is declared, the domain: each is asked once. */
+	site: WikiProbe[];
+	/** The pages the navigation lists against the source files under `docs/wiki`. Null when there is no navigation to read. */
+	navigation: WikiNavigationState | null;
+	/** The published site's page index (its sitemap), compared with `navigation.listed`. Null when none could be asked. */
+	published: WikiPublishedState | null;
+}
+
+/**
+ * Engineering wiki provider.
+ *
+ * A swappable provider for publishing the `docs/decisions/` and
+ * `docs/engineering/` surfaces as a browsable, access-controlled site.
+ * Local-only providers (fern, mintlify) write config files; remote
+ * providers (github) make API calls.
+ */
+export interface Wiki extends ProviderIdentity {
+	/** Identifies this provider as the `wiki` capability. */
+	readonly key: "wiki";
+	/** Provision the wiki — write config files or call the provider API. */
+	provision(opts?: WikiProvisionOpts): Promise<string>;
+	/**
+	 * DNS record needed for the custom domain, when one is configured.
+	 * Returns null when no custom domain is set.
+	 * Called by `setup` to provision the CNAME via the `dns` capability.
+	 */
+	dnsRecord?(): DnsRecordRequest | null;
+	/**
+	 * Reverse-proxy config when the wiki provider requires a Worker-level
+	 * proxy in addition to the CNAME. Returns null when no proxy is needed.
+	 * Called by `setup` to deploy the proxy via the `workers` capability.
+	 */
+	proxyConfig?(): WikiProxyConfig | null;
+	/**
+	 * Confirms a provider token resolves. Unlike `dns`/`workers`/`monitoring`'s
+	 * `whoami()`, this is NOT a live reachability check — Fern (the only
+	 * current `wiki` provider) exposes no lightweight endpoint to verify a
+	 * token actually works; the only token-consuming operation is a full
+	 * `fern generate` (holocron#1079). `ok: true` means "a token was found",
+	 * not "the token works".
+	 */
+	whoami?(): Promise<{ ok: boolean }>;
+	/**
+	 * Read the wiki without changing it: organization, docs instance, whether the site answers, navigation against
+	 * the sources and the published page index. Never writes, never sends a token. Optional — a provider that cannot
+	 * read its site omits it (`holocron doctor wiki` skips with that reason).
+	 */
+	inspect?(): Promise<WikiInspection>;
+}
+
+/** Config for `Workers.deployScript()` — an arbitrary Worker, not a generated reverse-proxy. */
+export interface DeployScriptConfig {
+	/** The full Worker script source — a single ES module (`export default { fetch(...) {...} }`). */
+	code: string;
+	/**
+	 * Secret bindings — `env.<name>` in the deployed Worker. Values are
+	 * write-only; the provider never echoes them back, here or anywhere else.
+	 */
+	secrets?: Record<string, string>;
+	/**
+	 * Route pattern(s) this Worker should serve (e.g.
+	 * `"sentinel.theholocron.dev/*"`). Omit for a Worker reached only via
+	 * its `*.workers.dev` URL.
+	 */
+	routes?: string[];
+}
+
+/** A deployed Worker as the provider holds it, for `doctor notifications`. Binding names only: a value is never read. */
+export interface WorkerScriptState {
+	/** Whether a script with that name is deployed. */
+	exists: boolean;
+	/** The route patterns that serve the script in the zone of the host asked about. */
+	routes: string[];
+	/** The names of the secrets bound to the script. */
+	bindingNames: string[];
+}
+
+/** The newest deployment of a Worker script, for `doctor workers`. */
+export interface WorkerDeploymentState {
+	/** The provider's id for the deployment. */
+	id: string;
+	/** When it was made, as an ISO timestamp, when the provider says. */
+	createdAt?: string;
+	/** Whether it serves all of the script's traffic (a gradual rollout split between versions is not). */
+	active: boolean;
+}
+
+/** What {@link Workers.deployScript} made. */
+export interface DeployScriptResult {
+	/** The deployed script's name at the provider. */
+	scriptName: string;
+}
+
+/**
+ * Edge Worker management capability.
+ *
+ * Deploys and manages Worker scripts. `upsertProxy` is the existing,
+ * narrower case `setup` uses to wire wiki custom-domain reverse-proxies;
+ * `deployScript` is the general case — any Worker, any code, its own
+ * secrets — for a consumer that isn't a reverse-proxy (a webhook
+ * receiver, for instance).
+ */
+export interface Workers extends ProviderIdentity, RelaySourceMethods {
+	/** Identifies this provider as the `workers` capability. */
+	readonly key: "workers";
+	/**
+	 * Deploy (or update) a reverse-proxy Worker for `hostname`.
+	 * Forwards all `hostname/*` requests to `config.target`, injecting
+	 * `config.headers` on each request.
+	 */
+	upsertProxy(hostname: string, config: WikiProxyConfig): Promise<void>;
+	/** Deploy (or update) an arbitrary Worker script, optionally with secrets and routes. */
+	deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult>;
+	/**
+	 * Set one secret binding on a script that is already deployed, leaving its code and every other binding alone.
+	 * The value is write-only. `holocron sync secrets --worker` uses it to fan a vault out to a Worker.
+	 */
+	setSecret?(script: string, name: string, value: string): Promise<void>;
+	/** The names (never the values) of the secrets bound to a deployed script. `holocron probe` uses it to see what a Worker has. */
+	secretNames?(script: string): Promise<string[]>;
+	/**
+	 * Read a deployed script without changing it: whether it exists, which route patterns serve it in the zone `host`
+	 * is in, and the names of its bindings. Read-only; `holocron doctor notifications` uses it to check the relay.
+	 * Optional — a provider that cannot read its scripts omits it.
+	 */
+	inspectScript?(name: string, host: string): Promise<WorkerScriptState>;
+	/**
+	 * The newest deployment of a deployed script, or null when it has none. Read-only. Optional — a provider that cannot
+	 * list a script's deployments omits it.
+	 */
+	latestDeployment?(script: string): Promise<WorkerDeploymentState | null>;
+	/**
+	 * The name `upsertProxy` gives the reverse-proxy Worker it deploys for `hostname`, so a check can find it without
+	 * knowing how the provider names it. Optional — a provider that deploys no proxy omits it.
+	 */
+	proxyScriptName?(hostname: string): string;
+	/**
+	 * A `holocron doctor` smoke check — every other method either mutates or
+	 * needs a specific script/zone doctor has no way to supply up front.
+	 * Reports how many Worker scripts the token can see.
+	 */
+	whoami?(): Promise<{ ok: boolean; scripts: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// tunnels — a stable public address that reaches a port on this machine
+// ───────────────────────────────────────────────────────────────────────
+
+/** Where a tunnel should send the requests for a hostname. */
+export interface TunnelRoute {
+	/** The tunnel's name. The tunnel is found by it, so a second call finds the first one's tunnel. */
+	name: string;
+	/** The public hostname the tunnel serves, e.g. `sentinel-dev.example.dev`. */
+	hostname: string;
+	/** The origin the requests are sent to, e.g. `http://localhost:3000`. */
+	service: string;
+}
+
+/** What {@link Tunnels.ensureTunnel} found or made. */
+export interface EnsuredTunnel {
+	/** The tunnel's id at the provider. */
+	id: string;
+	/** The tunnel's name. */
+	name: string;
+	/** Whether the tunnel did not exist and was made. */
+	created: boolean;
+	/** Whether the tunnel's routes were changed to serve the hostname. */
+	configured: boolean;
+	/** The host a `CNAME` for the hostname points at, so the `dns` provider can finish the job. */
+	target: string;
+}
+
+/**
+ * Named tunnels: a stable public hostname that reaches a port on this machine, for a webhook that has to find a
+ * development instance. A quick tunnel changes its address on every run, which a GitHub App's webhook URL cannot.
+ * The provider makes the tunnel and its routes; the DNS record for the hostname is the `dns` provider's.
+ */
+export interface Tunnels extends ProviderIdentity {
+	/** Identifies this provider as the `tunnels` capability. */
+	readonly key: "tunnels";
+	/**
+	 * Find the tunnel by name or make it, and make it serve `route.hostname` at `route.service`. Routes for other
+	 * hostnames are kept. Idempotent: a tunnel that already serves the hostname is left alone.
+	 */
+	ensureTunnel(route: TunnelRoute): Promise<EnsuredTunnel>;
+	/** The token the tunnel's connector runs with. A credential: never print or store it. */
+	tunnelToken(tunnelId: string): Promise<string>;
+	/** A `holocron doctor` smoke check: reports how many tunnels the token can see. */
+	whoami?(): Promise<{ ok: boolean; tunnels: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// credentials — where this machine gets its own tokens
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * A place this machine reads its own tokens from, as named variables (`HOLOCRON_ORG_TOKEN`, ...).
+ *
+ * Not the same job as {@link Vault}, the source of truth `holocron sync secrets` fans out to other services. A
+ * credentials provider answers a plugin asking "where do I get my token?" before it can talk to anything, so it must
+ * authenticate without a token of its own: 1Password does (the desktop app and Touch ID on a laptop, a service
+ * account in CI). A provider that needs a stored token to be read cannot be one.
+ *
+ * `holocron.config` names the environment with `credentials.environment`. Several providers can be configured and
+ * are tried in order. A token the process environment or a `.env` file already has wins over all of them.
+ */
+export interface Credentials extends ProviderIdentity {
+	/** Identifies this provider as the `credentials` capability. */
+	readonly key: "credentials";
+	/**
+	 * Every variable of the environment `environment`, by name. The CLI reads it once per process and looks each
+	 * token up in the result, so a provider that prompts (Touch ID) prompts once for all of them.
+	 * Rejects when the environment cannot be read; the CLI then falls through to the next source.
+	 */
+	read(environment: string): Promise<Record<string, string>>;
+	/**
+	 * Which environment `environment` really is and the names of its variables, without reading any value. Used by
+	 * `holocron doctor secrets`. Optional: a provider that cannot list names without values leaves it out and
+	 * the check is skipped for it. Rejects when the environment cannot be found.
+	 */
+	inspect?(environment: string): Promise<CredentialsInspection>;
+}
+
+/** What {@link Credentials.inspect} found: the environment as the provider spells it, and its variable names. */
+export interface CredentialsInspection {
+	/** The environment's name as the provider matched it, which can differ in case from the configured one. */
+	environment: string;
+	/** The names of its variables, never their values. */
+	names: string[];
+	/**
+	 * Which of `names` the provider holds visible (a variable) rather than concealed (a secret). Absent when it cannot
+	 * say, in which case every name is taken to be a secret.
+	 */
+	visible?: string[];
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// projects — boards that plan work (spec `command-project`, SPEC-0020, #1744)
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * What a status means, whatever the board calls it. A provider maps a category to its own states (Jira groups
+ * statuses into To Do, In Progress and Done), and the doctor, `reconcile` and `move` read the category, so "closed and
+ * not done" never depends on an option being spelled `Done`. It is not the `issues` capability's {@link StatusCategory}: a board
+ * tells a backlog idea from planned work and shows a blocked item, which an issue's own status does not.
+ */
+export type BoardStatusCategory = "backlog" | "planned" | "active" | "review" | "blocked" | "done";
+
+/** One status a board offers, with the category that says what it means. */
+export interface BoardStatus {
+	/** The status as the board shows it, e.g. `In Progress`. */
+	name: string;
+	/** What the status means. */
+	category: BoardStatusCategory;
+	/** A colour name for the status, e.g. `GRAY`. A provider without colours ignores it. */
+	color?: string;
+	/** A line saying when to use the status. */
+	description?: string;
+}
+
+/** The kinds of field a board can hold besides its status. */
+export type BoardFieldType = "single_select" | "text" | "number" | "date" | "iteration";
+
+/** A field of a board besides its status. */
+export interface BoardField {
+	/** The field's name, e.g. `Priority`. */
+	name: string;
+	/** What the field holds. */
+	type: BoardFieldType;
+	/** The choices of a `single_select` field, in order. */
+	options?: string[];
+}
+
+/** A saved way of looking at a board. */
+export interface BoardView {
+	/** The view's name, shown on its tab. */
+	name: string;
+	/** `board` is columns by status, `table` is rows. */
+	layout: "board" | "table";
+	/** A filter expression in the provider's syntax, e.g. `-status:Done`. */
+	filter?: string;
+	/** The name of a field to group by. */
+	groupBy?: string;
+	/** Whether this view opens first. The first view wins when several are set. */
+	default?: boolean;
+}
+
+/**
+ * What a board should look like, whole: the resolved form of a template. `setup` applies it, `doctor project` compares
+ * it with the live board and `create` makes a board from it.
+ */
+export interface BoardTemplate {
+	/** The template's name, e.g. `roadmap`. */
+	name: string;
+	/** The statuses, in the order the board shows them. */
+	statuses: BoardStatus[];
+	/** The other fields. */
+	fields: BoardField[];
+	/** The views. */
+	views: BoardView[];
+	/** The automation rules that should be on, as the provider names them. A provider that cannot create one reports it. */
+	rules?: string[];
+	/** A board to copy when this one is created, which carries its automation rules. A provider without a copy ignores it. */
+	source?: string;
+}
+
+/**
+ * What a template file holds. With `extends` it names a template to start from and adds to it; without, it is a whole
+ * template and the three lists are required. `resolveTemplate()` turns one into a {@link BoardTemplate}.
+ */
+export interface BoardTemplateFile {
+	/** The template's name. Defaults to the file's name. */
+	name?: string;
+	/** A template to inherit the statuses, fields, views and rules of. */
+	extends?: string;
+	/** The statuses; with `extends`, added to the inherited ones. */
+	statuses?: BoardStatus[];
+	/** The fields; with `extends`, added to the inherited ones. */
+	fields?: BoardField[];
+	/** The views; with `extends`, added to the inherited ones. */
+	views?: BoardView[];
+	/** The automation rules that should be on. */
+	rules?: string[];
+	/** A board to copy when this one is created. */
+	source?: string;
+}
+
+/** A board as `list` and `find` return it. */
+export interface BoardSummary {
+	/** The provider's id for the board. Opaque: only the provider reads it. */
+	id: string;
+	/** The board's number where the provider has one (a GitHub project). */
+	number?: number;
+	/** The board's name, which is how it is found. */
+	name: string;
+	/** Where to open it. */
+	url: string;
+	/** Whether the board is closed. */
+	closed: boolean;
+}
+
+/** An automation rule of a board and whether it is on. */
+export interface BoardRule {
+	/** The rule's name as the provider spells it. */
+	name: string;
+	/** Whether it is on. */
+	enabled: boolean;
+}
+
+/** The live board, read for `setup` to compare with a template and for `doctor project`. */
+export interface BoardState {
+	/** The board. */
+	board: BoardSummary;
+	/** The status names, in order. */
+	statuses: string[];
+	/** The other fields, in order. */
+	fields: BoardField[];
+	/** The views. */
+	views: BoardView[];
+	/** The automation rules. */
+	rules: BoardRule[];
+}
+
+/** One item of a board: an issue or a pull request, named by its `issues` key. */
+export interface BoardItem {
+	/** The item's key, the one the `issues` capability uses (`#42`, or `owner/repo#42` from another repository). */
+	key: string;
+	/** The item's title. */
+	title: string;
+	/** Whether the issue or pull request is open. Closed and merged ones are not. */
+	open: boolean;
+	/** The item's status, or undefined when it has none. */
+	status?: string;
+	/** The category of that status, when the template knows it. */
+	category?: BoardStatusCategory;
+	/** The keys of the open issues this one is blocked by. */
+	blockedBy: string[];
+	/** The item's priority, when the board holds one. */
+	priority?: IssuePriority;
+	/** The pull requests that close this issue, when the provider reads them. */
+	pullRequests?: BoardPullRequest[];
+	/** Why the provider could not read the pull requests of this item; the pull-request rules are then not applied to it. */
+	pullRequestsProblem?: string;
+}
+
+/** The state of the aggregate required check on a pull request's head commit. */
+export type BoardPullRequestChecks = "success" | "failure" | "pending" | "none";
+
+/** One pull request that closes a {@link BoardItem}. */
+export interface BoardPullRequest {
+	/** The pull request's key (`#42`, or `owner/repo#42` from another repository). */
+	key: string;
+	/** Whether it is open, merged or closed without a merge. */
+	state: "open" | "merged" | "closed";
+	/** Whether it is a draft. A draft counts as a pull request. */
+	draft: boolean;
+	/** The aggregate required check on its head commit: `none` when it has not posted. */
+	checks: BoardPullRequestChecks;
+}
+
+/** What {@link Projects.ensure} did to bring a board in line with a template. */
+export interface EnsureReport {
+	/** Whether the board did not exist and was made. */
+	created: boolean;
+	/** What was changed, one line each, e.g. `status Blocked added`. */
+	changes: string[];
+	/** What the provider cannot do and a person must, one line each, e.g. `turn on the rule "Item closed"`. */
+	todos: string[];
+}
+
+/** One issue to put on a board with {@link Projects.addItems}, with the values it should start with. */
+export interface BoardItemInput {
+	/** The issue's key in the provider's own tracker (`#42`). */
+	key: string;
+	/** The status the issue had where it came from, by name; used when the board has an option of that name. */
+	status?: string;
+	/** The category that status falls into; used to find the board's own status when no option has the name. */
+	category?: BoardStatusCategory;
+	/** How urgent the issue is. `none` sets nothing. */
+	priority?: IssuePriority;
+}
+
+/** What {@link Projects.addItems} did with one issue. */
+export interface AddedItem {
+	/** The issue's key, as it was given. */
+	key: string;
+	/** Whether it was put on the board now; false when it was already there. */
+	added: boolean;
+	/** The values the board has no option for and so were left unset, e.g. `priority urgent (no matching option on the board)`. */
+	dropped: string[];
+}
+
+/** What {@link Projects.move} did between two boards. */
+export interface MoveReport {
+	/** Keys of the open items put on the target board. */
+	moved: string[];
+	/** Keys of the open items that were already on the target and kept its values. */
+	kept: string[];
+	/** Keys of closed items left on the source, with the status they were set to where it was wrong. */
+	left: string[];
+}
+
+/**
+ * Project management: boards that plan work, in a vocabulary no tracker owns (board, item, status with a category,
+ * blocker, rule, template). `issues` is one issue; `projects` is the surface that holds them. A GitHub project, a Jira
+ * board or a Linear view is one provider, so a change of tracker is a provider entry and a plugin and nothing else.
+ *
+ * `owner` is whoever the boards belong to: a GitHub organization, a Jira site. A board is found by its name among the
+ * open boards, and an item is an `issues` key, so nothing here knows what a node id is.
+ */
+export interface Projects extends ProviderIdentity {
+	/** Identifies this provider as the `projects` capability. */
+	readonly key: "projects";
+	/** Every board of the owner, open and closed. */
+	list(owner: string): Promise<BoardSummary[]>;
+	/** The open board with exactly this name, or undefined. */
+	find(owner: string, name: string): Promise<BoardSummary | undefined>;
+	/** Make a board from the template (copying `template.source` where the provider can) and return it. */
+	create(owner: string, name: string, template: BoardTemplate): Promise<BoardSummary>;
+	/** Close a board. Reversible. */
+	close(owner: string, board: BoardSummary): Promise<void>;
+	/** The live board, for `setup` to diff and `doctor project` to compare. */
+	read(owner: string, board: BoardSummary): Promise<BoardState>;
+	/**
+	 * Bring the board in line with the template and report what changed and what only a person can do. Never deletes a
+	 * field, option or view the template does not mention, and never clears an item's value. Optional: a provider may
+	 * only list and close.
+	 */
+	ensure?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<EnsureReport>;
+	/** The board's items with their status, whether their issue is open and their open blockers. Optional. */
+	items?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<BoardItem[]>;
+	/**
+	 * Put an item in a status. Idempotent: `transitioned` is false when it is already there. A provider that works
+	 * through a workflow (Jira) can refuse, and says why in `via`. Optional.
+	 */
+	setStatus?(owner: string, board: BoardSummary, key: string, status: string): Promise<LifecycleResult>;
+	/**
+	 * Put issues on the board and give each the status and priority of its input, where the board has an option for it.
+	 * An issue already on the board keeps its place and its values, and a value is only set where the item has none, so
+	 * a second run changes nothing. A value with no matching option is reported in `dropped`, never created. Optional.
+	 */
+	addItems?(
+		owner: string,
+		board: BoardSummary,
+		items: BoardItemInput[],
+		template: BoardTemplate
+	): Promise<AddedItem[]>;
+	/**
+	 * Put the open items of one board on another, with their status and priority; leave closed ones behind. An item
+	 * already on the target keeps its values. Optional.
+	 */
+	move?(owner: string, from: BoardSummary, to: BoardSummary, template: BoardTemplate): Promise<MoveReport>;
+	/** A `holocron doctor` smoke check: reports how many boards the token can see. */
+	whoami?(): Promise<{ ok: boolean; boards: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// ideas — the inbox in front of the issue (spec SPEC-0072, #2022)
+// ───────────────────────────────────────────────────────────────────────
+
+/** One idea as a provider holds it, in a shape no provider owns. */
+export interface IdeaRecord {
+	/** The provider's address for the idea (a path, for Obsidian). Opaque to the CLI; the hidden issue marker carries it. */
+	key: string;
+	/** The idea's title. */
+	title: string;
+	/** The idea's text, which becomes the body of the issue. */
+	body: string;
+	/** The idea's state, in the repo's own words (`seed`, `in-progress`, ...); empty when it has none. */
+	status: string;
+	/** The issue the idea was filed as, in the tracker's own syntax; absent when it is not filed. */
+	issue?: string;
+	/**
+	 * What the provider cannot put in an issue body (an embedded image or file, another note). The command reports an
+	 * idea that has any and does not file it.
+	 */
+	attachments: string[];
+	/**
+	 * Set when the provider could not read the idea; the other fields are then empty. The command reports it as a
+	 * failing row and goes on with the rest.
+	 */
+	error?: string;
+}
+
+/**
+ * Where ideas are kept before they are issues: an inbox the process starts from (`idea -> issue -> spec -> ...`). A
+ * folder of notes, a forum or a database is one provider, so `holocron sync ideas` reads through this and files through
+ * `issues`, and a change of place is a provider entry and a plugin and nothing else. Optional: a repo with no `ideas`
+ * provider is not affected.
+ */
+export interface Ideas extends ProviderIdentity {
+	/** Identifies this provider as the `ideas` capability. */
+	readonly key: "ideas";
+	/** Every idea the provider holds, in a provider-neutral shape. Throws when the provider cannot reach its store. */
+	list(): Promise<IdeaRecord[]>;
+	/** Moves an idea to a state. */
+	setStatus(key: string, status: string): Promise<void>;
+	/** Records the issue an idea was filed as, so the step runs once. */
+	markFiled(key: string, issue: string): Promise<void>;
+	/** Takes a filed idea out of the inbox. Optional: the CLI never deletes, so a provider may leave it to an app. */
+	retire?(key: string): Promise<void>;
+}
+
+/** Code coverage reporting: what the coverage service says about the repository and the token that uploads to it. */
+export interface Coverage extends ProviderIdentity {
+	/** Identifies this provider as the `coverage` capability. */
+	readonly key: "coverage";
+	/**
+	 * Asks the service whether it accepts the configured token for the repository, with names and statuses only, never
+	 * the token. A service may hold several kinds of token (an upload token that its API does not take, an API token): the
+	 * result says which question it could answer. An error that says nothing about the token (a network failure, a 5xx, a
+	 * missing token) throws.
+	 */
+	checkToken(): Promise<CoverageTokenCheck>;
+	/**
+	 * Compares the flags and components the repository's config declares (`holocron sync` writes them to `codecov.yml`)
+	 * with what the service has for the repository, by name only. The caller passes the expected names, so the provider
+	 * never reads the config. A service may need a second credential for this read (Codecov's API takes a personal token,
+	 * not the upload token): without it the report says so (`checked: false`) and nothing throws. Read-only.
+	 */
+	checkRepo?(expected: CoverageExpectations): Promise<CoverageRepoReport>;
+	/**
+	 * Uploads coverage reports to the service, one flag per group, authenticated the way the service allows from the job
+	 * it runs in (Codecov: the job's OIDC token, so no stored secret). It reports names and counts only, never a token.
+	 * A group that has no report is skipped with a note; a failed upload is a `failed` group and stops the run. A setup
+	 * problem (no way to authenticate, a client that cannot be trusted) throws.
+	 */
+	upload?(input: CoverageUploadInput): Promise<CoverageUploadResult>;
+	/**
+	 * The commit statuses the service posts on a pull request, so the code that decides which statuses the `ci`
+	 * aggregate and a ruleset wait on does not spell the service's names. Pure and offline: names only, from the
+	 * components and the documentation mode the caller passes. The CLI hands the result to the task runner (which imports
+	 * no provider); without a provider, the task runner keeps its default (a context starting with `codecov/` is a status).
+	 */
+	statusContexts?(input: CoverageStatusInput): CoverageStatusContext[];
+	/**
+	 * The service's own config files for the repository (Codecov: `codecov.yml`), as text by path relative to the
+	 * repository root, from the repo's flags and components. A file that already exists comes in through
+	 * `input.existing`, so the provider can merge into it and keep every hand edit. Pure and offline: it reads and
+	 * writes nothing, so `setup`, `sync` and `probe generated check` can share it. The CLI writes the files (or compares
+	 * them with the committed copies); without a provider (or a provider without this method) it writes none.
+	 */
+	configFiles?(input: CoverageConfigInput): Record<string, string>;
+}
+
+/** What {@link Coverage.configFiles} takes: names, paths and a mode, never a credential. */
+export interface CoverageConfigInput {
+	/** One component per workspace package, in the order the file lists them. */
+	components: CoverageConfigComponent[];
+	/** The flag names (the ids of the components that get one), in order. */
+	flags: string[];
+	/** `repoValidation.docsCoverage`: whether the documentation flag and its statuses are in the file. */
+	documentation: CoverageStatusInput["documentation"];
+	/** The text of a file already in the repository, or `null` when there is none. The path is relative to the repo root. */
+	existing(path: string): string | null;
+}
+
+/** The mode of {@link CoverageConfigInput.documentation}. */
+export type CoverageConfigDocumentation = CoverageConfigInput["documentation"];
+
+/** One workspace package as the config file lists it. */
+export interface CoverageConfigComponent {
+	/** The component id (the package's slug, which is also its flag name). */
+	id: string;
+	/** The package's directory, relative to the repository root, `/`-separated, no trailing slash. */
+	path: string;
+}
+
+/** What {@link Coverage.statusContexts} takes: names and a mode, never a credential. */
+export interface CoverageStatusInput {
+	/** The component ids the config declares (one per workspace package, the names of the flags). */
+	components: string[];
+	/** `repoValidation.docsCoverage`: whether the documentation statuses exist (`warn`, `required`) and gate (`required`). */
+	documentation: "off" | "warn" | "required";
+}
+
+/** One commit status the service posts, as {@link Coverage.statusContexts} lists it. */
+export interface CoverageStatusContext {
+	/** The context GitHub shows. */
+	name: string;
+	/** Whether a pull request must see it reach `success` before it merges. */
+	required: boolean;
+}
+
+/** The flags and components {@link Coverage.checkRepo} expects the service to have, by name. */
+export interface CoverageExpectations {
+	/** The flag names the config declares. */
+	flags: string[];
+	/** The component ids the config declares. */
+	components: string[];
+}
+
+/** One group of {@link Coverage.upload}: the files that carry one flag. */
+export interface CoverageUploadGroup {
+	/** The flag the group's reports are uploaded under. */
+	flag: string;
+	/** Glob patterns, relative to the repository root, for the group's reports (an lcov file each). */
+	files: string[];
+}
+
+/** What {@link Coverage.upload} takes. */
+export interface CoverageUploadInput {
+	/** The groups to upload, in order. */
+	uploads: CoverageUploadGroup[];
+	/** The repository root the `files` patterns are relative to. */
+	repoRoot: string;
+	/**
+	 * Lets a run with no report in any group finish quietly (an affected run that selected nothing). Otherwise that is a
+	 * problem, so a missing report is not mistaken for a pass.
+	 */
+	allowEmpty?: boolean;
+}
+
+/** What {@link Coverage.upload} did for one group. */
+export interface CoverageUploadFlagResult {
+	/** The group's flag. */
+	flag: string;
+	/** `uploaded`, `skipped` (no usable report), or `failed` (the service rejected the upload after every try). */
+	outcome: "failed" | "skipped" | "uploaded";
+	/** How many report files were uploaded. */
+	files: number;
+	/** Why a report was left out, or why the group was skipped or failed. Names and counts only. */
+	notes: string[];
+}
+
+/** What {@link Coverage.upload} did. */
+export interface CoverageUploadResult {
+	/** One entry per group that was reached, in order; a failed group ends the list. */
+	flags: CoverageUploadFlagResult[];
+	/** How many flags were uploaded. */
+	uploaded: number;
+	/** Set when the run as a whole did not succeed: a failed group, or nothing uploaded without `allowEmpty`. */
+	problem?: string;
+}
+
+/** What {@link Coverage.checkToken} found. */
+export interface CoverageTokenCheck {
+	/**
+	 * `accepted`: the service answered for the repository with the token. `refused`: it answered 401 or 403, which a
+	 * revoked token, a token without access and a kind of token its API does not take all look like. `not-found`: the
+	 * service has no such repository, or the token cannot see it.
+	 */
+	outcome: "accepted" | "refused" | "not-found";
+	/** Whether the repository is private, when the service said. A public repository answers without a token. */
+	repoPrivate?: boolean;
+	/** The HTTP status when the outcome is not `accepted`. */
+	status?: number;
+}
+
+/** One list of names compared with the service's: what was expected, what is missing there and what is extra there. */
+export interface CoverageNameDiff {
+	/** The names the config declares. */
+	expected: string[];
+	/** Declared in the config, absent on the service. */
+	missing: string[];
+	/** On the service, not declared in the config. */
+	extra: string[];
+}
+
+/** What {@link Coverage.checkRepo} found. Names only. */
+export interface CoverageRepoReport {
+	/** `false` when the service could not be asked (no credential for the read); `reason` then says what to set. */
+	checked: boolean;
+	/** Why nothing was checked, naming the variable to set. Set only when `checked` is `false`. */
+	reason?: string;
+	/** The flags compared. */
+	flags: CoverageNameDiff;
+	/** The components compared. */
+	components: CoverageNameDiff;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Capability map (key → implementation type) + cardinality helpers
+// ───────────────────────────────────────────────────────────────────────
+
+/** Maps each capability key to the interface its provider implements. */
+export interface CapabilityImpls {
+	/** The `source` provider. */
+	source: Source;
+	/** The `ci` provider. */
+	ci: Ci;
+	/** The `secrets` provider. */
+	secrets: Secrets;
+	/** The `environments` provider. */
+	environments: Environments;
+	/** The `issues` provider. */
+	issues: Issues;
+	/** The `deployment` provider. */
+	deployment: Deployment;
+	/** The `storage` provider. */
+	storage: Storage;
+	/** The `auth` provider. */
+	auth: Auth;
+	/** The `vault` provider. */
+	vault: Vault;
+	/** The `dns` provider. */
+	dns: Dns;
+	/** The `tooling` provider. */
+	tooling: Tooling;
+	/** The `notifications` provider. */
+	notifications: Notifications;
+	/** The `analytics` provider. */
+	analytics: Analytics;
+	/** The `errors` provider. */
+	errors: Errors;
+	/** The `logs` provider. */
+	logs: Logs;
+	/** The `monitoring` provider. */
+	monitoring: Monitoring;
+	/** The `wiki` provider. */
+	wiki: Wiki;
+	/** The `workers` provider. */
+	workers: Workers;
+	/** The `tunnels` provider. */
+	tunnels: Tunnels;
+	/** The `credentials` providers. */
+	credentials: Credentials;
+	/** The `projects` provider. */
+	projects: Projects;
+	/** The `ideas` provider. */
+	ideas: Ideas;
+	/** The `coverage` provider. */
+	coverage: Coverage;
+	/** The `cache` provider. */
+	cache: Cache;
+}
+
+/** The cardinality (`"single"` or `"many"`) of the capability `K`. */
+export type CardinalityFor<K extends CapabilityKey> = (typeof CARDINALITY)[K];
+
+/** Resolved runtime shape: single → one impl; many → array. */
+export type ResolvedCapability<K extends CapabilityKey> =
+	CardinalityFor<K> extends "many" ? CapabilityImpls[K][] : CapabilityImpls[K];

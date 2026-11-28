@@ -1,0 +1,44 @@
+---
+title: GitHub Client
+description: TypeScript client for the GitHub REST API, built on @theholocron/http-client.
+---
+
+`@theholocron/github-client` is a typed wrapper around the GitHub REST API.
+
+## Installation
+
+```bash
+pnpm add @theholocron/github-client
+```
+
+## Usage
+
+```ts
+import { createGitHubClient } from "@theholocron/github-client";
+
+const client = createGitHubClient({ token: process.env.GITHUB_TOKEN });
+
+const repo = await client.repos.getRepo("owner/name");
+const labels = await client.labels.listLabels("owner/name");
+```
+
+## Namespaces
+
+| Namespace      | Covers                                                                        |
+| -------------- | ----------------------------------------------------------------------------- |
+| `branches`     | Branch protection                                                             |
+| `environments` | Deployment environments                                                       |
+| `git`          | Refs, commits, trees, blobs and pull requests                                 |
+| `issues`       | Issues, their labels and comments, and milestones                             |
+| `labels`       | Repository labels                                                             |
+| `properties`   | Custom repository properties                                                  |
+| `repos`        | Repository settings and contents                                              |
+| `rulesets`     | Repository rulesets                                                           |
+| `secrets`      | Actions secrets, in a repository, environment or organization                 |
+| `security`     | Vulnerability alerts, secret scanning, code scanning and the dependency graph |
+| `teams`        | Team access to a repository                                                   |
+| `topics`       | Repository topics                                                             |
+| `user`         | The authenticated user                                                        |
+| `workflows`    | Workflow runs                                                                 |
+
+The full [API reference](/holocron/clients/github-client/api/readme/) is generated from the package's TSDoc comments.

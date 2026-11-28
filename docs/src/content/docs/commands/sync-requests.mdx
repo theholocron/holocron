@@ -1,0 +1,53 @@
+---
+title: "sync requests"
+description: Keep each tooling provider's own workspace and the repo's request files in step, both ways.
+---
+
+```bash
+holocron sync requests [--to <provider>] [--check] [--prefer source|workspace] [--dry-run] [--yes]
+```
+
+The repo's request files (`<endpoint>.collection.json` and `<endpoint>.environment*.json`, beside the API path they exercise, in the v2.1 collection format) are what the repo's tests and docs read. A `tooling` provider that keeps a workspace of its own turns them into that tool's own files, committed in the repo, so the tool opens and saves them in place instead of importing a copy. `sync requests` keeps the two in step, **both ways**: a change to a request file reaches the workspace, and an edit saved in the tool reaches the request file. For Bruno the workspace is `.bruno/` at the repo root, opened with Open Workspace; see the [Bruno plugin](/holocron/plugins/bruno/).
+
+## How it tells which side changed
+
+The provider records, for each pair (one collection and its workspace folder, or one environment file and its workspace file), what both sides looked like at the last sync. Bruno keeps that record in `.bruno/.sync.json`, committed, so a fresh clone has it. A run compares each side with the record:
+
+| Request file changed | Workspace changed | What happens                                                           |
+| -------------------- | ----------------- | ---------------------------------------------------------------------- |
+| no                   | no                | nothing                                                                |
+| yes                  | no                | the workspace is regenerated from the request file                     |
+| no                   | yes               | the request file is regenerated from the workspace                     |
+| yes                  | yes               | a **conflict**: the row fails and nothing is written for that provider |
+
+- **No record yet.** A side that does not exist is made from the other. When both exist and already hold the same thing, the record is written and nothing else changes. Two that differ are a conflict.
+- **A conflict is settled out loud.** `--prefer source` regenerates the workspace from the request files, `--prefer workspace` regenerates the request files from the workspace. It applies to one run; there is no default winner, so a change is never lost without you asking for it.
+- **Two sides that both changed to the same thing are not a conflict.** The record is brought up to date.
+- **Settings only the tool has stay in the tool.** A request's timeout, an environment's colour or anything else the request file cannot hold is never copied into it and is listed under the row as an issue. The comparison ignores what the other format cannot carry, so such an edit never looks like a change to the request file. It is still a change to the workspace: if the request file changes too, that is a conflict, and `--prefer source` would drop the setting.
+- **A request file is rewritten as little as possible.** Everything the edit did not touch keeps its own text and key order; only the request, folder or variable that changed is written from the tool's version. A script the tool rewrote (`pm.response.to.have.status(200)` becomes `pm.expect(pm.response.code).to.equal(200)`) is only rewritten when that request itself was edited.
+- **A side that went missing is made again** from the other, when the record shows it existed. Each collection's `opencollection.yml` carries an `info.version`, the root package's version (or the `version` option), written whenever a run that is not a dry run or a check writes the file. It is left out of every comparison and hash, so a release never makes a file out of date or the check fail; it can lag a release behind until the next `sync requests`. A secret variable is written without its value on both sides, unless the provider's `secretRefs` and `environmentLayers` options cover it: the workspace then holds a plain variable whose value is its layer's copy, `{{process.env.DEV_ENTRY}}` (a file already in step gets it too, reported as `changed`), which [`open requests`](/holocron/commands/open-requests/) fills from the layer's vault Environment, and the request file reads it back as the same blank secret.
+- **The workspace docs are one more pair.** For Bruno, the text people read first lives twice: `.bruno/README.md` (markdown, shown on GitHub; the `source` side) and the `docs` field of `.bruno/workspace.yml` (what Bruno shows and edits; the `workspace` side). The pair follows the same table: only the README changed, and the `docs` value is replaced; only Bruno's docs changed, and the README is written; both changed, and it is a conflict, which `--prefer source` (the README) or `--prefer workspace` (Bruno's docs) settles. The two are compared as text with the line endings and trailing newline ignored, so Bruno's `|-` block and a README that ends in a newline are the same text. A markdown table's padding is ignored too (each cell trimmed, a separator row as `---`, the alignment colons kept), so a formatter that pads the README's table, as Prettier does and Bruno's editor does not, is not a change; a changed cell still is. Only the `docs` value of `workspace.yml` is written; every other byte of the file stays. A repo that has neither side has no docs pair. Empty docs count as no docs on that side.
+
+## Behavior
+
+- **Compare first.** For each `tooling` provider that has a workspace (or only `--to`), it asks the provider how each file compares: `new`, `changed`, `unchanged`, `removed` (a workspace file the provider no longer generates) or `conflict` (a pair both sides changed; the file named is the request file). Nothing is written yet.
+- **Then write.** If any file is out of date it asks first, naming how many files and for which providers, then writes. When everything is in sync nothing is asked and nothing is written. Without a terminal it refuses instead of asking; pass `--yes`.
+- **A conflict writes nothing for its provider**, not the other side of the pair, not another pair, not the record. Other providers go on.
+- **`--check`** writes nothing and asks nothing. It exits 1 unless every pair is in sync, so a check can fail a branch where the request files, the workspace or the record were changed without the others. The repo's own unit tests run the same comparison on the committed `.bruno/`.
+- **`--dry-run`** prints what would be written and stops, a conflict included.
+- **Never in a source folder.** A provider writes the workspace folder it owns and the request files it was given, nothing else. For Bruno that means `workspace.yml` and `collections/`; the rest of `.bruno/`, such as the `mocks/` folder where Bruno keeps mock servers, is yours and is never read, listed or deleted.
+- **One row per provider**, like every [`doctor <capability>`](/holocron/commands/doctor/). What the conversion could not carry across is listed under the row and does not fail the run; a provider that throws is a failing row, and the others still run.
+- **A request file the workspace wrote** is arranged the way the repo's formatter arranges a `.json` file, so the formatting check passes without a second run.
+
+## Options
+
+| Option                       | Default | Description                                                                            |
+| ---------------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `--to`                       | all     | Sync only for this `tooling` provider                                                  |
+| `--check`                    | `false` | Write nothing; exit 1 unless every pair is in sync                                     |
+| `--prefer source\|workspace` | none    | Settle a conflict for this run: the request files win (`source`) or the workspace wins |
+| `--yes`                      | `false` | Write without asking (required without a terminal)                                     |
+| `--dry-run`                  | `false` | Compare and list, and write nothing                                                    |
+| `--cwd`                      | `.`     | The folder holding the `holocron.config.*`                                             |
+
+The provider's `collectionFiles` and `envFiles` options name the request files, as they do for [`export requests`](/holocron/commands/export-requests/), which stays the way to write a throwaway copy of a collection in a tool's format.

@@ -1,0 +1,31 @@
+info:
+  name: a resource the source does not carry
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/sentry"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Sentry-Hook-Resource
+      value: issue
+  body:
+    type: json
+    data: '{"action":"created"}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 202", () => expect(res.getStatus()).to.equal(202));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "Only issue alerts (`event_alert`) are carried: 202, so Sentry does not retry."

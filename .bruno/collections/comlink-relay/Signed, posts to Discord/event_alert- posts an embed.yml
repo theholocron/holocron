@@ -1,0 +1,31 @@
+info:
+  name: "event_alert: posts an embed"
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/sentry"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Sentry-Hook-Resource
+      value: event_alert
+  body:
+    type: json
+    data: '{"data":{"triggered_rule":"Comlink check","event":{"title":"Comlink test alert","culprit":"requests/collection","level":"warning","environment":"development","project_name":"comlink-test","datetime":"2026-01-01T00:00:00Z"}}}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 204", () => expect(res.getStatus()).to.equal(204));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: 204 when Discord accepted it, 502 when it did not, 500 when no webhook is bound.

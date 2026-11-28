@@ -1,0 +1,50 @@
+{
+  "name": "@theholocron/comlink",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read (Sentry first), checks who sent them and posts them as Discord messages.",
+  "keywords": [
+    "alerts",
+    "cloudflare-worker",
+    "discord",
+    "holocron",
+    "theholocron",
+    "webhook"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/comlink/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "apps/comlink"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

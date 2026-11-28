@@ -1,0 +1,69 @@
+{
+  "name": "@theholocron/tsdown-config",
+  "version": "8.9.0-alpha.24",
+  "description": "Shared tsdown configurations for @theholocron packages.",
+  "keywords": [
+    "tsdown",
+    "build",
+    "bundler",
+    "typescript",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/tsdown-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/tsdown-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./presets/cli": {
+      "types": "./dist/presets/cli.d.ts",
+      "import": "./dist/presets/cli.js",
+      "default": "./dist/presets/cli.js"
+    },
+    "./presets/library": {
+      "types": "./dist/presets/library.d.ts",
+      "import": "./dist/presets/library.js",
+      "default": "./dist/presets/library.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "tsdown": "^0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,37 @@
+---
+title: "redeliver webhooks"
+description: Ask GitHub to deliver again the webhooks a registered App's endpoint did not accept. The recovery step after a Sentinel outage.
+---
+
+```bash
+holocron redeliver webhooks [--since <time>] [--app <name>] [--dry-run] [--yes]
+```
+
+When Sentinel is down, or answers a webhook with an error, GitHub keeps the delivery in the App's log marked failed and does not send it again by itself. This command reads that log for each App in `githubApps`, keeps the deliveries whose **latest attempt** did not succeed, and asks GitHub to deliver each one again, **oldest first and once**. It repairs every Sentinel handler (the `#prs` feed, board status, role sync, the five checks and the `ci` aggregate), not only the aggregate, and a replay is safe because each handler reads the state from the API again (spec `process-sentinel-posts-ci`, SPEC-0099, recovery 2).
+
+```text
+Holocron redeliver webhooks
+
+  ✓ Sentinel:812  redelivered check_run.completed of 2026-11-22T10:00:00Z (Invalid HTTP Response: 500)
+  ✓ Sentinel:815  redelivered status of 2026-11-22T10:01:00Z (status 0)
+
+2 ok, 0 fail, 0 skipped
+```
+
+| Flag           | What it does                                                                                                                                                               |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--since`      | how far back to look: a span (`30m`, `12h`, `7d`, `2w`) or a date. Default `1d`. GitHub keeps the log for a limited time, so a delivery older than that is no longer there |
+| `--app <name>` | only that `githubApps` instance                                                                                                                                            |
+| `--dry-run`    | lists what it would redeliver and changes nothing                                                                                                                          |
+| `--yes`        | redeliver without asking. Without a terminal it is required, unless `--dry-run`                                                                                            |
+
+A delivery and its redeliveries share one GUID, so each is judged by its latest attempt: a failure already redelivered successfully is done, and one whose redelivery failed too is returned once. A delivery that got no answer at all (a timeout) has failed. A redelivery GitHub refuses is a failing row and the run goes on with the next.
+
+The App's id and private key are read in memory from its 1Password Environment (the `layer` of its `githubApps` entry, as [`doctor github-app`](/holocron/commands/doctor-github-app/) reads them) and signed into the App's own JWT, which is the only credential the delivery log needs; neither is printed. An instance whose credentials cannot be read is a skip with the reason.
+
+## Limits
+
+- It repairs failures, not deliveries GitHub never attempted, so a Sentinel that was unreachable for a long time can have a gap [`reconcile ci`](/holocron/commands/reconcile-ci/) closes for the aggregate.
+- The log has a retention window and a redelivery of a very old delivery may be refused (not verified here: the endpoint and its limits are read from GitHub's documentation, and no live run was made).
+
+[`doctor github-app`](/holocron/commands/doctor-github-app/) counts the failed deliveries of the last day in its `deliveries` row and names this command as the fix.

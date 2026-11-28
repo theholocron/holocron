@@ -1,0 +1,115 @@
+/**
+ * `holocron run ci` / `astromech.ci()` — run the merge-gating checks locally, in CI
+ * order, and exit non-zero on the first failure. The "will CI pass?" command a
+ * `pre-push` hook and the agent skills point at.
+ *
+ * Default scope: every `required: true` task. If the manifest marks nothing
+ * required (an un-migrated repo), fall back to every `ci: true` task. `--all`
+ * forces the full set. Each task runs through {@link runTask}: a `required`
+ * task whose local runner can't run is a failure; a `local: null` task with
+ * no turbo task / `package.json` script is skipped, never failed — even when
+ * `required` (it's a CI-only check, not a local one).
+ */
+
+import { normalizeTaskEntry } from "../../config/schema/index.js";
+import { WORKFLOW_CHECK_CONTEXTS } from "../../generators/index.js";
+import { CI_ORDER } from "../../registry/index.js";
+import { resolveTaskName } from "../../vocabulary/index.js";
+import { runTask } from "../run/index.js";
+import type { CiInput, CiJobReport, CiReport } from "./ci.type.js";
+
+/**
+ * The check context of a flat id: the one its workflow posts. A task with no workflow of its own (`format`, a step of
+ * `lint:code`) has none.
+ */
+function checkContextOf(id: string): string | null {
+	return WORKFLOW_CHECK_CONTEXTS[id] ?? null;
+}
+
+/** Runs the merge-gating tasks in CI order and reports each job and an overall `ok` or `fail`. */
+export function runCi(input: CiInput): CiReport {
+	const { print } = input;
+
+	// de-dup task entries by id (last wins), an old name standing for several ids (`sourceQuality.formatting`) counts
+	// as each of them; keep only the merge-gating tasks (`CI_ORDER` — excludes `sync-repo` / `publish-wiki`, which
+	// aren't checks).
+	const byName = new Map<string, ReturnType<typeof normalizeTaskEntry>>();
+	const split = new Set<string>();
+	for (const item of input.config?.tasks ?? []) {
+		const entry = normalizeTaskEntry(item);
+		const targets = resolveTaskName(entry.name);
+		for (const { id } of targets) {
+			byName.set(id, { ...entry, name: id });
+			if (targets.length > 1) split.add(id);
+		}
+	}
+	const gating = [...byName.values()].filter((e) => CI_ORDER.includes(e.name));
+
+	const all = gating.filter((e) => e.ci !== false);
+	const required = gating.filter((e) => e.required === true);
+
+	let selected = input.scope === "all" ? all : required;
+	const fellBack = input.scope !== "all" && selected.length === 0 && all.length > 0;
+	if (fellBack) selected = all;
+
+	const ordered = [...selected].sort((a, b) => CI_ORDER.indexOf(a.name) - CI_ORDER.indexOf(b.name));
+
+	print(`holocron run ci — ${input.scope === "all" ? "all CI checks" : "required checks"} (${ordered.length})`);
+	if (fellBack) print("  (no required tasks in the manifest — running every CI task)");
+	print("");
+
+	const jobs: CiJobReport[] = [];
+	for (const entry of ordered) {
+		const context = checkContextOf(entry.name);
+		print(`▶ ${context ?? entry.name}`);
+
+		// `local: null` tasks (scan:code, deploy) have no
+		// built-in runner — but `runTask` steps 1–2 still honour an explicit
+		// turbo task / `package.json` script. `runTask` returns "skip" when nothing runs.
+		const r = runTask({
+			print: (line) => print(`  ${line}`),
+			logger: input.logger,
+			exec: input.exec,
+			readFile: input.readFile,
+			fileExists: input.fileExists,
+			listDir: input.listDir,
+			lookPath: input.lookPath,
+			task: entry.name,
+			// `format` is run in its read-only form here: `holocron run ci` never writes.
+			passthrough: entry.name === "format" ? ["--check"] : [],
+			cwd: input.cwd,
+			dryRun: input.dryRun ?? false,
+			// An old name that stood for several ids (the formatting workflow) passed when any of its tools ran, so a
+			// missing one of them (editorconfig-checker) is not a failure of the others.
+			required: entry.required === true && !split.has(entry.name),
+			...(input.filter ? { filter: input.filter } : {}),
+			...(input.affected ? { affected: true } : {}),
+			...(input.base ? { base: input.base } : {}),
+			...(input.env ? { env: input.env } : {}),
+		});
+
+		// `runTask` only returns "unknown" for an unrecognised task; every entry
+		// here is a known `CI_ORDER` task, so its status is a CiJobReport status.
+		const status = r.status as CiJobReport["status"];
+		jobs.push({ task: entry.name, checkContext: context, status, command: r.command, message: r.message });
+	}
+
+	const failed = jobs.filter((j) => j.status === "fail").length;
+	const passed = jobs.filter((j) => j.status === "ok" || j.status === "dry-run").length;
+	const skipped = jobs.filter((j) => j.status === "skip").length;
+
+	print("");
+	if (ordered.length === 0) {
+		print("holocron run ci — nothing to run");
+	} else if (failed > 0) {
+		print(`✗ ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
+		// Name them: a hook that prints only the count leaves the reader to rerun the whole run to find which failed.
+		for (const job of jobs.filter((j) => j.status === "fail")) {
+			print(`  ✗ ${job.checkContext ?? job.task}`);
+		}
+	} else {
+		print(`✓ ${passed} passed${skipped ? `, ${skipped} skipped` : ""}${input.dryRun ? " (plan only)" : ""}`);
+	}
+
+	return { status: failed > 0 ? "fail" : "ok", jobs };
+}

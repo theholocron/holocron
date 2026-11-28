@@ -1,0 +1,93 @@
+import type { TemplateInputs } from "../template-inputs/index.js";
+
+export function render(inputs: TemplateInputs): string {
+	const clientClass = `${inputs.vendorName}RestClient`;
+	const factoryName = `create${inputs.vendorName}RestClient`;
+	// Same order simple-import-sort gives the specifiers (case-insensitive), so
+	// the generated file passes `eslint .` as written.
+	const restSpecifiers = [`type ${clientClass}`, factoryName]
+		.sort((a, b) => a.replace(/^type /, "").localeCompare(b.replace(/^type /, ""), "en"))
+		.join(", ");
+	// Camel-case capability name is used as the factory function name.
+	const capabilityInterface = inputs.capability.charAt(0).toUpperCase() + inputs.capability.slice(1);
+	return `/**
+ * \`@theholocron/holocron-plugin-${inputs.slug}\` — entrypoint.
+ *
+ * Implements the \`${inputs.capability}\` capability against ${inputs.vendorName}'s
+ * REST API. Also exports \`verifyToken\` + \`AUTH_HINT\` for
+ * \`holocron check token\`. See README for auth + config docs.
+ *
+ * TODO: once you fill in the ${inputs.capabilityClass} methods and add
+ * \`implements ${capabilityInterface}\` to the class, add the type import:
+ *   import type { ${capabilityInterface} } from "@theholocron/cli";
+ * and set \`: ${capabilityInterface}\` as the factory return type below.
+ */
+
+import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
+import { ${restSpecifiers} } from "./rest.js";
+
+export interface ${inputs.vendorName}PluginOptions extends ResolveTokenInput {
+	/** Override base URL for tests. */
+	baseUrl?: string;
+	/** Override \`fetch\` for tests. */
+	fetch?: typeof fetch;
+}
+
+export interface PluginContext {
+	options: ${inputs.vendorName}PluginOptions;
+	/** Memoized client — the token is resolved on first use, not at plugin load. */
+	rest: () => ${clientClass};
+}
+
+export function createContext(options: ${inputs.vendorName}PluginOptions): PluginContext {
+	let rest: ${clientClass} | undefined;
+	return {
+		options,
+		rest: () => {
+			if (rest) return rest;
+			const restOpts: { token: string; baseUrl?: string; fetch?: typeof fetch } = {
+				token: resolveToken(options),
+			};
+			if (options.baseUrl !== undefined) restOpts.baseUrl = options.baseUrl;
+			if (options.fetch !== undefined) restOpts.fetch = options.fetch;
+			return (rest = ${factoryName}(restOpts));
+		},
+	};
+}
+
+export function ${inputs.capability}(ctx: PluginContext) {
+	// Return type inferred at scaffold time — the class doesn't yet
+	// \`implements ${capabilityInterface}\`. Add the type import + the
+	// \`: ${capabilityInterface}\` annotation once methods are stubbed.
+	return new ${inputs.capabilityClass}(ctx.rest);
+}
+
+export function createPlugin(options: ${inputs.vendorName}PluginOptions) {
+	const ctx = createContext(options);
+	return {
+		name: "@theholocron/holocron-plugin-${inputs.slug}",
+		capabilities: {
+			${inputs.capability}: () => ${inputs.capability}(ctx),
+		},
+	};
+}
+
+/**
+ * One-line hint printed by \`holocron new token ${inputs.slug}\` when no
+ * token is supplied or the supplied token is rejected. Edit this to
+ * point operators at the specific ${inputs.vendorName} docs path for
+ * generating a token.
+ */
+export const AUTH_HINT =
+	"generate a ${inputs.vendorName} API token, then run: holocron new token ${inputs.slug} <TOKEN>";
+
+// ── Public re-exports ────────────────────────────────────────────────
+
+export * from "./auth.js";
+export { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
+export { ${restSpecifiers} } from "./rest.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
+`;
+}

@@ -1,0 +1,29 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: mark-stale
+
+run-name: "${{ github.event_name == 'schedule' && 'Mark Stale (scheduled)' || 'Mark Stale' }}"
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "30 1 * * *"
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  mark-stale:
+    name: mark-stale
+    uses: ./.github/workflows/mark-stale.yml
+    with:
+      exempt-issue-labels: "in-progress,wip"
+      exempt-all-issue-milestones: true
+      exempt-all-issue-projects: true
+      exempt-all-pr-projects: true
+    secrets: inherit

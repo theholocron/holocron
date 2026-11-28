@@ -1,133 +1,16 @@
-# GitHub Token Reference
+# Token reference
 
-Holocron uses one Personal Access Token per capability group. Each token carries only the scopes its operations require — a leaked token's blast radius is contained to that feature alone.
+The token reference lives on the docs site, in one place: <https://docs.theholocron.dev/holocron/tokens/>. Its source is [`docs/src/content/docs/tokens.mdx`](src/content/docs/tokens.mdx).
 
-## Resolution chain
+This file is only a pointer, so links to `docs/tokens.md` from the code, the plugin READMEs and the specs keep working. A test (`cli/cli/src/token-docs.test.ts`) fails when a plugin resolves a token that the page does not document.
 
-For every feature, the token is resolved in this order:
+## Where the old sections went
 
-```
---token flag
-  → HOLOCRON_<FEATURE>_TOKEN   (feature-specific env var)
-  → keyring("github.<feature>") (stored via `holocron auth set`)
-```
-
-No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.
-
-## Feature tokens
-
-| Env var                  | Keyring key      | Type               | Used by                                                                                         | Required scopes                                                                                                |
-| ------------------------ | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `HOLOCRON_READ_TOKEN`    | `github.read`    | Fine-grained       | holocron CLI — read-only access for clone and CI run listing                                    | `contents: read`, `actions: read`, `metadata: read`                                                            |
-| `HOLOCRON_ISSUES_TOKEN`  | `github.issues`  | Fine-grained       | holocron CLI — issue management (create, transition, comment)                                   | `issues: read/write`, `metadata: read`                                                                         |
-| `HOLOCRON_SYNC_TOKEN`    | `github.sync`    | Fine-grained       | holocron CLI — sync workflow templates, open sync PRs, and dispatch sync workflows across repos | `actions: read/write`, `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`            |
-| `HOLOCRON_RELEASE_TOKEN` | `github.release` | Fine-grained       | holocron CLI — semantic-release: create tags, releases, and changelogs                          | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                      |
-| `HOLOCRON_ADMIN_TOKEN`   | `github.admin`   | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties                | `administration: read/write`, `secrets: read/write`, `environments: read/write`                                |
-| `HOLOCRON_DEPLOY_TOKEN`  | `github.deploy`  | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                       | `pages: read/write`, `metadata: read`                                                                          |
-| `HOLOCRON_ORG_TOKEN`     | `github.org`     | Fine-grained (org) | `setup` — team sync and org-level custom property values                                        | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
-
-### Why a separate org token?
-
-Fine-grained PATs have two resource owner modes: **personal** (scoped to repos you own) and **organization** (scoped to repos within the org). Team management and org-level custom properties both require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers all repo-scoped operations.
-
-## Setting tokens via env vars
-
-```sh
-export HOLOCRON_READ_TOKEN=ghp_xxx
-export HOLOCRON_ISSUES_TOKEN=ghp_yyy
-export HOLOCRON_SYNC_TOKEN=ghp_zzz
-export HOLOCRON_RELEASE_TOKEN=ghp_aaa
-export HOLOCRON_ADMIN_TOKEN=ghp_bbb
-export HOLOCRON_DEPLOY_TOKEN=ghp_ccc
-export HOLOCRON_ORG_TOKEN=github_pat_xxx
-```
-
-## Storing tokens in the keyring
-
-Run once per machine. Tokens are stored in the OS credential store (macOS Keychain, Windows Credential Manager, libsecret on Linux) and retrieved automatically on every command.
-
-```sh
-holocron auth set github.read     ghp_xxx
-holocron auth set github.issues   ghp_yyy
-holocron auth set github.sync     ghp_zzz
-holocron auth set github.release  ghp_aaa
-holocron auth set github.admin    ghp_bbb
-holocron auth set github.deploy   ghp_ccc
-holocron auth set github.org      github_pat_xxx
-```
-
-All tokens are stored under keychain service `com.theholocron.cli` with the keyring key as the account name. To retrieve a token manually on macOS:
-
-```sh
-security find-generic-password -s "com.theholocron.cli" -a "github.admin" -w
-```
-
-Verify a stored token:
-
-```sh
-holocron auth check github.admin
-```
-
-Remove a stored token:
-
-```sh
-holocron auth unset github.read
-```
-
-## CI secrets
-
-In GitHub Actions, map your repository or org secrets to the expected env var names in each workflow's `env:` block:
-
-```yaml
-env:
-  HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
-  HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-```
-
-## Explicit override
-
-Pass a token directly for a single invocation without touching env vars or the keyring:
-
-```sh
-holocron clone --token github=ghp_xxx theholocron
-holocron sync-github --token github=ghp_zzz
-```
-
----
-
-# Third-party provider tokens
-
-## Fern (`wiki.yml`)
-
-Generate a token at `dashboard.buildwithfern.com` → **Settings → API tokens**.
-
-**Resolution order:**
-
-```
---token flag
-  → HOLOCRON_FERN_TOKEN   (env var)
-  → FERN_TOKEN            (Fern's native env var — vendor fallback)
-  → keyring "fern.<org>"        (org-namespaced; e.g. "fern.theholocron" when org: theholocron)
-  → keyring "fern"              (unnamespaced fallback)
-```
-
-**Store in keyring** (recommended for local use):
-
-```sh
-holocron auth set fern <token>
-```
-
-**Or via env var:**
-
-```sh
-export HOLOCRON_FERN_TOKEN=<token>
-# Also recognised:
-export FERN_TOKEN=<token>
-```
-
-**CI (GitHub Actions):** add `HOLOCRON_FERN_TOKEN` as a repository or org
-secret. The `wiki.yml` reusable workflow picks it up via `secrets: inherit`
-and maps it to `FERN_TOKEN` for the Fern CLI.
-
-Password protection is configured in the Fern Dashboard only — no token is
-needed for `holocron setup`.
+| Old section                                                       | Now                                                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Resolution chain, Feature tokens                                  | [GitHub tokens](https://docs.theholocron.dev/holocron/tokens/#github-tokens)                                 |
+| Setting tokens via env vars, Storing tokens in the keyring        | [Storing tokens in the keyring](https://docs.theholocron.dev/holocron/tokens/#storing-tokens-in-the-keyring) |
+| CI secrets                                                        | [CI secrets](https://docs.theholocron.dev/holocron/tokens/#ci-secrets)                                       |
+| Org-scoped secret writes                                          | [Organization secrets](https://docs.theholocron.dev/holocron/tokens/#organization-secrets)                   |
+| CI-only exception: GitHub Deployments, Provisioning the CI tokens | [CI-only tokens](https://docs.theholocron.dev/holocron/tokens/#ci-only-tokens)                               |
+| Third-party provider tokens (Fern, Vercel, Doppler)               | [Provider tokens](https://docs.theholocron.dev/holocron/tokens/#provider-tokens)                             |

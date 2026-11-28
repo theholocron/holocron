@@ -1,0 +1,114 @@
+/**
+ * `@theholocron/holocron-plugin-axiom` — entrypoint.
+ *
+ * Implements the `logs` capability against Axiom's REST API. Also
+ * exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See README
+ * for auth + config docs.
+ */
+
+import type { Logs } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+
+import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
+import { tokenProbe } from "./probes/token/token.js";
+import { type AxiomClient, createAxiomClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
+
+/** Options for the Axiom plugin: token resolution, the target dataset and test overrides. */
+export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions {
+	/** Override base URL for tests. */
+	baseUrl?: string;
+	/** Override `fetch` for tests. */
+	fetch?: typeof fetch;
+}
+
+/** What the plugin's capabilities share: the resolved options and a lazily built client. */
+export interface PluginContext {
+	/** The options, with `dataset` resolved from config, `HOLOCRON_AXIOM_DATASET` or `AXIOM_DATASET` (in that order). */
+	options: AxiomPluginOptions & { dataset?: string };
+	/**
+	 * Lazily builds (and memoizes) the REST client. The token is resolved
+	 * on first call, not at plugin load — a capability whose method needs
+	 * no auth (`describe`) works without a token, and the loader never
+	 * aborts on a plugin whose token happens to be absent.
+	 */
+	client: () => AxiomClient;
+}
+
+/** Creates the shared context for the given options; no token is resolved until `client()` is first called. */
+export function createContext(options: AxiomPluginOptions): PluginContext {
+	const env = createEnvLookup(options.env);
+	// `HOLOCRON_AXIOM_DATASET` is not a secret — resolve it like the token's
+	// fallback chain but independently. Config (`dataset`) wins when set.
+	const dataset = options.dataset ?? firstEnv(env, ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+	let client: AxiomClient | undefined;
+	return {
+		options: { ...options, dataset },
+		client: () =>
+			(client ??= createAxiomClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
+	};
+}
+
+/** Builds the `logs` capability from a plugin context. */
+export function logs(ctx: PluginContext): Logs {
+	return new AxiomLogs(ctx.client, { dataset: ctx.options.dataset });
+}
+
+/** Creates the Axiom plugin: the `connection` and `token` probes and the `logs` capability. */
+export function createPlugin(options: AxiomPluginOptions) {
+	const ctx = createContext(options);
+	return {
+		name: "@theholocron/holocron-plugin-axiom",
+		probes: {
+			token: tokenProbe({
+				options: ctx.options,
+				client: ctx.client,
+				token: () => resolveToken(options),
+			}),
+			connection: connectionProbe({
+				provider: "Axiom",
+				url: options.baseUrl ?? "https://api.axiom.co",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) =>
+					verifyToken(token, {
+						baseUrl: options.baseUrl,
+						fetch: options.fetch,
+						dataset: ctx.options.dataset,
+					}),
+			}),
+		},
+		capabilities: {
+			logs: () => logs(ctx),
+		},
+	};
+}
+
+/**
+ * One-line hint shown by `holocron new token axiom` when no token is
+ * supplied or when the supplied token is rejected.
+ */
+export const AUTH_HINT =
+	"generate an Axiom API token at https://app.axiom.co/settings/api-tokens " +
+	"with dataset read + create permissions, then run: holocron new token axiom <TOKEN>";
+
+// ── Public re-exports ────────────────────────────────────────────────
+
+export * from "./auth.js";
+export { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
+export {
+	type AxiomClient,
+	type AxiomClientOptions,
+	type AxiomDataset,
+	type AxiomUser,
+	createAxiomClient,
+	type CreateAxiomDatasetInput,
+} from "./rest.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

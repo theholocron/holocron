@@ -1,0 +1,38 @@
+---
+title: FS Utils
+description: Walk a directory tree upward to find the nearest match or project root.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/fs-utils
+```
+
+## Usage
+
+```ts
+import { findRoot, findUpward, hasGitEntry } from "@theholocron/fs-utils";
+
+// the nearest ancestor holding a marker file or directory
+const repoRoot = await findRoot(process.cwd(), ".git");
+
+// anything a marker cannot express: your own check, stopping at the repo root
+const configDir = await findUpward(
+  process.cwd(),
+  async (dir) => ((await fileExists(join(dir, "app.config.json"))) ? dir : undefined),
+  hasGitEntry
+);
+```
+
+## Choosing a helper
+
+- `findRoot` / `findRootSync` when a named file or directory marks the root. Reach for `findUpward` when the test is
+  anything else.
+- `findExecutable` / `findExecutableSync` is a `which`: it searches `PATH` (or a path you pass) for a runnable file.
+- `walkFilesSync` lists every regular file under a directory in a stable order, skipping `.git` and `node_modules`
+  unless you say otherwise.
+
+Every helper that takes a name (a marker or a command) accepts a bare name only, never a path.
+
+The full [API reference](/holocron/utils/fs-utils/api/readme/) is generated from the package's TSDoc comments.

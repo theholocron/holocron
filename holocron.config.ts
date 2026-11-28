@@ -1,77 +1,235 @@
+import { fileURLToPath } from "node:url";
+
+import { codecovUploads as generateCodecovUploads, readWorkspacePackages } from "@theholocron/astromech";
 import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
-import { nodeDocs } from "@theholocron/holocron-config";
+import { docsPreset } from "@theholocron/cli/presets";
 
-// nodeDocs() provides: org, domain, docs, strict repo protection, the standard
-// Node.js task set (lint/test/typecheck marked `required`, security, review,
-// stale, greetings, dependencies, bookkeeping, deploy), the base providers
-// (source, ci, issues, deployment, dns, workers), and `extraRequiredChecks`
-// (codecov/patch, codecov/project, "audit / Conclusion").
-const { repo, tasks: presetTasks, providers, org, domain, docs, extraRequiredChecks: presetChecks } = nodeDocs();
+import monitoring from "./.holocron/monitoring.js";
+import orgArea from "./.holocron/org.js";
+
+// docsPreset() provides: org, docs, strict repo protection, the base
+// providers (source, ci, issues, deployment, dns, workers). Its `tasks` speak the flat ids (`lint:code`, `test:unit`),
+// but this repo declares its own tasks directly below, with repo-specific `with:` inputs, instead of spreading them.
+// Its `domain` is not taken: the org's zone is spelled once, in `.holocron/org.ts`, and the loader sets `domain` on
+// this config from it (an inline `domain` here would be an error). The hostnames built below import it from there,
+// which is safe for Sentinel's remote loader because it writes the whole `.holocron/` tree beside this file.
+const { repo, providers, org, docs } = docsPreset();
+const { domain } = orgArea;
+
+// One Codecov upload per workspace package, so a PR that changes one package uploads only the packages whose tests
+// ran and Codecov carries every other package's flag forward (a flag is carried whole or not at all, so a flag per
+// group folder would drop a group's untouched packages). The flags are the package slugs listed under
+// `flag_management` in codecov.yml; both come from the workspace (`holocron sync`). Packages write lcov.info to
+// `<location>/coverage/`, except `skills`, which runs node's test runner and writes it next to its package.json.
+const codecovUploads = generateCodecovUploads(readWorkspacePackages(fileURLToPath(new URL(".", import.meta.url))), {
+	skills: "skills/lcov.info",
+});
+
+const sentinelApp = { app: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json" };
+const description =
+	"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.";
 
 export default defineConfig({
-	description:
-		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
-	homepage: "https://docs.theholocron.dev/holocron/",
+	description,
+	homepage: `https://docs.${domain}/holocron/`,
 	org,
-	domain,
 	docs,
+	// `doctor dns` watches the iCloud Mail records on the apex (#1569). `sharedVariables` (#2041) are held twice on purpose: a local and a CI copy of a token; rotate both.
+	// `manualSecrets` are set by hand on purpose and never reported as `extra`: nothing syncs the `dev` layer, so what it
+	// holds beyond the plugins' tokens and the synced variables (Sentinel's own values, two tokens no configured plugin
+	// lists) is listed here. The list is not per layer, so it also covers these names in `ci` and `prod`.
+	doctor: {
+		mail: "icloud",
+		manualSecrets: [
+			"COMLINK_AXIOM_DATASET",
+			"HOLOCRON_CHECKLY_DASHBOARD_KEY",
+			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_LINEAR_TOKEN",
+			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
+			"HOLOCRON_POSTMAN_TOKEN",
+			"SENTINEL_AXIOM_INGEST_TOKEN",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+			"SENTINEL_REPO",
+			"SENTINEL_VERCEL_PROJECT",
+			"SENTINEL_WEBHOOK_SECRET",
+		],
+		sharedVariables: [
+			"HOLOCRON_ADMIN_TOKEN",
+			"HOLOCRON_AXIOM_ORG",
+			"HOLOCRON_AXIOM_TOKEN",
+			"HOLOCRON_CLOUDFLARE_TOKEN",
+			"HOLOCRON_DEPLOY_TOKEN",
+			"HOLOCRON_DISCORD_BOT_TOKEN",
+			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_FERN_TOKEN",
+			"HOLOCRON_ISSUES_TOKEN",
+			"HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN",
+			"HOLOCRON_ORG_TOKEN",
+			"HOLOCRON_READ_TOKEN",
+			"HOLOCRON_RELEASE_TOKEN",
+			"HOLOCRON_SECRETS_TOKEN",
+			"HOLOCRON_SYNC_TOKEN",
+			"HOLOCRON_USER_SYNC_TOKEN",
+			"SENTINEL_AXIOM_DATASET",
+			"SENTINEL_AXIOM_INGEST_TOKEN",
+			"SENTINEL_GITHUB_APP_ID",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+		],
+	},
 	repo: {
 		...repo,
-		teams: [{ slug: "gatekeepers", permission: "maintain" }],
-		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+		// GitHub's default branch was still main while all v2 alpha work lands
+		// on alpha (CLAUDE.md's Releases section) -- Sentinel's validateConfig()
+		// only ever reads a repo's default branch (D6, a security boundary),
+		// so it's been silently validating main's stale pre-#675-vocabulary
+		// holocron.config.ts instead of what's actually being developed.
+		// Revert to "main" (or drop this field) once alpha merges to main for
+		// the v2.0.0 stable cut and stops being the active branch.
+		defaultBranch: "alpha",
+		// teams, topics, variables and secrets live in .holocron/repo.ts; the loader adds them to `repo` here.
 	},
-	// Required status checks not backed by a `{ required: true }` task.
-	// `holocron setup` appends these to the task-derived contexts from
-	// `astromech.requiredChecks()`. The preset supplies codecov/patch,
-	// codecov/project and "audit / Conclusion"; the rest are repo-specific.
+	// Required status checks not backed by a `{ required: true }` task, appended to the task-derived contexts by
+	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong here: a ruleset takes no wildcards and a
+	// package a PR does not touch posts no status, so a per-package `codecov/patch/<slug>` cannot be listed (#1223).
+	// The two `validate:` checks are the `validate:deps` and `validate:generated` tasks, listed here and not `required: true`
+	// so they stay out of `holocron run ci`. `codecov/patch/documentation` is the doc-comment gate (#1368).
+	// What the ruleset requires is written down in `repo.requiredChecks` (.holocron/repo.ts), not derived from these.
 	extraRequiredChecks: [
-		...presetChecks,
-		"tsdown (every workspace)",
-		"codecov/patch/astromech",
-		"codecov/patch/cli",
-		"codecov/patch/datapad",
-		"codecov/patch/holocron-plugin-1password",
-		"codecov/patch/holocron-plugin-axiom",
-		"codecov/patch/holocron-plugin-clerk",
-		"codecov/patch/holocron-plugin-cloudflare",
-		"codecov/patch/holocron-plugin-fern",
-		"codecov/patch/holocron-plugin-discord",
-		"codecov/patch/holocron-plugin-doppler",
-		"codecov/patch/holocron-plugin-github",
-		"codecov/patch/holocron-plugin-infisical",
-		"codecov/patch/holocron-plugin-neon",
-		"codecov/patch/holocron-plugin-posthog",
-		"codecov/patch/holocron-plugin-postman",
-		"codecov/patch/holocron-plugin-sentry",
-		"codecov/patch/holocron-plugin-slack",
-		"codecov/patch/holocron-plugin-vercel",
+		"codecov/patch",
+		"codecov/project",
+		"codecov/patch/documentation",
+		"validate:deps / Check dependency catalogs",
+		"validate:generated / Check generated files",
 	],
-	// The preset's task set (lint + the org linter set, test, typecheck — all
-	// `{ required: true }` — plus security / review / stale / greetings /
-	// dependencies / bookkeeping / deploy). The repo-specific tasks (audit,
-	// release, sync, wiki) and `syncScripts: false` live in `astromech.config.ts`
-	// and are merged in by astromech's `loadTasksConfig`.
-	tasks: [...presetTasks],
+	// Doc-comment coverage of the public API (#1368): the `documentation` Codecov flag fails a PR that adds or changes an
+	// export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation`
+	// is a required check (`extraRequiredChecks` above); the value itself never touches the ruleset.
+	repoValidation: { docsCoverage: "required" },
+	// No `ci / Required checks` aggregate (#2636): it cost too much GitHub quota in a burst, so each check is required on its own.
+	ci: { aggregate: "none" },
+	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
+	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
+	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/
+	// `stale`/`greetings`/`dependencies`/`bookkeeping` aren't part of the
+	// task-name vocabulary (workflow-only keys, unaffected by the rename).
+	// The repo-specific tasks (the decomposed audit tasks, platform.
+	// repoValidation, release, sync-repo, publish-wiki)
+	// and `syncScripts: false` live in `astromech.config.ts` and are merged
+	// in by astromech's `loadTasksConfig`.
+	tasks: [
+		{
+			name: "lint:code",
+			required: true,
+			// Packages with no eslint.config of their own lint with the root one, which loads the workspace's
+			// eslint-config from dist: build it first, even for a package that does not list it as a dependency.
+			turbo: { dependsOn: ["@theholocron/eslint-config#build"] },
+		},
+		{ name: "lint:editorconfig", required: true, sentinel: true },
+		{ name: "lint:markdown", required: true, sentinel: true },
+		{ name: "format", required: true },
+		{ name: "lint:data", required: true },
+		{ name: "scan:secrets", required: true },
+		{ name: "lint:commits", required: true, sentinel: true },
+		{ name: "test:unit", required: true, with: { affected: true, uploads: codecovUploads } },
+		"scan:code",
+		"mark-stale",
+		"greet",
+		"update-deps",
+		"label",
+		"reconcile-projects",
+		"sync-incidents",
+		"open-incident",
+		"remind-doctor",
+		"measure:docs",
+		"validate:deps",
+		"validate:generated",
+		{ name: "typecheck", required: true, with: { affected: true } },
+		// deploy-docs implies docs: true — this repo has no Storybook, so the dedicated task is more idiomatic than
+		// deploy + with: { docs: true } now that the two mean the same thing (astromech.ts).
+		{ name: "deploy-docs", with: { preview: true } },
+	],
 	providers: {
 		...providers,
 		secrets: "github",
+		// Credentials: tokens come from the 1Password Environment `<org/repo> - <layer>`, derived from the git remote
+		// and the layer (#2063, see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env` still wins.
+		credentials: ["1password"],
+		// Vault: the source `holocron sync secrets` reads. Sentinel and Comlink name their own layer (`prod`) in their
+		// configs; this one is for the GitHub Actions secrets, so it is the `ci` layer, `<org/repo> - ci` (#2069).
+		// `holocron sync secrets --env ci` reads it (`repo.secrets.sync` says where each key goes).
+		vault: ["1password", { layer: "ci" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron setup` provisions the project and pushes the
-		// DSN to repo secrets. Runtime error reporting (telemetry.ts) is independent
+		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
-		errors: ["sentry", { org: "theholocron" }],
-		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
+		errors: "sentry",
+		// Monitoring: Checkly (#2302), declared in .holocron/monitoring.ts.
+		monitoring: ["checkly", monitoring(description)],
+		cache: "turbo",
+		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",
+		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
+		// template is a built-in (roadmap) or a file in .holocron/projects; the board is found by name among the open
+		// ones. `holocron setup project` brings it in line, `doctor project` checks it, and the hourly
+		// `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
+		projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
+		// Ideas: the Obsidian vault "The Holocron" in iCloud Drive, the inbox in front of the issue (SPEC-0072, #1994).
+		// `holocron sync ideas` files the notes whose status is `in-progress` as issues. A machine whose vault is
+		// elsewhere sets HOLOCRON_IDEAS_DIR, which wins.
+		ideas: ["obsidian", { vault: "The Holocron" }],
+		// Tooling: the apps' request files, so `holocron export requests --to bruno` runs from the root. It writes to the
+		// git-ignored `apps/sentinel/api/.export/bruno/`; `holocron sync requests` keeps the committed `.bruno/`
+		// workspace equal to them; pushing to Postman is each app's `sync tooling --cwd`.
+		tooling: [
+			"bruno",
+			{
+				workspaceName: "The Holocron",
+				// Each secret variable and the 1Password entry `holocron open requests` fills it from, and the layer of
+				// each Bruno environment whose Environment holds it (Comlink has one environment and is prod only).
+				secretRefs: { webhookSecret: "SENTINEL_WEBHOOK_SECRET", sentrySecret: "COMLINK_SENTRY_SECRET" },
+				environmentLayers: {
+					"Sentinel (local)": "local",
+					"Sentinel (dev)": "dev",
+					"Sentinel (prod)": "prod",
+					"Comlink (local)": "prod",
+				},
+				collectionFiles: [
+					"apps/sentinel/api/webhook.collection.json",
+					"apps/comlink/src/worker.collection.json",
+				],
+				envFiles: [
+					"apps/sentinel/api/webhook.environment.json",
+					"apps/sentinel/api/webhook.environment.dev.json",
+					"apps/sentinel/api/webhook.environment.prod.json",
+					"apps/comlink/src/worker.environment.json",
+				],
+			},
+		],
+		// Notifications: the Holocron Discord server. `holocron setup notifications`
+		// applies the layout below (idempotent; --dry-run previews it). This block
+		// lives in ONE repo on purpose -- a server layout is org-level, so it must
+		// not sit in a shared preset that every repo would then apply. Each webhook
+		// URL is stored straight into the org secret HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>
+		// (never printed). Needs HOLOCRON_DISCORD_BOT_TOKEN (the Holonet bot).
+		notifications: [
+			"discord",
+			{
+				guildId: "1303969001822486568",
+				// The server layout lives in .holocron/notifications.ts; the loader sets it as `layout` here.
+			},
+		],
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
-		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
+		wiki: ["fern", { domain: `wiki.${domain}`, fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
-	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
-	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
-	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the
-	// HOLOCRON_AXIOM_DATASET variable (env wins over config).
-	log: { axiom: { dataset: "holocron-local" } },
-	agent: "claude",
+	// Registered GitHub Apps: `holocron doctor github-app` compares each with its manifest (GitHub cannot change an
+	// existing App's permissions or events, so each instance is changed by hand). The id and key come from the
+	// 1Password Environment of the layer: `prod` for Sentinel, `dev` for the development instance (#2069).
+	githubApps: [
+		{ name: "Sentinel - dev", ...sentinelApp, label: "Dev", layer: "dev" },
+		{ name: "Sentinel", ...sentinelApp, label: "Prod", layer: "prod" },
+	],
+	agent: ["claude", { dcg: true }],
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
 } satisfies HolocronConfig);

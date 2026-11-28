@@ -1,0 +1,134 @@
+/**
+ * One entry of the task manifest: a registry task by name, with the options that change how it is generated and
+ * run.
+ */
+export interface TaskEntry {
+	/** Registry task name — `verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.build`, … */
+	name: string;
+	/**
+	 * Emit a `.github/workflows/<name>.yml` thin caller and include the task
+	 * in `holocron run ci`. Default `true`.
+	 */
+	ci?: boolean;
+	/**
+	 * Sentinel posts this task's check, so no Actions workflow does (`process-sentinel-and-actions-roles`, #2263). No thin
+	 * caller is written, but the task stays in the manifest: `holocron run ci` runs it locally, and with `required: true` the
+	 * `ci` aggregate still waits for a check named `<id> / ...`, which Sentinel's check supplies. Unlike `ci: false`, which
+	 * also takes the task out of `holocron run ci`. Default `false`.
+	 */
+	sentinel?: boolean;
+	/**
+	 * Write a `"<name>": "holocron run <name>"` script to `package.json` and
+	 * let `holocron run <name>` resolve the task. Default `true`.
+	 * `false` → `holocron run <name>` prints "CI-only task" and exits 0.
+	 */
+	local?: boolean;
+	/**
+	 * The task's CI check context (from `WORKFLOW_CHECK_CONTEXTS`) is a
+	 * required status check in branch protection (`astromech.requiredChecks()`)
+	 * and part of `holocron run ci`'s default run.
+	 */
+	required?: boolean;
+	/** Per-repo overrides on the same channel the reusable workflow reads. */
+	with?: Record<string, unknown>;
+	/** Extra `on.push.paths` entries for the generated CI workflow. */
+	paths?: string[];
+	/**
+	 * Per-repo additions to this task's generated `turbo.json` entry — a
+	 * separate channel from `with:` (that's the reusable *workflow's* inputs;
+	 * this is local turbo cache config, unrelated). No-op for a task with no
+	 * {@link TurboTaskConfig} in the registry (nothing to add to).
+	 */
+	turbo?: {
+		/** Extra env vars turbo hashes into this task's cache key, appended to the registry default (empty when the task has none). */
+		passThroughEnv?: string[];
+		/**
+		 * Extra input globs appended to the registry default's `inputs`
+		 * (holocron#845) — for a package whose layout the registry's
+		 * `"src/**"` default doesn't cover (e.g. a flat-layout package with
+		 * no `src/` directory at all). Appended, not replaced: the
+		 * registry's other inputs (`package.json`, `tsdown.config.ts`, …)
+		 * stay tracked without needing to be repeated here.
+		 */
+		inputs?: string[];
+		/**
+		 * Extra tasks this one waits for, appended to the registry default's
+		 * `dependsOn` — for a build the package does not list as a dependency
+		 * but its task loads anyway (e.g. `staticAnalysis` loading the root
+		 * ESLint config, which imports a package of the workspace). Turbo
+		 * syntax: `"<package>#<task>"`, `"^<task>"`.
+		 */
+		dependsOn?: string[];
+	};
+}
+
+/** A task is either its bare name (all defaults) or an entry object. */
+export type TaskConfigItem = string | TaskEntry;
+
+/** The part of `holocron.config` that holds the task manifest and the switches around it. */
+export interface TasksConfig {
+	/** The manifest. */
+	tasks?: TaskConfigItem[];
+	/** Opt out of the `package.json` script writes. Default `true`. */
+	syncScripts?: boolean;
+	/**
+	 * The command the synced `"holocron"` `package.json` script runs. Default
+	 * `"holocron"` (the installed bin). The source repo overrides it to run
+	 * its own build, e.g. `"node cli/cli/dist/cli.mjs"`.
+	 */
+	holocronScript?: string;
+	/**
+	 * Required status-check contexts not backed by a task — codecov gates,
+	 * a bundle-build check, … Appended to `astromech.requiredChecks()` after the
+	 * `required`-task contexts. (`DCO` is prepended by `holocron setup` itself.)
+	 */
+	extraRequiredChecks?: string[];
+	/**
+	 * Settings of the repo's CI as a whole. Left out, everything is as it was: the Actions poller posts the `ci` aggregate.
+	 * Read at the **head** ref by Sentinel, so a commit carries both the files that run for it and the word that says who
+	 * posts (spec `process-sentinel-posts-ci`, SPEC-0099).
+	 */
+	ci?: CiConfig;
+	/**
+	 * Git hooks `holocron setup` installs. `true` / `{ prePush: true }` writes
+	 * `.husky/pre-push` (runs `holocron run ci`); `false` / `{ prePush: false }`
+	 * opts out. Omitted → on for `protection: "strict"` repos, off otherwise.
+	 * When enabled, `packageScripts()` also emits `prepare: "husky"`.
+	 */
+	hooks?: boolean | { prePush?: boolean };
+}
+
+/**
+ * Who posts the required `ci / Required checks` check: the Actions poller (`ci.yml`), Sentinel from webhooks, or nobody
+ * (`"none"`: there is no aggregate and the ruleset requires each check on its own).
+ */
+export type CiAggregatePoster = "actions" | "sentinel" | "none";
+
+/** Who may satisfy the required `ci / Required checks` context: one GitHub App, by its integration id. */
+export interface CiPin {
+	/**
+	 * The numeric id of the GitHub App (the ruleset's `integration_id`) whose check runs may satisfy
+	 * `ci / Required checks`. For Sentinel's production App, use its App id (the one `githubApps` and
+	 * `SENTINEL_GITHUB_APP_ID` hold); a dev instance has another id and does not count. Setting it changes who can merge,
+	 * so turn it on only once the outage runbook's bypass is settled (spec `process-sentinel-posts-ci`, phase 10).
+	 */
+	integrationId: number;
+}
+
+/** The `ci` block of the manifest. */
+export interface CiConfig {
+	/**
+	 * Who posts `ci / Required checks`. `"actions"` (the default) keeps the thin caller `ci.ci.yml` and the reusable that
+	 * polls; `"sentinel"` writes neither, because Sentinel posts the check under that name for a commit whose own config
+	 * says so; `"none"` writes neither and the ruleset requires every check on its own (`requiredChecks()` lists them), so
+	 * nothing is posted under that name. Each commit has at most one poster: the setting and the generated files change
+	 * together in one pull request, which `probe generated check` enforces.
+	 */
+	aggregate?: CiAggregatePoster;
+	/**
+	 * Opt in to pinning the required `ci / Required checks` context to one GitHub App. Off when omitted: the ruleset names
+	 * the context only, so any app (or a workflow) can satisfy it. `holocron setup` writes `integration_id` on that one
+	 * entry of a `strict` repo's ruleset; `holocron doctor repo` compares it. Other required checks are never pinned.
+	 */
+	pin?: CiPin;
+}

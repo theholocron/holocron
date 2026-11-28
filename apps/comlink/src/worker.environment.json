@@ -1,0 +1,23 @@
+{
+  "name": "Comlink (local)",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8787",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "sentrySecret",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "dependabotSecret",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    }
+  ]
+}

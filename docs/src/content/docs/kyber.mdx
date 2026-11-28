@@ -1,0 +1,323 @@
+---
+title: Kyber
+description: The reusable parts of a command-line tool, moved out of the Holocron CLI so the next CLI does not copy them.
+---
+
+`@theholocron/kyber` holds the parts of the Holocron CLI that have nothing to do with Holocron: terminal output, prompts, the interactive menu, the update notice, safe handling of tokens, a test harness and the options every command takes. They were written once for `holocron`; a second CLI would otherwise copy them. The design and the order of the move are in the spec `tech-kyber` ([#1727](https://github.com/theholocron/holocron/issues/1727)).
+
+It is a published package: `@theholocron/cli` depends on it like any other, and a new CLI imports it directly. `cli-template` is planned to be the second consumer.
+
+> The kyber crystal is the part in a lightsaber that makes it work.
+
+## One package, twelve subpaths
+
+A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`, `@theholocron/observability`) are optional peer dependencies, so it installs only those.
+
+| Subpath                            | What it gives a CLI                                                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter                    |
+| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                                            |
+| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                                     |
+| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                                                 |
+| [`/secrets`](#secrets)             | Owner-only token files, shredding, the import-then-delete step, git-ignore checks, dotenv, the clipboard, the OS keyring    |
+| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                                    |
+| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError`                   |
+| [`/plugins`](#plugins)             | A plugin loader: import a package per provider, build a typed `single` / `many` capability registry, follow config packages |
+| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out                          |
+| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something                              |
+| [`/checks`](#checks)               | Run an HTTP check with assertions over `fetch`, and a probe for the network path and token of a provider                    |
+| [`/git`](#git)                     | Move a version group's major tag (`ci-v1`) to its latest stable release, and run `git` without a shell                      |
+
+## `/ui`
+
+```ts
+import { statusRow, style, viewJson, waitForEnter, withProgress } from "@theholocron/kyber/ui";
+
+console.log(style.success("built")); // ✓ built; also warn, fail, step, skip, hint, dim, header
+console.log(statusRow("ok", ["lint", "no problems"])); // one row of a status table
+await withProgress("Checking…", () => check()); // a spinner on a terminal only, nothing in CI or a pipe
+await withProgress("Reading…", async (update) => {
+  update("Reading… 3 of 40"); // changes the spinner's text; does nothing when no spinner is drawn
+});
+await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static output otherwise
+await waitForEnter("Press Enter once the key is in 1Password…");
+```
+
+A deep check is a list of `CheckRow`s (`id`, `title`, `status`, `detail`, `problems`). `printCheckRows` prints them with titles padded to the widest and each problem beneath, `summariseChecks` counts them and `printCheckSummary` prints the closing `N ok, N fail, N skipped` line. `declaredVsActual(declared, actual, { noun })` compares two maps by key and returns one problem line per missing, unexpected or differing entry:
+
+```ts
+const rows: CheckRow[] = [
+  {
+    id: "env",
+    title: "variables",
+    status: "fail",
+    detail: "1 problem(s)",
+    problems: declaredVsActual(declared, actual, { noun: "variable" }),
+  },
+];
+printCheckRows(rows, console.log);
+printCheckSummary(summariseChecks(rows), console.log);
+```
+
+A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. The step given to `Progress.run` and `withProgress` receives `update(text)`, which changes the spinner's text while it runs (a counter such as `Reading… 3 of 40`) and does nothing when no spinner is drawn, so a step that ignores it is unaffected. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; `createRetryNotice(subscribe)` builds a listener that says a request is being sent again, from the HTTP client's retry hook (the Holocron CLI passes `onRetry`), so kyber depends on no client.
+
+Text from outside the process is cleaned before it reaches a terminal, so a crafted value cannot forge lines or inject escape sequences:
+
+```ts
+import { commandFailureMessage, describeError, logReason, sanitizeDetail } from "@theholocron/kyber/ui";
+
+describeError(err); // the message, plus the response body when the error has `details`, cleaned and capped
+commandFailureMessage(err); // the same, and never empty: the error's name, or "the command failed"
+logReason(err); // the message alone, looking through a wrapper's `cause`, for structured logs
+sanitizeDetail(body); // control characters stripped, cut at 200 characters (`stripControl` has no cap)
+```
+
+## `/prompts`
+
+```ts
+import { promptForOptions, promptForPositionals } from "@theholocron/kyber/prompts";
+
+const [name] = await promptForPositionals(
+  { name: "greet", positionals: [{ key: "name", message: "Who?", type: "input" }] },
+  argv
+);
+const { answers } = await promptForOptions(
+  {
+    name: "deploy",
+    options: [{ key: "env", flag: "--env", type: "select", message: "Environment?", choices: ["dev", "prod"] }],
+  },
+  argv
+);
+```
+
+Required options are always asked and the rest sit behind one checkbox. A command with an either/or relationship between options declares `modes`, so nothing contingent is offered. A `secret` option is asked with a masked prompt, and `askLast` defers a value that goes stale (a one-time code) until right before it is used. The prompts take a name and the things to ask for, not a command registry, so they work for any CLI.
+
+## `/menu`
+
+```ts
+import { launchMenu, type MenuEntry } from "@theholocron/kyber/menu";
+
+const entries: MenuEntry[] = [
+  { name: "doctor", description: "Check the setup", positionals: [], supportsDryRun: true },
+  { name: "sync", description: "Sync the repo", positionals: [] },
+];
+await launchMenu(entries, argv, { bin: "tool", envPrefix: "TOOL" });
+```
+
+The menu is data. Each `MenuEntry` names a command, says how to ask for its positionals and options (the same shapes as `/prompts`) and whether it honours `--dry-run`; a name with spaces (`sync`) becomes a nested group. `launchMenu` walks the picker, prompts for what the command needs, and **spawns the CLI again** with the answers instead of re-entering the parser. It takes the CLI's binary name and an env prefix, so nothing in it knows which tool it serves.
+
+A command that supports `--dry-run` is previewed first, and only then is the one real question asked: proceed? A preview that exits non-zero stops there, and one that exits with `DRY_RUN_NOOP_EXIT_CODE` (nothing would change) skips the question. `--skip-dry-run` on the invocation opts out of the preview. A handler tells a preview from a direct `--dry-run` call by the `dryRunPreviewEnvVar(envPrefix)` variable (`TOOL_DRY_RUN_PREVIEW`).
+
+A `secret` option is never put in argv, where `ps` and shell history would show it. It reaches the child as `<envPrefix>_<OPTION>` (`otp` becomes `TOOL_OTP`), and an `askLast` value is collected only after the preview has been confirmed. Without a terminal, `launchMenu` throws `NonInteractiveError` rather than hanging. `createCommandRegistry(entries, label?)` is where a CLI declares its commands once: it returns `{ entries, getEntry(name) }`, so the same list feeds `launchMenu` and lets a leaf command's handler prompt for only its own missing positionals (`promptForPositionals(getEntry("sync"), argv)`); a repeated name throws when the catalog is built. `numeric` is a ready `validate` for a number prompt. `menuItems`, `buildChildArgv`, `forwardedFlags` and `secretEnv` are exported for a CLI that wants to drive the pieces itself.
+
+## `/notifier`
+
+```ts
+import { checkForUpdates } from "@theholocron/kyber/notifier";
+
+const notify = await checkForUpdates({
+  name: "@scope/tool",
+  currentVersion: "1.2.3",
+  cacheDir: join(homedir(), ".cache", "tool"),
+});
+// ...the command runs...
+notify?.(); // prints a boxed notice to stderr, or nothing
+```
+
+It asks the npm registry at most once a day, never throws, and says nothing in CI or when `NO_UPDATE_NOTIFIER` is set. A prerelease is compared with its own channel (`2.0.0-alpha.3` with the `alpha` tag).
+
+## `/secrets`
+
+For any project that handles tokens. It has no Holocron name in it; the one prompt, `finishCredentialsFile`'s wait for Enter, comes from `/ui`.
+
+```ts
+import {
+  createKeyring,
+  createResolveToken,
+  dotenvLine,
+  finishCredentialsFile,
+  isGitIgnored,
+  shredFile,
+  writeCredentialsFile,
+} from "@theholocron/kyber/secrets";
+
+if (isGitIgnored(".credentials") === "tracked") throw new Error("git would track this file");
+const file = writeCredentialsFile(".credentials", `${dotenvLine("TOKEN", token)}\n`); // mode 0600, never overwrites
+// ...once the tokens have been imported elsewhere...
+shredFile(".credentials", file); // zeroes the contents, then removes the path only if it is still that file
+
+// or: say how to import it, wait for Enter, then shred it (also on Ctrl-C, SIGTERM, SIGHUP, or if the wait throws)
+await finishCredentialsFile({
+  path: ".credentials",
+  identity: file,
+  print: console.error,
+  holds: "your tokens",
+  importHint: "import it in the password manager",
+  interactive: process.stdin.isTTY, // without a terminal the file is left, with a warning to delete it
+});
+
+const keyring = createKeyring({ service: "com.example.tool" });
+keyring.set("github", token); // best-effort: false, not an exception, where there is no keyring
+keyring.get("github"); // remembered for the life of the process
+
+const resolveToken = createResolveToken({
+  envName: "MYTOOL_GITHUB_TOKEN", // the tool's own variable,
+  vendorEnvName: "GITHUB_TOKEN", // then the vendor's
+  keyringService: "github",
+  errorMessage: "no GitHub token found. Pass --token, or set MYTOOL_GITHUB_TOKEN or GITHUB_TOKEN.",
+  keyring: (account) => keyring.get(account),
+  orgEnvName: "MYTOOL_ORG", // optional: try the account github.<org> first
+});
+resolveToken({ cliToken: argv.token }); // the first source that has a token, or an AuthError
+```
+
+- **Files.** `writeCredentialsFile` creates a file only its owner can read and refuses to replace one that is there (with `force` it swaps atomically and zeroes the old contents). A write that goes wrong removes the file it had created, so no plaintext tokens are left behind.
+- **dotenv.** `dotenvLine` gives a `NAME=value` that dotenv reads back as the same value, or `null` when no quoting can do that, so a token is never silently changed.
+- **Keyring.** `createKeyring` is best-effort on every platform; `@napi-rs/keyring` is an optional peer and can be passed in as `binding` (for a test, or when your package depends on it itself).
+- **Resolving a plain value.** `resolveValue(names, env?, { prefix? })` finds a non-secret value (an account id, a dataset) through the same chain without the flag and the keyring: the environment, then the variables a `credentials` provider returned. With `prefix: "HOLOCRON"` each name is tried as `HOLOCRON_<name>` and then as the bare `<name>`, in both places, so a caller names the variable once. A name that already starts with the prefix is tried as it is.
+- **Resolving a token.** `createResolveToken` (a vendor's token) and `createFeatureResolver` (one feature's, with no broad fallback) look in one order: the `--token` flag, the environment (the tool's variable, then the vendor's), the variables a `credentials` provider returned, the keyring account `<service>.<org>` when an org is active, then `<service>`. They throw `AuthError` with your message when none has one, and an empty string counts as unset.
+- **The rest.** `getCredential` and `setCredentials` hold variables a provider returned for the life of the process, `parseTokenArgs` parses repeatable `--token` flags (a bare value, or `vendor=value`), `readDotenvFile` reads `<repo root>/.env`, and `copyToClipboard` loads `clipboardy` only when called.
+
+## `/testing`
+
+```ts
+import { createCliRunner, ensureBuilt, runCommand } from "@theholocron/kyber/testing";
+
+// vitest globalSetup: build dist only when it is missing or older than the source
+export default () => ensureBuilt({ bin: "dist/cli.mjs", srcDir: "src", cwd: process.cwd() });
+
+// run the built binary in a fresh directory, with an environment built from nothing
+const run = createCliRunner({ bin: "dist/cli.mjs", configFile: "tool.config.json" });
+const { stdout, stderr, code, timedOut, elapsedMs } = await run(["doctor"], { config: { providers: {} } });
+
+// run one command module through a real yargs parse
+const argv = await runCommand(greetCommand, ["greet", "Leia"]);
+```
+
+The runner leaves out everything of the machine it runs on: no tokens, no telemetry, no update check, and stdin is closed, so a command that wants a terminal behaves as it does in CI. Two clocks bound a run. `startTimeoutMs` (50 seconds) bounds the wait until node runs its first line of JavaScript, and `timeoutMs` (60 seconds, well over what a run costs on a saturated machine) bounds the run from there on, so a machine that is slow to launch processes is not taken for a tool that has stopped responding (under load, with an endpoint-security agent on the machine, a launch of `node` was held for tens of seconds, #1902), while a tool that does stop responding is still ended after `timeoutMs`. A run ended that way has `code` `-1` and `timedOut` `true`, and `stderr` ends with a `[cli-runner] killed …` line giving the time, the signal, the pid and how much had been printed (`killed before node started` when the start clock ran out), so a run that printed nothing still says what happened. `startMs` is how long node took to start. The two defaults add up to 110 seconds, under the 120 seconds of the preset's test timeout. A run ended by some other signal (the system short of memory, a security tool) is also `-1` with `timedOut` false, and `stderr` ends with a `[cli-runner] ended by …` line saying so. `hermeticCreateRequire` makes a test's "is this package installed in that directory" independent of what the workspace links.
+
+## `/flags`
+
+```ts
+import { addGlobalOptions, groupMenu, tokenContext } from "@theholocron/kyber/flags";
+
+const parser = addGlobalOptions(yargs(hideBin(process.argv)), { describe: { cwd: "Where tool.config.json is" } });
+const tokens = tokenContext(argv.token, console.error); // null, with exit code 1, for a malformed --token
+parser.command({ command: "repo", builder: (y) => y.command(groupMenu("repo", openMenu)) }); // bare `tool repo`
+```
+
+`addGlobalOptions` declares `--dry-run`, a repeatable `--token` and `--cwd` once on the root; a tool adds its own options to the same parser. A command module's arguments extend `GlobalArgs`, and `InferArgs` types a handler's arguments from its builder.
+
+## `/checks`
+
+```ts
+import { connectionProbe, runCheckAgainstUrl } from "@theholocron/kyber/checks";
+
+const result = await runCheckAgainstUrl(
+  { url: "https://example.com/health", assertions: [{ source: "status_code", comparison: "equals", target: "200" }] },
+  { url: "https://preview-123.example.com", headers: { "x-bypass": token } } // optional: swap the origin, add headers
+);
+// { passed, status, responseTimeMs, failures: [], requestError? }
+
+const probe = connectionProbe({
+  provider: "Axiom",
+  url: "https://api.axiom.co",
+  token: findToken,
+  verify: askWhoOwnsIt,
+});
+```
+
+`runCheckAgainstUrl(input, opts?)` makes the request itself and evaluates the assertions (`status_code`, `response_time`, `body`, `header`; `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`). A status of 400 or more fails the check unless `shouldFail` is set, a redirect is never followed, the request has a deadline, and a body is read only when an assertion needs it, up to a cap. It sends nothing to a monitoring vendor, so a pull request's preview URL can be tested against the same definitions as production. A network error or a timeout never passes (`requestError`).
+
+`connectionProbe(input)` returns an object with `summary`, `writes: false` and `run(ctx)`, which tells a network problem from a credential problem: does the name resolve, does the address answer, is there a token, and does the provider accept it. A step that cannot work because an earlier one did not work is reported as not tried. `ctx` only needs `say(row)` and `secret(value)`, so a plugin system's probe context fits; `describeNetworkError` turns a network failure into one plain line. No peer dependency.
+
+## `/git`
+
+```ts
+import { moveMajorTag } from "@theholocron/kyber/git";
+
+const report = await moveMajorTag({ group: "ci", dryRun: true }); // ci-v1 -> latest stable ci-v1.x.y, then push --force origin
+// { status: "ok" | "dry-run" | "fail", tag: "ci-v1", target: "ci-v1.4.0", message? }
+```
+
+`moveMajorTag` moves a version group's major tag to its latest stable release (or to `version`) and force-pushes it, so a caller that pins `ci-v1` follows the group. The release tags (`ci-v1.4.0`) are never touched and a prerelease is refused. `print`, `logger` and `git` are injectable; `runGit(args, cwd)` is the default, which spawns `git` without a shell so a group or version can only be an argument. No peer dependency.
+
+## `/config`
+
+```ts
+import { createConfigSystem, lastWins, mergeByKey, shallowMerge, union } from "@theholocron/kyber/config";
+
+export const { defineConfig, loadConfig, compose } = createConfigSystem<Raw, Resolved, Fragment, Composed>({
+  name: "mytool", // reads mytool.config.{ts,js,mjs,cjs,json}
+  areas: ["layout"], // optional: reads .mytool/layout.{ts,js,mjs,cjs,json} beside the config
+  place: (areas, raw) => ({ ...raw, layout: areas.find((a) => a.area === "layout")?.value }), // optional
+  derive: async ({ config, filepath }) => ({ ...config, name: config.name ?? basename(dirname(filepath)) }), // optional
+  resolve: (raw) => validate(raw), // throw ConfigError when invalid
+  merge: { plugins: union<string>(), settings: shallowMerge(), steps: mergeByKey((s) => s.name), title: lastWins() },
+});
+
+const { resolved, filepath } = await loadConfig(process.cwd()); // walks up to the nearest .git
+export default defineConfig({ ...compose(base(), withDocs()), name: "demo" }); // in mytool.config.ts
+```
+
+The factory brings the parts every tool's config needs and none of its schema. `loadConfig` finds the file (TypeScript configs load without a build step, through `@theholocron/datapad`), runs `place` with the files of the `.<name>/` directory named in `areas` (a closed list; a missing directory gives none, a file that cannot be loaded throws `ConfigFileError`), then `derive` to fill in defaults, then `resolve`; it throws `ConfigFileError` when no file exists or one cannot be loaded. `compose()` takes fragments (`{ id, requires?, ...yourKeys }`) or arrays of them: a later fragment with the same `id` replaces the earlier one, every unmet `requires` is reported in one `ConfigError`, and each key then merges with the strategy you gave it. A strategy is `{ empty?, merge(prev, next) }`; the ones provided are `lastWins` (the key is absent until set), `shallowMerge`, `union` (first-seen order) and `mergeByKey(keyOf)` (a repeated key replaces in place). Write your own for a key that needs more, as the Holocron CLI does for `repo`.
+
+`ConfigError` is matched by `name` as well as `instanceof`, so a second copy of the package still matches.
+
+## `/plugins`
+
+```ts
+import { assertPluginsResolvable, createPluginSystem } from "@theholocron/kyber/plugins";
+
+// 1. Describe your capabilities as a type: each key's cardinality and the interface a provider implements.
+type Capabilities = {
+  source: { cardinality: "single"; impl: Source };
+  notify: { cardinality: "many"; impl: Notifier };
+};
+
+// 2. Bind the factory to your prefix and to where your config lists its providers.
+const { PluginLoader } = createPluginSystem<Capabilities, ResolvedConfig, RunContext>({
+  packagePrefix: "@acme/mytool-plugin-", // "github" -> @acme/mytool-plugin-github
+  communityPrefix: "mytool-plugin-", // optional: unscoped third-party packages are used as they are
+  configFile: "mytool.config.json", // optional: named in the "not loaded" message
+  providers: (config) => config.providers, // { source: { cardinality: "single", tuple }, notify: { cardinality: "many", tuples } }
+});
+
+// 3. Load, then ask for a capability. A plugin that fails is recorded, never thrown.
+const loader = new PluginLoader(config, { repoRoot });
+await loader.load();
+const source = loader.get("source"); // Source
+const notifiers = loader.get("notify"); // Notifier[]
+assertPluginsResolvable(loader, "sync", (command, packages) => new Error(`${command} needs ${packages.join(", ")}`));
+```
+
+A plugin package exports `createPlugin(options)` returning `{ name, capabilities }`, where each capability is a factory. A package may instead export a capability config, `export default { provider, options? }`; the loader follows it to the provider and merges the preset options under the project's own. By default `createPlugin` receives the run context with the provider's own options over it; pass `pluginOptions` to build that object yourself (the Holocron CLI adds project defaults and a per-plugin token). The importer resolves from the working directory first, so a global install finds the project's plugins, and it can be injected as the third constructor argument, so tests need no real packages.
+
+`get(key)` returns one implementation for a `single` capability and an array for a `many` one; for a provider that could not load it rethrows that provider's own error, and `loadFailures()` lists them all. The fourth type parameter of `createPluginSystem` names extra things a plugin may return next to `capabilities` (`plugins()` hands back each created plugin), and `preload` is a step that loads some capabilities first, through the loader's `loadOne`, `fail` and `register`; the Holocron CLI uses it for credentials that other plugins read. `assertPluginsResolvable` turns "no provider could be imported" (a global install, outside the project) into one error you build, and `isModuleNotFound` and `LoaderError` are the pieces it uses.
+
+## `/observability`
+
+```ts
+import { createCliLogger, createCliTelemetry } from "@theholocron/kyber/observability";
+
+export const { buildCliLogger, getLogger, reportError, getRunId } = createCliLogger({
+  envPrefix: "MYTOOL", // reads MYTOOL_LOG_LEVEL
+  resolveAxiom: (opts, { command }) => lookUpAxiom(opts.org, command), // optional; defaults to the AXIOM_* env vars
+});
+
+export const { init, startCommand, captureException, flush } = createCliTelemetry({
+  envPrefix: "MYTOOL", // MYTOOL_TELEMETRY=false (or NO_MYTOOL_TELEMETRY) turns it all off
+  dsn: () => process.env.SENTRY_DSN ?? "", // "" disables error reporting
+  posthogKey: () => process.env.POSTHOG_PROJECT_TOKEN ?? "", // "" disables usage analytics
+  posthogHost: () => "https://us.i.posthog.com",
+  getRunId, // events carry the logger's run id
+});
+```
+
+`buildCliLogger(argv, opts)` builds the process-wide root logger once, and again at most once if a command handler supplies a config level or a new Axiom dataset. The level is `--log`, then `--verbose` (`debug`) or `--quiet` (`error`), then `<PREFIX>_LOG_LEVEL`, then the config file. Console output stays off on a terminal unless one of those flags is given, and `--quiet` and `--log` also switch the progress spinner off. `reportError` prints in the failure style and logs the same message.
+
+Telemetry installs no-op sinks until `init(version)` finds it enabled. `applyConfig({ enabled, analytics })` can only narrow what `init` turned on, and `event` properties run through the secret scrubber. The sinks come from `@theholocron/observability`, an optional peer, which holds the only Sentry, PostHog and Pino imports.
+
+## What stays in the Holocron CLI
+
+The command tree (including the thin `publish tag` command, which adds the command-bound logger to `moveMajorTag`), the capability and provider model, the config schema (`HolocronConfig`, `resolveConfig` and the twenty capabilities), provider resolution, how task names, `repo.secrets.sync` and the package-name, git-remote and task-manifest defaults merge, and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring), and the Holocron values behind the logger and telemetry: the fallback Sentry and PostHog keys, and the keyring lookup for the Axiom token. `createResolveToken` and `AuthError` are here too, in `@theholocron/kyber/secrets`. The Holocron-typed wiring of the checks stays too: `connectionProbe` in the CLI types kyber's probe as the plugin system's `Probe` and its `verify` as `VerifyTokenResult`, and `check monitor` supplies the `MonitoringCheckInput` definitions that `runCheckAgainstUrl` runs. The plugin loader is kyber's (`/plugins`); what stays is the capability interfaces behind it (the Holocron schema, probes, credentials, monitoring), the `holocron-plugin-` prefix, the options a plugin is handed (`--token` routing, project defaults) and the credentials and `.env` step that runs before the plugins load.

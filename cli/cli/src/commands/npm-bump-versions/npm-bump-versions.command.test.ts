@@ -1,0 +1,65 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const runNpmBumpVersions = vi.hoisted(() => vi.fn());
+vi.mock("./index.js", async (importActual) => ({
+	...(await importActual<typeof import("./index.js")>()),
+	runNpmBumpVersions,
+}));
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
+	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["new-version"]],
+}));
+
+import { runCommand } from "../run-command.testing.js";
+import { npmBumpVersionsCommand } from "./npm-bump-versions.command.js";
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	process.exitCode = undefined;
+	runNpmBumpVersions.mockResolvedValue({ status: "ok", bumped: [], skipped: [] });
+});
+
+describe("publish bump-versions command", () => {
+	it("bumps the whole workspace when no group is given", async () => {
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0"]);
+		const input = runNpmBumpVersions.mock.calls[0]![0];
+		expect(input).toMatchObject({ version: "2.0.0", cwd: "/repo", dryRun: false });
+		expect("group" in input).toBe(false);
+	});
+
+	it("passes --group through, with --dry-run", async () => {
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "clients", "--dry-run"]);
+		expect(runNpmBumpVersions.mock.calls[0]![0]).toMatchObject({
+			version: "2.0.0",
+			group: "clients",
+			dryRun: true,
+		});
+	});
+
+	it("passes --include-private through, and leaves it out when it is not given", async () => {
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "ci", "--include-private"]);
+		expect(runNpmBumpVersions.mock.calls[0]![0]).toMatchObject({ group: "ci", includePrivate: true });
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "ci"]);
+		expect("includePrivate" in runNpmBumpVersions.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("passes every --exclude-group through", async () => {
+		await runCommand(npmBumpVersionsCommand, [
+			"bump-versions",
+			"2.0.0",
+			"--exclude-group",
+			"observability",
+			"--exclude-group",
+			"utils",
+		]);
+		const input = runNpmBumpVersions.mock.calls[0]![0];
+		expect(input).toMatchObject({ excludeGroups: ["observability", "utils"] });
+		expect("group" in input).toBe(false);
+	});
+
+	it("exits 1 when the bump fails", async () => {
+		runNpmBumpVersions.mockResolvedValue({ status: "fail", bumped: [], skipped: [], message: "no packages" });
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "skills"]);
+		expect(process.exitCode).toBe(1);
+	});
+});

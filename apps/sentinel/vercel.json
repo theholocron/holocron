@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install --legacy-peer-deps",
+  "functions": {
+    "api/webhook.mjs": {
+      "includeFiles": "node_modules/**",
+      "maxDuration": 300
+    },
+    "api/scheduled.mjs": {
+      "includeFiles": "node_modules/**",
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/scheduled?task=sync-incidents",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/scheduled?task=sync-specs",
+      "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/scheduled?task=reconcile-projects",
+      "schedule": "23 * * * *"
+    },
+    {
+      "path": "/api/scheduled?task=check-tokens",
+      "schedule": "17 6 * * *"
+    }
+  ]
+}

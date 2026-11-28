@@ -1,0 +1,74 @@
+{
+  "name": "@theholocron/holocron-plugin-postman",
+  "version": "5.0.0-alpha.549",
+  "description": "Holocron plugin for Postman. Implements the tooling capability against Postman's REST API — workspace + collection + spec + environment sync.",
+  "keywords": [
+    "holocron",
+    "plugin",
+    "postman",
+    "tooling"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/postman/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "plugins/holocron-plugin-postman"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "validate:plugin": "tsx scripts/validate.mjs"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/postman-client": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:peers",
+    "@theholocron/postman-client": "catalog:peers"
+  },
+  "peerDependenciesMeta": {
+    "@theholocron/postman-client": {}
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

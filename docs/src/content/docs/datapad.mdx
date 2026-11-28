@@ -1,0 +1,52 @@
+---
+title: Datapad
+description: Generic config-file loading. Discover, load, layer and deep-merge <name>.config.* files, including typed TypeScript configs.
+---
+
+`@theholocron/datapad` finds a `<name>.config.*` file, loads it (JSON, JS, TS, ESM or CJS), layers a dedicated file over a key of a parent file, deep-merges, and hands back a plain object. TypeScript configs load through [`tsx`](https://tsx.is) with no build step.
+
+It is Holocron-agnostic: no schema, no validation, no defaults. Consumers build those on top:
+
+- [`@theholocron/cli`](/holocron/cli/) for `holocron.config.*`
+- [`@theholocron/astromech`](/holocron/astromech/) for `astromech.config.*`
+- [`@theholocron/sentinel`](/holocron/sentinel/) for configs fetched from GitHub rather than read from disk
+
+## Installation
+
+```bash
+pnpm add @theholocron/datapad
+```
+
+## Usage
+
+```ts
+import { loadConfigFile, loadLayered, mergeConfig, createDefineConfig } from "@theholocron/datapad";
+
+// One file: holocron.config.{ts,js,mjs,cjs,json}
+const found = await loadConfigFile<MyConfig>({ cwd, name: "holocron" });
+// { config, filepath } | null
+
+// A dedicated file layered over the `tasks` key of a parent file
+const layered = await loadLayered<TasksConfig>({
+  cwd,
+  name: "astromech",
+  fallback: { file: "holocron", key: "tasks" },
+});
+// { config, filepath, sources } | null   (the dedicated file wins on conflict)
+
+const merged = mergeConfig(defaults, layered?.config);
+
+// A typed identity defineConfig for one config shape
+export const defineConfig = createDefineConfig<TasksConfig>();
+```
+
+"Not found" is `null`, never an error. A file that exists but is unusable throws `ConfigFileError`, carrying its `filepath`.
+
+The loaders probe `.ts`, `.js`, `.mjs`, `.cjs`, then `.json`.
+
+## Related
+
+- [Configuration](/holocron/config/): the config the CLI builds on top of datapad
+- Source and the full API notes: [`cli/datapad`](https://github.com/theholocron/holocron/tree/alpha/cli/datapad) on GitHub
+
+The full [API reference](/holocron/cli/datapad/api/readme/) is generated from the package's TSDoc comments.

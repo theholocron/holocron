@@ -52,22 +52,25 @@ Running `holocron setup` with `providers.wiki: "fern"` performs three steps:
 3. **DNS CNAME** — when `domain` is set and a `dns` provider is loaded,
    upserts a CNAME pointing the hostname at `<fernOrg>.docs.buildwithfern.com`.
 
-Both `fern/` files are committed to the repo — the `wiki.yml` CI workflow reads
+Both `fern/` files are committed to the repo — the `publish-wiki` CI workflow reads
 them at deploy time.
+
+## What `holocron doctor wiki` checks
+
+[`holocron doctor wiki`](/holocron/commands/doctor-wiki/) reads the plugin's `inspect()`: it compares `fern/fern.config.json` and the `instances:` block of `fern/docs.yml` with the config, asks the instance address, the custom domain and the sitemap with one unauthenticated GET each (no token is sent), and compares the navigation's `path:` entries with the files under `docs/wiki`. It changes nothing.
 
 ## Custom domain and multi-source routing
 
-Add `"wiki"` to your `workflows` array to get the `wiki.yml` thin caller,
+Add `"publish-wiki"` to your `tasks` list to get the thin caller of the `publish-wiki` workflow,
 which publishes to production on push to `main` and generates a Fern preview
 URL on every pull request.
 
-When `domain` is a bare host, the plugin appends the repo name as a
+When `domain` is a bare hostname, the plugin appends the repo name as a
 basepath. Every repo in the org gets its own URL under a shared domain:
 
 | Repo                   | URL                             |
 | ---------------------- | ------------------------------- |
 | `theholocron/holocron` | `wiki.theholocron.dev/holocron` |
-| `theholocron/configs`  | `wiki.theholocron.dev/configs`  |
 
 The generated `fern/docs.yml` uses Fern's `multi-source: true` flag, which
 Fern requires for basepath-aware routing:
@@ -89,25 +92,25 @@ does not go in the keyring. Add it directly to your repo's GitHub Secrets.
 
 **Resolution order:**
 
-```
 --token flag
-  → HOLOCRON_FERN_TOKEN        (env var)
-  → FERN_TOKEN                 (Fern's native env var — vendor fallback)
-  → keyring "fern.theholocron" (org-namespaced)
-  → keyring "fern"             (unnamespaced fallback)
-```
+→ HOLOCRON_FERN_TOKEN (env var)
+→ FERN_TOKEN (Fern's native env var — vendor fallback)
+→ keyring "fern.theholocron" (org-namespaced)
+→ keyring "fern" (unnamespaced fallback)
+
+````
 
 **Store in keyring:**
 
 ```sh
-holocron auth set fern <token>
-```
+holocron new token fern <token>
+````
 
 1. Go to `dashboard.buildwithfern.com` → **Settings → API tokens**
 2. Create a token with publish permissions
 3. Add it as a GitHub secret named `HOLOCRON_FERN_TOKEN`
 
-The `wiki.yml` workflow passes it to `fern generate --docs` via
+The `publish-wiki` workflow passes it to `fern generate --docs` via
 `secrets: inherit`.
 
 :::note
@@ -115,6 +118,10 @@ The `wiki.yml` workflow passes it to `fern generate --docs` via
 `docs.yml` or via any CLI flag. After running `holocron setup`, configure
 access control at `dashboard.buildwithfern.com`.
 :::
+
+## Checking a token
+
+`holocron probe fern token` checks that a token is set. Fern has no endpoint that reports who a token is or what it may do, so the probe makes no request and says that permissions are not checked. `--environment ci` reads the CI Environment's token and confirms `ci` is a layer that should hold it. See [what can be checked for Fern, Vercel, Turbo and Codecov tokens](/holocron/tokens/#fern-vercel-turbo-and-codecov).
 
 ## What `wiki` provides
 

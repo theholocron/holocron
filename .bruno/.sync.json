@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "pairs": [
+    {
+      "kind": "docs",
+      "source": ".bruno/README.md",
+      "workspace": "workspace.yml",
+      "sourceHash": "1e2a670d21b35b1fc96f07b089e0b42fc35018201a5a85ad40bc25e8b7aa9821",
+      "workspaceHash": "1e2a670d21b35b1fc96f07b089e0b42fc35018201a5a85ad40bc25e8b7aa9821"
+    },
+    {
+      "kind": "collection",
+      "source": "apps/comlink/src/worker.collection.json",
+      "workspace": "collections/comlink-relay",
+      "sourceHash": "aebd551e9b766d3f76efd3f3ec8cc83f20f27fdbdc7f3c006f586e8afba38c17",
+      "workspaceHash": "779b8d006b852f04aa8b78d71d6143ae664253649727d8983bb82ec09c36a2e7"
+    },
+    {
+      "kind": "environment",
+      "source": "apps/comlink/src/worker.environment.json",
+      "workspace": "collections/comlink-relay/environments/Comlink (local).yml",
+      "sourceHash": "40fcc755c628134bfe772a7303dca727a44e42e597c38ec03f1a941f939752e9",
+      "workspaceHash": "9cdacb28386e6e5d2d6809493127a39256892c72927615314cb10c50c7254298"
+    },
+    {
+      "kind": "collection",
+      "source": "apps/sentinel/api/webhook.collection.json",
+      "workspace": "collections/sentinel-webhook",
+      "sourceHash": "d75b3bcc40a0f1ec632b4d68bb5bc547e10dc05348f2def7081b439892747b90",
+      "workspaceHash": "abc32b36478ca1b2dd63d0a51111eb35e1dd17139d0e7f3bd1c8a7911bf1888c"
+    },
+    {
+      "kind": "environment",
+      "source": "apps/sentinel/api/webhook.environment.dev.json",
+      "workspace": "collections/sentinel-webhook/environments/Sentinel (dev).yml",
+      "sourceHash": "61e34f294e38196bef2cca74b730ebfe526b80e22db37c750d1b1fa468ab7d5b",
+      "workspaceHash": "1369648a874e7570d7b3c080fa861c056063aa892fea1981e6edd01731408d38"
+    },
+    {
+      "kind": "environment",
+      "source": "apps/sentinel/api/webhook.environment.json",
+      "workspace": "collections/sentinel-webhook/environments/Sentinel (local).yml",
+      "sourceHash": "1b55f1ca9c4ea66261dd92b040163761cb9b9bdbe3004b903439d37bb61b8762",
+      "workspaceHash": "7613aa36c3b018f68bf3cdeb6b32fe2a505bb0f9d0b3d67b63c5c30d1bf592b8"
+    },
+    {
+      "kind": "environment",
+      "source": "apps/sentinel/api/webhook.environment.prod.json",
+      "workspace": "collections/sentinel-webhook/environments/Sentinel (prod).yml",
+      "sourceHash": "48b6dd3f21cbb5486453c452520dbd1e16f93c3bb999475c7da7e87c4b406c32",
+      "workspaceHash": "2abf945769ccad289857cf02abd3104c32827e9f14961c44cca2db221d841913"
+    }
+  ]
+}

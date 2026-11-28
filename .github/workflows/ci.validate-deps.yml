@@ -1,0 +1,21 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: validate:deps
+
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Validate Deps: {0}', github.event.pull_request.title) || 'Validate Deps' }}"
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-deps:
+    name: validate:deps
+    uses: ./.github/workflows/validate-deps.yml
+    secrets: inherit

@@ -1,0 +1,16 @@
+{
+  "display": "Holocron CLI",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "allowArbitraryExtensions": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

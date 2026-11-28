@@ -1,0 +1,670 @@
+## [1.58.0-alpha.59](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.58...clients-v1.58.0-alpha.59) (2026-11-26)
+
+### Features
+
+* **sentinel:** ✨ list the config tree in one request through the git trees API ([#2581](https://github.com/theholocron/holocron/issues/2581)) ([9d6c0c2](https://github.com/theholocron/holocron/commit/9d6c0c292c0914d4aa487a69b6e52e77a82c837e)), references [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426) [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+## [1.58.0-alpha.58](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.57...clients-v1.58.0-alpha.58) (2026-11-26)
+
+### Features
+
+* **github-client:** ✨ getRepoInstallation finds an App's installation on a repository ([#2617](https://github.com/theholocron/holocron/issues/2617)) ([8ec0a03](https://github.com/theholocron/holocron/commit/8ec0a03e63766dfcc73a6337702462cea09a6f73)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+## [1.58.0-alpha.57](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.56...clients-v1.58.0-alpha.57) (2026-11-26)
+
+### Bug Fixes
+
+* **cloudflare:** 🐛 find a relay destination by name and masked URL ([#2615](https://github.com/theholocron/holocron/issues/2615)) ([c9fcbb8](https://github.com/theholocron/holocron/commit/c9fcbb8fd2ebc8dba06279f439d81c84fcf732d4)), closes [#2609](https://github.com/theholocron/holocron/issues/2609)
+
+## [1.58.0-alpha.56](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.55...clients-v1.58.0-alpha.56) (2026-11-24)
+
+### Features
+
+* **checkly-client:** ✨ create and update status page incidents ([#2602](https://github.com/theholocron/holocron/issues/2602)) ([4f8fe0d](https://github.com/theholocron/holocron/commit/4f8fe0d907b93c76f3eaf9342da50031d5d249f4)), closes [#2591](https://github.com/theholocron/holocron/issues/2591)
+
+## [1.58.0-alpha.55](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.54...clients-v1.58.0-alpha.55) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ suspend the development GitHub App's installations while holocron dev is not running ([#2580](https://github.com/theholocron/holocron/issues/2580)) ([95dce76](https://github.com/theholocron/holocron/commit/95dce76ac140b9991e688a0c472b4445946d92b5)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+
+## [1.58.0-alpha.54](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.53...clients-v1.58.0-alpha.54) (2026-11-23)
+
+### Features
+
+* **checkly-client:** ✨ list and read status page incidents ([#2570](https://github.com/theholocron/holocron/issues/2570)) ([33f2fa1](https://github.com/theholocron/holocron/commit/33f2fa15fc4169474c76c3be8f543686501b27b2)), closes [#2366](https://github.com/theholocron/holocron/issues/2366)
+
+## [1.58.0-alpha.53](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.52...clients-v1.58.0-alpha.53) (2026-11-23)
+
+### Features
+
+* **cli:** ✨ holocron reconcile ci posts the ci aggregate from the state it reads ([#2555](https://github.com/theholocron/holocron/issues/2555)) ([dfeff83](https://github.com/theholocron/holocron/commit/dfeff83520414a6e99706d40e47be7eb6dc84e85)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+* **cli:** ✨ holocron redeliver webhooks and a deliveries row in doctor github-app ([#2560](https://github.com/theholocron/holocron/issues/2560)) ([2c644f9](https://github.com/theholocron/holocron/commit/2c644f98f51a6f29849970572c3d069c9611d1ce)), closes [#2426](https://github.com/theholocron/holocron/issues/2426)
+
+## [1.58.0-alpha.52](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.51...clients-v1.58.0-alpha.52) (2026-11-23)
+
+### Features
+
+* **github:** ✨ read and write the organization's issue Types ([#2547](https://github.com/theholocron/holocron/issues/2547)) ([1ff702f](https://github.com/theholocron/holocron/commit/1ff702fd5d91066f7af2795ab3d83edf25ef1c7c)), closes [#2512](https://github.com/theholocron/holocron/issues/2512)
+
+## [1.58.0-alpha.51](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.50...clients-v1.58.0-alpha.51) (2026-11-22)
+
+### Chores
+
+* **deps:** bump typescript from 5.9.3 to 6.0.3 ([#2393](https://github.com/theholocron/holocron/issues/2393)) ([7510fca](https://github.com/theholocron/holocron/commit/7510fca64c44e23b10c1c0009dc0f1ba3c86a774))
+
+## [1.58.0-alpha.50](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.49...clients-v1.58.0-alpha.50) (2026-11-21)
+
+### Features
+
+* **notifications:** ✨ make the GitHub webhook for the Dependabot source in setup ([#2538](https://github.com/theholocron/holocron/issues/2538)) ([ca95baa](https://github.com/theholocron/holocron/commit/ca95baa6486c6976f222b78bb0092bb629a10d77))
+
+## [1.58.0-alpha.49](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.48...clients-v1.58.0-alpha.49) (2026-11-20)
+
+### Features
+
+* **cloudflare:** ✨ make the Cloudflare notification webhook for a relay source ([#2472](https://github.com/theholocron/holocron/issues/2472)) ([4bf1bb8](https://github.com/theholocron/holocron/commit/4bf1bb8f928c48c70d733f5fa39f04ad7c1b73ba)), closes [#1666](https://github.com/theholocron/holocron/issues/1666) [#2465](https://github.com/theholocron/holocron/issues/2465)
+
+## [1.58.0-alpha.48](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.47...clients-v1.58.0-alpha.48) (2026-11-20)
+
+### Features
+
+* **vercel:** ✨ make the Vercel webhook for a relay source ([#2470](https://github.com/theholocron/holocron/issues/2470)) ([9bcee98](https://github.com/theholocron/holocron/commit/9bcee98757049726f6cd75842e0aa2bfb795d894))
+
+## [1.58.0-alpha.47](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.46...clients-v1.58.0-alpha.47) (2026-11-20)
+
+### Features
+
+* **doppler:** ✨ make the Doppler webhook for a Comlink relay source ([#2469](https://github.com/theholocron/holocron/issues/2469)) ([f284131](https://github.com/theholocron/holocron/commit/f2841319615330165e792c2f0cd51b59ecb109b0)), closes [#1666](https://github.com/theholocron/holocron/issues/1666)
+
+## [1.58.0-alpha.46](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.45...clients-v1.58.0-alpha.46) (2026-11-20)
+
+### Features
+
+* **issues:** ✨ new issue and update issue carry every issue field ([#2446](https://github.com/theholocron/holocron/issues/2446)) ([b62c17a](https://github.com/theholocron/holocron/commit/b62c17ab9d9a0525e97f0155d13cc410b83e25f3)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **source:** add pull request create, update and mark-ready methods ([#2445](https://github.com/theholocron/holocron/issues/2445)) ([a67612b](https://github.com/theholocron/holocron/commit/a67612b0dab0ab95b8415425c05a6e58d66e4518)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+* **work:** ✨ add close work: ready the pull request, clean up, abandon ([#2457](https://github.com/theholocron/holocron/issues/2457)) ([a8525f0](https://github.com/theholocron/holocron/commit/a8525f08671dd887a3e60fe7b843bd23850e9dba)), closes [#2429](https://github.com/theholocron/holocron/issues/2429)
+
+## [1.58.0-alpha.45](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.44...clients-v1.58.0-alpha.45) (2026-11-20)
+
+### Features
+
+* **notifications:** ✨ 😀 replace a server emoji whose picture changed in setup notifications ([#2443](https://github.com/theholocron/holocron/issues/2443)) ([f1d1b3d](https://github.com/theholocron/holocron/commit/f1d1b3df3398c06f033fb443bb91a8bb8bcf3395)), closes [#2412](https://github.com/theholocron/holocron/issues/2412)
+
+## [1.58.0-alpha.44](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.43...clients-v1.58.0-alpha.44) (2026-11-18)
+
+### Bug Fixes
+
+* **github:** 🐛 read board items' pull requests in a second step, and say each GraphQL error once ([#2416](https://github.com/theholocron/holocron/issues/2416)) ([2d9031a](https://github.com/theholocron/holocron/commit/2d9031aadf3acad50816e1e981fbc9153d2c5e3c)), closes [#2388](https://github.com/theholocron/holocron/issues/2388)
+
+## [1.58.0-alpha.43](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.42...clients-v1.58.0-alpha.43) (2026-11-18)
+
+### Features
+
+* **notifications:** 🎨 custom server emoji for a forum's default and starter reactions ([#2409](https://github.com/theholocron/holocron/issues/2409)) ([285da03](https://github.com/theholocron/holocron/commit/285da0319ae75ce8bb16ac118cd15501f5ad0088)), closes [#2035](https://github.com/theholocron/holocron/issues/2035)
+
+## [1.58.0-alpha.42](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.41...clients-v1.58.0-alpha.42) (2026-11-18)
+
+### Features
+
+* **cli:** 🩺 doctor workers, check the declared Workers and deployment projects ([#2370](https://github.com/theholocron/holocron/issues/2370)) ([ba80c34](https://github.com/theholocron/holocron/commit/ba80c3411c6fb9a2990a7de2acf9239ec2a260ad)), closes [#1563](https://github.com/theholocron/holocron/issues/1563) [#1563](https://github.com/theholocron/holocron/issues/1563)
+
+## [1.58.0-alpha.41](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.40...clients-v1.58.0-alpha.41) (2026-11-18)
+
+### Bug Fixes
+
+* **vitest-config:** 🐛 leave src/testing.ts out of the library bundle's coverage ([#2371](https://github.com/theholocron/holocron/issues/2371)) ([5cd42f7](https://github.com/theholocron/holocron/commit/5cd42f74f46b6bbd026b9c34d69d962fc44271f0)), closes [#1347](https://github.com/theholocron/holocron/issues/1347)
+
+### Documentation
+
+* **monitoring:** 📚️ 📝 a status page is served at <slug>.checkly-status-page.com ([#2337](https://github.com/theholocron/holocron/issues/2337)) ([1ce4b11](https://github.com/theholocron/holocron/commit/1ce4b11d683a0bf729271e44e74ce559724375f5))
+
+## [1.58.0-alpha.40](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.39...clients-v1.58.0-alpha.40) (2026-11-17)
+
+### Features
+
+* **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
+
+## [1.58.0-alpha.39](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.38...clients-v1.58.0-alpha.39) (2026-11-17)
+
+### Features
+
+* **monitoring:** ✨ 💓 heartbeats, with the ping URL handed to the 1Password import file ([#2308](https://github.com/theholocron/holocron/issues/2308)) ([9b532b0](https://github.com/theholocron/holocron/commit/9b532b06bd092989a50997c08a8e4f9636e91c3e)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📊 declare and check a private Checkly dashboard ([#2306](https://github.com/theholocron/holocron/issues/2306)) ([40f3b2d](https://github.com/theholocron/holocron/commit/40f3b2d224d28910b0c45a4440c9d3c692c08348)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ 📟️ declare a status page, its components and rules, and its domain record ([#2307](https://github.com/theholocron/holocron/issues/2307)) ([36cdf41](https://github.com/theholocron/holocron/commit/36cdf41f78d5aec5973b8deca709a4998d8ab1d7)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+* **monitoring:** ✨ tag checks, and declare Comlink's and the docs site's ([#2305](https://github.com/theholocron/holocron/issues/2305)) ([e451d08](https://github.com/theholocron/holocron/commit/e451d083a12b51c238a0985b2def972dce847f58)), closes [#2302](https://github.com/theholocron/holocron/issues/2302)
+
+## [1.58.0-alpha.38](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.37...clients-v1.58.0-alpha.38) (2026-11-17)
+
+### Features
+
+* **ci:** ✨ delete a PR's Vercel previews when it closes ([#2304](https://github.com/theholocron/holocron/issues/2304)) ([965bd62](https://github.com/theholocron/holocron/commit/965bd6205c14a693cd0773263c8ec6ac53ad1b8c)), closes [#1021](https://github.com/theholocron/holocron/issues/1021)
+
+## [1.58.0-alpha.37](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.36...clients-v1.58.0-alpha.37) (2026-11-16)
+
+### Features
+
+* **github:** ✨ write the issue Priority field from sync issues and migrate ([#2254](https://github.com/theholocron/holocron/issues/2254)) ([0547def](https://github.com/theholocron/holocron/commit/0547defb4d437ee51fdcf007c02b695f0e50bdb5)), closes [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#2253](https://github.com/theholocron/holocron/issues/2253) [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+## [1.58.0-alpha.36](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.35...clients-v1.58.0-alpha.36) (2026-11-16)
+
+### Features
+
+* **codecov:** ✨ check a repository's flags and components against its config ([#2237](https://github.com/theholocron/holocron/issues/2237)) ([ca187e1](https://github.com/theholocron/holocron/commit/ca187e1f425ae949623ce8810961440701972bc7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167) [#2147](https://github.com/theholocron/holocron/issues/2147)
+
+## [1.58.0-alpha.35](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.34...clients-v1.58.0-alpha.35) (2026-11-16)
+
+### Bug Fixes
+
+* **github-client:** 🐛 send only writable fields when a custom property definition is written ([#2234](https://github.com/theholocron/holocron/issues/2234)) ([c0d59c1](https://github.com/theholocron/holocron/commit/c0d59c14acde780ffdcbc6bba08a230f59b851b1))
+
+## [1.58.0-alpha.34](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.33...clients-v1.58.0-alpha.34) (2026-11-16)
+
+### Features
+
+* **turbo:** ✨ add the cache capability, a Turbo client and plugin with a token probe ([#2227](https://github.com/theholocron/holocron/issues/2227)) ([6c41043](https://github.com/theholocron/holocron/commit/6c41043b9797839561715cb8b65b3c70fb6fec88)), closes [#2168](https://github.com/theholocron/holocron/issues/2168)
+
+## [1.58.0-alpha.33](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.32...clients-v1.58.0-alpha.33) (2026-11-15)
+
+### Features
+
+* **codecov:** ✨ add the coverage capability and a Codecov plugin with a token probe ([#2228](https://github.com/theholocron/holocron/issues/2228)) ([ed5c8ff](https://github.com/theholocron/holocron/commit/ed5c8ff03da8d07e3c2badb3bdc2f81e9cf64ee7)), closes [#2167](https://github.com/theholocron/holocron/issues/2167)
+
+## [1.58.0-alpha.32](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.31...clients-v1.58.0-alpha.32) (2026-11-14)
+
+### Features
+
+* **axiom:** ✨ add probe axiom token with per-layer permissions and reachable datasets ([#2166](https://github.com/theholocron/holocron/issues/2166)) ([e6963be](https://github.com/theholocron/holocron/commit/e6963be070260fe54fde53603e9162f194a4b052)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2153](https://github.com/theholocron/holocron/issues/2153)
+
+## [1.58.0-alpha.31](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.30...clients-v1.58.0-alpha.31) (2026-11-14)
+
+### Features
+
+* **postman:** ✨ make the workspace and push hand-written collections ([#2181](https://github.com/theholocron/holocron/issues/2181)) ([756a33e](https://github.com/theholocron/holocron/commit/756a33e606385f48cf62d3dd6e8b19eb7f8748dd)), closes [#2180](https://github.com/theholocron/holocron/issues/2180) [#2180](https://github.com/theholocron/holocron/issues/2180)
+
+## [1.58.0-alpha.30](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.29...clients-v1.58.0-alpha.30) (2026-11-14)
+
+### Features
+
+* **cli:** ✨ report token age and expiry for rotation, starting with Cloudflare ([#2161](https://github.com/theholocron/holocron/issues/2161)) ([533f885](https://github.com/theholocron/holocron/commit/533f8850a3f7faafd41124339e717b59dbdba66c)), closes [#2147](https://github.com/theholocron/holocron/issues/2147) [#2157](https://github.com/theholocron/holocron/issues/2157)
+
+## [1.58.0-alpha.29](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.28...clients-v1.58.0-alpha.29) (2026-11-12)
+
+### Refactoring
+
+* **cli:** ♻️ add setup, upgrade, cleanup and apply ([#2119](https://github.com/theholocron/holocron/issues/2119)) ([b2d3e38](https://github.com/theholocron/holocron/commit/b2d3e381494b5c5a4a6e83068040c01b101da58a)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
+## [1.58.0-alpha.28](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.27...clients-v1.58.0-alpha.28) (2026-11-11)
+
+### Features
+
+* **secrets:** name who can read an org secret when the sync writes it ([#2095](https://github.com/theholocron/holocron/issues/2095)) ([abe8825](https://github.com/theholocron/holocron/commit/abe88255ac61fd3edc41b47b9b9e4c97cfcacca2)), closes [#2062](https://github.com/theholocron/holocron/issues/2062)
+
+## [1.58.0-alpha.27](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.26...clients-v1.58.0-alpha.27) (2026-11-09)
+
+### Features
+
+* **issues:** 🔎 let Issues.search filter by text ([#2006](https://github.com/theholocron/holocron/issues/2006)) ([ba0c983](https://github.com/theholocron/holocron/commit/ba0c983f68ebff04649b81b093f38ce2def2e84e)), closes [#2005](https://github.com/theholocron/holocron/issues/2005)
+
+## [1.58.0-alpha.26](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.25...clients-v1.58.0-alpha.26) (2026-11-09)
+
+### Bug Fixes
+
+* **github-client:** 🐛 read every page of a pull request's files ([#2011](https://github.com/theholocron/holocron/issues/2011)) ([2a75ec5](https://github.com/theholocron/holocron/commit/2a75ec5056c1cba9949b95055d2b062b26b646ac)), closes [#2009](https://github.com/theholocron/holocron/issues/2009)
+
+## [1.58.0-alpha.25](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.24...clients-v1.58.0-alpha.25) (2026-11-09)
+
+### Bug Fixes
+
+* **vercel:** 🐛 send the vercel.json installCommand with a deployment made from files ([#1991](https://github.com/theholocron/holocron/issues/1991)) ([cea7f0d](https://github.com/theholocron/holocron/commit/cea7f0d2f2e09990f51b558b5f0baef63d312af2))
+
+## [1.58.0-alpha.24](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.23...clients-v1.58.0-alpha.24) (2026-11-08)
+
+### Features
+
+* **cli:** ✨ add holocron doctor logs to check the Axiom datasets exist ([#1981](https://github.com/theholocron/holocron/issues/1981)) ([d20a512](https://github.com/theholocron/holocron/commit/d20a5122becb2a1ac104588498896f6d042a8925)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
+## [1.58.0-alpha.23](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.22...clients-v1.58.0-alpha.23) (2026-11-08)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 post only what is new in the error review ([#1964](https://github.com/theholocron/holocron/issues/1964)) ([9eb98c3](https://github.com/theholocron/holocron/commit/9eb98c309a811608c2712b9fc6f0700dafaa8089)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
+## [1.58.0-alpha.22](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.21...clients-v1.58.0-alpha.22) (2026-11-08)
+
+### Bug Fixes
+
+* **linear:** 🐛 read a team's auto-close state by its id, which Linear's Team has ([#1945](https://github.com/theholocron/holocron/issues/1945)) ([a64cb93](https://github.com/theholocron/holocron/commit/a64cb935a5067b9907b34b0f6da638a434edba07)), closes [#1944](https://github.com/theholocron/holocron/issues/1944)
+
+## [1.58.0-alpha.21](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.20...clients-v1.58.0-alpha.21) (2026-11-08)
+
+### Features
+
+* **issues:** sync issues between trackers, one direction at a time ([#1934](https://github.com/theholocron/holocron/issues/1934)) ([512d402](https://github.com/theholocron/holocron/commit/512d4028e12287be76b7a5d2945117429c519999)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+## [1.58.0-alpha.20](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.19...clients-v1.58.0-alpha.20) (2026-11-08)
+
+### Features
+
+* **linear:** apply and compare git automation rules, validate issue templates ([#1930](https://github.com/theholocron/holocron/issues/1930)) ([becf6ed](https://github.com/theholocron/holocron/commit/becf6ed6bd9561714f6e9c46dd4fc50c3126c871)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+## [1.58.0-alpha.19](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.18...clients-v1.58.0-alpha.19) (2026-11-08)
+
+### Bug Fixes
+
+* **plugins:** 🔇 hide link previews in the pull-request feed forum ([#1926](https://github.com/theholocron/holocron/issues/1926)) ([b417ab4](https://github.com/theholocron/holocron/commit/b417ab4c407f6dc995f6f1e052d17aabc35b7e7c)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
+## [1.58.0-alpha.18](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.17...clients-v1.58.0-alpha.18) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read the Holocron-owned variables as HOLOCRON_<NAME> first ([#1911](https://github.com/theholocron/holocron/issues/1911)) ([683311c](https://github.com/theholocron/holocron/commit/683311cb5e9b59dc8821b9b9a43fa1bef32a1c32)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+## [1.58.0-alpha.17](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.16...clients-v1.58.0-alpha.17) (2026-11-07)
+
+### Features
+
+* **cli:** ✨ add holocron provider and Linear setup and doctor ([#1916](https://github.com/theholocron/holocron/issues/1916)) ([2005e2f](https://github.com/theholocron/holocron/commit/2005e2f5e65bd99a4759a188632b914958529350)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **plugins:** ✨ add a Linear plugin and `holocron migrate` between trackers ([#1857](https://github.com/theholocron/holocron/issues/1857)) ([9996268](https://github.com/theholocron/holocron/commit/9996268d92a5cb2b05bc3432f524ebef49088e79)), closes [#1856](https://github.com/theholocron/holocron/issues/1856) [#1856](https://github.com/theholocron/holocron/issues/1856)
+
+## [1.58.0-alpha.16](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.15...clients-v1.58.0-alpha.16) (2026-11-07)
+
+### Features
+
+* **sentinel:** ✨ [#prs](https://github.com/theholocron/holocron/issues/prs) post titled repo#N: title, with the description and no Sourcery ([#1918](https://github.com/theholocron/holocron/issues/1918)) ([8c8b1a6](https://github.com/theholocron/holocron/commit/8c8b1a66f7ee688a0d9c3777437deacb1f957a46))
+
+## [1.58.0-alpha.15](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.14...clients-v1.58.0-alpha.15) (2026-11-07)
+
+### Features
+
+* **repo:** ✨ doctor flags capabilities the org property lacks, `repo properties apply` adds them ([#1873](https://github.com/theholocron/holocron/issues/1873)) ([d359f55](https://github.com/theholocron/holocron/commit/d359f559709b32544bccb28a8d832e555f066f7e)), closes [#1862](https://github.com/theholocron/holocron/issues/1862) [#1862](https://github.com/theholocron/holocron/issues/1862)
+
+### Chores
+
+* **env:** 🔒 read env through env-utils lookup, enable noProcessEnv ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1872](https://github.com/theholocron/holocron/issues/1872)) ([25ba866](https://github.com/theholocron/holocron/commit/25ba8667d1054686edb17ce3ceea0c82f8236ac7))
+
+## [1.58.0-alpha.14](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.13...clients-v1.58.0-alpha.14) (2026-11-07)
+
+### Features
+
+* **doctor:** 🩺 holocron doctor github-app checks an App against its manifest ([#1854](https://github.com/theholocron/holocron/issues/1854)) ([81247cf](https://github.com/theholocron/holocron/commit/81247cf307d27d0f9c780a009b155a934de88fc7)), closes [#1851](https://github.com/theholocron/holocron/issues/1851) [#1851](https://github.com/theholocron/holocron/issues/1851)
+
+## [1.58.0-alpha.13](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.12...clients-v1.58.0-alpha.13) (2026-11-07)
+
+### Features
+
+* **notifications:** 🧵 append, edit and de-duplicate posts in a forum thread ([#1841](https://github.com/theholocron/holocron/issues/1841)) ([750baaa](https://github.com/theholocron/holocron/commit/750baaa1fbf29a240a97d65f71a91fae3d2034a6)), closes [#1832](https://github.com/theholocron/holocron/issues/1832)
+* **sentinel:** 📡 post a thread per pull request to the [#prs](https://github.com/theholocron/holocron/issues/prs) forum ([#1843](https://github.com/theholocron/holocron/issues/1843)) ([1b7a51e](https://github.com/theholocron/holocron/commit/1b7a51e4ba396e6d4778c867a715c77adf696cdb)), closes [#1833](https://github.com/theholocron/holocron/issues/1833)
+
+### Documentation
+
+* **github-client:** 📝 document the GraphQL client's exports ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1837](https://github.com/theholocron/holocron/issues/1837)) ([1e92d66](https://github.com/theholocron/holocron/commit/1e92d66c0843c5f825cababdcc664e58a77198fd))
+
+## [1.58.0-alpha.12](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.11...clients-v1.58.0-alpha.12) (2026-11-06)
+
+### Features
+
+* **notifications:** ✨ default and starter reactions for forum channels ([#1825](https://github.com/theholocron/holocron/issues/1825)) ([e0571e3](https://github.com/theholocron/holocron/commit/e0571e30502c1dddf58d105771bca68496a67bd7)), closes [#1822](https://github.com/theholocron/holocron/issues/1822)
+
+## [1.58.0-alpha.11](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.10...clients-v1.58.0-alpha.11) (2026-11-06)
+
+### Features
+
+* **github-client:** 📁 list a directory through the Contents API ([#1797](https://github.com/theholocron/holocron/issues/1797)) ([c85f34e](https://github.com/theholocron/holocron/commit/c85f34e8c5760db948c75f595fffaad959a68f7e)), closes [#1784](https://github.com/theholocron/holocron/issues/1784) [#1784](https://github.com/theholocron/holocron/issues/1784) [#1784](https://github.com/theholocron/holocron/issues/1784)
+
+## [1.58.0-alpha.10](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.9...clients-v1.58.0-alpha.10) (2026-11-06)
+
+### Refactoring
+
+* **http-client:** ♻️ remove deprecated token resolver, now in kyber/secrets ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1780](https://github.com/theholocron/holocron/issues/1780)) ([19896c3](https://github.com/theholocron/holocron/commit/19896c3e0642c6acc6202804e4d12aefd3e3094e))
+
+## [1.58.0-alpha.9](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.8...clients-v1.58.0-alpha.9) (2026-11-06)
+
+### Features
+
+* **cli:** 🌿 add the token resolver to kyber's /secrets and deprecate http-client's copy ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1762](https://github.com/theholocron/holocron/issues/1762)) ([711d9cd](https://github.com/theholocron/holocron/commit/711d9cd3979f9d28b01f48de0b5c08e6d2caec7e))
+
+### Refactoring
+
+* **cli:** 🧹 build the token resolvers on kyber's instead of http-client's ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1763](https://github.com/theholocron/holocron/issues/1763)) ([22591ff](https://github.com/theholocron/holocron/commit/22591ff9ca7a155b823812dd2ab85599a82c6d2b))
+
+## [1.58.0-alpha.8](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.7...clients-v1.58.0-alpha.8) (2026-11-05)
+
+### Features
+
+* **github:** add the projects capability for Projects v2 boards ([#1755](https://github.com/theholocron/holocron/issues/1755)) ([6f05088](https://github.com/theholocron/holocron/commit/6f050883778798347f911657c4a75ac62a1c3a67)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#1744](https://github.com/theholocron/holocron/issues/1744)
+
+## [1.58.0-alpha.7](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.6...clients-v1.58.0-alpha.7) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
+### Documentation
+
+* 📝 clear the alex inclusive-language hits across the markdown ([#1559](https://github.com/theholocron/holocron/issues/1559)) ([573580e](https://github.com/theholocron/holocron/commit/573580ee02d288ce5184d69ee8cc09acbdb95042)), closes [#1263](https://github.com/theholocron/holocron/issues/1263) [#868](https://github.com/theholocron/holocron/issues/868) [#1311](https://github.com/theholocron/holocron/issues/1311) [#1354](https://github.com/theholocron/holocron/issues/1354)
+
+## [1.58.0-alpha.6](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.5...clients-v1.58.0-alpha.6) (2026-11-02)
+
+### Features
+
+* **docs:** 📚 measure every package export, not only the root ([#1531](https://github.com/theholocron/holocron/issues/1531)) ([#1555](https://github.com/theholocron/holocron/issues/1555)) ([ac983a2](https://github.com/theholocron/holocron/commit/ac983a26faaacba3bb8980dd8c98c8677c5ab649))
+
+## [1.58.0-alpha.5](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.4...clients-v1.58.0-alpha.5) (2026-11-02)
+
+### Features
+
+* **discord-client:** 🧵 add forum posts and threads to the bot client ([#1539](https://github.com/theholocron/holocron/issues/1539)) ([cbd4e0b](https://github.com/theholocron/holocron/commit/cbd4e0bb6c14a44fcc5c0a0ae6f7ed4dba594754)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+## [1.58.0-alpha.4](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.3...clients-v1.58.0-alpha.4) (2026-11-01)
+
+### Refactoring
+
+* **sentinel:** ♻️ run the docs-presence check on the shared rules ([#1526](https://github.com/theholocron/holocron/issues/1526)) ([c2d8cec](https://github.com/theholocron/holocron/commit/c2d8cece9c79b8519749ddc5e9b98770d15929e5)), closes [#929](https://github.com/theholocron/holocron/issues/929)
+
+### Documentation
+
+* **clients:** 📝 document the checkly, postman and netlify clients with TSDoc ([#1490](https://github.com/theholocron/holocron/issues/1490)) ([939d4b4](https://github.com/theholocron/holocron/commit/939d4b448420e7c2e35d83b7981e392522c3749f))
+* **clients:** 📝 document the clerk and cloudflare clients with TSDoc ([#1496](https://github.com/theholocron/holocron/issues/1496)) ([596c41a](https://github.com/theholocron/holocron/commit/596c41a0dcedf972a6b20f7037b654054d7cbb9d))
+* **clients:** 📝 document the remaining clients with TSDoc ([#1503](https://github.com/theholocron/holocron/issues/1503)) ([a5fb573](https://github.com/theholocron/holocron/commit/a5fb57357f65e76f200943205e4c593f74be4bbf))
+* **clients:** 📝 document the vercel, sentry and jira clients with TSDoc ([#1502](https://github.com/theholocron/holocron/issues/1502)) ([6555e53](https://github.com/theholocron/holocron/commit/6555e53b07325fc9d307bb0fe44369ff9d6bf5e5))
+* **clients:** 📝 trim the client pages the generated reference duplicates ([#1520](https://github.com/theholocron/holocron/issues/1520)) ([5645029](https://github.com/theholocron/holocron/commit/56450296a9ae723f71a2e447e0a987b9b417af48)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+* **discord-client:** 📝 document the public API with TSDoc ([#1494](https://github.com/theholocron/holocron/issues/1494)) ([f668053](https://github.com/theholocron/holocron/commit/f668053448e20a8745889d6de45033cb1c260f0c))
+* **github-client:** 📝 document the public API with TSDoc ([#1501](https://github.com/theholocron/holocron/issues/1501)) ([fae3b9f](https://github.com/theholocron/holocron/commit/fae3b9fabc0e7dabf5009a67ccde960e4083c72b))
+* **zendesk-client:** 📝 document the public API with TSDoc ([#1491](https://github.com/theholocron/holocron/issues/1491)) ([e5f70a2](https://github.com/theholocron/holocron/commit/e5f70a2c60909ee54873922faaa61f39589d2566))
+
+## [1.58.0-alpha.3](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.2...clients-v1.58.0-alpha.3) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor repo — check the repository settings match the config ([#1456](https://github.com/theholocron/holocron/issues/1456)) ([c157fbb](https://github.com/theholocron/holocron/commit/c157fbb34483e63bbd5fcfdf677f1c84fbeeaaf4)), closes [#1454](https://github.com/theholocron/holocron/issues/1454) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
+## [1.58.0-alpha.2](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.1...clients-v1.58.0-alpha.2) (2026-10-31)
+
+### Features
+
+* **cli:** ⏰ doctor tokens warns a week before a token expires ([#1449](https://github.com/theholocron/holocron/issues/1449)) ([8069eab](https://github.com/theholocron/holocron/commit/8069eab96c5a015440750d569965f1629f99008d))
+
+## [1.58.0-alpha.1](https://github.com/theholocron/holocron/compare/clients-v1.57.1-alpha.2...clients-v1.58.0-alpha.1) (2026-10-31)
+
+### Features
+
+* **cli:** ✨ holocron repo cleanup branches ([#1426](https://github.com/theholocron/holocron/issues/1426)) ([5e0d57f](https://github.com/theholocron/holocron/commit/5e0d57f4f200d303446adab6170b080bb87710ee)), closes [#1417](https://github.com/theholocron/holocron/issues/1417)
+
+### Documentation
+
+* 📝 carry the per-repo agent rules into the monorepo groups ([#1425](https://github.com/theholocron/holocron/issues/1425)) ([77f60e1](https://github.com/theholocron/holocron/commit/77f60e19f321a76dddc23d4840a25855e2729fce)), closes [#1394](https://github.com/theholocron/holocron/issues/1394) [#1394](https://github.com/theholocron/holocron/issues/1394)
+
+## [1.57.1-alpha.2](https://github.com/theholocron/holocron/compare/clients-v1.57.1-alpha.1...clients-v1.57.1-alpha.2) (2026-10-30)
+
+### Bug Fixes
+
+* **cloudflare:** 🐛 retry a read that gets a transient 5xx so repo setup does not fail on one ([#1414](https://github.com/theholocron/holocron/issues/1414)) ([55123d5](https://github.com/theholocron/holocron/commit/55123d5facaa1258883c01aa39c92c9305a64797)), closes [#1398](https://github.com/theholocron/holocron/issues/1398) [#1398](https://github.com/theholocron/holocron/issues/1398)
+* **github:** 🐛 say which custom property value GitHub refused on a 422 ([#1413](https://github.com/theholocron/holocron/issues/1413)) ([b1735be](https://github.com/theholocron/holocron/commit/b1735be046c75540a2c5ed897fb8acdc903b229c)), closes [#1397](https://github.com/theholocron/holocron/issues/1397)
+
+### Documentation
+
+* **agents:** 📝 point the repo map at the folders in this monorepo ([#1358](https://github.com/theholocron/holocron/issues/1358)) ([84cc3bc](https://github.com/theholocron/holocron/commit/84cc3bc6016c6a5277c964faa724780391f01c96)), closes [#1321](https://github.com/theholocron/holocron/issues/1321)
+
+### Chores
+
+* **platform:** ♻️ build every package from one root tsdown config ([#1375](https://github.com/theholocron/holocron/issues/1375)) ([d8e7a7d](https://github.com/theholocron/holocron/commit/d8e7a7dc87c377eefb2c7e5f29cbaed74f912666)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** ♻️ resolve the in-repo packages from the workspace ([#1370](https://github.com/theholocron/holocron/issues/1370)) ([26c62c2](https://github.com/theholocron/holocron/commit/26c62c2b32124177339fecc2fdf66f808c1981c3)), closes [#1292](https://github.com/theholocron/holocron/issues/1292) [#1367](https://github.com/theholocron/holocron/issues/1367) [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** 🗂️ organize the pnpm catalogs by group and add a who-uses-what report ([#1384](https://github.com/theholocron/holocron/issues/1384)) ([49246a3](https://github.com/theholocron/holocron/commit/49246a3ea3652a6db9539f947fd73a93c7c5370c)), closes [#1380](https://github.com/theholocron/holocron/issues/1380)
+
+## [1.57.1-alpha.1](https://github.com/theholocron/holocron/compare/clients-v1.57.0...clients-v1.57.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **google-client:** 🐛 move googleapis and google-auth-library to current releases together ([#1295](https://github.com/theholocron/holocron/issues/1295)) ([97b5160](https://github.com/theholocron/holocron/commit/97b5160f97ed942ac5c2d442da08cb5adb1ead73)), closes [#1289](https://github.com/theholocron/holocron/issues/1289) [#1294](https://github.com/theholocron/holocron/issues/1294)
+
+### Documentation
+
+* **clients:** 📝 move the package pages into the docs site ([1ef9d41](https://github.com/theholocron/holocron/commit/1ef9d41be303615ddfdd62cc8faf4b615b298202)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+* **clients:** 📝 state the MIT license in the READMEs ([4f21d31](https://github.com/theholocron/holocron/commit/4f21d31656f51f94b8176a55c2a1293d4338a9d2)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
+### Chores
+
+* **clients:** 🔧 adapt the imported packages to the workspace ([00f5dc3](https://github.com/theholocron/holocron/commit/00f5dc3e4a9016af8922432bd6e9faeb961cce7b)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
+## [1.57.0](https://github.com/theholocron/clients/compare/v1.56.0...v1.57.0) (2026-10-28)
+
+## [1.56.0](https://github.com/theholocron/clients/compare/v1.55.0...v1.56.0) (2026-10-28)
+
+## [1.55.0](https://github.com/theholocron/clients/compare/v1.54.2...v1.55.0) (2026-10-27)
+
+## [1.54.2](https://github.com/theholocron/clients/compare/v1.54.1...v1.54.2) (2026-10-27)
+
+## [1.54.1](https://github.com/theholocron/clients/compare/v1.54.0...v1.54.1) (2026-10-27)
+
+## [1.54.0](https://github.com/theholocron/clients/compare/v1.53.1...v1.54.0) (2026-10-27)
+
+## [1.53.1](https://github.com/theholocron/clients/compare/v1.53.0...v1.53.1) (2026-10-27)
+
+## [1.53.0](https://github.com/theholocron/clients/compare/v1.52.0...v1.53.0) (2026-10-26)
+
+## [1.52.0](https://github.com/theholocron/clients/compare/v1.51.0...v1.52.0) (2026-10-26)
+
+## [1.51.0](https://github.com/theholocron/clients/compare/v1.50.0...v1.51.0) (2026-10-26)
+
+## [1.50.0](https://github.com/theholocron/clients/compare/v1.49.0...v1.50.0) (2026-10-26)
+
+## [1.49.0](https://github.com/theholocron/clients/compare/v1.48.0...v1.49.0) (2026-10-26)
+
+## [1.48.0](https://github.com/theholocron/clients/compare/v1.47.1...v1.48.0) (2026-10-24)
+
+## [1.47.1](https://github.com/theholocron/clients/compare/v1.47.0...v1.47.1) (2026-10-24)
+
+## [1.47.0](https://github.com/theholocron/clients/compare/v1.46.0...v1.47.0) (2026-10-24)
+
+## [1.46.0](https://github.com/theholocron/clients/compare/v1.45.0...v1.46.0) (2026-10-24)
+
+## [1.45.0](https://github.com/theholocron/clients/compare/v1.44.0...v1.45.0) (2026-10-24)
+
+## [1.44.0](https://github.com/theholocron/clients/compare/v1.43.1...v1.44.0) (2026-10-23)
+
+## [1.43.1](https://github.com/theholocron/clients/compare/v1.43.0...v1.43.1) (2026-10-22)
+
+## [1.43.0](https://github.com/theholocron/clients/compare/v1.42.1...v1.43.0) (2026-10-22)
+
+## [1.42.1](https://github.com/theholocron/clients/compare/v1.42.0...v1.42.1) (2026-10-16)
+
+## [1.42.0](https://github.com/theholocron/clients/compare/v1.41.0...v1.42.0) (2026-10-13)
+
+## [1.41.0](https://github.com/theholocron/clients/compare/v1.40.0...v1.41.0) (2026-10-13)
+
+## [1.40.0](https://github.com/theholocron/clients/compare/v1.39.0...v1.40.0) (2026-10-12)
+
+## [1.39.0](https://github.com/theholocron/clients/compare/v1.38.0...v1.39.0) (2026-10-08)
+
+## [1.38.0](https://github.com/theholocron/clients/compare/v1.37.1...v1.38.0) (2026-10-07)
+
+## [1.37.1](https://github.com/theholocron/clients/compare/v1.37.0...v1.37.1) (2026-10-06)
+
+## [1.37.0](https://github.com/theholocron/clients/compare/v1.36.0...v1.37.0) (2026-10-06)
+
+## [1.36.0](https://github.com/theholocron/clients/compare/v1.35.0...v1.36.0) (2026-10-03)
+
+## [1.35.0](https://github.com/theholocron/clients/compare/v1.34.0...v1.35.0) (2026-10-02)
+
+## [1.34.0](https://github.com/theholocron/clients/compare/v1.33.0...v1.34.0) (2026-10-01)
+
+## [1.33.0](https://github.com/theholocron/clients/compare/v1.32.1...v1.33.0) (2026-09-30)
+
+## [1.32.1](https://github.com/theholocron/clients/compare/v1.32.0...v1.32.1) (2026-09-30)
+
+## [1.32.0](https://github.com/theholocron/clients/compare/v1.31.0...v1.32.0) (2026-09-30)
+
+## [1.31.0](https://github.com/theholocron/clients/compare/v1.30.0...v1.31.0) (2026-09-26)
+
+## [1.30.0](https://github.com/theholocron/clients/compare/v1.29.0...v1.30.0) (2026-09-25)
+
+## [1.29.0](https://github.com/theholocron/clients/compare/v1.28.0...v1.29.0) (2026-09-24)
+
+## [1.28.0](https://github.com/theholocron/clients/compare/v1.27.0...v1.28.0) (2026-09-23)
+
+## [1.27.0](https://github.com/theholocron/clients/compare/v1.26.0...v1.27.0) (2026-09-23)
+
+## [1.26.0](https://github.com/theholocron/clients/compare/v1.25.0...v1.26.0) (2026-09-23)
+
+## [1.25.0](https://github.com/theholocron/clients/compare/v1.24.0...v1.25.0) (2026-09-22)
+
+## [1.24.0](https://github.com/theholocron/clients/compare/v1.23.0...v1.24.0) (2026-09-20)
+
+## [1.23.0](https://github.com/theholocron/clients/compare/v1.22.0...v1.23.0) (2026-09-17)
+
+## [1.22.0](https://github.com/theholocron/clients/compare/v1.21.0...v1.22.0) (2026-09-17)
+
+## [1.21.0](https://github.com/theholocron/clients/compare/v1.20.0...v1.21.0) (2026-09-16)
+
+## [1.20.0](https://github.com/theholocron/clients/compare/v1.19.0...v1.20.0) (2026-09-16)
+
+## [1.19.0](https://github.com/theholocron/clients/compare/v1.18.0...v1.19.0) (2026-09-16)
+
+## [1.18.0](https://github.com/theholocron/clients/compare/v1.17.0...v1.18.0) (2026-09-16)
+
+## [1.17.0](https://github.com/theholocron/clients/compare/v1.16.1...v1.17.0) (2026-09-16)
+
+## [1.16.1](https://github.com/theholocron/clients/compare/v1.16.0...v1.16.1) (2026-09-15)
+
+## [1.16.0](https://github.com/theholocron/clients/compare/v1.15.1...v1.16.0) (2026-09-11)
+
+## [1.15.1](https://github.com/theholocron/clients/compare/v1.15.0...v1.15.1) (2026-09-10)
+
+## [1.15.0](https://github.com/theholocron/clients/compare/v1.14.2...v1.15.0) (2026-09-06)
+
+## [1.14.2](https://github.com/theholocron/clients/compare/v1.14.1...v1.14.2) (2026-09-02)
+
+## [1.14.1](https://github.com/theholocron/clients/compare/v1.14.0...v1.14.1) (2026-09-02)
+
+## [1.14.0](https://github.com/theholocron/clients/compare/v1.13.0...v1.14.0) (2026-09-02)
+
+## [1.13.0](https://github.com/theholocron/clients/compare/v1.12.0...v1.13.0) (2026-09-01)
+
+## [1.12.0](https://github.com/theholocron/clients/compare/v1.11.2...v1.12.0) (2026-08-28)
+
+## [1.11.2](https://github.com/theholocron/clients/compare/v1.11.1...v1.11.2) (2026-08-27)
+
+## [1.11.0](https://github.com/theholocron/clients/compare/v1.10.3...v1.11.0) (2026-08-27)
+
+## [1.10.3](https://github.com/theholocron/clients/compare/v1.10.2...v1.10.3) (2026-08-20)
+
+## [1.10.2](https://github.com/theholocron/clients/compare/v1.10.1...v1.10.2) (2026-08-19)
+
+## [1.10.1](https://github.com/theholocron/clients/compare/v1.10.0...v1.10.1) (2026-08-18)
+
+## [1.10.0](https://github.com/theholocron/clients/compare/v1.9.0...v1.10.0) (2026-08-18)
+
+## [1.9.0](https://github.com/theholocron/clients/compare/v1.8.0...v1.9.0) (2026-08-18)
+
+## [1.8.0](https://github.com/theholocron/clients/compare/v1.7.1...v1.8.0) (2026-08-18)
+
+## [1.7.1](https://github.com/theholocron/clients/compare/v1.7.0...v1.7.1) (2026-08-17)
+
+## [1.7.0](https://github.com/theholocron/clients/compare/v1.6.7...v1.7.0) (2026-08-17)
+
+## [1.6.7](https://github.com/theholocron/clients/compare/v1.6.6...v1.6.7) (2026-08-14)
+
+## [1.6.6](https://github.com/theholocron/clients/compare/v1.6.5...v1.6.6) (2026-08-12)
+
+## [1.6.5](https://github.com/theholocron/clients/compare/v1.6.4...v1.6.5) (2026-08-12)
+
+## [1.6.4](https://github.com/theholocron/clients/compare/v1.6.3...v1.6.4) (2026-08-12)
+
+## [1.6.3](https://github.com/theholocron/clients/compare/v1.6.2...v1.6.3) (2026-08-12)
+
+## [1.6.2](https://github.com/theholocron/clients/compare/v1.6.1...v1.6.2) (2026-08-05)
+
+## [1.6.1](https://github.com/theholocron/clients/compare/v1.6.0...v1.6.1) (2026-08-04)
+
+## [1.6.0](https://github.com/theholocron/clients/compare/v1.5.6...v1.6.0) (2026-08-02)
+
+## [1.5.6](https://github.com/theholocron/clients/compare/v1.5.5...v1.5.6) (2026-08-02)
+
+## [1.5.5](https://github.com/theholocron/clients/compare/v1.5.4...v1.5.5) (2026-07-31)
+
+## [1.5.4](https://github.com/theholocron/clients/compare/v1.5.3...v1.5.4) (2026-07-30)
+
+## [1.5.3](https://github.com/theholocron/clients/compare/v1.5.2...v1.5.3) (2026-07-30)
+
+## [1.5.2](https://github.com/theholocron/clients/compare/v1.5.1...v1.5.2) (2026-07-30)
+
+## [1.5.1](https://github.com/theholocron/clients/compare/v1.5.0...v1.5.1) (2026-07-30)
+
+## [1.5.0](https://github.com/theholocron/clients/compare/v1.4.2...v1.5.0) (2026-07-29)
+
+## [1.4.2](https://github.com/theholocron/clients/compare/v1.4.1...v1.4.2) (2026-07-29)
+
+## [1.4.1](https://github.com/theholocron/clients/compare/v1.4.0...v1.4.1) (2026-07-29)
+
+## [1.4.0](https://github.com/theholocron/clients/compare/v1.3.5...v1.4.0) (2026-07-29)
+
+## [1.3.5](https://github.com/theholocron/clients/compare/v1.3.4...v1.3.5) (2026-07-28)
+
+## [1.3.4](https://github.com/theholocron/clients/compare/v1.3.3...v1.3.4) (2026-07-27)
+
+## [1.3.3](https://github.com/theholocron/clients/compare/v1.3.2...v1.3.3) (2026-07-22)
+
+## [1.3.2](https://github.com/theholocron/clients/compare/v1.3.1...v1.3.2) (2026-07-22)
+
+## [1.3.1](https://github.com/theholocron/clients/compare/v1.3.0...v1.3.1) (2026-07-22)
+
+## [1.3.0](https://github.com/theholocron/clients/compare/v1.2.0...v1.3.0) (2026-07-22)
+
+## [1.2.0](https://github.com/theholocron/clients/compare/v1.1.0...v1.2.0) (2026-07-21)
+
+## [1.1.0](https://github.com/theholocron/clients/compare/v1.0.2...v1.1.0) (2026-07-21)
+
+## [1.0.2](https://github.com/theholocron/clients/compare/v1.0.1...v1.0.2) (2026-07-20)
+
+## [1.0.1](https://github.com/theholocron/clients/compare/v1.0.0...v1.0.1) (2026-07-20)
+
+## 1.0.0 (2026-07-20)
+
+## [0.11.5](https://github.com/theholocron/clients/compare/v0.11.4...v0.11.5) (2026-07-20)
+
+## [0.11.4](https://github.com/theholocron/clients/compare/v0.11.3...v0.11.4) (2026-07-20)
+
+## [0.11.3](https://github.com/theholocron/clients/compare/v0.11.2...v0.11.3) (2026-07-20)
+
+## [0.11.2](https://github.com/theholocron/clients/compare/v0.11.1...v0.11.2) (2026-07-19)
+
+## [0.11.1](https://github.com/theholocron/clients/compare/v0.11.0...v0.11.1) (2026-07-19)
+
+## [0.11.0](https://github.com/theholocron/clients/compare/v0.10.1...v0.11.0) (2026-07-19)
+
+## [0.10.1](https://github.com/theholocron/clients/compare/v0.10.0...v0.10.1) (2026-07-18)
+
+## [0.10.0](https://github.com/theholocron/clients/compare/v0.9.0...v0.10.0) (2026-07-18)
+
+## [0.9.0](https://github.com/theholocron/clients/compare/v0.8.1...v0.9.0) (2026-07-18)
+
+## [0.8.1](https://github.com/theholocron/clients/compare/v0.8.0...v0.8.1) (2026-07-18)
+
+## [0.8.0](https://github.com/theholocron/clients/compare/v0.7.0...v0.8.0) (2026-07-17)
+
+## [0.7.0](https://github.com/theholocron/clients/compare/v0.6.2...v0.7.0) (2026-07-17)
+
+## [0.6.2](https://github.com/theholocron/clients/compare/v0.6.1...v0.6.2) (2026-07-17)
+
+## [0.6.1](https://github.com/theholocron/clients/compare/v0.6.0...v0.6.1) (2026-07-17)
+
+## [0.6.0](https://github.com/theholocron/clients/compare/v0.5.0...v0.6.0) (2026-07-17)
+
+## [0.5.0](https://github.com/theholocron/clients/compare/v0.4.0...v0.5.0) (2026-07-17)
+
+## [0.4.0](https://github.com/theholocron/clients/compare/v0.3.2...v0.4.0) (2026-07-16)
+
+## [0.3.2](https://github.com/theholocron/clients/compare/v0.3.1...v0.3.2) (2026-07-16)
+
+## [0.3.1](https://github.com/theholocron/clients/compare/v0.3.0...v0.3.1) (2026-07-16)
+
+## [0.3.0](https://github.com/theholocron/clients/compare/v0.2.3...v0.3.0) (2026-07-16)
+
+## [0.2.3](https://github.com/theholocron/clients/compare/v0.2.2...v0.2.3) (2026-07-15)
+
+## [0.2.2](https://github.com/theholocron/clients/compare/v0.2.1...v0.2.2) (2026-07-13)
+
+## [0.2.1](https://github.com/theholocron/clients/compare/v0.2.0...v0.2.1) (2026-07-13)
+
+## [0.2.0](https://github.com/theholocron/clients/compare/v0.1.0...v0.2.0) (2026-07-13)

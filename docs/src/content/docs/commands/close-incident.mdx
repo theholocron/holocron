@@ -1,0 +1,25 @@
+---
+title: close incident
+description: Resolve a status page incident with a final update.
+---
+
+```bash
+holocron close incident <id> [--message <text>] [--page <name>] [--no-notify] [--dry-run] [--yes]
+```
+
+Appends a `resolved` update, which is how Checkly closes an incident: it has no resolve endpoint (#2591, spec `tech-open-status-page-incidents`). `<id>` is what [`new incident`](/holocron/commands/new-incident/) printed. The next [`sync incidents`](/holocron/commands/sync-incidents/) run adds the update to the `#incidents` post and closes it.
+
+```bash
+holocron close incident 7b0ef7dc-d717-43dd-af36-9e8e921839c1 --message "Rolled back; all clear."
+holocron close incident 7b0ef7dc-d717-43dd-af36-9e8e921839c1 --no-notify
+```
+
+| Flag          | Meaning                                                                      |
+| ------------- | ---------------------------------------------------------------------------- |
+| `--message`   | what the final update says; the default is "This incident is resolved."      |
+| `--page`      | the declared status page, when several are declared                          |
+| `--no-notify` | do not tell the page's subscribers (the default tells them)                  |
+| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging) |
+| `--dry-run`   | read the incident and print the update that would be appended                |
+
+It asks first, like the other two. Closing an incident that is already resolved, or whose newest update already says the same, does nothing and is not a failure, so a retry is safe. See [`update incident`](/holocron/commands/update-incident/) for the rules they share.

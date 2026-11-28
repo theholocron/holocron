@@ -1,9 +1,12 @@
 ---
+id: SPEC-0026
 status: accepted
 issue: theholocron/holocron#582
 blocked-by: []
 related:
   - theholocron/holocron#581
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620364661063850
 ---
 
 # Datapad — `@theholocron/datapad`
@@ -117,9 +120,11 @@ export async function loadConfig(cwd: string): Promise<LoadedConfig> {
 }
 ```
 
-`deriveDefaults`, `readPackageJsonName`, `readGitRemote`,
-`parseGitRemoteUrl`, `resolveConfig`, `ConfigError`, the `HolocronConfig`
-schema, and `defineConfig` all stay in `@theholocron/cli`.
+`deriveDefaults`, `readPackageJsonName`, `resolveConfig`, `ConfigError`, the
+`HolocronConfig` schema, and `defineConfig` all stay in `@theholocron/cli`.
+`readGitRemote` (and the `parseGitRemoteUrl` it wraps) is no longer local: it
+is imported from `@theholocron/git-utils`, and `deriveDefaults` only uses the
+remote's slug for `repo.name` when it points at `github.com`.
 `ConfigFileError` is re-exported from `load-config.ts` (kept in the
 `@theholocron/cli` public API via `index.ts`). Malformed JSON now throws
 `ConfigFileError` (was `ConfigError`) — one test updated.

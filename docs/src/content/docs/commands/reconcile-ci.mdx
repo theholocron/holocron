@@ -1,0 +1,51 @@
+---
+title: "reconcile ci"
+description: Make the ci / Required checks check say what the checks on each open pull request call for. The manual recovery path and the sweep of spec process-sentinel-posts-ci.
+---
+
+```bash
+holocron reconcile ci [pull-request] [--max-age <minutes>] [--shadow] [--dry-run]
+```
+
+For each open pull request (or the one named), reads the check runs and commit statuses of its head commit through the `source` provider and makes the check named `ci / Required checks` say what they call for. It is the same computation Sentinel runs from webhooks (SPEC-0099, `process-sentinel-posts-ci`): `postAggregate()` in `@theholocron/astromech`, over the pure `evaluateAggregate()`.
+
+- A pull request whose check already says the verdict is left alone, so a healthy run writes nothing.
+- A pull request with no check, or one that disagrees with the verdict, is posted: in progress while a check can still change, completed `success` or `failure` once it is final.
+- **A pull request that was missing or wrong, and had waited longer than `--max-age` (default 10 minutes), is a failing row.** That is what a missed delivery looks like, so the run fails and, in the scheduled sweep, reaches `#alerts`. A check younger than that is only reported as in flight.
+
+```
+  ✗ #2545  repaired: the check was missing or wrong (now success); a delivery was missed
+  ✓ #2546  up to date (success)
+  ✓ #2547  posted pending (still in flight)
+
+1 ok, 1 fail, 0 skipped
+```
+
+## Who it posts for
+
+A commit has exactly one poster of `ci / Required checks`. The command posts the real check **only where the checkout's `ci.aggregate` is `sentinel`**. While it is `actions` (the default), the Actions job is the poster and a second writer under the same name would be a second poster, so the command does nothing and the run is green. With `ci.aggregate: none` there is no such check at all, and it does nothing either. `--shadow` repairs Sentinel's shadow check, `ci / Required checks (sentinel)`, whatever `ci.aggregate` says, because nothing requires it.
+
+On a commit where the Actions job already posted `ci / Required checks` (a pull request whose head predates the flip), the command leaves it alone: a check run belongs to the app that posted it, and the run is a `skip` row.
+
+`expected` and the status contexts come from `aggregateChecks()` over the config of the checkout the command runs in. The sweep runs from the default branch, which is the base of the pull requests it repairs, so a pull request cannot shrink its own gate.
+
+`--dry-run` reads everything and prints `would repair` or `would post`, and posts nothing. The `source` provider needs `listCheckRuns`, `listCommitStatuses`, `createCheckRun` and `updateCheckRun`; GitHub has them.
+
+## The scheduled sweep
+
+The task `reconcile-ci` (`ci/workflows/reconcile-ci.yml`, a thin caller `ci.reconcile-ci.yml` generated from the `tasks:` list of a repo that lists it) runs `holocron reconcile ci --max-age 10` every 15 minutes and on demand. It is the safety net for a webhook Sentinel missed: a check missing or wrong for more than ten minutes fails the run, and a failed run reaches `#alerts` through `platform.notifications.yml`. The run mints the Sentinel GitHub App's installation token **narrowed to `checks: write`, `pull_requests: read` and `statuses: read`** (`actions/create-github-app-token` with `permission-*`), so the same key reaches no more than the sweep needs and the check is posted as Sentinel's App, not as `GITHUB_TOKEN`. It reads the `SENTINEL_GITHUB_APP_ID` variable and `SENTINEL_GITHUB_APP_PRIVATE_KEY` secret `reconcile-projects` already uses.
+
+Its heartbeat, `reconcile-ci` (period 1 hour, grace 2 hours, tagged `scheduled`), is declared in `.holocron/monitoring.ts`; the last step pings `HOLOCRON_HEARTBEAT_RECONCILE_CI`, only on a green run.
+
+**This repository does not list the task yet.** Sentinel's `validate:config` check reads a pull request's `tasks:` against the task registry of the _deployed_ Sentinel, so listing `reconcile-ci` in `holocron.config.ts` fails that check until a Sentinel built from a release that has the registry entry is deployed. Enable it afterwards, in a follow-up: add `"reconcile-ci"` to `tasks:`, declare the `reconcile-ci` heartbeat in `.holocron/monitoring.ts` (period 1 hour, grace 2 hours, tagged `scheduled`) and `HOLOCRON_HEARTBEAT_RECONCILE_CI` in `.holocron/repo.ts`'s `ci` secrets, run `holocron sync` to write `ci.reconcile-ci.yml`, and extend the pinned lists in `load-config-heartbeats.test.ts`, `load-config-self-adoption.test.ts` and `load-config-repo-move.test.ts`. `platform.notifications.yml` already lists the workflow.
+
+Human steps, not done by the change: grant the App **Commit statuses: read** (and subscribe it to `status`); run `holocron setup` to make the heartbeat and import its ping URL into the `ci` 1Password Environment, then `holocron sync secrets --env ci`. Until the secret exists the ping step says so and does nothing.
+
+## Token
+
+Posting a check run needs a token that may write checks. The scheduled sweep (a later phase of the spec) mints the Sentinel GitHub App's installation token narrowed to `checks: write`, `pull_requests: read` and `statuses: read`. By hand, use `--token` or the usual chain; a check posted with a personal token or `GITHUB_TOKEN` belongs to that identity, not to Sentinel's App, which matters once the ruleset pins the source of the required check.
+
+## Not verified
+
+- That GitHub shows a Re-run button on a check run created through the API, and sends `check_run.rerequested` for it.
+- Whether GitHub accepts `status: in_progress` on a check run that is already completed. When the provider refuses, the command creates a new run, which then is the newest and so the one that counts.

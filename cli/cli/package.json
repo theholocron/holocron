@@ -1,0 +1,126 @@
+{
+  "name": "@theholocron/cli",
+  "version": "5.0.0-alpha.549",
+  "description": "The Holocron CLI - a pluggable, capability-based orchestrator for spinning up and operating software projects.",
+  "keywords": [
+    "cli",
+    "devops",
+    "dx",
+    "holocron",
+    "orchestrator",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/cli/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "cli/cli"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./capabilities": {
+      "types": "./src/plugin/capabilities/index.ts",
+      "import": "./dist/plugin/capabilities.mjs",
+      "default": "./dist/plugin/capabilities.mjs"
+    },
+    "./presets": {
+      "types": "./src/presets/index.ts",
+      "import": "./dist/presets.mjs",
+      "default": "./dist/presets.mjs"
+    }
+  },
+  "bin": {
+    "holocron": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "start": "node ./dist/cli.mjs",
+    "start:source": "tsx --import ./src/source-run/register.ts ./src/cli/cli.ts",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@axiomhq/pino": "catalog:",
+    "@inquirer/prompts": "catalog:cli",
+    "@inquirer/search": "catalog:cli",
+    "@napi-rs/keyring": "catalog:",
+    "@sentry/node": "catalog:",
+    "@theholocron/astromech": "workspace:*",
+    "@theholocron/dagobah": "workspace:*",
+    "@theholocron/datapad": "workspace:*",
+    "@theholocron/env-utils": "workspace:^",
+    "@theholocron/fs-utils": "workspace:^",
+    "@theholocron/git-utils": "workspace:^",
+    "@theholocron/github-client": "workspace:^",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/json-utils": "workspace:^",
+    "@theholocron/kyber": "workspace:*",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/observability": "workspace:^",
+    "@theholocron/pkg-utils": "workspace:^",
+    "chalk": "catalog:",
+    "clipboardy": "catalog:cli",
+    "dotenv": "catalog:",
+    "ora": "catalog:cli",
+    "pino": "catalog:",
+    "pino-pretty": "catalog:",
+    "posthog-node": "catalog:",
+    "tsx": "catalog:",
+    "yargs": "catalog:cli"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/rollup-plugin-transform-template": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@types/yargs": "catalog:cli",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.mts",
+        "import": "./dist/index.mjs",
+        "default": "./dist/index.mjs"
+      },
+      "./capabilities": {
+        "types": "./dist/plugin/capabilities.d.mts",
+        "import": "./dist/plugin/capabilities.mjs",
+        "default": "./dist/plugin/capabilities.mjs"
+      },
+      "./presets": {
+        "types": "./dist/presets.d.mts",
+        "import": "./dist/presets.mjs",
+        "default": "./dist/presets.mjs"
+      }
+    },
+    "main": "./dist/index.mjs",
+    "types": "./dist/index.d.mts"
+  }
+}

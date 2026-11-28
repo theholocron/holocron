@@ -1,0 +1,102 @@
+/**
+ * `@theholocron/holocron-plugin-postman` — entrypoint.
+ *
+ * Implements the `tooling` capability against Postman's REST API.
+ * See README for auth + config docs.
+ */
+
+import type { Tooling } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
+
+import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { PostmanTooling, type PostmanToolingOptions } from "./capabilities/tooling.js";
+import { createPostmanClient, type PostmanClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
+
+/** Options for the Postman plugin: how the API key is resolved, the tooling settings, and test overrides. */
+export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingOptions {
+	/** Working repo root. Used to resolve relative paths in specFile/envFiles. Defaults to process.cwd(). */
+	repoRoot?: string;
+	/** Override base URL for tests. */
+	baseUrl?: string;
+	/** Override `fetch` for tests. */
+	fetch?: typeof fetch;
+}
+
+/** The shared state the Postman plugin's capability and probes are built from. */
+export interface PluginContext {
+	/** The options the plugin was created with. */
+	options: PostmanPluginOptions;
+	/** Memoized client factory; the API key is resolved on first use. */
+	client: () => PostmanClient;
+}
+
+/** Builds the plugin context from its options; throws when `workspaceId` is missing. */
+export function createContext(options: PostmanPluginOptions): PluginContext {
+	if (!options.workspaceId && !options.workspace) {
+		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` or `workspace` in options");
+	}
+	let client: PostmanClient | undefined;
+	return {
+		options,
+		client: () =>
+			(client ??= createPostmanClient({
+				token: resolveToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
+	};
+}
+
+/** Builds the `tooling` capability for a context, passing only the options that are set. */
+export function tooling(ctx: PluginContext): Tooling {
+	const opts: PostmanToolingOptions = {};
+	if (ctx.options.workspaceId !== undefined) opts.workspaceId = ctx.options.workspaceId;
+	if (ctx.options.workspace !== undefined) opts.workspace = ctx.options.workspace;
+	if (ctx.options.workspaceType !== undefined) opts.workspaceType = ctx.options.workspaceType;
+	if (ctx.options.collectionFiles !== undefined) opts.collectionFiles = ctx.options.collectionFiles;
+	if (ctx.options.specFile !== undefined) opts.specFile = ctx.options.specFile;
+	if (ctx.options.specName !== undefined) opts.specName = ctx.options.specName;
+	if (ctx.options.collectionName !== undefined) opts.collectionName = ctx.options.collectionName;
+	if (ctx.options.envFiles !== undefined) opts.envFiles = ctx.options.envFiles;
+	if (ctx.options.repoRoot !== undefined) opts.repoRoot = ctx.options.repoRoot;
+	if (ctx.options.spawn !== undefined) opts.spawn = ctx.options.spawn;
+	return new PostmanTooling(ctx.client, opts);
+}
+
+/** Creates the Postman plugin: its `tooling` capability and its `connection` probe. */
+export function createPlugin(options: PostmanPluginOptions) {
+	const ctx = createContext(options);
+	return {
+		name: "@theholocron/holocron-plugin-postman",
+		probes: {
+			connection: connectionProbe({
+				provider: "Postman",
+				url: options.baseUrl ?? "https://api.getpostman.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
+		capabilities: {
+			tooling: () => tooling(ctx),
+		},
+	};
+}
+
+/**
+ * One-line hint printed by `holocron new token postman` when no
+ * token is supplied or the supplied token is rejected.
+ */
+export const AUTH_HINT =
+	"generate a Postman API key at https://postman.co/settings/me/api-keys, " +
+	"then run: holocron new token postman <KEY>";
+
+// ── Public re-exports ────────────────────────────────────────────────
+
+export * from "./auth.js";
+export { PostmanTooling } from "./capabilities/tooling.js";
+export type { PostmanClient, PostmanClientOptions } from "./rest.js";
+export { createPostmanClient, detectPlanLimit, PostmanPlanLimitError } from "./rest.js";
+export { verifyToken } from "./verify-token.js";
+export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

@@ -1,0 +1,34 @@
+---
+title: Package Utils
+description: Read package.json, list its dependencies and detect the package manager.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/pkg-utils
+```
+
+## Usage
+
+```ts
+import { dependencyNames, detectPackageManager, readPackageJson } from "@theholocron/pkg-utils";
+
+const pkg = await readPackageJson(process.cwd());
+dependencyNames(pkg).has("tsdown");
+detectPackageManager(process.cwd()); // "pnpm" | "npm" | "yarn" | "bun"
+```
+
+## What is in it
+
+- **A package's manifest:** `readPackageJson`, `parsePackageJson` and `dependencyNames`.
+- **A workspace's packages:** `listWorkspacePackagesSync` scans fixed roots; `discoverWorkspacePackages` follows the
+  repo's `pnpm-workspace.yaml` (or, without one, the `workspaces` field of the root `package.json`) with pnpm's
+  `*`, `**` and `!` patterns, and reports a pattern it cannot read instead of throwing. Neither filters by `name`,
+  `version` or `private`, so the caller decides.
+- **`pnpm-workspace.yaml` itself:** `readWorkspaceGlobs`, `resolveWorkspaceGlobs`, `parseCatalogs`,
+  `addWorkspaceMember` and `bumpCatalogPins`. These read and edit the file line by line rather than parsing YAML, so the
+  `catalog:` and `overrides:` blocks keep their formatting.
+- **The package manager:** `detectPackageManager`.
+
+The full [API reference](/holocron/utils/pkg-utils/api/readme/) is generated from the package's TSDoc comments.

@@ -1,0 +1,94 @@
+{
+  "name": "@theholocron/sentinel",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Holocron's minimal GitHub App — webhook receiver, default-branch-only holocron.config.ts validation, custom-properties sync, capability-compliance and commit-standards check runs.",
+  "keywords": [
+    "github-app",
+    "holocron",
+    "sentinel",
+    "theholocron",
+    "webhook"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/sentinel/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "apps/sentinel"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "deploy": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
+    "deploy:preview": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel",
+    "dev": "holocron dev",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commitlint/config-conventional": "catalog:",
+    "@commitlint/lint": "catalog:",
+    "@commitlint/load": "catalog:",
+    "@napi-rs/keyring": "catalog:",
+    "@sentry/node": "catalog:",
+    "@theholocron/astromech": "workspace:*",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/commitlint-config": "workspace:^",
+    "@theholocron/datapad": "workspace:*",
+    "@theholocron/env-utils": "workspace:^",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/fs-utils": "workspace:^",
+    "@theholocron/git-utils": "workspace:^",
+    "@theholocron/github-client": "workspace:^",
+    "@theholocron/holocron-config": "catalog:apps",
+    "@theholocron/holocron-plugin-discord": "workspace:^",
+    "@theholocron/holocron-plugin-github": "workspace:^",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/json-utils": "workspace:^",
+    "@theholocron/kyber": "workspace:^",
+    "@theholocron/markdownlint-config": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/object-utils": "workspace:^",
+    "@theholocron/observability": "workspace:^",
+    "@theholocron/pkg-utils": "workspace:^",
+    "@theholocron/prettier-config": "workspace:^",
+    "@vitest/eslint-plugin": "catalog:",
+    "alex": "catalog:apps",
+    "editorconfig": "catalog:apps",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "markdownlint": "catalog:apps",
+    "prettier": "catalog:",
+    "tsx": "catalog:"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

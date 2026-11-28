@@ -1,0 +1,475 @@
+/**
+ * `issues` capability for GitHub.
+ *
+ * Lifecycle model: GitHub Issues has no transitions like Jira does.
+ * Holocron's three lifecycle slots map to (state, label) pairs:
+ *   inProgress → open + label `status:in-progress`  (strip other status:*)
+ *   inReview   → open + label `status:in-review`    (strip other status:*)
+ *   done       → closed (state_reason=completed)    (strip status:* labels)
+ *
+ * Issue keys accept "#42", "42", or "owner/repo#42" on input; the
+ * canonical display key is always "#N".
+ */
+
+import type {
+	ExportInfo,
+	ImportOptions,
+	ImportResult,
+	Issue,
+	IssueCreateInput,
+	IssuePatch,
+	IssueRecord,
+	Issues,
+	IssueSearchFilter,
+	IssueSelector,
+	IssueTypeDeclaration,
+	IssueTypeInfo,
+	IssueUpdateResult,
+	LifecycleResult,
+	LifecycleSlot,
+	StatusCategory,
+	SyncResult,
+	TrackerDoctorReport,
+	TrackerUser,
+} from "@theholocron/cli";
+import type { GitHubClient, GitHubIssue, IssueTypeColor, OrgIssueTypeInfo } from "@theholocron/github-client";
+
+import { createFieldSetter, type FieldSetter } from "./issue-field-setter.js";
+import { type KindNames, kindNames } from "./issue-kind.js";
+import { exportIssues, importIssues } from "./issues-migration.js";
+import { syncIssues } from "./issues-sync.js";
+import { applyIssueFields, updateGitHubIssue } from "./issues-update.js";
+
+export interface IssuesOptions {
+	repo: string;
+	/**
+	 * Lifecycle slot → status label name. Optional at construction; if
+	 * omitted, capability methods that need labels (`transition`,
+	 * `doctor`) degrade gracefully — `transition` throws a clear error,
+	 * `doctor` reports the two label-backed slots as unresolved.
+	 */
+	labels?: { inProgress: string; inReview: string };
+	/** The organization's issue Types (`issueTypes`), which `--type` and a record's kind are written as. */
+	issueTypes?: ReadonlyArray<{ name: string }>;
+	/**
+	 * A client with the organization token (`HOLOCRON_ORG_TOKEN`, Issue types read and write), for the Type methods
+	 * only; `undefined` when none is configured. The shared issues token never writes the organization's vocabulary.
+	 */
+	orgClient?: () => GitHubClient | undefined;
+}
+
+/** Issues read per request when `search` has a `text`; GitHub's largest page. */
+const TEXT_PAGE_SIZE = 100;
+/** Pages `search` reads for a `text` before it stops (the 2000 most recently updated issues). */
+const TEXT_MAX_PAGES = 20;
+
+/** A Type as the capability reports it: GitHub's `null`s are left out. */
+function toTypeInfo(t: OrgIssueTypeInfo): IssueTypeInfo {
+	return {
+		id: t.id,
+		name: t.name,
+		...(t.description ? { description: t.description } : {}),
+		...(t.color ? { color: t.color } : {}),
+		enabled: t.is_enabled,
+	};
+}
+
+/** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
+export class GitHubIssues implements Issues {
+	/** Capability key, always `"issues"`. */
+	readonly key = "issues" as const;
+	/** Provider name, always `"github"`. */
+	readonly providerName = "github";
+
+	private readonly owner: string;
+	private readonly repoName: string;
+	private readonly repo: string;
+	private readonly labels: { inProgress: string; inReview: string } | undefined;
+	private readonly kinds: KindNames;
+	private readonly orgClient: (() => GitHubClient | undefined) | undefined;
+
+	constructor(
+		private readonly client: GitHubClient,
+		opts: IssuesOptions
+	) {
+		const [owner = "", repoName = ""] = opts.repo.split("/", 2);
+		this.owner = owner;
+		this.repoName = repoName;
+		this.repo = opts.repo;
+		this.labels = opts.labels;
+		this.kinds = kindNames(opts.issueTypes);
+		this.orgClient = opts.orgClient;
+	}
+
+	// ── identity ─────────────────────────────────────────────────────────
+
+	async getMyself(): Promise<TrackerUser> {
+		const raw = await this.client.user.getCurrentUser();
+		return { id: raw.login, displayName: raw.name ?? raw.login, ...(raw.email ? { emailAddress: raw.email } : {}) };
+	}
+
+	// ── search / get ─────────────────────────────────────────────────────
+
+	/**
+	 * Searches the repo's issues, newest update first, leaving out pull requests.
+	 *
+	 * With `filter.text`, the issues are paged (newest update first, 100 a page, at most 20 pages) and compared
+	 * client-side, without regard to case, until `limit` matches are found or the issues run out. GitHub's issue
+	 * search (`GET /search/issues`) is deliberately not used: it indexes the words of a body, so punctuation and an
+	 * HTML comment such as `<!-- holocron:idea notes/a.md -->` cannot be relied on to match, it is limited to 30
+	 * requests a minute and it is eventually consistent (an issue made a moment ago may be missing). Paging has none
+	 * of those limits, at the cost of reading up to 20 pages of a very large repository.
+	 */
+	async search(filter: IssueSearchFilter): Promise<Issue[]> {
+		if (filter.text) return this.searchText(filter, filter.text);
+		const params: Record<string, string | number> = {
+			state: filter.openOnly ? "open" : "all",
+			sort: "updated",
+			direction: "desc",
+			per_page: filter.limit ?? 50,
+			filter: "all",
+		};
+		if (filter.assignee === "currentUser") {
+			const me = await this.getMyself();
+			params.assignee = me.id;
+		} else if (filter.assignee) {
+			params.assignee = filter.assignee;
+		}
+		const raw = await this.client.issues.listIssues(this.repo, {
+			state: params.state as "open" | "closed" | "all",
+			sort: params.sort as string,
+			direction: params.direction as string,
+			per_page: Number(params.per_page),
+			filter: params.filter as string,
+			assignee: params.assignee as string | undefined,
+		});
+		return raw.filter((i) => !i.pull_request).map((i) => this.mapIssue(i));
+	}
+
+	private async searchText(filter: IssueSearchFilter, text: string): Promise<Issue[]> {
+		const needle = text.toLowerCase();
+		const limit = filter.limit ?? 50;
+		const assignee = filter.assignee === "currentUser" ? (await this.getMyself()).id : filter.assignee || undefined;
+		const found: Issue[] = [];
+		for (let page = 1; page <= TEXT_MAX_PAGES; page++) {
+			const raw = await this.client.issues.listIssues(this.repo, {
+				state: filter.openOnly ? "open" : "all",
+				sort: "updated",
+				direction: "desc",
+				per_page: TEXT_PAGE_SIZE,
+				page,
+				filter: "all",
+				...(assignee ? { assignee } : {}),
+			});
+			for (const issue of raw) {
+				if (issue.pull_request) continue;
+				if (`${issue.title}\n${issue.body ?? ""}`.toLowerCase().includes(needle)) {
+					found.push(this.mapIssue(issue));
+					if (found.length >= limit) return found;
+				}
+			}
+			if (raw.length < TEXT_PAGE_SIZE) break;
+		}
+		return found;
+	}
+
+	/** Fetches one issue by its key. */
+	async get(key: string): Promise<Issue> {
+		const number = parseIssueNumber(key, this.owner, this.repoName);
+		const raw = await this.client.issues.getIssue(this.repo, number);
+		return this.mapIssue(raw);
+	}
+
+	// ── create / transition / comment ────────────────────────────────────
+
+	/**
+	 * Creates an issue and returns its key as `#<number>`; the milestone is resolved from its title. Type, Priority,
+	 * Effort, the dates, the parent and the blockers are set after the issue exists; what GitHub refuses of them comes
+	 * back in `dropped`, never as a failure, because the issue is made by then and its key must not be lost.
+	 */
+	async create(input: IssueCreateInput): Promise<{ key: string; dropped?: string[] }> {
+		const body: Record<string, unknown> = { title: input.summary };
+		if (input.assignees?.length) {
+			const isMe = (a: string) => /^@?me$/i.test(a);
+			const me = input.assignees.some(isMe) ? (await this.getMyself()).id : undefined;
+			body.assignees = [...new Set(input.assignees.map((a) => (isMe(a) && me ? me : a.replace(/^@/, ""))))];
+		}
+		if (input.body) body.body = input.body;
+		if (input.labels?.length) body.labels = input.labels;
+		if (input.milestone) body.milestone = await this.resolveMilestone(input.milestone);
+		const raw = await this.client.issues.createIssue(this.repo, body);
+		const key = `#${raw.number}`;
+		const fields = await applyIssueFields(this.fieldContext(), raw, input, true).catch((err: unknown) => ({
+			changed: [] as string[],
+			dropped: [`fields (not set: ${(err as Error).message})`],
+		}));
+		return { key, ...(fields.dropped.length > 0 ? { dropped: fields.dropped } : {}) };
+	}
+
+	/** Changes an issue; see {@link updateGitHubIssue}. */
+	update(key: string, patch: IssuePatch): Promise<IssueUpdateResult> {
+		return updateGitHubIssue(
+			{
+				...this.fieldContext(),
+				myLogin: async () => (await this.getMyself()).id,
+				resolveMilestone: (ref) => this.resolveMilestone(ref),
+			},
+			key,
+			patch
+		);
+	}
+
+	async transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult> {
+		const number = parseIssueNumber(key, this.owner, this.repoName);
+		const issue = await this.client.issues.getIssue(this.repo, number);
+		const currentStatusLabels = issue.labels.map((l) => l.name).filter((n) => n.startsWith("status:"));
+
+		if (slot === "done") {
+			if (issue.state === "closed") {
+				return { transitioned: false, status: "closed", via: "already closed" };
+			}
+			await this.removeStatusLabels(number, currentStatusLabels);
+			await this.client.issues.updateIssue(this.repo, number, { state: "closed", state_reason: "completed" });
+			return { transitioned: true, status: "closed", via: "closed (completed)" };
+		}
+
+		if (!this.labels) {
+			throw new Error(
+				`transition to \`${slot}\` requires \`labels\` in plugin options: ` +
+					`{ inProgress: '<label>', inReview: '<label>' }`
+			);
+		}
+		const targetLabel = slot === "inProgress" ? this.labels.inProgress : this.labels.inReview;
+		const alreadyOpen = issue.state === "open";
+		const alreadyLabeled = currentStatusLabels.includes(targetLabel);
+		if (alreadyOpen && alreadyLabeled && currentStatusLabels.length === 1) {
+			return { transitioned: false, status: `open + ${targetLabel}`, via: "already there" };
+		}
+
+		if (!alreadyOpen) {
+			await this.client.issues.updateIssue(this.repo, number, { state: "open" });
+		}
+		const toRemove = currentStatusLabels.filter((n) => n !== targetLabel);
+		if (toRemove.length) await this.removeStatusLabels(number, toRemove);
+		if (!alreadyLabeled) {
+			await this.client.issues.addLabels(this.repo, number, [targetLabel]);
+		}
+		return { transitioned: true, status: `open + ${targetLabel}`, via: `label set to ${targetLabel}` };
+	}
+
+	/** Adds a comment to the issue with the given key. */
+	async comment(key: string, body: string): Promise<void> {
+		const number = parseIssueNumber(key, this.owner, this.repoName);
+		await this.client.issues.createComment(this.repo, number, body);
+	}
+
+	// ── doctor ───────────────────────────────────────────────────────────
+
+	/** Checks the authenticated user, the repo and the label-backed lifecycle slots, and reports what resolves. */
+	async doctor(): Promise<TrackerDoctorReport> {
+		const me = await this.getMyself();
+		const repo = await this.client.repos.getRepo(this.repo);
+		const allLabels = await this.client.labels.listLabels(this.repo);
+		const labelNames = new Set(allLabels.map((l) => l.name));
+
+		const statuses: TrackerDoctorReport["statuses"] = [
+			{ name: "open (no status label)", category: "open" },
+			...(this.labels
+				? [
+						{ name: `open + ${this.labels.inProgress}`, category: "in-progress" as const },
+						{ name: `open + ${this.labels.inReview}`, category: "in-review" as const },
+					]
+				: []),
+			{ name: "closed", category: "done" },
+		];
+
+		const lifecycle: TrackerDoctorReport["lifecycle"] = this.labels
+			? [
+					{
+						slot: "inProgress",
+						value: this.labels.inProgress,
+						resolved: labelNames.has(this.labels.inProgress),
+						note: labelNames.has(this.labels.inProgress)
+							? `label exists in ${repo.full_name}`
+							: "(label not defined yet — auto-created on first apply)",
+					},
+					{
+						slot: "inReview",
+						value: this.labels.inReview,
+						resolved: labelNames.has(this.labels.inReview),
+						note: labelNames.has(this.labels.inReview)
+							? `label exists in ${repo.full_name}`
+							: "(label not defined yet — auto-created on first apply)",
+					},
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
+				]
+			: [
+					{
+						slot: "inProgress",
+						value: null,
+						resolved: false,
+						note: "no `labels` configured in plugin options — transitions to `inProgress` will error",
+					},
+					{
+						slot: "inReview",
+						value: null,
+						resolved: false,
+						note: "no `labels` configured in plugin options — transitions to `inReview` will error",
+					},
+					{
+						slot: "done",
+						value: "closed (state_reason=completed)",
+						resolved: true,
+						note: "(intrinsic — GitHub close-with-reason)",
+					},
+				];
+
+		return {
+			authedAs: `${me.displayName} (${me.emailAddress ?? me.id})`,
+			projectLabel: `Repo: ${repo.full_name}`,
+			statuses,
+			lifecycle,
+		};
+	}
+
+	// ── migration ────────────────────────────────────────────────────────
+
+	/** Reads issues with their comments, priority label, parent and blockers, for `holocron migrate`. */
+	export(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]> {
+		return exportIssues(this.client, this.repo, selector, info, this.kinds);
+	}
+
+	/** Makes the records as issues; one already made by an earlier run is skipped. */
+	import(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]> {
+		return importIssues(this.client, this.repo, records, options, this.kinds);
+	}
+
+	/** Like `import`, and it also updates what an earlier import or sync made, for `holocron sync issues`. */
+	sync(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]> {
+		return syncIssues(this.client, this.repo, records, options, this.kinds);
+	}
+
+	// ── the organization's issue Types ───────────────────────────────────
+
+	async listTypes(): Promise<IssueTypeInfo[] | undefined> {
+		const client = this.orgClient?.();
+		return client ? (await client.issueTypes.list(this.owner)).map(toTypeInfo) : undefined;
+	}
+
+	async createType(type: IssueTypeDeclaration): Promise<IssueTypeInfo> {
+		const client = this.orgClient?.();
+		if (!client) throw new Error("no organization token (HOLOCRON_ORG_TOKEN) to make an issue Type with");
+		const made = await client.issueTypes.create(this.owner, {
+			name: type.name,
+			is_enabled: type.enabled ?? true,
+			...(type.description !== undefined ? { description: type.description } : {}),
+			...(type.color !== undefined ? { color: type.color as IssueTypeColor } : {}),
+		});
+		return toTypeInfo(made);
+	}
+
+	async updateType(id: IssueTypeInfo["id"], patch: { description?: string; color?: string }): Promise<void> {
+		const client = this.orgClient?.();
+		if (!client) throw new Error("no organization token (HOLOCRON_ORG_TOKEN) to change an issue Type with");
+		// GitHub replaces the whole Type, so the name and the enabled flag it has now go back unchanged: no rename.
+		const current = (await client.issueTypes.list(this.owner)).find((t) => String(t.id) === String(id));
+		if (!current) throw new Error(`the organization has no issue Type with id ${id}`);
+		const description = patch.description ?? current.description;
+		const color = (patch.color as IssueTypeColor | undefined) ?? current.color;
+		await client.issueTypes.update(this.owner, current.id, {
+			name: current.name,
+			is_enabled: current.is_enabled,
+			...(description != null ? { description } : {}),
+			...(color != null ? { color } : {}),
+		});
+	}
+
+	// ── internals ────────────────────────────────────────────────────────
+
+	private fieldSetter: FieldSetter | undefined;
+
+	/** What the field writers need; the setter is shared so the organization's field list is read once. */
+	private fieldContext() {
+		this.fieldSetter ??= createFieldSetter(this.client, this.repo);
+		return {
+			client: this.client,
+			repo: this.repo,
+			parseKey: (k: string) => parseIssueNumber(k, this.owner, this.repoName),
+			fields: this.fieldSetter,
+			kinds: this.kinds,
+		};
+	}
+
+	private async resolveMilestone(ref: string): Promise<number> {
+		if (/^\d+$/.test(ref)) return parseInt(ref, 10);
+		const milestones = await this.client.issues.listMilestones(this.repo, { state: "all" });
+		const match = milestones.find((m) => m.title.toLowerCase() === ref.toLowerCase());
+		if (!match) {
+			throw new Error(
+				`Milestone "${ref}" not found in ${this.owner}/${this.repoName}. Use the numeric id or an exact title.`
+			);
+		}
+		return match.number;
+	}
+
+	private async removeStatusLabels(number: number, labels: string[]): Promise<void> {
+		for (const label of labels) {
+			await this.client.issues.removeLabel(this.repo, number, label);
+		}
+	}
+
+	private mapIssue(raw: GitHubIssue): Issue {
+		const statusLabels = raw.labels.map((l) => l.name).filter((n) => n.startsWith("status:"));
+		let category: StatusCategory = "open";
+		let statusName = raw.state === "closed" ? "closed" : "open";
+		if (raw.state === "closed") {
+			category = "done";
+		} else if (this.labels && statusLabels.includes(this.labels.inProgress)) {
+			category = "in-progress";
+			statusName = `open + ${this.labels.inProgress}`;
+		} else if (this.labels && statusLabels.includes(this.labels.inReview)) {
+			category = "in-review";
+			statusName = `open + ${this.labels.inReview}`;
+		}
+		return {
+			key: `#${raw.number}`,
+			id: String(raw.id),
+			summary: raw.title,
+			...(raw.body ? { body: raw.body } : {}),
+			status: statusName,
+			statusCategory: category,
+			assignee: raw.assignee
+				? {
+						id: raw.assignee.login,
+						displayName: raw.assignee.name ?? raw.assignee.login,
+						...(raw.assignee.email ? { emailAddress: raw.assignee.email } : {}),
+					}
+				: null,
+			updated: raw.updated_at,
+			url: raw.html_url,
+		};
+	}
+}
+
+function parseIssueNumber(key: string, owner: string, repoName: string): number {
+	const trimmed = key.trim();
+	const crossMatch = trimmed.match(/^([^/]+)\/([^#]+)#(\d+)$/);
+	if (crossMatch) {
+		if (crossMatch[1] !== owner || crossMatch[2] !== repoName) {
+			throw new Error(
+				`Issue key "${key}" references ${crossMatch[1]}/${crossMatch[2]} but this adapter is bound to ${owner}/${repoName}.`
+			);
+		}
+		return parseInt(crossMatch[3], 10);
+	}
+	const num = trimmed.replace(/^#/, "");
+	if (!/^\d+$/.test(num)) {
+		throw new Error(`Invalid GitHub issue key "${key}" — expected #N or N.`);
+	}
+	return parseInt(num, 10);
+}

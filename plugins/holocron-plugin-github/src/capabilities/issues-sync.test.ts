@@ -1,0 +1,341 @@
+import { type IssueRecord, ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
+
+import { createGitHubClient } from "../rest.js";
+import {
+	EFFORT_FIELD,
+	type FakeIssueFields,
+	PRIORITY_FIELD,
+	TARGET_DATE_FIELD,
+	withIssueFields,
+} from "./issue-fields.testing.js";
+import { GitHubIssues } from "./issues.js";
+import { isRateLimited } from "./issues-sync.js";
+
+const REPO = "theholocron/holocron";
+const URL_1 = "https://linear.app/x/issue/ENG-1";
+
+function make(responses: Parameters<typeof stubFetch>[0], fields: FakeIssueFields = {}) {
+	const stub = stubFetch(responses);
+	const { fetch, calls: fieldCalls } = withIssueFields(stub.fetch, fields);
+	return {
+		issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }),
+		calls: stub.calls,
+		fieldCalls,
+	};
+}
+
+const record = (over: Partial<IssueRecord> = {}): IssueRecord => ({
+	key: "ENG-1",
+	url: URL_1,
+	title: "From Linear",
+	body: "text",
+	statusCategory: "open",
+	closed: false,
+	priority: "urgent",
+	labels: ["bug"],
+	assignee: { id: "u", displayName: "U" },
+	blockedBy: [],
+	comments: [{ author: "Han", body: "hi", createdAt: "2026-01-02T00:00:00Z" }],
+	createdAt: "2026-01-01T00:00:00Z",
+	updatedAt: "2026-01-03T00:00:00Z",
+	...over,
+});
+
+const BODY = `text\n\n---\n_Migrated from [ENG-1](${URL_1}); created 2026-01-01T00:00:00Z._\n<!-- holocron:migrated-from ${URL_1} -->`;
+
+/** An issue a sync made, in step with `record()`. */
+const made = (over: Record<string, unknown> = {}) => ({
+	id: 1,
+	number: 30,
+	title: "From Linear",
+	body: BODY,
+	state: "open",
+	labels: [{ name: "Bug" }, { name: "priority: urgent" }],
+	updated_at: "2026-02-01T00:00:00Z",
+	html_url: "https://github.com/theholocron/holocron/issues/30",
+	assignee: null,
+	milestone: null,
+	...over,
+});
+
+const comment = (body: string) => ({ id: 1, body, created_at: "2026-01-02T00:00:00Z", user: null });
+const HAN = "**Han** commented on 2026-01-02T00:00:00Z:\n\nhi";
+
+describe("GitHubIssues.sync", () => {
+	it("makes an issue that is missing, with its comments", async () => {
+		const { issues, calls } = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }]);
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ source: "ENG-1", key: "#12", created: true, updated: false, changes: [] });
+		expect(res?.dropped.join(" ")).toContain("assignee (not mapped)");
+		expect((calls[1]?.body as { labels: string[] }).labels).toEqual(["bug", "priority: urgent"]);
+		expect(calls[2]?.url).toContain("/issues/12/comments");
+	});
+
+	it("assigns a new issue to the login the record carries, and then does not report the assignee as not mapped", async () => {
+		const { issues, calls } = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }]);
+		const [res] =
+			(await issues.sync?.([record({ assignee: { id: "u", displayName: "U", login: "octocat" } })])) ?? [];
+		expect((calls[1]?.body as { assignees: string[] }).assignees).toEqual(["octocat"]);
+		expect(res?.dropped.join(" ")).not.toContain("assignee");
+	});
+
+	it("sets the assignee of an issue it made to the record's login when it differs, and not when it is the same", async () => {
+		const mapped = record({ assignee: { id: "u", displayName: "U", login: "octocat" } });
+		const differs = make([
+			{ body: [made({ assignee: { login: "chewbacca" } })] },
+			{ body: [comment(HAN)] },
+			{ body: {} },
+		]);
+		const [res] = (await differs.issues.sync?.([mapped])) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["assignee"] });
+		expect(differs.calls[2]?.body).toEqual({ assignees: ["octocat"] });
+
+		const same = make([{ body: [made({ assignee: { login: "OctoCat" } })] }, { body: [comment(HAN)] }]);
+		const [unchanged] = (await same.issues.sync?.([mapped])) ?? [];
+		expect(unchanged).toMatchObject({ updated: false, changes: [] });
+		expect(same.calls).toHaveLength(2);
+	});
+
+	it("never clears an assignee: a record with none mapped leaves the issue's alone", async () => {
+		const { issues, calls } = make([
+			{ body: [made({ assignee: { login: "chewbacca" } })] },
+			{ body: [comment(HAN)] },
+		]);
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ updated: false, changes: [] });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("sets the Priority field of a new issue, and says so in `dropped` when the org has none", async () => {
+		const withField = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }], {
+			fields: [PRIORITY_FIELD],
+		});
+		const [res] = (await withField.issues.sync?.([record()])) ?? [];
+		expect(withField.fieldCalls.map((c) => c.method)).toEqual(["GET", "POST"]);
+		expect(withField.fieldCalls[1]?.body).toEqual({
+			issue_field_values: [{ field_id: PRIORITY_FIELD.id, value: "Urgent" }],
+		});
+		expect(res?.dropped.join(" ")).not.toContain("priority field");
+
+		const without = make([{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }]);
+		const [bare] = (await without.issues.sync?.([record()])) ?? [];
+		expect(bare?.dropped).toContain("priority field (theholocron has no Priority issue field)");
+	});
+
+	it("sets the Priority field of an issue it made when it differs, and counts that as a change", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], {
+			fields: [PRIORITY_FIELD],
+			values: {
+				30: [
+					{
+						issue_field_id: PRIORITY_FIELD.id,
+						data_type: "single_select",
+						value: "Low",
+						single_select_option: { id: 4, name: "Low", color: "green" },
+					},
+				],
+			},
+		});
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["priority field"] });
+		expect(fieldCalls.map((c) => c.method)).toEqual(["GET", "GET", "DELETE", "POST"]);
+	});
+
+	it("only says it would set the Priority field on a dry run", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], {
+			fields: [PRIORITY_FIELD],
+		});
+		const [res] = (await issues.sync?.([record()], { dryRun: true })) ?? [];
+		expect(res).toMatchObject({ updated: true, changes: ["priority field"] });
+		expect(fieldCalls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("changes nothing on a dry run, create or update", async () => {
+		const create = make([{ body: [] }]);
+		const [created] = (await create.issues.sync?.([record()], { dryRun: true })) ?? [];
+		expect(created).toMatchObject({ created: true, updated: false });
+		expect(created?.key).toBeUndefined();
+		expect(create.calls).toHaveLength(1);
+
+		const update = make([{ body: [made({ title: "Old" })] }, { body: [] }]);
+		const [updated] = (await update.issues.sync?.([record()], { dryRun: true })) ?? [];
+		expect(updated).toMatchObject({ created: false, updated: true, changes: ["title", "comments"] });
+		expect(update.calls).toHaveLength(2);
+	});
+
+	it("updates title, description, state, labels and adds the missing comment, keeping status labels", async () => {
+		const { issues, calls } = make([
+			{
+				body: [
+					made({
+						title: "Old",
+						body: `old\n<!-- holocron:migrated-from ${URL_1} -->`,
+						state: "closed",
+						labels: [{ name: "stale" }, { name: "status:in-review" }],
+					}),
+				],
+			},
+			{ body: [] },
+			{ body: {} },
+			{ status: 201, body: {} },
+		]);
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ key: "#30", created: false, updated: true });
+		expect(res?.changes).toEqual(["title", "description", "state", "labels", "comments"]);
+		expect(calls[2]?.method).toBe("PATCH");
+		expect(calls[2]?.body).toEqual({
+			title: "From Linear",
+			body: BODY,
+			state: "open",
+			labels: ["bug", "priority: urgent", "status:in-review"],
+		});
+		expect(calls[3]?.body).toEqual({ body: HAN });
+	});
+
+	it("closes an issue the source closed, and reopens one it reopened", async () => {
+		const close = make([{ body: [made()] }, { body: [comment(HAN)] }, { body: {} }]);
+		await close.issues.sync?.([record({ closed: true })]);
+		expect(close.calls[2]?.body).toEqual({ state: "closed", state_reason: "completed" });
+		const reopen = make([{ body: [made({ state: "closed" })] }, { body: [comment(HAN)] }, { body: {} }]);
+		await reopen.issues.sync?.([record()]);
+		expect(reopen.calls[2]?.body).toEqual({ state: "open" });
+	});
+
+	it("leaves an issue alone when it matches, and never copies a comment twice, even one edited at the source", async () => {
+		const { issues, calls } = make([
+			{ body: [made({ body: BODY.replace(/\n/g, "\r\n") })] },
+			{ body: [comment("**Han** commented on 2026-01-02T00:00:00Z:\n\nwhat it said before the edit")] },
+		]);
+		const [res] = (await issues.sync?.([record()])) ?? [];
+		expect(res).toMatchObject({ key: "#30", created: false, updated: false, changes: [] });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("finds a comment with no author by its header too", async () => {
+		const { issues, calls } = make([
+			{ body: [made()] },
+			{ body: [comment("Someone commented on 2026-01-02T00:00:00Z:\n\nhi")] },
+		]);
+		await issues.sync?.([record({ comments: [{ body: "hi", createdAt: "2026-01-02T00:00:00Z" }] })]);
+		expect(calls).toHaveLength(2);
+	});
+
+	it("a second run after the first changes nothing", async () => {
+		const first = make([{ body: [made({ title: "Old" })] }, { body: [comment(HAN)] }, { body: {} }]);
+		const [a] = (await first.issues.sync?.([record()])) ?? [];
+		expect(a?.updated).toBe(true);
+		const second = make([{ body: [made()] }, { body: [comment(HAN)] }]);
+		const [b] = (await second.issues.sync?.([record()])) ?? [];
+		expect(b).toMatchObject({ created: false, updated: false });
+		expect(second.calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("does not touch an issue with no marker", async () => {
+		const { issues, calls } = make([
+			{ body: [made({ body: "someone else's issue" }), made({ number: 31, body: null })] },
+			{ body: { number: 12 } },
+			{ body: {} },
+		]);
+		const [res] = (await issues.sync?.([record({ comments: [] })])) ?? [];
+		expect(res?.created).toBe(true);
+		expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+	});
+
+	it("stops cleanly on a rate limit and returns the records done", async () => {
+		const { issues } = make([
+			{ body: [] },
+			{ body: { number: 12 } },
+			{ status: 201, body: {} },
+			{ status: 429, body: { message: "slow down" } },
+		]);
+		const out =
+			(await issues.sync?.([record(), record({ key: "ENG-2", url: "https://linear.app/x/issue/ENG-2" })])) ?? [];
+		expect(out.map((r) => r.source)).toEqual(["ENG-1"]);
+	});
+
+	it("treats a 403 that names the rate limit as one, and any other error as a failure", async () => {
+		const limited = make([{ body: [] }, { status: 403, body: { message: "API rate limit exceeded" } }]);
+		expect(await limited.issues.sync?.([record()])).toEqual([]);
+		const denied = make([{ body: [] }, { status: 403, body: { message: "forbidden" } }]);
+		await expect(denied.issues.sync?.([record()])).rejects.toThrow();
+		const broken = make([{ body: [] }, { status: 422, body: { message: "bad" } }]);
+		await expect(broken.issues.sync?.([record()])).rejects.toThrow();
+	});
+});
+
+describe("GitHubIssues.sync Effort and dates (#2496)", () => {
+	const fields = [EFFORT_FIELD, TARGET_DATE_FIELD];
+	const NEW = () => [{ body: [] }, { body: { number: 12 } }, { status: 201, body: {} }];
+
+	it("sets them on a new issue the record carries them for", async () => {
+		const { issues, fieldCalls } = make(NEW(), { fields });
+		const [res] =
+			(await issues.sync?.([record({ priority: undefined, effort: "high", targetDate: "2026-04-01" })])) ?? [];
+		expect(res?.dropped.join(" ")).not.toMatch(/effort|target date/);
+		expect(fieldCalls.filter((c) => c.method === "POST")).toHaveLength(2);
+	});
+
+	it("reports an org with no such field for a new issue", async () => {
+		const { issues } = make(NEW());
+		const [res] = (await issues.sync?.([record({ priority: undefined, effort: "high" })])) ?? [];
+		expect(res?.dropped).toContain("effort field (theholocron has no Effort issue field)");
+	});
+
+	it("sets them on an issue it made when they differ, and leaves them alone when they match", async () => {
+		const current = (value: string) => ({ issue_field_id: TARGET_DATE_FIELD.id, data_type: "date", value });
+		const differs = make([{ body: [made({ labels: [{ name: "Bug" }] })] }, { body: [comment(HAN)] }], {
+			fields,
+			values: { 30: [current("2026-01-01")] },
+		});
+		const [res] =
+			(await differs.issues.sync?.([record({ priority: undefined, effort: "low", targetDate: "2026-04-01" })])) ??
+			[];
+		expect(res).toMatchObject({ updated: true, changes: ["effort", "targetDate"] });
+
+		const same = make([{ body: [made({ labels: [{ name: "Bug" }] })] }, { body: [comment(HAN)] }], {
+			fields,
+			values: { 30: [current("2026-04-01")] },
+		});
+		const [unchanged] =
+			(await same.issues.sync?.([record({ priority: undefined, targetDate: "2026-04-01" })])) ?? [];
+		expect(unchanged).toMatchObject({ updated: false, changes: [] });
+	});
+
+	it("never clears a value a record without one leaves, and reports a field the org lacks", async () => {
+		const { issues, fieldCalls } = make([{ body: [made()] }, { body: [comment(HAN)] }], { fields: [] });
+		const [res] = (await issues.sync?.([record({ priority: undefined, startDate: "2026-03-01" })])) ?? [];
+		expect(res?.dropped).toContain("start date field (theholocron has no Start date issue field)");
+		expect(fieldCalls.filter((c) => c.method !== "GET")).toEqual([]);
+	});
+});
+
+describe("isRateLimited", () => {
+	it("is true for a 429 and a rate-limit 403 from the API, false for anything else", () => {
+		expect(isRateLimited(new ProviderApiError("x", 429))).toBe(true);
+		expect(isRateLimited(new ProviderApiError("rate limit", 403))).toBe(true);
+		expect(isRateLimited(new ProviderApiError("x", 403, "rate limit"))).toBe(true);
+		expect(isRateLimited(new ProviderApiError("x", 403))).toBe(false);
+		expect(isRateLimited(new ProviderApiError("x", 500))).toBe(false);
+		expect(isRateLimited(new Error("rate limit"))).toBe(false);
+	});
+});
+
+describe("GitHubIssues.sync progress", () => {
+	it("reports each record handled, made or updated", async () => {
+		const { issues } = make([{ body: [made()] }, { body: [] }, { body: { number: 12 } }]);
+		const seen: Array<[number, number]> = [];
+		await issues.sync?.(
+			[record({ comments: [] }), record({ key: "ENG-2", url: "https://linear.app/x/issue/ENG-2", comments: [] })],
+			{
+				dryRun: true,
+				onProgress: (done, total) => seen.push([done, total]),
+			}
+		);
+		expect(seen).toEqual([
+			[1, 2],
+			[2, 2],
+		]);
+	});
+});

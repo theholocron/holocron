@@ -1,3 +1,5 @@
+<!-- alex disable kill -->
+
 # Self-contained capabilities
 
 Some capabilities are cross-cutting infrastructure — active everywhere the relevant
@@ -27,8 +29,8 @@ any config is loaded:
 | `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                             | `SENTRY_DSN`                    |
 | `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
-`HOLOCRON_AXIOM_DATASET` is one env var set to different values per environment:
-`holocron-ci` in CI (org secret) or `holocron-local` locally (shell profile).
+`HOLOCRON_AXIOM_DATASET` names the CLI's dataset, `holocron`, for every environment (the org variable
+`HOLOCRON_AXIOM_DATASET`); a service has its own dataset, and lines are told apart by the `env` field (ADR-0019).
 
 The provider entry in `holocron.config` serves a separate, optional purpose:
 
@@ -81,7 +83,7 @@ is checked first (`HOLOCRON_TELEMETRY=false` → `config.telemetry.enabled` →
 default on); the config field only ever _narrows_ what env + fallback turned
 on, never re-enables. It is applied after config load, so it is the right
 tool for a repo-wide committed choice, not for a zero-leak kill switch — that
-remains `HOLOCRON_TELEMETRY=false`, which gates before the CLI emits anything.
+stays `HOLOCRON_TELEMETRY=false`, which gates before the CLI emits anything.
 
 ## Contrast with standard capabilities
 

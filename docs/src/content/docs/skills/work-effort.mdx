@@ -1,0 +1,29 @@
+---
+title: work-effort
+description: How to choose --effort (high, medium or low) for new work, new issue and start work.
+---
+
+Tells an agent how to pick the `Effort` issue field when it files or starts work. The CLI never chooses it; an agent passes `--effort`.
+
+**Invoke as:** `/work-effort`
+
+**Trigger:** `holocron new work`, `holocron new issue`, `holocron start work`, or a question about how big a piece of work is.
+
+## Levels
+
+The organization's `Effort` field has three levels, and the skill adds no others.
+
+| Level    | What it looks like                                                                                                           |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `low`    | A typo, a config line, a pin, a doc fix: one package, a few files, nothing to design                                         |
+| `medium` | One focused command or provider method with its tests and docs: one or two packages, one pull request                        |
+| `high`   | A capability across packages, a new provider, anything that needs a spec, a stack of pull requests, or live-service unknowns |
+
+## Rules
+
+- The maintainer's size in the ask wins; otherwise the agent estimates it when it files the issue.
+- Signals: packages touched, a new capability or provider, a spec, live-service unknowns and the number of pull requests. When two disagree, take the higher level.
+- The agent states the reason in one line, and asks the maintainer when it is a coin toss between low and high.
+- Change it later with `holocron update issue <key> --effort <level>`.
+
+See [`new work`](/holocron/commands/new-work/), [`new issue`](/holocron/commands/new-issue/) and [`start work`](/holocron/commands/start-work/).

@@ -1,0 +1,111 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/check-tokens.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Token Expiry
+
+# Runs `holocron doctor secrets --verify` on a schedule, so a token that has been rejected or is about to expire (7 days or
+# fewer left) fails this job and GitHub's failed-workflow notification reaches the team before an operation breaks.
+#
+# Daily, not weekly: the warning window is 7 days, so a weekly run could land just outside it and the next one just
+# after the token lapsed. A daily run fails every day inside the window, which keeps the reminder in view until the
+# token is renewed.
+#
+# A token that is not set is skipped, not a failure, so a repo passes only the secrets it uses. Secrets reach the
+# job through `secrets: inherit`; the declared list below is for callers that pass them explicitly.
+#
+# The run also reads the repo's 1Password credentials provider (`<org/repo> - ci`), so it installs `op` and signs in with
+# `HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN`, a read-only service account for that one Environment. Without it the `1password`
+# rows fail and the job is red every day, which hides a real expiry.
+#
+# It reads the `ci` layer only (`--env ci`): the service account sees that one Environment, and without the flag the
+# run also asks for `local` and `dev`, which it cannot read and so reports as missing.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_READ_TOKEN:
+        description: Fine-grained token for reading repos and Actions runs.
+        required: false
+      HOLOCRON_ISSUES_TOKEN:
+        description: Fine-grained token for issues.
+        required: false
+      HOLOCRON_SYNC_TOKEN:
+        description: Fine-grained token for `sync github`.
+        required: false
+      HOLOCRON_RELEASE_TOKEN:
+        description: Fine-grained token for releases.
+        required: false
+      HOLOCRON_ADMIN_TOKEN:
+        description: Fine-grained token for repo settings.
+        required: false
+      HOLOCRON_SECRETS_TOKEN:
+        description: Fine-grained organization token for organization secrets.
+        required: false
+      HOLOCRON_DEPLOY_TOKEN:
+        description: Fine-grained token for GitHub Pages.
+        required: false
+      HOLOCRON_ORG_TOKEN:
+        description: Fine-grained organization token for teams and organization variables.
+        required: false
+      HOLOCRON_USER_SYNC_TOKEN:
+        description: Fine-grained token for the account links files.
+        required: false
+      HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN:
+        description: A read-only 1Password service account for the `ci` layer Environment, so the run can compare it with GitHub.
+        required: false
+      HOLOCRON_HEARTBEAT_CHECK_TOKENS:
+        description: The ping URL of the `check-tokens` heartbeat. Without it the run sends none.
+        required: false
+
+jobs:
+  token-expiry:
+    name: Run holocron doctor secrets --verify
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
+      HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+      HOLOCRON_RELEASE_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN }}
+      HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+      HOLOCRON_SECRETS_TOKEN: ${{ secrets.HOLOCRON_SECRETS_TOKEN }}
+      HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
+      HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
+      HOLOCRON_USER_SYNC_TOKEN: ${{ secrets.HOLOCRON_USER_SYNC_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: 1password/install-cli-action@1a3160d5e9de1ae0803eaa08a88746f5ae3daa50 # v4.1.0
+        name: Install the 1Password CLI
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run holocron doctor secrets --verify
+        # Only this step holds the service account, not the job: the install action above never sees it.
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.HOLOCRON_OP_SERVICE_ACCOUNT_TOKEN }}
+        with:
+          task: check-tokens
+          args: --env ci
+
+      # Tells Checkly this run finished (#2359, the `check-tokens` heartbeat). Last, and only on success, so a red or
+      # missing run is what Checkly notices. A no-op until the secret exists; the URL is a credential: it goes in through
+      # `env` only, is masked, and a failed ping never fails the job.
+      - name: Ping the heartbeat
+        env:
+          PING_URL: ${{ secrets.HOLOCRON_HEARTBEAT_CHECK_TOKENS }}
+        run: |
+          if [ -z "$PING_URL" ]; then
+            echo "::notice::HOLOCRON_HEARTBEAT_CHECK_TOKENS is not set, so no heartbeat was sent."
+            exit 0
+          fi
+          echo "::add-mask::$PING_URL"
+          curl -fsS --retry 3 --max-time 10 -o /dev/null "$PING_URL" || echo "::warning::The heartbeat ping failed."

@@ -1,0 +1,23 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: reconcile-projects
+
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Reconcile Projects (manual)' || github.event_name == 'schedule' && 'Reconcile Projects (scheduled)' || 'Reconcile Projects' }}"
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-projects:
+    name: reconcile-projects
+    uses: ./.github/workflows/reconcile-projects.yml
+    secrets: inherit

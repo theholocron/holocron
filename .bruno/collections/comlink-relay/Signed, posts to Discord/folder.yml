@@ -1,0 +1,23 @@
+info:
+  name: Signed, posts to Discord
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit
+  scripts:
+    - type: before-request
+      code: |-
+        const CryptoJS = require("crypto-js");
+        // Signs the body exactly as it is sent: hex HMAC-SHA256 under the integration's client secret.
+        const secret = bru.getEnvVar("sentrySecret");
+        if (!secret) throw new Error("Set sentrySecret in the environment (COMLINK_SENTRY_SECRET).");
+        const body = bru.interpolate(typeof req.getBody() === "string" ? req.getBody() : JSON.stringify(req.getBody()));
+        req.setHeader(
+          "Sentry-Hook-Signature",
+          CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex)
+        );
+
+docs:
+  content: This one posts a real message (pings off) to the Discord webhook bound as `COMLINK_SENTRY_WEBHOOK`. Bind a throwaway one.
+  type: text/markdown

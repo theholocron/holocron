@@ -1,0 +1,66 @@
+{
+  "name": "@theholocron/zendesk-client",
+  "version": "1.58.0-alpha.59",
+  "description": "A TypeScript client for the Zendesk API",
+  "keywords": [
+    "zendesk",
+    "support",
+    "ticketing",
+    "typescript",
+    "http-client",
+    "api"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/clients/zendesk/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "clients/zendesk-client"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown && node ../scripts/check-bundle-size.mjs",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/observability": "workspace:^"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

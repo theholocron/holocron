@@ -1,0 +1,24 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: measure:docs
+
+run-name: "${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && format('Measure Docs: {0}', github.event.pull_request.title) || 'Measure Docs' }}"
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  measure-docs:
+    name: measure:docs
+    uses: ./.github/workflows/measure-docs.yml
+    secrets: inherit

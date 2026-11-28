@@ -1,0 +1,131 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { createCliRunner } from "@theholocron/kyber/testing";
+import { describe, expect, it } from "vitest";
+
+/** Runs the built CLI (`dist/cli.mjs`) in a fresh directory with no tokens, no telemetry and no update check. */
+const runCli = createCliRunner({
+	bin: join(dirname(fileURLToPath(import.meta.url)), "..", "..", "dist", "cli.mjs"),
+	configFile: "holocron.config.json",
+	env: { HOLOCRON_TELEMETRY: "false" },
+	prefix: "holocron-cli-",
+});
+
+/** These run the built CLI, so what `cli.ts` does at the top level (the error paths, the exit codes) is checked as a user sees it. */
+const demo = { name: "demo", providers: {} };
+
+describe.concurrent("holocron (the built CLI)", () => {
+	describe("errors", () => {
+		it("prints a plain Error's message and exits 1, with no usage and no stack trace (#1103)", async () => {
+			const run = await runCli(["show", "config"], { config: "{ nope" });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toContain("is not valid JSON");
+			expect(run.stderr).not.toMatch(/\n\s+at /);
+			expect(run.stdout).toBe("");
+		});
+
+		it("prints a user-facing error as its whole story, without usage", async () => {
+			const run = await runCli(["doctor"]);
+			expect(run.code).toBe(1);
+			expect(run.stderr).toMatch(/no holocron\.config\.\{ts,js,mjs,cjs,json\} found/);
+			expect(run.stderr).not.toContain("Options:");
+		});
+
+		it("says a plugin that does not resolve cannot be used here", async () => {
+			const run = await runCli(["doctor"], { config: { ...demo, providers: { source: "nosuchprovider" } } });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toContain("holocron-plugin-nosuchprovider");
+		});
+
+		it("keeps yargs' own message for an unknown command or option", async () => {
+			const unknown = await runCli(["frobnicate"], { config: demo });
+			expect(unknown.code).toBe(1);
+			expect(unknown.stderr).toContain("Unknown argument: frobnicate");
+			const option = await runCli(["show", "config", "--nope"], { config: demo });
+			expect(option.code).toBe(1);
+			expect(option.stderr).toContain("Unknown argument: nope");
+		});
+
+		it("refuses to open a menu without a terminal, and says how to see the commands", async () => {
+			const run = await runCli([], { config: demo });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toContain("holocron --help");
+		});
+	});
+
+	describe("output", () => {
+		it("shows the resolved config as JSON", async () => {
+			const run = await runCli(["show", "config"], { config: demo });
+			expect(run.code).toBe(0);
+			expect(JSON.parse(run.stdout)).toMatchObject({ name: "demo", providers: {} });
+		});
+
+		it("lists the commands for --help, and prints a version for --version", async () => {
+			const help = await runCli(["--help"]);
+			expect(help.code).toBe(0);
+			expect(help.stdout).toMatch(/probe/);
+			expect(help.stdout).toMatch(/doctor/);
+			const version = await runCli(["--version"]);
+			expect(version.code).toBe(0);
+			expect(version.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
+		});
+	});
+
+	describe("command groups", () => {
+		it("lists the subcommands of `doctor` and `install` in their --help", async () => {
+			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["install", "--help"])]);
+			expect(doctor.code).toBe(0);
+			expect(doctor.stdout).toMatch(/notifications\s+Check the layout/);
+			expect(skills.code).toBe(0);
+			expect(skills.stdout).toMatch(/install skills/);
+			expect(skills.stdout).not.toMatch(/\$0/);
+		});
+
+		it("reads --built-only and --scope on `doctor notifications`, and rejects a bad scope", async () => {
+			const run = await runCli(["doctor", "notifications", "--scope", "team=x"], { config: demo });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toContain('invalid --scope "team=x"');
+		});
+	});
+
+	describe("probe", () => {
+		it("lists every group and probe without a terminal", async () => {
+			const run = await runCli(["probe"], { config: demo });
+			expect(run.code).toBe(0);
+			expect(run.stdout).toMatch(/^core\n\s+providers/m);
+			expect(run.stdout).toMatch(/comlink\n\s+bindings/);
+		});
+
+		it("lists one provider's probes, and says what is available for an unknown one", async () => {
+			const one = await runCli(["probe", "core"], { config: demo });
+			expect(one.code).toBe(0);
+			expect(one.stdout).toContain("providers");
+			const unknown = await runCli(["probe", "nope"], { config: demo });
+			expect(unknown.code).toBe(1);
+			expect(unknown.stdout).toMatch(/no probes for `nope`\s+try: ci, comlink, core/);
+		});
+
+		it("runs a read-only probe and exits 0, listing the built-in group", async () => {
+			const run = await runCli(["probe", "core", "providers"], { config: demo });
+			expect(run.code).toBe(0);
+			expect(run.stdout).toContain("Providers");
+			expect(run.stdout).toMatch(/✓ comlink \(built in\)/);
+		});
+
+		it("exits 1 when a provider in the config cannot load, and says why", async () => {
+			const run = await runCli(["probe", "core", "providers"], {
+				config: { ...demo, providers: { source: "nosuchprovider" } },
+			});
+			expect(run.code).toBe(1);
+			expect(run.stdout).toMatch(/✗ nosuchprovider\s+did not load/);
+		});
+
+		it("will not run a probe that changes things without --yes when there is no terminal", async () => {
+			const run = await runCli(["probe", "comlink", "deliver"], { config: demo });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toMatch(/changes things on comlink/);
+			expect(run.stderr).toContain("--yes");
+		});
+	});
+});

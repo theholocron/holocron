@@ -1,0 +1,45 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/measure/bundle.yml
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Audit the Bundle Size
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_CODECOV_UPLOAD_TOKEN:
+        description: The Codecov upload token. Read first; the CODECOV_TOKEN secret is the fallback.
+        required: false
+      CODECOV_TOKEN:
+        required: false
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  bundle-size:
+    name: Upload bundle stats to Codecov
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
+      # Read by the bundle-stats uploader inside `holocron run build`.
+      CODECOV_TOKEN: ${{ secrets.HOLOCRON_CODECOV_UPLOAD_TOKEN || secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Build and upload bundle stats
+        with:
+          task: build

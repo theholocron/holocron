@@ -1,0 +1,36 @@
+---
+title: "new github-app"
+description: Create a GitHub App from a manifest, and keep its id, private key and webhook secret in a private file to import into a credentials environment.
+---
+
+```bash
+holocron new github-app \
+  --name "The Holocron Sentinel - dev" \
+  --webhook-url https://sentinel-dev.example.dev/api/webhook \
+  --manifest apps/sentinel/github-app.manifest.json \
+  --org theholocron
+```
+
+Creates a GitHub App through GitHub's [manifest flow](https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest), so the permissions and events are data in a file instead of a form to fill in twice (once for the real App, once for a dev instance).
+
+1. It reads the manifest file (`default_permissions`, `default_events`, and optionally `description`, `url`, `public`), adds the name, the webhook URL and a redirect to a one-shot server on `127.0.0.1`, and opens a page that posts the manifest to GitHub.
+2. You press **Create GitHub App** on GitHub. This is the one step that cannot be done for you. The page waits up to five minutes.
+3. GitHub redirects back with a one-time code. The command checks the `state` it started with, then exchanges the code for the App's id, private key and webhook secret.
+4. It writes `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and the webhook secret as `NAME=value` lines to a private file, with the protections [`export tokens`](/holocron/commands/export-tokens/) uses: mode 0600, a path git must ignore, never overwritten without `--force`, and deleted when you press Enter after importing it. Nothing is printed. The OAuth client id and secret are not kept, because nothing uses them.
+
+Install the App on the repositories it should see afterwards (the command prints the link); GitHub makes that a click too.
+
+The code works once and GitHub shows the key once, so the file is checked before the browser opens: git must ignore it and it must not exist. If the credentials still cannot be written, the command says where to delete the App and run it again.
+
+| Option                 | Default                           | What it does                                                                                                                      |
+| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--name`               | _(required)_                      | The App's name. Unique across all of GitHub.                                                                                      |
+| `--webhook-url`        | _(required)_                      | The `https` address GitHub delivers webhooks to (your tunnel and `/api/webhook`).                                                 |
+| `--manifest`           | _(required)_                      | The manifest file, relative to `--cwd`.                                                                                           |
+| `--org`                | the signed-in account             | Create the App under this organization.                                                                                           |
+| `--webhook-secret-var` | `SENTINEL_WEBHOOK_SECRET`         | The variable the webhook secret is written as.                                                                                    |
+| `--file`               | `.holocron/.private/.credentials` | The private file, relative to `--cwd`. The default directory is made when missing and its ignore rule comes from `holocron sync`. |
+| `--keep`               | off                               | Leave the file in place instead of deleting it once the import is done.                                                           |
+| `--force`              | off                               | Replace the file if it is there.                                                                                                  |
+
+Sentinel's manifest is `apps/sentinel/github-app.manifest.json`. It lists the permissions of the README's registration tables; the `installation` event is not in it, because GitHub always sends that one to an App. The command is not available on Windows, where the file's mode means nothing.

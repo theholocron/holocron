@@ -1,0 +1,46 @@
+import { DEFAULT_ORG } from "@theholocron/astromech";
+
+import type { Capability } from "../../config/compose/index.js";
+import { DEFAULT_DOMAIN } from "../constants.js";
+import { react } from "./react.js";
+
+/** Options for the Next.js preset. */
+export interface NextjsOptions {
+	/** Extra `with:` inputs merged into the `test:unit` task entry. */
+	test?: Record<string, unknown>;
+}
+
+/**
+ * Bundle preset for Next.js application repos. Returns a Capability[] that
+ * includes react() so callers only need compose(node(), typecheck(), nextjs()).
+ * compose() deduplicates, so adding react() explicitly is harmless.
+ *
+ * Adds: Vercel deployment and Cypress user-flow tests on top of react().
+ * Requires (via react()): node, typecheck
+ *
+ * @example
+ * const preset = compose(node(), typecheck(), nextjs({ test: { "wait-on-url": "http://localhost:3000" } }));
+ */
+export function nextjs({ test: testOverrides = {} }: NextjsOptions = {}): Capability[] {
+	const nextjsCapability: Capability = {
+		id: "nextjs",
+		requires: ["react"],
+		org: DEFAULT_ORG,
+		domain: DEFAULT_DOMAIN,
+		providers: { deployment: "vercel" },
+		tasks: [
+			{
+				name: "test:unit",
+				with: {
+					"run-unit": false,
+					"run-storybook": true,
+					"run-interaction": true,
+					"run-user-flow": true,
+					...testOverrides,
+				},
+			},
+		],
+	};
+
+	return [react(), nextjsCapability];
+}

@@ -1,0 +1,5469 @@
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { DCO_CHECK } from "@theholocron/astromech";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader, ProviderApiError, WorkspaceContextError } from "../../plugin/index.js";
+import { runSetup } from "./run-setup.js";
+import type { RunSetupInput } from "./run-step/index.js";
+
+function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
+	return {
+		resolved: resolveConfig(rawConfig),
+		filepath: "/tmp/test/holocron.config.json",
+	};
+}
+
+const SOURCE_DEFAULTS = {
+	listWorkflowFiles: async () => [] as string[],
+	// "no existing file" -- holocron#1068's collision check (readWorkflowFile
+	// then writeWorkflowFile) now runs ahead of every workflow write; this
+	// default keeps every test that doesn't care about collisions behaving
+	// exactly as it did before that check existed. A test exercising the
+	// collision itself overrides this with a real marker-bearing string.
+	readWorkflowFile: async () => null as string | null,
+};
+
+function makePlugin(name: string, caps: Record<string, unknown>) {
+	// Merge SOURCE_DEFAULTS under any provided "source" capability so that
+	// test stubs only need to specify the methods they care about.
+	const merged = { ...caps };
+	if (merged.source && typeof merged.source === "object") {
+		merged.source = { ...SOURCE_DEFAULTS, ...(merged.source as Record<string, unknown>) };
+	}
+	return {
+		createPlugin: (_opts: Record<string, unknown>) => ({
+			name,
+			capabilities: Object.fromEntries(Object.entries(merged).map(([k, impl]) => [k, () => impl])),
+		}),
+	};
+}
+
+function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>): PluginLoader {
+	const importer = vi.fn(async (pkg: string) => {
+		if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+		return modules[pkg] as Awaited<ReturnType<PluginImporter>>;
+	});
+	return new PluginLoader(
+		loaded.resolved,
+		{ repoRoot: "/tmp/test", repo: "theholocron/holocron" },
+		importer as unknown as PluginImporter
+	);
+}
+
+describe("runSetup", () => {
+	it("throws a WorkspaceContextError when no plugin resolves (global install) — theholocron/holocron#576", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { source: "github", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {}); // nothing resolves
+
+		const err = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(WorkspaceContextError);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron setup/);
+	});
+
+	it("runs all six source security steps + reports ok for each", async () => {
+		const calls: string[] = [];
+		const source = {
+			enableVulnerabilityAlerts: async () => {
+				calls.push("vuln-alerts");
+			},
+			enableAutomatedSecurityFixes: async () => {
+				calls.push("auto-sec-fixes");
+			},
+			enableSecretScanning: async () => {
+				calls.push("secret-scan");
+			},
+			enablePrivateVulnerabilityReporting: async () => {
+				calls.push("private-vuln");
+			},
+			enableDependencyGraph: async () => {
+				calls.push("dep-graph");
+			},
+			enableCodeScanning: async () => {
+				calls.push("code-scan");
+				return "run 1";
+			},
+		};
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(calls).toEqual([
+			"vuln-alerts",
+			"auto-sec-fixes",
+			"secret-scan",
+			"private-vuln",
+			"dep-graph",
+			"code-scan",
+		]);
+		const securitySteps = report.steps.filter(
+			(s) =>
+				s.capability === "source" &&
+				!s.step.startsWith("write") &&
+				!s.step.startsWith("upsert") &&
+				!s.step.startsWith("updateRepo")
+		);
+		expect(securitySteps).toHaveLength(6);
+		expect(securitySteps.every((s) => s.status === "ok")).toBe(true);
+	});
+
+	it("soft-skips failed steps (continues subsequent capabilities)", async () => {
+		const calls: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					list: async () => {
+						calls.push("vault-list");
+						return ["SECRET_A"];
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {
+						throw new Error("403 forbidden");
+					},
+					enableAutomatedSecurityFixes: async () => {
+						calls.push("auto-sec-fixes");
+					},
+					enableSecretScanning: async () => {
+						calls.push("secret-scan");
+					},
+					enablePrivateVulnerabilityReporting: async () => {
+						calls.push("private-vuln");
+					},
+					enableDependencyGraph: async () => {
+						calls.push("dep-graph");
+					},
+					enableCodeScanning: async () => {
+						calls.push("code-scan");
+						return "run 1";
+					},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(calls).toContain("vault-list");
+		expect(calls).toContain("auto-sec-fixes"); // ran AFTER the failure
+		const firstSource = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(firstSource?.status).toBe("fail");
+		expect(firstSource?.message).toContain("403 forbidden");
+		expect(report.summary.fail).toBe(1);
+		expect(report.summary.ok).toBeGreaterThanOrEqual(4);
+	});
+
+	it("dry-run reports `dry-run` status without calling mutators", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => ["X", "Y"] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {
+						called = true;
+					},
+					enableAutomatedSecurityFixes: async () => {
+						called = true;
+					},
+					enableSecretScanning: async () => {
+						called = true;
+					},
+					enablePrivateVulnerabilityReporting: async () => {
+						called = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(called).toBe(false); // mutators never ran
+		const sourceSteps = report.steps.filter((s) => s.capability === "source");
+		expect(sourceSteps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
+		// Vault list still runs (read-only) even in dry-run.
+		expect(report.steps.find((s) => s.capability === "vault")?.status).toBe("ok");
+	});
+
+	it("upserts staging + production environments when the capability is loaded", async () => {
+		const created: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", environments: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				environments: {
+					upsertEnvironment: async (env: { name: string }) => {
+						created.push(env.name);
+					},
+				},
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(created).toEqual(["staging", "production"]);
+	});
+
+	it("ensures the deployment project using the config project name", async () => {
+		let ensuredName: string | null = null;
+		const loaded = loadedFrom({
+			name: "my-app",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => {
+						ensuredName = input.name;
+						return { id: "prj_1", name: input.name };
+					},
+				},
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(ensuredName).toBe("my-app");
+	});
+
+	describe("errors DSN secrets", () => {
+		type Described = { provider: string; envKeys: string[]; frameworkEnvKeys?: Record<string, string[]> };
+		const SENTRY: Described = {
+			provider: "sentry",
+			envKeys: ["SENTRY_DSN"],
+			frameworkEnvKeys: { next: ["NEXT_PUBLIC_SENTRY_DSN"] },
+		};
+		let repoRoot: string;
+
+		beforeEach(async () => {
+			repoRoot = await mkdtemp(join(tmpdir(), "holo-errors-"));
+		});
+		afterEach(async () => {
+			await rm(repoRoot, { recursive: true, force: true });
+		});
+
+		async function pushedKeys(
+			described: Described,
+			root = repoRoot,
+			dryRun = false,
+			workspacePackages?: RunSetupInput["workspacePackages"]
+		) {
+			const setSecrets: Array<[string, string]> = [];
+			const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry", secrets: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+					errors: {
+						describe: async () => described,
+						ensureProject: async (input: { name: string }) => ({
+							dsn: `https://k@o.ingest.sentry.io/${input.name}`,
+							alreadyExists: false,
+						}),
+					},
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("github", {
+					secrets: {
+						providerName: "github",
+						setSecret: async (_scope: unknown, name: string, value: string) => {
+							setSecrets.push([name, value]);
+						},
+					},
+				}),
+			});
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: root, dryRun },
+				loader,
+				print: () => {},
+				workspacePackages,
+			});
+			const rows = report.steps.filter((s) => s.capability === "errors");
+			return { rows, setSecrets };
+		}
+
+		async function writePkg(dir: string, pkg: Record<string, unknown>) {
+			await mkdir(dir, { recursive: true });
+			await writeFile(join(dir, "package.json"), JSON.stringify(pkg), "utf8");
+		}
+
+		it("pushes only SENTRY_DSN when the repo has no package.json", async () => {
+			const { rows, setSecrets } = await pushedKeys(SENTRY, "/tmp/test");
+			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app", "set secret SENTRY_DSN"]);
+			expect(rows.every((r) => r.status === "ok")).toBe(true);
+			expect(setSecrets).toEqual([["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"]]);
+		});
+
+		it("pushes only SENTRY_DSN when next is not in the stack", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { vite: "^7.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN"]);
+		});
+
+		it("also pushes NEXT_PUBLIC_SENTRY_DSN when the root depends on next", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			expect(rows.map((r) => r.step)).toEqual([
+				"ensureProject my-app",
+				"set secret SENTRY_DSN",
+				"set secret NEXT_PUBLIC_SENTRY_DSN",
+			]);
+			expect(setSecrets).toEqual([
+				["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+				["NEXT_PUBLIC_SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+			]);
+		});
+
+		it("also pushes it when next is a root devDependency", async () => {
+			await writePkg(repoRoot, { name: "x", devDependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("also pushes it when only a workspace package depends on next", async () => {
+			await writePkg(repoRoot, { name: "root", private: true });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n", "utf8");
+			await writePkg(join(repoRoot, "apps", "web"), { name: "web", dependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("ignores a frameworkEnvKeys entry for a framework it does not know", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys({
+				provider: "sentry",
+				envKeys: ["SENTRY_DSN"],
+				frameworkEnvKeys: { nuxt: ["NUXT_PUBLIC_SENTRY_DSN"] },
+			});
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN"]);
+			const warning = rows.find((r) => r.step === "frameworkEnvKeys nuxt");
+			expect(warning?.status).toBe("skip");
+			expect(warning?.message).toContain("not a known framework name");
+		});
+
+		it("finds a package under a recursive `apps/**` workspace glob", async () => {
+			await writePkg(repoRoot, { name: "root", private: true });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/**\n", "utf8");
+			await writePkg(join(repoRoot, "apps", "group", "web"), { name: "web", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			expect(rows.find((r) => r.step === "detect stack")).toBeUndefined();
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("still pushes SENTRY_DSN, with a note, when the workspace packages cannot be read", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const unreadable = () => {
+				throw new Error("EACCES: permission denied, scandir 'apps'");
+			};
+			const { rows, setSecrets } = await pushedKeys(SENTRY, repoRoot, false, unreadable);
+			const note = rows.find((r) => r.step === "detect stack");
+			expect(note?.status).toBe("skip");
+			expect(note?.message).toContain("using the root package.json only");
+			// The root alone still shows next.
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("leaves a plugin that returns no frameworkEnvKeys (old shape) unchanged", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys({
+				provider: "sentry",
+				envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"],
+			});
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("on a dry run only reports ensureProject and writes no secret (behaviour unchanged)", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY, repoRoot, true);
+			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app"]);
+			expect(setSecrets).toEqual([]);
+		});
+	});
+
+	it("does nothing for an errors provider that has no ensureProject", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: { describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }) },
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.steps.filter((s) => s.capability === "errors")).toEqual([]);
+	});
+
+	it("skips the secrets push when no secrets provider is configured", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN"] }),
+					ensureProject: async () => ({ dsn: "https://x@o.ingest.sentry.io/1", alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const rows = report.steps.filter((s) => s.capability === "errors");
+		expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app"]);
+		expect(rows[0]?.message).toContain("exists");
+	});
+
+	it("provisions the one shared dataset for the logs capability", async () => {
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "");
+		vi.stubEnv("AXIOM_DATASET", "shared-ds");
+		const ensured: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-app",
+			providers: { logs: "axiom" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", {
+				logs: {
+					ensureDataset: async (name: string) => {
+						ensured.push(name);
+						return { alreadyExists: false };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+		vi.unstubAllEnvs();
+
+		expect(ensured).toEqual(["shared-ds"]);
+		const rows = report.steps.filter((s) => s.capability === "logs");
+		expect(rows.map((r) => r.status)).toEqual(["ok"]);
+		expect(rows[0]?.message).toContain("created");
+	});
+
+	it("skips the logs dataset when no dataset is named", async () => {
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "");
+		vi.stubEnv("AXIOM_DATASET", "");
+		const ensureDataset = vi.fn();
+		const loaded = loadedFrom({ name: "my-app", providers: { logs: "axiom" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", { logs: { ensureDataset } }),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+		vi.unstubAllEnvs();
+
+		expect(ensureDataset).not.toHaveBeenCalled();
+		const rows = report.steps.filter((s) => s.capability === "logs");
+		expect(rows.map((r) => r.status)).toEqual(["skip"]);
+		expect(rows[0]?.message).toContain("HOLOCRON_AXIOM_DATASET");
+	});
+
+	it("ensures every check the monitoring provider is configured with", async () => {
+		const ensured: string[] = [];
+		const checkInput = {
+			name: "Sentinel webhook uptime",
+			url: "https://sentinel.theholocron.dev/api/webhook",
+			method: "GET" as const,
+			assertions: [{ source: "status_code" as const, comparison: "equals" as const, target: "405" }],
+		};
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [checkInput],
+					ensureCheck: async (input: typeof checkInput) => {
+						ensured.push(input.name);
+						return { check: { id: "chk-1", name: input.name }, alreadyExists: false };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(ensured).toEqual(["Sentinel webhook uptime"]);
+		const rows = report.steps.filter((s) => s.capability === "monitoring");
+		expect(rows.map((r) => r.step)).toEqual(["ensureCheck Sentinel webhook uptime"]);
+		expect(rows[0]?.message).toContain("created");
+	});
+
+	it("reports exists (not created) when the monitoring check already exists", async () => {
+		const checkInput = { name: "Sentinel webhook uptime", url: "https://sentinel.theholocron.dev/api/webhook" };
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { monitoring: "checkly" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+				monitoring: {
+					checks: [checkInput],
+					ensureCheck: async (input: typeof checkInput) => ({
+						check: { id: "chk-1", name: input.name },
+						alreadyExists: true,
+					}),
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const rows = report.steps.filter((s) => s.capability === "monitoring");
+		expect(rows[0]?.message).toContain("exists");
+	});
+
+	describe("monitoring heartbeats", () => {
+		// An obviously fake address: a real ping URL is a credential.
+		const FAKE_PING = "https://ping.invalid/00000000-0000-0000-0000-000000000000";
+		const beat = { name: "check-tokens", period: 1, periodUnit: "days", grace: 2, graceUnit: "hours" };
+
+		function withHeartbeat(alreadyExists: boolean) {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const ensureHeartbeat = vi.fn(async (input: typeof beat) => ({
+				heartbeat: { id: "hb-1", name: input.name },
+				alreadyExists,
+				pingUrl: FAKE_PING,
+			}));
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], heartbeats: [beat], ensureCheck: async () => undefined, ensureHeartbeat },
+				}),
+			});
+			return { loaded, loader, ensureHeartbeat };
+		}
+
+		it("hands the ping URL of a heartbeat it made to the import file and never prints it", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const printed: string[] = [];
+			const handOff = vi.fn(
+				async (_input: { pings: readonly { name: string; url: string }[]; base: string }) => ({
+					status: "ok" as const,
+					written: ["HOLOCRON_HEARTBEAT_CHECK_TOKENS"],
+				})
+			);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: (line) => printed.push(line),
+				handOffHeartbeats: handOff,
+			});
+			expect(handOff.mock.calls[0]?.[0].pings).toEqual([{ name: "check-tokens", url: FAKE_PING }]);
+			const rows = report.steps.filter((s) => s.capability === "monitoring");
+			expect(rows.map((r) => r.step)).toEqual(["ensureHeartbeat check-tokens", "heartbeat ping URLs for import"]);
+			expect(rows[0]?.message).toContain("created");
+			expect(rows[1]?.message).toContain("HOLOCRON_HEARTBEAT_CHECK_TOKENS");
+			expect(JSON.stringify(report) + printed.join("\n")).not.toContain("ping.invalid");
+		});
+
+		it("writes no file for a heartbeat that already exists", async () => {
+			const { loaded, loader } = withHeartbeat(true);
+			const handOff = vi.fn();
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				handOffHeartbeats: handOff,
+			});
+			expect(handOff).not.toHaveBeenCalled();
+			expect(report.steps.filter((s) => s.capability === "monitoring")[0]?.message).toContain("exists");
+		});
+
+		it("makes nothing and writes no file on --dry-run", async () => {
+			const { loaded, loader, ensureHeartbeat } = withHeartbeat(false);
+			const handOff = vi.fn();
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				print: () => {},
+				handOffHeartbeats: handOff,
+			});
+			expect(ensureHeartbeat).not.toHaveBeenCalled();
+			expect(handOff).not.toHaveBeenCalled();
+			expect(report.steps.filter((s) => s.capability === "monitoring").map((r) => r.status)).toEqual(["dry-run"]);
+		});
+
+		it("makes no heartbeat when the provider cannot ensure one", async () => {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], heartbeats: [beat], ensureCheck: async () => undefined },
+				}),
+			});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.filter((s) => s.step.startsWith("ensureHeartbeat"))).toEqual([]);
+		});
+
+		it("ensures nothing when the provider can but none is declared", async () => {
+			const loaded = loadedFrom({ name: "holocron", providers: { monitoring: "checkly" } });
+			const ensureHeartbeat = vi.fn();
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+					monitoring: { checks: [], ensureCheck: async () => undefined, ensureHeartbeat },
+				}),
+			});
+			await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(ensureHeartbeat).not.toHaveBeenCalled();
+		});
+
+		it("reports a skipped hand-off as a skip and indents what it prints", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const printed: string[] = [];
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: (line) => printed.push(line),
+				handOffHeartbeats: async (input) => {
+					input.print("nothing to write");
+					return { status: "skip", written: [], reason: "nothing was made" };
+				},
+			});
+			const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+			expect(last).toMatchObject({ status: "skip", message: "nothing was made" });
+			expect(printed).toContain("    nothing to write");
+		});
+
+		it("falls back to the real hand-off when none is given, and never prints the URL", async () => {
+			const root = await mkdtemp(join(tmpdir(), "run-setup-heartbeat-"));
+			try {
+				const { loaded, loader } = withHeartbeat(false);
+				const printed: string[] = [];
+				const report = await runSetup({
+					loaded: { ...loaded, filepath: join(root, "holocron.config.json") },
+					context: { repoRoot: root },
+					loader,
+					print: (line) => printed.push(line),
+				});
+				const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+				expect(["ok", "fail"]).toContain(last?.status);
+				expect(JSON.stringify(report) + printed.join("\n")).not.toContain("ping.invalid");
+			} finally {
+				await rm(root, { recursive: true, force: true });
+			}
+		});
+
+		it("reports a failed hand-off as a failing step", async () => {
+			const { loaded, loader } = withHeartbeat(false);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				handOffHeartbeats: async () => ({ status: "fail", written: [], reason: "not-ignored" }),
+			});
+			const last = report.steps.filter((s) => s.capability === "monitoring").at(-1);
+			expect(last).toMatchObject({ status: "fail", message: "not-ignored" });
+		});
+	});
+
+	it("calls ensureCustomDomain and dns.upsertRecord when deploy has preview.domain", async () => {
+		const customDomainCalls: Array<[string, string]> = [];
+		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			docs: { build: "workflow", domain: "acme.dev", https: true },
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					providerName: "cloudflare",
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (projectId: string, hostname: string) => {
+						customDomainCalls.push([projectId, hostname]);
+					},
+				},
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (domain: string, record: { type: string; name: string; content: string }) => {
+						dnsCalls.push(record);
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		// apex domain registered with Pages (CF routes branch deployments automatically)
+		expect(customDomainCalls).toEqual([["acme-preview", "preview.acme.dev"]]);
+		// apex CNAME + wildcard CNAME both created
+		expect(dnsCalls).toHaveLength(2);
+		expect(dnsCalls[0]).toMatchObject({
+			type: "CNAME",
+			name: "preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+		expect(dnsCalls[1]).toMatchObject({
+			type: "CNAME",
+			name: "*.preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+	});
+
+	it("hands a declared production Vercel domain challenge to the DNS provider", async () => {
+		const dnsCalls: Array<{ zone: string; type: string; name: string; content: string; ttl?: number }> = [];
+		const loaded = loadedFrom({
+			name: "sentinel",
+			providers: { vault: "1password", deployment: "vercel", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					domain: "sentinel.holocron.dev",
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async () => ({
+						zone: "holocron.dev",
+						record: {
+							type: "CNAME",
+							name: "sentinel.holocron.dev",
+							content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+						},
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (
+						zone: string,
+						record: { type: string; name: string; content: string; ttl?: number }
+					) => {
+						dnsCalls.push({ zone, ...record });
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(dnsCalls).toEqual([
+			{
+				zone: "holocron.dev",
+				type: "CNAME",
+				name: "sentinel.holocron.dev",
+				content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+				ttl: 1,
+			},
+		]);
+	});
+
+	it("resolves preview: true using org and domain context to provision project and custom domain", async () => {
+		const ensureProjectCalls: string[] = [];
+		const customDomainCalls: Array<[string, string]> = [];
+		const dnsCalls: Array<{ type: string; name: string; content: string }> = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			domain: "acme.dev",
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }],
+			providers: { vault: "1password", deployment: "cloudflare", dns: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					providerName: "cloudflare",
+					ensureProject: async (input: { name: string }) => {
+						ensureProjectCalls.push(input.name);
+						return { id: input.name, name: input.name };
+					},
+					ensureCustomDomain: async (projectId: string, hostname: string) => {
+						customDomainCalls.push([projectId, hostname]);
+					},
+				},
+				dns: {
+					listRecords: async () => [],
+					upsertRecord: async (domain: string, record: { type: string; name: string; content: string }) => {
+						dnsCalls.push(record);
+						return record;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		// preview project provisioned; repo's own project name NOT created
+		expect(ensureProjectCalls).toEqual(["acme-preview"]);
+		expect(customDomainCalls).toEqual([["acme-preview", "preview.acme.dev"]]);
+		expect(dnsCalls).toHaveLength(2);
+		expect(dnsCalls[0]).toMatchObject({
+			type: "CNAME",
+			name: "preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+		expect(dnsCalls[1]).toMatchObject({
+			type: "CNAME",
+			name: "*.preview.acme.dev",
+			content: "acme-preview.pages.dev",
+		});
+	});
+
+	it("skips ensureCustomDomain when preview has no domain", async () => {
+		const customDomainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (_id: string, hostname: string) => {
+						customDomainCalls.push(hostname);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(customDomainCalls).toHaveLength(0);
+	});
+
+	it("skips ensureCustomDomain when deployment provider does not implement it", async () => {
+		const domainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					// no ensureCustomDomain — provider omits the optional method
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(domainCalls).toHaveLength(0);
+	});
+
+	it("skips DNS upsert when dns capability is not configured", async () => {
+		const dnsCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: true, preview: { project: "acme-preview", domain: "preview.acme.dev" } },
+				},
+			],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(dnsCalls).toHaveLength(0);
+	});
+
+	it("skips preview provisioning when workflow entry is a plain string (no preview config)", async () => {
+		const customDomainCalls: string[] = [];
+		const loaded = loadedFrom({
+			name: "my-docs",
+			tasks: ["deploy"],
+			providers: { vault: "1password", deployment: "cloudflare" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				deployment: {
+					ensureProject: async (input: { name: string }) => ({ id: input.name, name: input.name }),
+					ensureCustomDomain: async (_id: string, hostname: string) => {
+						customDomainCalls.push(hostname);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(customDomainCalls).toHaveLength(0);
+	});
+
+	it("reports already-exists for ensureWebhookApp when the provider supports it", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", auth: "clerk" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: {
+					ensureWebhookApp: async () => ({ alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const authStep = report.steps.find((s) => s.capability === "auth");
+		expect(authStep?.status).toBe("ok");
+		expect(authStep?.message).toContain("exists");
+	});
+
+	it("skips auth setup when the provider does not implement ensureWebhookApp", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", auth: "clerk" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: {
+					// Note: no ensureWebhookApp
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const authStep = report.steps.find((s) => s.capability === "auth");
+		expect(authStep?.status).toBe("skip");
+		expect(report.summary.skip).toBeGreaterThanOrEqual(1);
+	});
+
+	it("runs sync() once per tooling provider (many-cardinality)", async () => {
+		const synced: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", tooling: ["postman", "storybook"] },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-postman": makePlugin("postman", {
+				tooling: {
+					providerName: "postman",
+					sync: async () => {
+						synced.push("postman");
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-storybook": makePlugin("storybook", {
+				tooling: {
+					providerName: "storybook",
+					sync: async () => {
+						synced.push("storybook");
+					},
+				},
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(synced).toEqual(["postman", "storybook"]);
+	});
+
+	it("calls vault ensureProject + ensureEnvironment when the provider implements them", async () => {
+		const projectCreated: string[] = [];
+		const envsCreated: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "my-app",
+			providers: { vault: "doppler" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-doppler": makePlugin("doppler", {
+				vault: {
+					list: async () => [],
+					ensureProject: async (name: string) => {
+						projectCreated.push(name);
+						return { alreadyExists: false };
+					},
+					ensureEnvironment: async (project: string, name: string) => {
+						envsCreated.push([project, name]);
+						return { alreadyExists: false };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(projectCreated).toEqual(["my-app"]);
+		expect(envsCreated).toEqual([
+			["my-app", "dev"],
+			["my-app", "stg"],
+			["my-app", "prd"],
+		]);
+		const vaultSteps = report.steps.filter((s) => s.capability === "vault");
+		expect(vaultSteps.find((s) => s.step.startsWith("ensureProject"))?.message).toContain("created");
+		expect(vaultSteps.filter((s) => s.step.startsWith("ensureEnvironment"))).toHaveLength(3);
+	});
+
+	it("skips vault ensureProject + ensureEnvironment when the provider omits them (1P-shaped vaults)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => ["ONE"] },
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.steps.some((s) => s.step.startsWith("ensureProject"))).toBe(false);
+		expect(report.steps.some((s) => s.step.startsWith("ensureEnvironment"))).toBe(false);
+	});
+
+	it("disables default CodeQL setup when codeql workflow is configured", async () => {
+		let defaultSetupDisabled = false;
+		let defaultSetupEnabled = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "security.codeScanning"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {
+						defaultSetupEnabled = true;
+						return "run 1";
+					},
+					disableDefaultCodeScanning: async () => {
+						defaultSetupDisabled = true;
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(defaultSetupDisabled).toBe(true);
+		expect(defaultSetupEnabled).toBe(false);
+		const step = report.steps.find((s) => s.step === "disableDefaultCodeScanning");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("enables default CodeQL setup when no codeql workflow is configured", async () => {
+		let defaultSetupEnabled = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {
+						defaultSetupEnabled = true;
+						return "run 1";
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(defaultSetupEnabled).toBe(true);
+	});
+
+	it("reports fail (not skip) when a step throws a 403 permissions error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {
+						throw new ProviderApiError("Forbidden", 403);
+					},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBe("permissions");
+	});
+
+	it("skips enableSecretScanning when the API returns 422 (public repo)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {
+						throw new ProviderApiError("already enabled", 422);
+					},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("skips enablePrivateVulnerabilityReporting when the API returns 404 (public repo)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {
+						throw new ProviderApiError("not found", 404);
+					},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "enablePrivateVulnerabilityReporting");
+		expect(step?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("skips disableDefaultCodeScanning when the API returns 403 plan restriction", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["security.codeScanning"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					disableDefaultCodeScanning: async () => {
+						throw new ProviderApiError("GitHub Advanced Security is not enabled", 403);
+					},
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const step = report.steps.find((s) => s.step === "disableDefaultCodeScanning");
+		expect(step?.status).toBe("skip");
+		expect(step?.reason).toBe("plan");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("applies balanced repo settings + creates a ruleset when repo.protection is 'balanced'", async () => {
+		let settingsApplied: Record<string, unknown> | null = null;
+		let rulesetCreated: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async (s: Record<string, unknown>) => {
+						settingsApplied = s;
+					},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetCreated = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(settingsApplied).not.toBeNull();
+		expect(settingsApplied).toMatchObject({ allow_squash_merge: true, allow_auto_merge: true, has_wiki: false });
+		expect(rulesetCreated).not.toBeNull();
+		expect(rulesetCreated).toMatchObject({ name: "holocron-default-branch", enforcement: "active" });
+		// balanced has no required_status_checks rule
+		const rules = (rulesetCreated as unknown as { rules: Array<{ type: string }> }).rules;
+		expect(rules.some((r) => r.type === "required_status_checks")).toBe(false);
+		const policySteps = report.steps.filter((s) => s.capability === "source" && s.step === "updateRepoSettings");
+		expect(policySteps[0]?.status).toBe("ok");
+		// repo.defaultBranch wasn't set -- GitHub's current default branch setting
+		// is left untouched, not overwritten with some implicit value.
+		expect(settingsApplied).not.toHaveProperty("default_branch");
+	});
+
+	it("passes repo.defaultBranch through as default_branch -- a repo using a main/alpha prerelease-channel split can point Sentinel's default-branch-only read at the actively-developed branch", async () => {
+		let settingsApplied: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced", defaultBranch: "alpha" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async (s: Record<string, unknown>) => {
+						settingsApplied = s;
+					},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(settingsApplied).toMatchObject({ default_branch: "alpha" });
+	});
+
+	it("requires exactly the contexts repo.requiredChecks lists, when the repo writes them down", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: {
+				name: "theholocron/demo",
+				protection: "strict",
+				requiredChecks: ["typecheck / Run tsc --noEmit", "format / Run prettier"],
+			},
+			tasks: [{ name: "verification.unitTests", required: true }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		// not the DCO check and not the unit-test task: the list is the whole list
+		expect(rules.find((r) => r.type === "required_status_checks")?.parameters).toMatchObject({
+			required_status_checks: [{ context: "typecheck / Run tsc --noEmit" }, { context: "format / Run prettier" }],
+		});
+	});
+
+	it("derives required_status_checks from required tasks when repo.protection is 'strict'", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			tasks: [
+				{ name: "sourceQuality.staticAnalysis", required: true },
+				{ name: "verification.unitTests", required: true },
+				{ name: "verification.typeSafety", required: true },
+				"security", // not required → no context
+			],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(rulesetPayload).not.toBeNull();
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule).toBeDefined();
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [
+				{ context: DCO_CHECK },
+				{ context: "typecheck / Run tsc --noEmit" },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
+				{ context: "test:unit / Conclusion" },
+			],
+		});
+	});
+
+	it("appends extraRequiredChecks from config to the task-derived list", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			extraRequiredChecks: ["some-extra-check"],
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [
+				{ context: DCO_CHECK },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
+				{ context: "some-extra-check" },
+			],
+		});
+	});
+
+	it("requires only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-aggregate-"));
+		await mkdir(join(dir, "ci"));
+		await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			extraRequiredChecks: ["codecov/patch"],
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: dir }, loader, print: () => {} });
+		await rm(dir, { recursive: true, force: true });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [{ context: "ci / Required checks" }, { context: DCO_CHECK }],
+		});
+	});
+
+	describe("ci.pin", () => {
+		async function pinned(ci: Record<string, unknown> | undefined, hosting: boolean) {
+			const dir = await mkdtemp(join(tmpdir(), "holo-pin-"));
+			if (hosting) {
+				await mkdir(join(dir, "ci"));
+				await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
+			}
+			let rulesetPayload: Record<string, unknown> | null = null;
+			const lines: string[] = [];
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { name: "theholocron/demo", protection: "strict" },
+				...(ci ? { ci } : {}),
+				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						enableVulnerabilityAlerts: async () => {},
+						enableAutomatedSecurityFixes: async () => {},
+						enableSecretScanning: async () => {},
+						enablePrivateVulnerabilityReporting: async () => {},
+						updateRepoSettings: async () => {},
+						listRulesets: async () => [],
+						createRuleset: async (p: Record<string, unknown>) => {
+							rulesetPayload = p;
+							return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+						},
+						writeWorkflowFile: async () => {},
+					},
+				}),
+			});
+			await runSetup({ loaded, context: { repoRoot: dir }, loader, print: (l) => lines.push(l) });
+			await rm(dir, { recursive: true, force: true });
+			const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+			return { checks: rules.find((r) => r.type === "required_status_checks")?.parameters, lines };
+		}
+
+		it("writes integration_id on `ci / Required checks` only, when the option is set", async () => {
+			const { checks } = await pinned({ pin: { integrationId: 42 } }, true);
+			expect(checks).toMatchObject({
+				required_status_checks: [
+					{ context: "ci / Required checks", integration_id: 42 },
+					{ context: DCO_CHECK },
+				],
+			});
+			expect(JSON.stringify(checks)).not.toMatch(/"context":"DCO","integration_id"/);
+		});
+
+		it("writes no integration_id by default", async () => {
+			const { checks } = await pinned(undefined, true);
+			expect(JSON.stringify(checks)).not.toContain("integration_id");
+		});
+
+		it("pins nothing and says so when ci / Required checks is not a required check", async () => {
+			const { checks, lines } = await pinned({ pin: { integrationId: 42 } }, false);
+			expect(JSON.stringify(checks)).not.toContain("integration_id");
+			expect(lines.join("\n")).toContain("ci.pin is set but ci / Required checks is not a required check");
+		});
+	});
+
+	it("takes the required contexts from a loaded coverage provider", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-coverage-statuses-"));
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const statusContexts = vi.fn(() => [
+			{ name: "cov/patch", required: true },
+			{ name: "cov/patch/a", required: false },
+		]);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+			providers: { vault: "1password", source: "github", coverage: "codecov" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-codecov": makePlugin("cc", { coverage: { statusContexts } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: dir }, loader, print: () => {} });
+		await rm(dir, { recursive: true, force: true });
+
+		expect(statusContexts).toHaveBeenCalledWith({ components: [], documentation: "off" });
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		expect(rules.find((r) => r.type === "required_status_checks")?.parameters).toMatchObject({
+			required_status_checks: [
+				{ context: DCO_CHECK },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
+				{ context: "cov/patch" },
+			],
+		});
+	});
+
+	it("deduplicates workflow names when building required checks", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			// "verification.unitTests" appears twice — simulates ...tasks spread +
+			// explicit override; dedup by name
+			tasks: [
+				{ name: "verification.unitTests", required: true },
+				{ name: "verification.unitTests", required: true, with: { "run-unit": true } },
+			],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		const contexts = (
+			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
+		)?.required_status_checks.map((c) => c.context);
+		expect(contexts?.filter((c) => c === "test:unit / Conclusion")).toHaveLength(1);
+	});
+
+	function hookLoader(loaded: LoadedConfig, repoFiles: Array<[string, string]>): PluginLoader {
+		return makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						repoFiles.push([path, content]);
+					},
+				},
+			}),
+		});
+	}
+
+	it("writes .husky/pre-push by default for protection: 'strict'", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			holocronScript: "node packages/cli/dist/cli.mjs",
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		const [, body] = repoFiles.find(([p]) => p === ".husky/pre-push") ?? [];
+		expect(body).toBeDefined();
+		expect(body).toContain("node packages/cli/dist/cli.mjs run ci");
+		expect(body).toContain("git push --no-verify");
+	});
+
+	it("skips .husky/pre-push for a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+		expect(report.steps.find((s) => s.step === "write .husky/pre-push")?.status).toBe("skip");
+	});
+
+	it("writes .husky/pre-commit alongside pre-push for protection: 'strict'", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		const [, body] = repoFiles.find(([p]) => p === ".husky/pre-commit") ?? [];
+		expect(body).toBeDefined();
+		expect(body).toContain("gitleaks protect --staged --no-banner");
+		expect(body).not.toMatch(/^gitleaks git\b/m);
+	});
+
+	it("skips .husky/pre-commit for a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-commit")).toBe(false);
+		expect(report.steps.find((s) => s.step === "write .husky/pre-commit")?.status).toBe("skip");
+	});
+
+	it("hooks: false opts a strict repo out", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: false,
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+	});
+
+	it("--hooks (input.hooks true) forces the hook on a non-strict preset", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			hooks: true,
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(true);
+	});
+
+	it("--no-hooks (input.hooks false) wins over hooks: true in config", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: true,
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			hooks: false,
+			print: () => {},
+		});
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(false);
+	});
+
+	it("sets package.json prepare = husky when installing hooks, without clobbering", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "demo", scripts: { build: "tsc" } }), "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts: Record<string, string>;
+		};
+		expect(pkg.scripts.prepare).toBe("husky");
+		expect(pkg.scripts.build).toBe("tsc");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("keeps the file's own indent and line endings when adding prepare = husky (holocron#1033)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		// Tabs + CRLF -- stringifyJson's `like: content` preserves whatever
+		// the repo already used; a bare JSON.stringify(x, null, 2) would
+		// have silently rewritten both to 2-space LF.
+		const tabbedCrlf = '{\r\n\t"name": "demo",\r\n\t"scripts": {\r\n\t\t"build": "tsc"\r\n\t}\r\n}\r\n';
+		await writeFile(join(dir, "package.json"), tabbedCrlf, "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const written = await readFile(join(dir, "package.json"), "utf8");
+		expect(written).toContain('\t\t"build": "tsc"');
+		expect(written).toContain('\t\t"prepare": "husky"');
+		expect(written).toMatch(/\r\n/);
+		// Not just "at least one CRLF" -- a mixed-ending file (one real
+		// \r\n plus bare \n elsewhere) would satisfy the check above too
+		// (holocron#1033 review).
+		expect(written).not.toMatch(/(?<!\r)\n/);
+		expect(JSON.parse(written)).toMatchObject({ scripts: { build: "tsc", prepare: "husky" } });
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("adds a scripts block when package.json has none", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(join(dir, "package.json"), JSON.stringify({ name: "demo" }), "utf8");
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts?: Record<string, string>;
+		};
+		expect(pkg.scripts?.prepare).toBe("husky");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("honours hooks: { prePush } object form", async () => {
+		const off: Array<[string, string]> = [];
+		const offLoaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			hooks: { prePush: false },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded: offLoaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(offLoaded, off),
+			print: () => {},
+		});
+		expect(off.some(([p]) => p === ".husky/pre-push")).toBe(false);
+
+		const on: Array<[string, string]> = [];
+		const onLoaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			hooks: { prePush: true },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({
+			loaded: onLoaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(onLoaded, on),
+			print: () => {},
+		});
+		expect(on.some(([p]) => p === ".husky/pre-push")).toBe(true);
+	});
+
+	it("leaves package.json prepare untouched when already husky", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "husky" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: dir },
+			loader: hookLoader(loaded, []),
+			print: () => {},
+		});
+		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe(
+			"already runs husky"
+		);
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("appends husky to a prepare that does more than husky, instead of clobbering it (#654)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "turbo run build" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		await runSetup({ loaded, context: { repoRoot: dir }, loader: hookLoader(loaded, []), print: () => {} });
+		const pkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8")) as {
+			scripts: Record<string, string>;
+		};
+		expect(pkg.scripts.prepare).toBe("turbo run build && husky");
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("is a no-op when husky is already a step in a longer prepare chain (#654)", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-hooks-"));
+		await writeFile(
+			join(dir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { prepare: "turbo run build && husky" } }),
+			"utf8"
+		);
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: dir },
+			loader: hookLoader(loaded, []),
+			print: () => {},
+		});
+		expect(report.steps.find((s) => s.step === "set package.json prepare script")?.message).toBe(
+			"already runs husky"
+		);
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it("skips the prepare-script write when syncScripts is false", async () => {
+		const repoFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			syncScripts: false,
+			providers: { vault: "1password", source: "github" },
+		});
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: hookLoader(loaded, repoFiles),
+			print: () => {},
+		});
+		expect(report.steps.some((s) => s.step === "set package.json prepare script")).toBe(false);
+		expect(repoFiles.some(([p]) => p === ".husky/pre-push")).toBe(true);
+	});
+
+	it("updates an existing ruleset instead of creating a new one", async () => {
+		const created: unknown[] = [];
+		const updated: unknown[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [{ id: 42, name: "holocron-default-branch", enforcement: "active" }],
+					createRuleset: async (p: unknown) => {
+						created.push(p);
+						return { id: 99, name: "holocron-default-branch", enforcement: "active" };
+					},
+					updateRuleset: async (_id: number, p: unknown) => {
+						updated.push(p);
+						return { id: 42, name: "holocron-default-branch", enforcement: "active" };
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(created).toHaveLength(0);
+		expect(updated).toHaveLength(1);
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("ok");
+		expect(rulesetStep?.message).toBe("updated");
+	});
+
+	it("fails immediately when rulesets throw a non-403 error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("server error", 500);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("fail");
+		expect(rulesetStep?.message).toContain("server error");
+	});
+
+	it("falls back to classic protection when rulesets return 403", async () => {
+		let classicPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async (_branch: string, payload: Record<string, unknown>) => {
+						classicPayload = payload;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("ok");
+		expect(rulesetStep?.message).toBe("classic protection on main");
+		// strict + tasks → required_status_checks should be set (covers buildClassicProtectionPayload with checks)
+		expect((classicPayload as unknown as Record<string, unknown>)?.required_status_checks).not.toBeNull();
+	});
+
+	it("skips when classic protection also returns 403", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("skip");
+		expect(rulesetStep?.message).toContain("GitHub Pro/Team");
+	});
+
+	it("fails when classic protection throws a non-403 error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "balanced" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => {
+						throw new ProviderApiError("forbidden", 403);
+					},
+					getRepo: async () => ({ defaultBranch: "main" }),
+					protectBranch: async () => {
+						throw new ProviderApiError("unprocessable", 422);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const rulesetStep = report.steps.find((s) => s.step.includes("ruleset"));
+		expect(rulesetStep?.status).toBe("fail");
+		expect(rulesetStep?.message).toContain("unprocessable");
+	});
+
+	it("skips repo policy steps when repo.protection is 'none'", async () => {
+		let settingsCalled = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {
+						settingsCalled = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(settingsCalled).toBe(false);
+		expect(report.steps.some((s) => s.step === "updateRepoSettings")).toBe(false);
+		expect(report.steps.some((s) => s.step.includes("ruleset"))).toBe(false);
+	});
+
+	it("skips repo policy steps when no protection in config", async () => {
+		let settingsCalled = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {
+						settingsCalled = true;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(settingsCalled).toBe(false);
+	});
+
+	it("writes thin wrapper files for each workflow listed in project.tasks", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", "verification.typeSafety"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		expect(Object.keys(written)).toEqual([
+			"sourceQuality.staticAnalysis.yml",
+			"verification.unitTests.yml",
+			"verification.typeSafety.yml",
+		]);
+		expect(written["sourceQuality.staticAnalysis.yml"]).toContain("sourceQuality.staticAnalysis.yml@main");
+		expect(written["verification.unitTests.yml"]).toContain("verification.unitTests.yml@main");
+		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
+		expect(workflowSteps).toHaveLength(3);
+		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
+	});
+
+	it("writes standard delivery.deploy.yml (no preview job) when delivery.deploy has no preview: key", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "delivery.deploy", with: { docs: true } }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect("delivery.deploy.yml" in written).toBe(true);
+		expect(written["delivery.deploy.yml"]).not.toContain("pull_request:");
+		expect(written["delivery.deploy.yml"]).not.toContain("name: Preview");
+	});
+
+	it("detects a collision when another package already generated this workflow's thin caller (holocron#1068)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-collision-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const other = join(tmpDir, "apps", "other");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(other, { recursive: true });
+
+			// Shared across both runs -- simulates the same backing store two
+			// separate `holocron setup` invocations would actually write
+			// to (sync's equivalent #1026 test uses the same real .github/
+			// workflows dir on local disk; setup's Source capability stands
+			// in for that here).
+			const written: Record<string, string> = {};
+			const sourceCaps = {
+				enableVulnerabilityAlerts: async () => {},
+				enableAutomatedSecurityFixes: async () => {},
+				enableSecretScanning: async () => {},
+				enablePrivateVulnerabilityReporting: async () => {},
+				readWorkflowFile: async (name: string) => written[name] ?? null,
+				writeWorkflowFile: async (name: string, contents: string) => {
+					written[name] = contents;
+				},
+			};
+			const loaderFor = (configDir: string) => {
+				const loaded: LoadedConfig = {
+					resolved: resolveConfig({
+						name: "demo",
+						tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+						providers: { source: "github" },
+					}),
+					filepath: join(configDir, "holocron.config.json"),
+				};
+				return {
+					loaded,
+					loader: makeLoaderWith(loaded, {
+						"@theholocron/holocron-plugin-github": makePlugin("gh", { source: sourceCaps }),
+					}),
+				};
+			};
+
+			const first = loaderFor(sentinel);
+			await runSetup({
+				loaded: first.loaded,
+				context: { repoRoot: sentinel },
+				loader: first.loader,
+				print: () => {},
+			});
+			const firstContent = written["delivery.previewDeploy.yml"];
+			expect(firstContent).toContain("# Source package: apps/sentinel");
+			// the same `Tool:` line `sync` writes (not `setup`), so neither command rewrites the other's file
+			expect(firstContent).toContain("# Tool:    holocron sync\n");
+			expect(firstContent).not.toContain("holocron setup");
+
+			const second = loaderFor(other);
+			const report = await runSetup({
+				loaded: second.loaded,
+				context: { repoRoot: other },
+				loader: second.loader,
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toMatch(/apps\/sentinel/);
+			expect(step?.message).toMatch(/holocron#1026/);
+			// The first package's file must survive untouched.
+			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("re-running setup for the same package overwrites its own file without a collision (holocron#1068)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-collision-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			await mkdir(sentinel, { recursive: true });
+
+			const written: Record<string, string> = {};
+			const loaded: LoadedConfig = {
+				resolved: resolveConfig({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+					providers: { source: "github" },
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+			const makeLoader = () =>
+				makeLoaderWith(loaded, {
+					"@theholocron/holocron-plugin-github": makePlugin("gh", {
+						source: {
+							enableVulnerabilityAlerts: async () => {},
+							enableAutomatedSecurityFixes: async () => {},
+							enableSecretScanning: async () => {},
+							enablePrivateVulnerabilityReporting: async () => {},
+							readWorkflowFile: async (name: string) => written[name] ?? null,
+							writeWorkflowFile: async (name: string, contents: string) => {
+								written[name] = contents;
+							},
+						},
+					}),
+				});
+
+			await runSetup({ loaded, context: { repoRoot: sentinel }, loader: makeLoader(), print: () => {} });
+			const firstContent = written["delivery.previewDeploy.yml"];
+
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: sentinel },
+				loader: makeLoader(),
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+			expect(step?.status).toBe("ok");
+			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("propagates a readWorkflowFile error instead of treating it as no collision (holocron#1068)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "delivery.previewDeploy", with: { cwd: "." } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					readWorkflowFile: async () => {
+						throw new Error("boom: network error");
+					},
+					writeWorkflowFile: async () => {
+						throw new Error("writeWorkflowFile should never be reached");
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toMatch(/boom: network error/);
+	});
+
+	it("auto-computes delivery.previewDeploy's paths from workspace:* dependencies (holocron#1023)", async () => {
+		const tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-preview-paths-"));
+		try {
+			await mkdir(join(tmpDir, ".git"));
+			const sentinel = join(tmpDir, "apps", "sentinel");
+			const shared = join(tmpDir, "packages", "shared");
+			await mkdir(sentinel, { recursive: true });
+			await mkdir(shared, { recursive: true });
+			await writeFile(join(shared, "package.json"), JSON.stringify({ name: "@demo/shared", version: "1.0.0" }));
+			await writeFile(
+				join(sentinel, "package.json"),
+				JSON.stringify({
+					name: "@demo/sentinel",
+					version: "1.0.0",
+					dependencies: { "@demo/shared": "workspace:*" },
+				})
+			);
+
+			const written: Record<string, string> = {};
+			const loaded: LoadedConfig = {
+				resolved: resolveConfig({
+					name: "demo",
+					tasks: [{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } }],
+					providers: { source: "github" },
+				}),
+				filepath: join(sentinel, "holocron.config.json"),
+			};
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: {
+						enableVulnerabilityAlerts: async () => {},
+						enableAutomatedSecurityFixes: async () => {},
+						enableSecretScanning: async () => {},
+						enablePrivateVulnerabilityReporting: async () => {},
+						writeWorkflowFile: async (name: string, contents: string) => {
+							written[name] = contents;
+						},
+					},
+				}),
+			});
+
+			await runSetup({ loaded, context: { repoRoot: sentinel }, loader, print: () => {} });
+
+			expect(written["delivery.previewDeploy.yml"]).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
+		} finally {
+			await rm(tmpDir, { recursive: true, force: true });
+		}
+	});
+
+	it("writes combined delivery.deploy.yml with preview job when delivery.deploy config has preview:", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "my-docs",
+			org: "acme",
+			docs: { build: "workflow", domain: "acme.dev", https: true },
+			tasks: [{ name: "delivery.deploy", with: { docs: true, preview: { project: "acme-preview" } } }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect("delivery.deploy.yml" in written).toBe(true);
+		expect(written["delivery.deploy.yml"]).toContain("pull_request:");
+		expect(written["delivery.deploy.yml"]).toContain("name: Preview");
+		expect(written["delivery.deploy.yml"]).toContain("cloudflare-project: acme-preview");
+	});
+
+	it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "acme",
+			domain: "acme.dev",
+			tasks: [{ name: "knowledge.docs", with: { preview: true } }, "knowledge.components"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, contents: string) => {
+						written[name] = contents;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
+		expect(written["knowledge.docs.yml"]).toContain("- docs/**");
+		expect(written["knowledge.components.yml"]).toContain("- src/**");
+	});
+
+	it("skips workflow writing when project.tasks is absent", async () => {
+		let writeCallCount = 0;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {
+						writeCallCount++;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(writeCallCount).toBe(0);
+	});
+
+	it("reports skip for an unknown workflow name", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "not-a-real-workflow"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		const unknownStep = report.steps.find((s) => s.step === "write workflow not-a-real-workflow");
+		expect(unknownStep?.status).toBe("skip");
+		expect(unknownStep?.message).toContain("unknown workflow");
+	});
+
+	it("writes no workflow file and reports no step for a ci: false task", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", ci: false }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string) => {
+						written.push(name);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).not.toContain("verification.unitTests.yml");
+		expect(report.steps.some((s) => s.step === "write workflow verification.unitTests")).toBe(false);
+	});
+
+	it("rejects when the test workflow has both run-unit and run-storybook set to false", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": false, "run-storybook": false } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await expect(runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })).rejects.toThrow(
+			"at least one of"
+		);
+	});
+
+	it("does not throw when test workflow has run-unit: true and run-storybook: false", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [{ name: "verification.unitTests", with: { "run-unit": true, "run-storybook": false } }],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await expect(
+			runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} })
+		).resolves.not.toThrow();
+		expect(written.some((c) => c.includes("run-unit: true"))).toBe(true);
+	});
+
+	it("writes chromatic-projects as JSON on the verification.visualRegression thin caller", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "verification.visualRegression",
+					with: {
+						"chromatic-projects": [
+							{ tokenName: "WEB", workingDir: "apps/web" },
+							{ tokenName: "UI", workingDir: "packages/ui" },
+						],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const visualRegressionWorkflow = written.find((c) => c.includes("chromatic-projects"));
+		expect(visualRegressionWorkflow).toBeDefined();
+		expect(visualRegressionWorkflow).toContain("chromatic-projects:");
+		expect(visualRegressionWorkflow).toContain("WEB");
+		expect(visualRegressionWorkflow).toContain("UI");
+	});
+
+	it("joins untraced array to newline-separated string in chromatic-projects", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "verification.visualRegression",
+					with: {
+						"chromatic-projects": [
+							{
+								tokenName: "UI",
+								workingDir: "packages/ui",
+								untraced: ["./packages/!(ui)/**", "./apps/**"],
+							},
+						],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const testWorkflow = written.find((c) => c.includes("chromatic-projects"));
+		expect(testWorkflow).toBeDefined();
+		// untraced array should be joined with \n, not left as JSON array
+		expect(testWorkflow).toContain("packages/!(ui)");
+		expect(testWorkflow).not.toContain('["./packages');
+	});
+
+	it("JSON-stringifies unrecognised array values passed directly in with:", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.publish",
+					with: { "run-build": true, "extra-tags": ["v1", "latest"] as unknown as boolean },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const releaseWorkflow = written.find((c) => c.includes("run-build"));
+		expect(releaseWorkflow).toBeDefined();
+		expect(releaseWorkflow).toContain('extra-tags: \'["v1"');
+	});
+
+	it("translates deploy storybook: shorthand to storybook-projects and sets type: docs", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: {
+						docs: true,
+						storybook: [
+							{ name: "web", path: "apps/web" },
+							{ name: "ui", path: "packages/ui" },
+						],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const deployWorkflow = written.find((c) => c.includes("deploy"));
+		expect(deployWorkflow).toBeDefined();
+		expect(deployWorkflow).toContain("type: docs");
+		expect(deployWorkflow).toContain("storybook-projects: '[{");
+		expect(deployWorkflow).toContain('"workingDir":"apps/web"');
+		expect(deployWorkflow).toContain('"workingDir":"packages/ui"');
+	});
+
+	it("auto-derives paths for deploy docs + storybook shorthand", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: {
+						docs: true,
+						storybook: [
+							{ name: "web", path: "apps/web" },
+							{ name: "ui", path: "packages/ui" },
+						],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
+		expect(deployContent).toContain("- apps/web/**");
+		expect(deployContent).toContain("- packages/ui/**");
+	});
+
+	it("auto-derives paths for deploy docs-only shorthand", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: true },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- docs/**");
+		expect(deployContent).toContain("- astro.config.ts");
+		expect(deployContent).toContain("- pnpm-workspace.yaml");
+		expect(deployContent).toContain("- pnpm-lock.yaml");
+		expect(deployContent).not.toContain("apps/");
+	});
+
+	it("sets type: storybook for storybook-only deploy shorthand", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: {
+						storybook: [{ name: "ui", path: "packages/ui" }],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (_: string, content: string) => {
+						written.push(content);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const deployWorkflow = written.find((c) => c.includes("storybook-projects"));
+		expect(deployWorkflow).toBeDefined();
+		expect(deployWorkflow).toContain("type: storybook");
+		expect(deployWorkflow).not.toContain("type: docs");
+		expect(deployWorkflow).toContain("- packages/ui/**");
+	});
+
+	it("derives src/** and .storybook/** for root storybook (path: '.')", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: {
+						storybook: [{ name: "ui", path: "." }],
+					},
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
+	});
+
+	it("defaults path to root when path is omitted from storybook entry", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { storybook: [{ name: "app" }] },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
+		expect(deployContent).toContain('"workingDir":"."');
+	});
+
+	it("treats empty string path as root in storybook entry", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { storybook: [{ name: "ui", path: "" }] },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- src/**");
+		expect(deployContent).toContain("- .storybook/**");
+	});
+
+	it("explicit paths: overrides auto-derived deploy paths", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: true },
+					paths: ["packages/my-docs/**"],
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- packages/my-docs/**");
+		expect(deployContent).not.toContain("- docs/**");
+	});
+
+	it("derives paths from docs: { path } custom location", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: { path: "packages/site" } },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).toContain("- packages/site/**");
+		expect(deployContent).not.toContain("- docs/**");
+	});
+
+	it("skips path derivation for docs: { path: '.' }", async () => {
+		const writtenFiles: Array<[string, string]> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: [
+				{
+					name: "delivery.deploy",
+					with: { docs: { path: "." } },
+				},
+			],
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						writtenFiles.push([name, content]);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		expect(deployContent).toBeDefined();
+		expect(deployContent).not.toContain("paths:");
+	});
+
+	it("dry-run skips workflow writes", async () => {
+		let writeCallCount = 0;
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {
+						writeCallCount++;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(writeCallCount).toBe(0);
+		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
+		expect(workflowSteps.every((s) => s.status === "dry-run")).toBe(true);
+	});
+
+	it("output includes a header + summary line", async () => {
+		const lines: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => ["ONE"] },
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: (l) => lines.push(l),
+		});
+
+		const joined = lines.join("\n");
+		expect(joined).toMatch(/Holocron setup — demo/);
+		expect(joined).toMatch(/1 ok, 0 fail/);
+	});
+
+	it("writes the config files whenever source is available", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+
+		// The alex config is not written any more (#831): Sentinel reads the org's own allow-list.
+		expect(written[".alexrc.json"]).toBeUndefined();
+		expect(written[".alexignore"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write .editorconfig");
+		expect(step?.status).toBe("ok");
+
+		expect(written[".editorconfig"]).toBeDefined();
+		expect(written[".editorconfig"]).toContain("AUTO-GENERATED — do not edit directly");
+		expect(written[".editorconfig"]).toContain("indent_style = tab");
+		expect(written[".editorconfig"]).toContain("[*.{json,yml,yaml}]");
+		expect(written[".editorconfig"]).toContain("indent_style = space");
+		expect(written[".editorconfig"]).toContain("indent_size = 2");
+		expect(written[".editorconfig"]).toMatch(/\n$/);
+		const editorStep = report.steps.find((s) => s.step === "write .editorconfig");
+		expect(editorStep?.status).toBe("ok");
+
+		expect(written[".editorconfig-checker.json"]).toBeDefined();
+		const checker = JSON.parse(written[".editorconfig-checker.json"]!);
+		expect(checker.Exclude).toContain("(^|.+/)LICENSE$");
+		expect(written[".editorconfig-checker.json"]).toMatch(/\n$/);
+		const checkerStep = report.steps.find((s) => s.step === "write .editorconfig-checker.json");
+		expect(checkerStep?.status).toBe("ok");
+	});
+
+	it("writes .github/labeler.yml when bookkeeping workflow is configured", async () => {
+		const written: Record<string, string> = {};
+		const workflowFiles: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "bookkeeping"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async (name: string, content: string) => {
+						workflowFiles[name] = content;
+					},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/labeler.yml"]).toBeDefined();
+		expect(written[".github/labeler.yml"]).toContain("AUTO-GENERATED — do not edit directly");
+		expect(written[".github/labeler.yml"]).toContain("^fix");
+		expect(written[".github/labeler.yml"]).toContain("^docs");
+		expect(written[".github/labeler.yml"]).toMatch(/\n$/);
+		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
+		expect(step?.status).toBe("ok");
+		expect(workflowFiles["bookkeeping.yml"]).toContain("issues: write");
+		expect(workflowFiles["bookkeeping.yml"]).toContain("pull-requests: write");
+	});
+
+	it("does not write .github/labeler.yml when bookkeeping is not configured", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["sourceQuality.staticAnalysis", "verification.unitTests"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeWorkflowFile: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/labeler.yml"]).toBeUndefined();
+	});
+
+	it("calls syncProperties with derived and manual properties when source supports it", async () => {
+		let captured: Record<string, string | string[]> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: {
+				name: "theholocron/demo",
+				protection: "strict",
+				properties: {
+					lifecycle: "active",
+					open_source: true,
+					runtime_environment: "node",
+					uses_external_packages: false,
+				},
+			},
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async () => ({ id: 1, name: "holocron-default-branch", enforcement: "active" }),
+					writeRepoFile: async () => {},
+					syncProperties: async (values: Record<string, string | string[]>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).not.toBeNull();
+		expect(captured!["holocron_branch_protection_level"]).toBe("strict");
+		expect(captured!["monorepo"]).toBe("false"); // /tmp/test has no pnpm-workspace.yaml
+		expect(captured!["lifecycle"]).toBe("active");
+		expect(captured!["open_source"]).toBe("true");
+		expect(captured!["runtime_environment"]).toBe("node");
+		expect(captured!["uses_external_packages"]).toBe("false");
+		// derived properties (#677) — /tmp/test has no package.json, so these
+		// fall back to their "nothing detected" values.
+		expect(captured!["holocron_profile"]).toBe("library");
+		expect(captured!["holocron_stack"]).toEqual([]);
+		expect(captured!["holocron_capabilities"]).toEqual(["source", "vault"]);
+		expect(captured!["holocron_compliance"]).toBe("non-compliant"); // no `ci` provider wired
+		const step = report.steps.find((s) => s.step === "sync properties");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toContain("properties set");
+	});
+
+	it("does not set holocron_branch_protection_level property when no protection is configured", async () => {
+		let captured: Record<string, string | string[]> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", properties: { lifecycle: "experimental" } },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncProperties: async (values: Record<string, string | string[]>) => {
+						captured = values;
+						return `${Object.keys(values).length} properties set`;
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).not.toBeNull();
+		expect(captured!["holocron_branch_protection_level"]).toBeUndefined();
+		expect(captured!["lifecycle"]).toBe("experimental");
+	});
+
+	it("calls syncTopics with the configured topics", async () => {
+		let capturedTopics: string[] | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: ["cli", "nodejs", "typescript"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async (topics: string[]) => {
+						capturedTopics = topics;
+						return `${topics.length} topics set`;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(capturedTopics).toEqual(["cli", "nodejs", "typescript"]);
+		const step = report.steps.find((s) => s.step === "sync topics");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("3 topics set");
+	});
+
+	describe("Actions variables", () => {
+		const sourceWith = (extra: Record<string, unknown>) => ({
+			enableVulnerabilityAlerts: async () => {},
+			enableAutomatedSecurityFixes: async () => {},
+			enableSecretScanning: async () => {},
+			enablePrivateVulnerabilityReporting: async () => {},
+			writeRepoFile: async () => {},
+			...extra,
+		});
+		const run = (
+			repo: Record<string, unknown>,
+			source: Record<string, unknown>,
+			opts: { org?: string; dryRun?: boolean } = {}
+		) => {
+			const loaded = loadedFrom({
+				name: "demo",
+				...(opts.org ? { org: opts.org } : {}),
+				repo: { name: "theholocron/demo", ...repo },
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: sourceWith(source) }),
+			});
+			return runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", ...(opts.dryRun ? { dryRun: true } : {}) },
+				loader,
+				print: () => {},
+			});
+		};
+
+		it("syncs the repository's variables, pruning only when asked", async () => {
+			const seen: Array<[Record<string, string>, unknown]> = [];
+			const syncVariables = async (v: Record<string, string>, o?: unknown) => {
+				seen.push([v, o]);
+				return "1 created, 0 updated, 0 unchanged";
+			};
+			const plain = await run({ variables: { repo: { A: "1" } } }, { syncVariables });
+			expect(plain.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "ok",
+				message: "1 created, 0 updated, 0 unchanged",
+			});
+			await run({ variables: { repo: { A: "1" }, prune: true } }, { syncVariables });
+			expect(seen).toEqual([
+				[{ A: "1" }, { prune: false, dryRun: false }],
+				[{ A: "1" }, { prune: true, dryRun: false }],
+			]);
+		});
+
+		it("normalises the organization's variables and takes the org from the config", async () => {
+			let got: unknown;
+			const report = await run(
+				{
+					variables: {
+						org: {
+							TURBO_TEAM: "iamnewton",
+							HIDDEN: { value: "x", visibility: "private" },
+							DEFAULT: { value: "y" },
+						},
+					},
+				},
+				{
+					syncOrgVariables: async (org: string, vars: unknown, o: unknown) => {
+						got = [org, vars, o];
+						return "3 created, 0 updated, 0 unchanged";
+					},
+				},
+				{ org: "acme" }
+			);
+			expect(got).toEqual([
+				"acme",
+				{
+					TURBO_TEAM: { value: "iamnewton", visibility: "all" },
+					HIDDEN: { value: "x", visibility: "private" },
+					DEFAULT: { value: "y", visibility: "all" },
+				},
+				{ prune: false, dryRun: false },
+			]);
+			expect(report.steps.find((s) => s.step === "sync org variables")?.status).toBe("ok");
+		});
+
+		it("falls back to the repository's owner for the organization", async () => {
+			let org: string | undefined;
+			await run(
+				{ variables: { org: { A: "1" } } },
+				{
+					syncOrgVariables: async (o: string) => {
+						org = o;
+						return "ok";
+					},
+				}
+			);
+			expect(org).toBe("theholocron");
+		});
+
+		it("does nothing without variables, and says so when the provider cannot", async () => {
+			let called = false;
+			const none = await run({}, { syncVariables: async () => ((called = true), "x") });
+			expect(called).toBe(false);
+			expect(none.steps.some((s) => s.step.includes("variables"))).toBe(false);
+
+			const cannot = await run({ variables: { org: { A: "1" } } }, {});
+			expect(cannot.steps.find((s) => s.step === "sync org variables")).toMatchObject({
+				status: "skip",
+				message: "provider does not implement syncOrgVariables",
+			});
+		});
+
+		it("reads and reports the plan in a dry run, and writes nothing", async () => {
+			const seen: unknown[] = [];
+			const report = await run(
+				{ variables: { repo: { A: "1" } } },
+				{
+					syncVariables: async (_v: unknown, o: unknown) => {
+						seen.push(o);
+						return "would create 1, would update 0, 0 unchanged";
+					},
+				},
+				{ dryRun: true }
+			);
+			expect(seen).toEqual([{ prune: false, dryRun: true }]);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "dry-run",
+				message: "would create 1, would update 0, 0 unchanged",
+			});
+		});
+
+		it("reports a failure to read in a dry run as a failure", async () => {
+			const report = await run(
+				{ variables: { repo: { A: "1" } } },
+				{
+					syncVariables: async () => {
+						throw new Error("boom");
+					},
+				},
+				{ dryRun: true }
+			);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "fail",
+				message: "boom",
+			});
+		});
+
+		it("still reconciles a scope declared empty when pruning, and ignores it otherwise", async () => {
+			const seen: Array<Record<string, string>> = [];
+			const syncVariables = async (v: Record<string, string>) => (seen.push(v), "ok");
+			await run({ variables: { repo: {} } }, { syncVariables });
+			expect(seen).toEqual([]);
+			await run({ variables: { repo: {}, prune: true } }, { syncVariables });
+			expect(seen).toEqual([{}]);
+		});
+
+		it("says when the provider cannot sync repository variables", async () => {
+			const report = await run({ variables: { repo: { A: "1" } } }, {});
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "skip",
+				message: "provider does not implement syncVariables",
+			});
+		});
+
+		it("fails the org step when there is no organization to name", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { variables: { org: { A: "1" } } },
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: sourceWith({ syncOrgVariables: async () => "x" }),
+				}),
+			});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.find((s) => s.step === "sync org variables")).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/no organization/),
+			});
+		});
+	});
+
+	it("skips syncTopics when topics list is empty", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", topics: [] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+		expect(report.steps.some((s) => s.step === "sync topics")).toBe(false);
+	});
+
+	it("skips syncTopics when repo has no topics field", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncTopics: async () => {
+						called = true;
+						return "0 topics set";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
+	it("calls syncDescription when description is set in config", async () => {
+		let captured: string | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			description: "A great CLI tool",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncDescription: async (desc: string) => {
+						captured = desc;
+						return "description updated";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).toBe("A great CLI tool");
+		const step = report.steps.find((s) => s.step === "sync description");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips syncDescription when description is absent from config", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncDescription: async () => {
+						called = true;
+						return "description updated";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
+	it("calls syncHomepage when homepage is set in config", async () => {
+		let captured: string | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			homepage: "https://docs.example.com",
+			providers: { source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncHomepage: async (url: string) => {
+						captured = url;
+						return "homepage updated";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(captured).toBe("https://docs.example.com");
+		const step = report.steps.find((s) => s.step === "sync homepage");
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips syncHomepage when homepage is absent from config", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					syncHomepage: async () => {
+						called = true;
+						return "homepage updated";
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(false);
+	});
+
+	it("calls syncTeams and writes CODEOWNERS for writeable teams", async () => {
+		let capturedTeams: unknown = null;
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async (teams: unknown) => {
+						capturedTeams = teams;
+						return "1 team synced";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+
+		expect(capturedTeams).toEqual(["gatekeepers"]);
+		const teamsStep = report.steps.find((s) => s.step === "sync teams");
+		expect(teamsStep?.status).toBe("ok");
+		expect(teamsStep?.message).toBe("1 team synced");
+		const codeownersStep = report.steps.find((s) => s.step === "write .github/CODEOWNERS");
+		expect(codeownersStep?.status).toBe("ok");
+		expect(written[".github/CODEOWNERS"]).toBe("* @theholocron/gatekeepers\n");
+	});
+
+	it("skips sync teams when the API returns 422 (team already assigned)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "gatekeepers", permission: "maintain" as const }] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => "run 1",
+					writeRepoFile: async () => {},
+					syncTeams: async () => {
+						throw new ProviderApiError("team already has access", 422);
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+		const teamsStep = report.steps.find((s) => s.step === "sync teams");
+		expect(teamsStep?.status).toBe("skip");
+		expect(report.summary.fail).toBe(0);
+	});
+
+	it("skips CODEOWNERS when all teams have pull/triage permission only", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: [{ slug: "readers", permission: "pull" as const }] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async () => "1 team synced",
+				},
+			}),
+		});
+
+		await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", repo: "theholocron/demo" },
+			loader,
+			print: () => {},
+		});
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("skips dependabot when repo.protection is 'none'", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "none" },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string) => {
+						written.push(path);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).not.toContain(".github/dependabot.yml");
+	});
+
+	it("records explicit skip when source does not implement syncTeams", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {},
+					// syncTeams intentionally omitted
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "sync teams");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("does not implement syncTeams");
+	});
+
+	it("skips CODEOWNERS write when repo coord has no owner prefix", async () => {
+		const written: Record<string, string> = {};
+		const loaded = loadedFrom({
+			name: "demo",
+			// bare name — no "owner/" prefix
+			repo: { name: "demo", teams: ["gatekeepers"] },
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					syncTeams: async () => "1 team synced",
+				},
+			}),
+		});
+
+		// context.repo not set either — no valid org to derive
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written[".github/CODEOWNERS"]).toBeUndefined();
+	});
+
+	it("records skip (not ok) when agent is unsupported", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			agent: "codex",
+			skills: ["git-safety"],
+			providers: {},
+		});
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "skills");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("codex");
+	});
+
+	it("writes dependabot when no protection is configured (effectivePreset undefined)", async () => {
+		const written: string[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string) => {
+						written.push(path);
+					},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(written).toContain(".github/dependabot.yml");
+	});
+
+	it("keeps Dependabot off the workspace packages a catalog lists", async () => {
+		const repoRoot = await mkdtemp(join(tmpdir(), "setup-dependabot-"));
+		await mkdir(join(repoRoot, "clients", "a-client"), { recursive: true });
+		await writeFile(join(repoRoot, "clients", "a-client", "package.json"), JSON.stringify({ name: "@x/a-client" }));
+		await writeFile(
+			join(repoRoot, "pnpm-workspace.yaml"),
+			["packages:", '  - "clients/*"', "", "catalogs:", "  peers:", '    "@x/a-client": ^1.0.0', ""].join("\n")
+		);
+		let content = "";
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, text: string) => {
+						if (path === ".github/dependabot.yml") content = text;
+					},
+				},
+			}),
+		});
+
+		try {
+			await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
+		} finally {
+			await rm(repoRoot, { recursive: true, force: true });
+		}
+
+		expect(content).toContain('      - dependency-name: "@x/a-client"');
+	});
+
+	it("dry-run does not write the config files", async () => {
+		let writeCalled = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async () => {
+						writeCalled = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(writeCalled).toBe(false);
+		const step = report.steps.find((s) => s.step === "write .editorconfig");
+		expect(step?.status).toBe("dry-run");
+	});
+
+	it("calls source.syncLabels when the provider implements it", async () => {
+		let called = false;
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					syncLabels: async () => {
+						called = true;
+						return "17 synced";
+					},
+					writeRepoFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toBe(true);
+		const step = report.steps.find((s) => s.step === "sync labels");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("17 synced");
+	});
+
+	describe("area labels", () => {
+		const declared = { repo: { labels: { areas: { cli: ["cli/**"], docs: ["docs/**", "!docs/wiki/**"] } } } };
+
+		function loaderFor(source: Record<string, unknown>, extra: Record<string, unknown>) {
+			const loaded = loadedFrom({ name: "demo", providers: { source: "github" }, ...extra });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: { writeRepoFile: async () => {}, ...source },
+				}),
+			});
+			return { loaded, loader };
+		}
+
+		it("makes the declared area labels apart from the canonical set", async () => {
+			const canonicalNames: string[][] = [];
+			const made: unknown[][] = [];
+			const { loaded, loader } = loaderFor(
+				{
+					syncLabels: async (canonical: Array<{ name: string }>) => {
+						canonicalNames.push(canonical.map((l) => l.name));
+						return "ok";
+					},
+					ensureLabels: async (labels: unknown[]) => {
+						made.push(labels);
+						return "2 created, 0 already there";
+					},
+				},
+				declared
+			);
+
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+			expect(made).toEqual([
+				[
+					{ name: "area:cli", color: "c5def5", description: "Changes under cli/**" },
+					{ name: "area:docs", color: "c5def5", description: "Changes under docs/**" },
+				],
+			]);
+			expect(canonicalNames[0]!.some((n) => n.startsWith("area:"))).toBe(false);
+			expect(report.steps.find((s) => s.step === "ensure area labels")).toMatchObject({
+				status: "ok",
+				message: "2 created, 0 already there",
+			});
+		});
+
+		it("writes nothing on a dry run", async () => {
+			let called = false;
+			const { loaded, loader } = loaderFor(
+				{
+					ensureLabels: async () => {
+						called = true;
+						return "";
+					},
+				},
+				declared
+			);
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				loader,
+				print: () => {},
+			});
+			expect(called).toBe(false);
+			expect(report.steps.find((s) => s.step === "ensure area labels")?.status).toBe("dry-run");
+		});
+
+		it("skips with the reason when the provider cannot make labels one by one", async () => {
+			const { loaded, loader } = loaderFor({}, declared);
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.find((s) => s.step === "ensure area labels")).toMatchObject({
+				status: "skip",
+				message: expect.stringContaining("cannot make labels"),
+			});
+		});
+
+		it("adds no step for a repo that declares no areas", async () => {
+			const { loaded, loader } = loaderFor({ ensureLabels: async () => "x" }, {});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.some((s) => s.step === "ensure area labels")).toBe(false);
+		});
+	});
+});
+
+// ── 403 reason classification and hint ────────────────────────────────────────
+
+describe("runSetup — 403 handling", () => {
+	const loaded = (() => {
+		const r = resolveConfig({ name: "demo", providers: { source: "github" } });
+		return { resolved: r, filepath: "/tmp/test/holocron.config.json" };
+	})();
+
+	function makeLoaderWithSource(source: Record<string, unknown>): PluginLoader {
+		const importer = vi.fn(async () => ({
+			createPlugin: () => ({
+				name: "gh",
+				capabilities: {
+					source: () => ({ listWorkflowFiles: async () => [], ...source }),
+				},
+			}),
+		}));
+		return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+	}
+
+	it("tags a generic 403 as permissions and attaches reason to the step", async () => {
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights to Repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBe("permissions");
+	});
+
+	it("tags a plan-restriction 403 as plan when message is in err.message", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("tags a plan-restriction 403 as plan when detail is in err.details object body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("Forbidden", 403, {
+					message: "GitHub Advanced Security is not enabled for this repository.",
+				});
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("tags a plan-restriction 403 as plan when err.details is a plain string body", async () => {
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError(
+					"Forbidden",
+					403,
+					"GitHub Advanced Security is not enabled for this repository."
+				);
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableSecretScanning");
+		expect(step?.reason).toBe("plan");
+	});
+
+	it("does not set reason for non-403 errors", async () => {
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new Error("network timeout");
+			},
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "enableVulnerabilityAlerts");
+		expect(step?.status).toBe("fail");
+		expect(step?.reason).toBeUndefined();
+	});
+
+	it("emits the PAT hint in output when there is a permissions 403", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const output = lines.join("\n");
+		expect(output).toContain("⚠");
+		expect(output).toContain("insufficient token permissions");
+		expect(output).toContain("personal-access-tokens/new");
+		// Separate tokens are re-run as stored: --token would override the org token too.
+		expect(output).toContain("Then re-run:      holocron setup");
+		expect(output).not.toContain("<your-admin-pat>");
+		expect(output).toContain("--token <pat> overrides every token");
+		// No Pages failure, so no deploy-token block.
+		expect(output).not.toContain("GitHub Pages uses HOLOCRON_DEPLOY_TOKEN");
+	});
+
+	it("does not emit the hint when all failures are plan restrictions", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		expect(lines.join("\n")).not.toContain("personal-access-tokens/new");
+	});
+
+	it("formatStep includes [permissions] tag in the printed line", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableVulnerabilityAlerts: async () => {
+				throw new ProviderApiError("Must have admin rights.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const stepLine = lines.find((l) => l.includes("enableVulnerabilityAlerts"));
+		expect(stepLine).toMatch(/\[permissions\]/);
+	});
+
+	it("formatStep includes [plan restriction] tag for plan 403s", async () => {
+		const lines: string[] = [];
+		const loader = makeLoaderWithSource({
+			enableSecretScanning: async () => {
+				throw new ProviderApiError("GitHub Advanced Security is not enabled for this repository.", 403);
+			},
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const stepLine = lines.find((l) => l.includes("enableSecretScanning"));
+		expect(stepLine).toMatch(/\[plan restriction\]/);
+	});
+});
+
+// ── setup: write codecov.yml ──────────────────────────────────────────────────
+
+describe("setup: config files from the coverage provider", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	function makeLoaderWithSource(repoRoot: string, source: Record<string, unknown>): PluginLoader {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: join(repoRoot, "holocron.config.json"),
+		};
+		const importer = vi.fn(async () => ({
+			createPlugin: () => ({
+				name: "gh",
+				capabilities: { source: () => ({ listWorkflowFiles: async () => [], ...source }) },
+			}),
+		}));
+		return new PluginLoader(
+			loaded.resolved,
+			{ repoRoot, repo: "theholocron/demo" },
+			importer as unknown as PluginImporter
+		);
+	}
+
+	it("writes the config files a loaded coverage provider makes, merging into the file that is there", async () => {
+		await writeFile(join(tmpDir, "codecov.yml"), "comment: false\n");
+		const written: Record<string, string> = {};
+		const configFiles = vi.fn((input: { existing(path: string): string | null }) => ({
+			"codecov.yml": `${input.existing("codecov.yml")}merged\n`,
+		}));
+		const loaded = loadedFrom({
+			name: "demo",
+			tasks: ["test:unit"],
+			providers: { source: "github", coverage: "codecov" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-codecov": makePlugin("cc", { coverage: { configFiles } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					listWorkflowFiles: async () => [],
+					writeRepoFile: async (path: string, content: string) => {
+						written[path] = content;
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["codecov.yml"]).toBe("comment: false\nmerged\n");
+		expect(report.steps.find((s) => s.step === "write codecov.yml")?.status).toBe("ok");
+	});
+
+	it("writes no coverage config without a coverage provider, and says so", async () => {
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["test:unit"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === "write coverage config")).toMatchObject({
+			status: "skip",
+			message: "no coverage provider configured",
+		});
+	});
+
+	it("writes turbo.json when the manifest has a fan-out-eligible task", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["turbo.json"]).toBeDefined();
+		expect(written["turbo.json"]).toContain("verification.typeSafety");
+		expect(report.steps.find((s) => s.step === "write turbo.json")?.status).toBe("ok");
+	});
+
+	it("prints the turbo.json step once, and the follow-up fixes it triggers", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: (line) => lines.push(line) });
+
+		const count = (needle: string) => lines.filter((l) => l.includes(needle)).length;
+		expect(count("write turbo.json")).toBe(1);
+		expect(count("fix pnpm-workspace.yaml")).toBe(1);
+		expect(count("add turbo devDependency")).toBe(1);
+	});
+
+	it("prints a lone turbo.json step once", async () => {
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: (line) => lines.push(line) });
+
+		expect(lines.filter((l) => l.includes("write turbo.json"))).toHaveLength(1);
+	});
+
+	it("skips writing turbo.json when the manifest has no fan-out-eligible task", async () => {
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			// platform.repoSync has no `turbo` entry in the registry — whole-repo,
+			// never fanned out.
+			resolved: resolveConfig({ name: "demo", tasks: ["platform.repoSync"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["turbo.json"]).toBeUndefined();
+		const step = report.steps.find((s) => s.step === "write turbo.json");
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toBe("no fan-out-eligible tasks configured");
+	});
+
+	it("fixes pnpm-workspace.yaml when root has a fan-out-eligible script it isn't a workspace member for (#692)", async () => {
+		// theholocron/observability's actual shape: root IS the real package
+		// (delivery.build: tsdown), pnpm-workspace.yaml lists only the
+		// unrelated docs site.
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBe('packages:\n  - "."\n  - "docs"\n');
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")?.status
+		).toBe("ok");
+	});
+
+	it("does not touch pnpm-workspace.yaml when root has no fan-out-eligible script", async () => {
+		// holocron's own shape: root's "build" script just orchestrates turbo,
+		// it isn't itself a "delivery.build" script — nothing to fix.
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { build: "turbo run delivery.build" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBeUndefined();
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+		).toBeUndefined();
+	});
+
+	it("does not touch pnpm-workspace.yaml when root's matching script is a pre-existing holocron run <task> -- wrapper (#846)", async () => {
+		// theholocron/clients' actual shape: root already had
+		// "verification.typeSafety": "holocron run verification.typeSafety --"
+		// before any of this tooling ever touched the repo. Adding "." here
+		// would make turbo invoke that wrapper, which re-delegates to turbo
+		// again — #747's infinite recursion, confirmed empirically (~410
+		// processes spawned before being killed by hand).
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({
+				name: "demo",
+				scripts: { "verification.typeSafety": "holocron run verification.typeSafety --" },
+			})
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "packages/*"\n');
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(written["pnpm-workspace.yaml"]).toBeUndefined();
+		expect(
+			report.steps.find((s) => s.step === "fix pnpm-workspace.yaml (root workspace member, #692)")
+		).toBeUndefined();
+	});
+
+	it("adds turbo as a devDependency when a turbo.json is written and it's missing", async () => {
+		await writeFile(join(tmpDir, "package.json"), JSON.stringify({ name: "demo" }));
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "add turbo devDependency");
+		expect(step?.status).toBe("ok");
+		expect(JSON.parse(written["package.json"]!).devDependencies.turbo).toBe("^2.10.12");
+	});
+
+	it("does not touch package.json when turbo is already a devDependency", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", devDependencies: { turbo: "^1.0.0" } })
+		);
+		const written: Record<string, string> = {};
+		const loader = makeLoaderWithSource(tmpDir, {
+			writeRepoFile: async (path: string, content: string) => {
+				written[path] = content;
+			},
+		});
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === "add turbo devDependency")).toBeUndefined();
+		expect(written["package.json"]).toBeUndefined();
+	});
+});
+
+describe("setup: skills step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-skills-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true });
+	});
+
+	it("runs the skills step when agent and skills are configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", agent: "claude", skills: ["git-safety"], providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		// No plugins — skills step is purely local, no provider needed
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: tmpDir },
+			loader,
+			print: () => {},
+		});
+
+		const skillsStep = report.steps.find((s) => s.capability === "skills");
+		// Step runs — may fail if @theholocron/skills is not installed, but the path is exercised
+		expect(skillsStep).toBeDefined();
+		expect(skillsStep?.step).toBe("install skills");
+	}, 30_000); // May trigger `pnpm add @theholocron/skills` auto-install in CI
+
+	it("skips the skills step when agent or skills is absent", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "skills")).toBeUndefined();
+	});
+
+	it("detects monorepo=true in syncProperties when pnpm-workspace.yaml exists", async () => {
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
+		let capturedProps: Record<string, string | string[]> = {};
+		const source = {
+			syncProperties: async (props: Record<string, string | string[]>) => {
+				capturedProps = props;
+				return "synced";
+			},
+		};
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(capturedProps["monorepo"]).toBe("true");
+	});
+
+	it("derives holocron_profile/stack/capabilities/compliance from real repo content (#677)", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ bin: "cli", devDependencies: { vite: "^7.0.0" } })
+		);
+		let capturedProps: Record<string, string | string[]> = {};
+		const source = {
+			syncProperties: async (props: Record<string, string | string[]>) => {
+				capturedProps = props;
+				return "synced";
+			},
+		};
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github", ci: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source }),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(capturedProps["holocron_profile"]).toBe("cli");
+		expect(capturedProps["holocron_stack"]).toEqual(["vite"]);
+		expect(capturedProps["holocron_capabilities"]).toEqual(["ci", "source"]);
+		expect(capturedProps["holocron_compliance"]).toBe("compliant");
+	});
+
+	it("records vault list failure as a fail step when vault.list() throws", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					list: async () => {
+						throw new Error("vault unreachable");
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "vault" && s.step === "list");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toBe("vault unreachable");
+	});
+});
+
+// ── setup: Pages step ─────────────────────────────────────────────────────────
+
+describe("setup: Pages step", () => {
+	const PAGES_STEP = "configure GitHub Pages";
+
+	afterEach(() => {
+		delete process.env.HOLOCRON_DEPLOY_TOKEN;
+	});
+
+	function makePagedLoader(docs: Parameters<typeof resolveConfig>[0]["docs"], configurePages?: () => Promise<void>) {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" }, docs }),
+			filepath: "/tmp/test/holocron.config.json",
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: { ...(configurePages ? { configurePages } : {}) },
+			}),
+		});
+		return { loaded, loader };
+	}
+
+	it("points a Pages 403 at the deploy token's permissions", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat-xyz";
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async () => {
+			throw new ProviderApiError("Resource not accessible by personal access token", 403);
+		});
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const output = lines.join("\n");
+		expect(output).toContain("GitHub Pages uses HOLOCRON_DEPLOY_TOKEN (keyring key github.deploy)");
+		expect(output).toContain("Pages                   — read and write");
+		expect(output).toContain("Administration          — read and write");
+	});
+
+	it("calls configurePages and records ok when HOLOCRON_DEPLOY_TOKEN is set", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat-xyz";
+		const called: unknown[] = [];
+		const { loaded, loader } = makePagedLoader(
+			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
+			async (...args) => {
+				called.push(args);
+			}
+		);
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(called).toHaveLength(1);
+		expect(called[0]).toEqual([
+			{ build: "workflow", domain: "docs.theholocron.dev", https: true },
+			"deploy-pat-xyz",
+		]);
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toContain("workflow");
+		expect(step?.message).toContain("docs.theholocron.dev");
+	});
+
+	it("includes 'https: enforced' in the result message when https is true", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader({ build: "workflow", https: true }, async () => {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.message).toContain("https: enforced");
+	});
+
+	it("records a skip step when HOLOCRON_DEPLOY_TOKEN is absent", async () => {
+		const called: unknown[] = [];
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async (...args) => {
+			called.push(args);
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+			keyring: () => null,
+		});
+
+		expect(called).toHaveLength(0);
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("skip");
+		expect(step?.message).toContain("HOLOCRON_DEPLOY_TOKEN");
+	});
+
+	it("re-throws non-AuthError exceptions from deploy token resolution", async () => {
+		const boom = new Error("keyring exploded");
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async () => {});
+
+		await expect(
+			runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+				keyring: () => {
+					throw boom;
+				},
+			})
+		).rejects.toThrow("keyring exploded");
+	});
+
+	it("does not add a Pages step when docs is absent from config", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { source: "github" } }),
+			filepath: "/tmp/test/holocron.config.json",
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === PAGES_STEP)).toBeUndefined();
+	});
+
+	it("does not add a Pages step when token is set but source has no configurePages", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader({ build: "workflow" });
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step === PAGES_STEP)).toBeUndefined();
+	});
+
+	it("omits 'https: enforced' from the result message when https is not set", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat";
+		const { loaded, loader } = makePagedLoader(
+			{ build: "workflow", domain: "docs.theholocron.dev" },
+			async () => {}
+		);
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === PAGES_STEP);
+		expect(step?.status).toBe("ok");
+		expect(step?.message).not.toContain("https: enforced");
+	});
+});
+
+describe("setup: prompts step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-prompts-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs prompts step when agent is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", agent: "claude", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "prompts");
+		expect(step).toBeDefined();
+		expect(step?.status).toBe("ok");
+	});
+
+	it("skips prompts step when agent is not configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "prompts")).toBeUndefined();
+	});
+});
+
+describe("setup: engineering step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-engineering-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs engineering step when docs is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", docs: { build: "workflow" }, providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "engineering");
+		expect(step).toBeDefined();
+		expect(step?.status).toBe("ok");
+		await expect(stat(join(tmpDir, "docs/wiki/decisions/README.md"))).resolves.toBeDefined();
+	});
+
+	it("skips engineering step when docs is absent", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "engineering")).toBeUndefined();
+	});
+});
+
+describe("setup: wiki step", () => {
+	let tmpDir: string;
+	beforeEach(async () => {
+		tmpDir = await mkdtemp(join(tmpdir(), "holocron-setup-wiki-"));
+	});
+	afterEach(async () => {
+		await rm(tmpDir, { recursive: true, force: true });
+	});
+
+	it("runs wiki.provision when the wiki capability is loaded", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		let provisionCalled = false;
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => {
+						provisionCalled = true;
+						return "ok";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(provisionCalled).toBe(true);
+		const step = report.steps.find((s) => s.capability === "wiki");
+		expect(step?.status).toBe("ok");
+		expect(step?.message).toBe("ok");
+	});
+
+	it("skips wiki step when no wiki provider is configured", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: {} }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.capability === "wiki")).toBeUndefined();
+	});
+
+	it("upserts CNAME via dns capability when wiki.dnsRecord() returns a record", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern", dns: "cloudflare" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const upsertCalls: { zone: string; name: string; content: string }[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => ({
+						zone: "example.com",
+						record: { type: "CNAME", name: "wiki.example.com", content: "myorg.docs.buildwithfern.com" },
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (zone: string, record: { name: string; content: string }) => {
+						upsertCalls.push({ zone, name: record.name, content: record.content });
+						return record;
+					},
+					deleteRecord: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(upsertCalls).toHaveLength(1);
+		expect(upsertCalls[0]).toMatchObject({
+			zone: "example.com",
+			name: "wiki.example.com",
+			content: "myorg.docs.buildwithfern.com",
+		});
+		const dnsStep = report.steps.find((s) => s.step === "upsertRecord wiki.example.com");
+		expect(dnsStep?.status).toBe("ok");
+	});
+
+	it("skips dns step when wiki has no custom domain", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", providers: { wiki: "fern", dns: "cloudflare" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => null,
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step?.startsWith("upsertRecord wiki"))).toBeUndefined();
+	});
+
+	it("deploys Worker proxy via workers capability when wiki.proxyConfig() returns config", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				providers: { wiki: "fern", dns: "cloudflare", workers: "cloudflare" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const proxyCalls: { hostname: string; target: string }[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => ({
+						zone: "example.com",
+						record: { type: "CNAME", name: "wiki.example.com", content: "myorg.docs.buildwithfern.com" },
+					}),
+					proxyConfig: () => ({
+						target: "https://app.buildwithfern.com",
+						headers: { "X-Fern-Host": "wiki.example.com" },
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+				workers: {
+					key: "workers",
+					providerName: "cloudflare",
+					upsertProxy: async (hostname: string, config: { target: string }) => {
+						proxyCalls.push({ hostname, target: config.target });
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(proxyCalls).toHaveLength(1);
+		expect(proxyCalls[0]).toMatchObject({
+			hostname: "wiki.example.com",
+			target: "https://app.buildwithfern.com",
+		});
+		const workersStep = report.steps.find((s) => s.step === "upsertProxy wiki.example.com");
+		expect(workersStep?.status).toBe("ok");
+	});
+
+	it("skips workers step when wiki.proxyConfig() returns null", async () => {
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				providers: { wiki: "fern", dns: "cloudflare", workers: "cloudflare" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-fern": makePlugin("@theholocron/holocron-plugin-fern", {
+				wiki: {
+					key: "wiki",
+					providerName: "fern",
+					provision: async () => "ok",
+					dnsRecord: () => null,
+					proxyConfig: () => null,
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("@theholocron/holocron-plugin-cloudflare", {
+				dns: {
+					key: "dns",
+					providerName: "cloudflare",
+					listRecords: async () => [],
+					upsertRecord: async (_z: string, r: unknown) => r,
+					deleteRecord: async () => {},
+				},
+				workers: {
+					key: "workers",
+					providerName: "cloudflare",
+					upsertProxy: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
+
+		expect(report.steps.find((s) => s.step?.startsWith("upsertProxy"))).toBeUndefined();
+	});
+});
+
+// ── auth: alreadyExists created branch ────────────────────────────────────────
+
+describe("setup: auth webhook created branch", () => {
+	it("reports 'created' when ensureWebhookApp returns alreadyExists: false (line 632)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { auth: "clerk", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-clerk": makePlugin("clerk", {
+				auth: { ensureWebhookApp: async () => ({ alreadyExists: false }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { source: {} }),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.step === "ensureWebhookApp");
+		expect(step?.message).toContain("created");
+	});
+});
+
+// ── vault: list throws non-Error ───────────────────────────────────────────────
+
+describe("setup: vault list non-Error throw", () => {
+	it("records vault list failure with String(err) when a non-Error is thrown (line 687)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					list: async () => {
+						throw "vault down";
+					},
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const step = report.steps.find((s) => s.capability === "vault" && s.step === "list");
+		expect(step?.status).toBe("fail");
+		expect(step?.message).toBe("vault down");
+	});
+});
+
+// ── vault: alreadyExists branches ─────────────────────────────────────────────
+
+describe("setup: vault alreadyExists branches", () => {
+	it("reports 'exists' when ensureProject and ensureEnvironment return alreadyExists: true", async () => {
+		const loaded = loadedFrom({ name: "my-app", providers: { vault: "doppler" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-doppler": makePlugin("doppler", {
+				vault: {
+					list: async () => [],
+					ensureProject: async () => ({ alreadyExists: true }),
+					ensureEnvironment: async () => ({ alreadyExists: true }),
+				},
+			}),
+		});
+
+		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const projectStep = report.steps.find((s) => s.step?.startsWith("ensureProject"));
+		expect(projectStep?.message).toContain("exists");
+		const envStep = report.steps.find((s) => s.step?.startsWith("ensureEnvironment"));
+		expect(envStep?.message).toContain("exists");
+	});
+});
+
+// ── dry-run summary counter ────────────────────────────────────────────────────
+
+describe("setup: dry-run summary", () => {
+	it("counts dry-run steps in summary.dryRun", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					enableDependencyGraph: async () => {},
+					enableCodeScanning: async () => {},
+					disableDefaultCodeScanning: async () => {},
+				},
+			}),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.dryRun).toBeGreaterThan(0);
+	});
+});

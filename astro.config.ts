@@ -1,8 +1,134 @@
 import starlight from "@astrojs/starlight";
-import { defineConfig } from "@theholocron/astro-config";
+import { apiReference, defineConfig } from "@theholocron/astro-config";
 import { docsTheme } from "@theholocron/docs-theme";
+import { createStarlightTypeDocPlugin } from "starlight-typedoc";
+
+const UTILS = [
+	"array-utils",
+	"date-time-utils",
+	"env-utils",
+	"fs-utils",
+	"git-utils",
+	"json-utils",
+	"location-utils",
+	"misc-utils",
+	"object-utils",
+	"pkg-utils",
+	"storage-utils",
+	"string-utils",
+	"uri-utils",
+] as const;
+
+const CLIENTS = [
+	"axiom-client",
+	"checkly-client",
+	"clerk-client",
+	"cloudflare-client",
+	"confluence-client",
+	"discord-client",
+	"doppler-client",
+	"github-client",
+	"google-client",
+	"http-client",
+	"infisical-client",
+	"jira-client",
+	"linear-client",
+	"neon-client",
+	"netlify-client",
+	"posthog-client",
+	"postman-client",
+	"sentry-client",
+	"slack-client",
+	"turbo-client",
+	"vercel-client",
+	"zendesk-client",
+] as const;
+
+/** Every config package's page, in sidebar order. `browserslist-config` and `tsconfig` have no TypeScript API. */
+const CONFIGS = [
+	"astro-config",
+	"browserslist-config",
+	"commitlint-config",
+	"devmoji-config",
+	"eslint-config",
+	"lighthouse-config",
+	"lint-staged-config",
+	"prettier-config",
+	"rollup-plugin-transform-template",
+	"semantic-release-config",
+	"storybook-config",
+	"stylelint-config",
+	"tsconfig",
+	"tsdown-config",
+	"vite-config",
+	"vitest-config",
+] as const;
+const CONFIGS_WITHOUT_API: readonly string[] = ["browserslist-config", "tsconfig"];
+
+/** Every plugin's page slug and sidebar label, in sidebar order; the package is `plugins/holocron-plugin-<slug>`. */
+const PLUGINS = [
+	["1password", "1Password"],
+	["axiom", "Axiom"],
+	["bruno", "Bruno"],
+	["checkly", "Checkly"],
+	["clerk", "Clerk"],
+	["cloudflare", "Cloudflare"],
+	["discord", "Discord"],
+	["doppler", "Doppler"],
+	["github", "GitHub"],
+	["infisical", "Infisical"],
+	["linear", "Linear"],
+	["netlify", "Netlify"],
+	["neon", "Neon"],
+	["obsidian", "Obsidian"],
+	["posthog", "PostHog"],
+	["postman", "Postman"],
+	["sentry", "Sentry"],
+	["slack", "Slack"],
+	["turbo", "Turbo"],
+	["vercel", "Vercel"],
+] as const;
+
+// The reference is generated from each package's TSDoc comments every time the docs are built or served, and is not
+// committed (it is gitignored). `entryPoints` is relative to the package; the default is `src/index.ts`.
+const referenceFor = (dir: string, entryPoints?: readonly string[], skipErrorChecking = false) =>
+	apiReference({
+		createPlugin: createStarlightTypeDocPlugin,
+		root: new URL("./", import.meta.url),
+		package: dir,
+		...(entryPoints ? { entryPoints: [...entryPoints] } : {}),
+		skipErrorChecking,
+	});
+const referencesFor = (
+	group: string,
+	names: readonly string[],
+	entryPoints?: (name: string) => readonly string[],
+	skipErrorChecking?: (name: string) => boolean
+) =>
+	names.map((name) => ({
+		name,
+		api: referenceFor(`${group}/${name}`, entryPoints?.(name), skipErrorChecking?.(name)),
+	}));
+const utilsApi = referencesFor("utils", UTILS);
+const clientsApi = referencesFor("clients", CLIENTS);
+// a config package keeps its entry point at the package root, except the rollup plugin
+const configsApi = referencesFor(
+	"configs",
+	CONFIGS.filter((name) => !CONFIGS_WITHOUT_API.includes(name)),
+	(name) => (name === "rollup-plugin-transform-template" ? ["src/index.ts"] : ["index.ts"]),
+	// astro-config's types come from Starlight, whose sources TypeDoc cannot type-check
+	(name) => name === "astro-config"
+);
+const pluginsApi = referencesFor(
+	"plugins",
+	PLUGINS.map(([slug]) => `holocron-plugin-${slug}`)
+);
+const cliApi = referencesFor("cli", ["cli", "astromech", "datapad"]);
+const observabilityApi = referenceFor("observability");
+const docsThemeApi = referenceFor("themes/docs-theme");
 
 export default defineConfig({
+	site: "https://docs.theholocron.dev",
 	docs: {
 		name: "Holocron",
 		github: "holocron",
@@ -12,31 +138,139 @@ export default defineConfig({
 			{ label: "Configuration", slug: "config" },
 			{ label: "Capabilities", slug: "capabilities" },
 			{ label: "Token Reference", slug: "tokens" },
+			{ label: "Environment Variables", slug: "environment-variables" },
+			{ label: "Server as Code", slug: "server-as-code" },
 			{ label: "Self-hosting", slug: "self-hosting" },
+			{ label: "Domains", slug: "domains" },
 			{
 				label: "Commands",
 				items: [
-					{ label: "auth", slug: "commands/auth" },
-					{ label: "bump-versions", slug: "commands/bump-versions" },
+					{ label: "apply properties", slug: "commands/apply-properties" },
+					{ label: "check token", slug: "commands/check-token" },
 					{ label: "clone", slug: "commands/clone" },
-					{ label: "config show", slug: "commands/config" },
+					{ label: "show config", slug: "commands/show-config" },
 					{ label: "deploy", slug: "commands/deploy" },
 					{ label: "doctor", slug: "commands/doctor" },
-					{ label: "new", slug: "commands/new" },
-					{ label: "plugin create", slug: "commands/plugin" },
+					{ label: "doctor notifications", slug: "commands/doctor-notifications" },
+					{ label: "export tokens", slug: "commands/export-tokens" },
+					{ label: "new plugin", slug: "commands/new-plugin" },
+					{ label: "new repo", slug: "commands/new-repo" },
+					{ label: "new channel", slug: "commands/new-channel" },
+					{ label: "link account", slug: "commands/link-account" },
+					{ label: "move issues", slug: "commands/move-issues" },
+					{ label: "reconcile project", slug: "commands/reconcile-project" },
+					{ label: "setup notifications", slug: "commands/setup-notifications" },
+					{ label: "new server", slug: "commands/new-server" },
 					{ label: "publish", slug: "commands/publish" },
-					{ label: "secret set", slug: "commands/secret" },
-					{ label: "secrets sync", slug: "commands/secrets" },
+					{ label: "publish bump-versions", slug: "commands/publish-bump-versions" },
+					{ label: "publish package", slug: "commands/publish-package" },
+					{ label: "publish tag", slug: "commands/publish-tag" },
+					{ label: "cleanup", slug: "commands/cleanup" },
+					{ label: "cleanup branches", slug: "commands/cleanup-branches" },
+					{ label: "cleanup posts", slug: "commands/cleanup-posts" },
 					{ label: "setup", slug: "commands/setup" },
-					{ label: "skills", slug: "commands/skills" },
-					{ label: "sync", slug: "commands/sync" },
-					{ label: "sync-github", slug: "commands/sync-github" },
 					{ label: "upgrade", slug: "commands/upgrade" },
+					{ label: "upgrade deps", slug: "commands/upgrade-deps" },
+					{ label: "upgrade node", slug: "commands/upgrade-node" },
+					{ label: "run", slug: "commands/run" },
+					{ label: "run ci", slug: "commands/run-ci" },
+					{ label: "new secret", slug: "commands/new-secret" },
+					{ label: "install skills", slug: "commands/install-skills" },
+					{ label: "skills", slug: "commands/skills" },
+					{ label: "update skills", slug: "commands/update-skills" },
+					{ label: "sync", slug: "commands/sync" },
+					{ label: "sync github", slug: "commands/sync-github" },
+					{ label: "sync ideas", slug: "commands/sync-ideas" },
+					{ label: "sync issues", slug: "commands/sync-issues" },
+					{ label: "sync readme", slug: "commands/sync-readme" },
+					{ label: "sync roles", slug: "commands/sync-roles" },
+					{ label: "sync secrets", slug: "commands/sync-secrets" },
+					{ label: "sync specs", slug: "commands/sync-specs" },
 				],
 			},
 			{
 				label: "Workflows",
 				items: [{ label: "stale", slug: "workflows/stale" }],
+			},
+			{
+				label: "Observability",
+				items: [
+					{ label: "Overview", slug: "observability" },
+					{ label: "Getting Started", slug: "observability/getting-started" },
+					observabilityApi.group,
+				],
+			},
+			{
+				label: "Skills",
+				items: [
+					{ label: "Overview", slug: "skills" },
+					{ label: "commit-standards", slug: "skills/commit-standards" },
+					{ label: "destructive-command-guard", slug: "skills/destructive-command-guard" },
+					{ label: "git-safety", slug: "skills/git-safety" },
+					{ label: "holocron-skill-client", slug: "skills/holocron-skill-client" },
+					{ label: "holocron-skill-config", slug: "skills/holocron-skill-config" },
+					{ label: "holocron-skill-plugin", slug: "skills/holocron-skill-plugin" },
+					{ label: "holocron-skill-skill", slug: "skills/holocron-skill-skill" },
+					{ label: "holocron-skill-util", slug: "skills/holocron-skill-util" },
+					{ label: "pr-workflow", slug: "skills/pr-workflow" },
+					{ label: "security-review", slug: "skills/security-review" },
+					{ label: "work-effort", slug: "skills/work-effort" },
+					{ label: "work-type", slug: "skills/work-type" },
+				],
+			},
+			{
+				label: "Clients",
+				items: [
+					{ label: "Overview", slug: "clients" },
+					// a client's page is `clients/<name without "-client">`; its reference is built under `clients/<name>/api`
+					...clientsApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: `clients/${name.replace(/-client$/, "")}` }, api.group],
+					})),
+				],
+			},
+			{
+				label: "Utils",
+				items: [
+					{ label: "Overview", slug: "utils" },
+					...utilsApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: `utils/${name}` }, api.group],
+					})),
+				],
+			},
+			{
+				label: "Configs",
+				items: [
+					{ label: "Overview", slug: "configs" },
+					...CONFIGS.map((name) => {
+						const api = configsApi.find((c) => c.name === name)?.api;
+						return api
+							? { label: name, items: [{ label: "Overview", slug: `configs/${name}` }, api.group] }
+							: { label: name, slug: `configs/${name}` };
+					}),
+				],
+			},
+			{
+				label: "Packages",
+				items: [
+					...cliApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: name }, api.group],
+					})),
+					{ label: "comlink", slug: "comlink" },
+					{ label: "council", slug: "council" },
+					{ label: "sentinel", slug: "sentinel" },
+				],
+			},
+			{
+				label: "Themes",
+				items: [
+					{
+						label: "docs-theme",
+						items: [{ label: "Overview", slug: "themes/docs-theme" }, docsThemeApi.group],
+					},
+				],
 			},
 			{
 				label: "Legal",
@@ -49,24 +283,19 @@ export default defineConfig({
 				label: "Plugins",
 				items: [
 					{ label: "Overview", slug: "plugins/overview" },
-					{ label: "1Password", slug: "plugins/1password" },
-					{ label: "Axiom", slug: "plugins/axiom" },
-					{ label: "Clerk", slug: "plugins/clerk" },
-					{ label: "Cloudflare", slug: "plugins/cloudflare" },
-					{ label: "Discord", slug: "plugins/discord" },
-					{ label: "Doppler", slug: "plugins/doppler" },
-					{ label: "GitHub", slug: "plugins/github" },
-					{ label: "Infisical", slug: "plugins/infisical" },
-					{ label: "Neon", slug: "plugins/neon" },
-					{ label: "PostHog", slug: "plugins/posthog" },
-					{ label: "Postman", slug: "plugins/postman" },
-					{ label: "Sentry", slug: "plugins/sentry" },
-					{ label: "Slack", slug: "plugins/slack" },
-					{ label: "Vercel", slug: "plugins/vercel" },
+					...PLUGINS.map(([slug, label], i) => ({
+						label,
+						items: [{ label: "Overview", slug: `plugins/${slug}` }, pluginsApi[i]!.api.group],
+					})),
 				],
 			},
 		],
 	},
+	plugins: [
+		...[...utilsApi, ...clientsApi, ...configsApi, ...pluginsApi, ...cliApi].map(({ api }) => api.plugin),
+		observabilityApi.plugin,
+		docsThemeApi.plugin,
+	],
 	starlight,
 	docsTheme,
 	srcDir: "./docs/src",

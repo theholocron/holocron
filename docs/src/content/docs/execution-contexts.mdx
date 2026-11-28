@@ -11,11 +11,11 @@ the provider plugins resolvable too.
 
 ## The three contexts
 
-| Context          | Needs                                                                                                                      | Commands                                                                                                                                                                                |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new`, `upgrade node`, `upgrade deps`, `plugin create`, `auth set` / `unset` / `list` / `check`, `bump-versions`, `publish`, `skills install` / `remove` / `update` |
-| **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `ci`, `config show`, `sync-readme`                                                                                                                                               |
-| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `secret set`, `secrets sync`, `deploy`, `cleanup-preview`, `sync-github`                                                                                     |
+| Context          | Needs                                                                                                                      | Commands                                                                                                                                                                                                                                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new repo`, `new plugin`, `upgrade node` / `deps`, `run lint commit-msg`, `new token`, `new github-app`, `remove token`, `list tokens`, `check token`, `check resolved`, `publish bump-versions`, `publish tag`, `publish package`, `install skills`, `update skills`, `remove skill`, `list skills` |
+| **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `run ci`, `show config`, `sync readme`, `deploy on-release`                                                                                                                                                                                                                                                       |
+| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `setup`, `sync`, `list secrets`, `new secret`, `sync secrets`, `deploy`, `deploy cleanup-preview`, `sync github`                                                                                                                                                                                               |
 
 `holocron --help` prints this same grouping in its epilogue.
 
@@ -31,6 +31,8 @@ Run it from a repo that has the @theholocron/holocron-plugin-* packages as
 devDependencies, or `pnpm exec holocron sync`. A global install can't resolve them.
 ```
 
+That line is only for a plugin package that is not there. A plugin that is installed but cannot load one of its own dependencies (`Cannot find module 'tslib'` after a half-finished install) is not reported this way: the command keeps going and its row for that provider shows the missing module. Run `pnpm install` (or `pnpm install --force`) to link it again.
+
 The fix is to install the plugins you need next to the CLI:
 
 ```bash
@@ -42,15 +44,15 @@ workspace/local-install model (plugins as devDependencies, `overrides:`
 collapsing `@theholocron/http-client` to one version) stays. This is only about
 failing clearly.
 
-## `auth check` degrades
+## `check token` degrades
 
-`auth check <provider>` normally loads the provider plugin to verify the stored
+`check token <provider>` normally loads the provider plugin to verify the stored
 token. From a global install the plugin isn't there, so it degrades to a
-report rather than an error — the same way `auth set` / `auth list` already
+report rather than an error — the same way `new token` / `list tokens` already
 work plugin-free:
 
 ```
-$ holocron auth check vercel
+$ holocron check token vercel
 vercel: token present — verification skipped (plugin not available here)
 ```
 
@@ -58,5 +60,5 @@ vercel: token present — verification skipped (plugin not available here)
 
 `holocron run test` in a repo with no `test` script — and no holocron-managed
 `test` task — prints `· no test task for this repo`, not a silent exit 0. Pass
-`--required` to turn that skip into a failure (this is what `holocron ci` does
+`--required` to turn that skip into a failure (this is what `holocron run ci` does
 for its required set).

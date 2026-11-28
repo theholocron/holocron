@@ -1,72 +1,193 @@
 packages:
   - "docs"
-  - "packages/*"
+  - "apps/*"
+  - "ci"
+  - "cli/*"
+  - "clients/*"
+  - "plugins/*"
+  - "observability"
+  - "skills"
+  - "utils/*"
+  - "configs/*"
+  - "themes/*"
 
-# Shared dep versions used across packages. Add named catalogs as
-# plugin packages grow.
+# Every dependency version lives in a catalog below, so this one file shows what the repo uses.
+# The rule, checked by `holocron probe deps check` (and `holocron probe deps report` /
+# `holocron probe deps who <name>` list who uses what):
+#   - used by two or more groups (a top-level folder): the default `catalog:`
+#   - used by one group: that group's named catalog, e.g. `catalog:configs`
+#   - peerDependencies keep their own compatibility ranges and are not in a catalog
 catalog:
+  "@astrojs/react": ^7.1.9
+  "@astrojs/starlight": ^0.43.1
   "@axiomhq/pino": ^2.0.0
-  "@inquirer/prompts": ^8.5.2
-  "@inquirer/search": ^4.3.3
-  "@sentry/node": ^10.70.0
-  "@theholocron/observability": ^0.3.0
+  "@commitlint/cli": ^21.2.0
+  "@commitlint/config-conventional": ^21.2.3
+  "@commitlint/lint": ^21.2.3
+  "@commitlint/load": ^21.2.3
+  "@commitlint/types": ^21.2.3
+  "@napi-rs/keyring": ^2.1.2
+  "@semantic-release/changelog": ^7.0.0
+  "@semantic-release/exec": ^7.1.0
+  "@semantic-release/git": ^11.0.1
+  "@sentry/node": ^11.16.0
+  "@tsconfig/node-lts": ^26.0.1
   "@types/node": ^26
-  "@types/yargs": ^17.0.35
-  "@vitest/coverage-v8": ^5.0.0
-  "@vitest/eslint-plugin": ^1.6.27
-  chalk: ^6.0.0
-  eslint: ^10.8.1
-  eslint-plugin-n: ^18.3.0
+  "@vitest/coverage-v8": ^5.1.1
+  "@vitest/eslint-plugin": ^1.6.28
+  astro: ^7.4.13
+  chalk: ^6.0.1
+  conventional-changelog-conventionalcommits: 10.4.1
+  dotenv: ^18.0.10
+  eslint: ^10.15.0
+  eslint-plugin-n: ^18.5.0
   eslint-plugin-simple-import-sort: ^14.0.0
-  globals: ^17.11.0
-  ora: ^9.4.1
-  pino: ^10.3.1
-  pino-pretty: ^13.1.3
-  posthog-node: ^5.51.6
-  tsdown: ^0.22.14
-  tsx: 4.23.12
-  turbo: ^2.10.12
-  typescript: ^5.9.3
-  vitest: ^5.0.0
-  yargs: ^18.1.0
+  globals: ^17.14.0
+  husky: ^9.1.7
+  knip: ^6.48.0
+  lint-staged: ^17.6.2
+  pino: ^10.4.0
+  pino-pretty: ^13.2.0
+  posthog-node: ^6.0.5
+  prettier: ^3.10.1
+  semantic-release: ^26.0.1
+  sort-package-json: ^4.1.0
+  starlight-typedoc: ^0.23.3
+  tsdown: ^0.23.7
+  tsx: 4.23.15
+  turbo: ^2.11.13
+  typedoc: ^0.28.20
+  typedoc-plugin-markdown: ^4.14.1
+  typescript: ^6.0.3
+  typescript-eslint: ^8.73.0
+  vitest: ^5.1.1
 
 catalogs:
-  # Shared clients — release in lockstep; bump all entries together.
+  # apps: dependencies only apps/ uses
+  apps:
+    "@theholocron/holocron-config": ^8.8.2
+    alex: ^11.0.1
+    editorconfig: ^4.0.1
+    markdownlint: ^0.42.2
+    obsidian: ^1.14.4
+
+  # cli: dependencies only cli/ uses
+  cli:
+    "@inquirer/prompts": ^8.8.1
+    "@inquirer/search": ^4.4.1
+    "@types/yargs": ^17.0.35
+    clipboardy: ^5.3.2
+    ora: ^10.0.0
+    yargs: ^18.1.0
+
+  # clients: dependencies only clients/ uses
   clients:
-    "@theholocron/clerk-client": ^1.14.2
-    "@theholocron/cloudflare-client": ^1.14.2
-    "@theholocron/doppler-client": ^1.14.2
-    "@theholocron/github-client": ^1.14.2
-    "@theholocron/http-client": ^1.14.2
-    "@theholocron/infisical-client": ^1.14.2
-    "@theholocron/neon-client": ^1.14.2
-    "@theholocron/posthog-client": ^1.14.2
-    "@theholocron/postman-client": ^1.14.2
-    "@theholocron/sentry-client": ^1.14.2
-    "@theholocron/vercel-client": ^1.14.2
+    "@types/server-destroy": ^1.0.4
+    google-auth-library: ^11.3.4
+    googleapis: ^190.0.0
+    open: ^11.0.0
+    server-destroy: ^1.0.1
 
-  # Shared utils — release in lockstep; bump all entries together.
-  utils:
-    "@theholocron/env-utils": ^1.6.0
-
-  # Shared configs — release in lockstep; bump all entries together.
+  # configs: dependencies only configs/ uses
   configs:
-    "@theholocron/astro-config": ^8.0.0
-    "@theholocron/commitlint-config": ^8.0.0
-    "@theholocron/devmoji-config": ^8.0.0
-    "@theholocron/docs-theme": ^1.10.1
-    "@theholocron/eslint-config": ^8.0.0
-    "@theholocron/holocron-config": ^8.2.0
-    "@theholocron/lint-staged-config": ^8.0.0
-    "@theholocron/prettier-config": ^8.0.0
-    "@theholocron/semantic-release-config": ^8.0.0
-    "@theholocron/tsconfig": ^8.0.0
-    "@theholocron/tsdown-config": ^8.0.0
-    "@theholocron/vitest-config": ^8.0.0
+    "@codecov/vite-plugin": ^2.0.0
+    "@eslint/compat": ^2.1.1
+    "@eslint/js": ^10.0.0
+    "@semantic-release/commit-analyzer": ^13.0.1
+    "@semantic-release/release-notes-generator": ^15.0.0-beta.4
+    eslint-package-json: ^3.0.0
+    react: ^19.3.1
+    react-dom: ^19.3.1
+    vite: ^8.3.8
 
-# Force all packages (including external transitive deps) to use the
-# same http-client instance — prevents instanceof ProviderApiError
-# dual-module hazard when github-client and cli both depend on it.
+  # observability: dependencies only observability/ uses (the browser and edge adapters' SDKs)
+  observability:
+    "@sentry/browser": ^11.16.0
+    "@sentry/vercel-edge": ^11.16.0
+    posthog-js: ^1.453.2
+
+  # plugins: dependencies only plugins/ uses
+  plugins:
+    "@usebruno/converters": ^0.25.0
+    "@usebruno/filestore": ^0.14.0
+    libsodium-wrappers: ^0.8.4
+
+  # themes: dependencies only themes/ uses
+  themes:
+    gray-matter: ^4.0.3
+
+  # utils: dependencies only utils/ uses
+  utils:
+    change-case: ^5.4.4
+    happy-dom: ^21.0.4
+    title-case: ^4.3.1
+
+  # Minimum versions the plugins accept as peers (their peerDependencies range). The clients and utils
+  # themselves resolve from the workspace (workspace:^), so these are compatibility floors, not what
+  # this repo builds against.
+  peers:
+    "@theholocron/axiom-client": ^2.0.0
+    "@theholocron/checkly-client": ^2.0.0
+    "@theholocron/clerk-client": ^2.0.0
+    "@theholocron/cloudflare-client": ^2.0.0
+    "@theholocron/codecov-client": ^2.0.0
+    "@theholocron/discord-client": ^2.0.0
+    "@theholocron/doppler-client": ^2.0.0
+    "@theholocron/fs-utils": ^2.0.0
+    "@theholocron/github-client": ^2.0.0
+    "@theholocron/infisical-client": ^2.0.0
+    "@theholocron/linear-client": ^2.0.0
+    "@theholocron/misc-utils": ^2.0.0
+    "@theholocron/neon-client": ^2.0.0
+    "@theholocron/netlify-client": ^2.0.0
+    "@theholocron/postman-client": ^2.0.0
+    "@theholocron/sentry-client": ^2.0.0
+    "@theholocron/slack-client": ^2.0.0
+    "@theholocron/turbo-client": ^2.0.0
+    "@theholocron/vercel-client": ^2.0.0
+
+# @sentry/node and posthog-node are pinned exactly so every consumer resolves the
+# same version. @theholocron/http-client peers on both, and pnpm creates a
+# SEPARATE physical http-client instance per distinct peer-resolved version set
+# it sees anywhere in the graph -- an external published dependency (e.g.
+# holocron-config's npm-resolved @theholocron/cli, which doesn't read this
+# workspace's catalog) can resolve a newer sentry/posthog and split
+# `instanceof ProviderApiError` across two copies. Found live: holocron#782's
+# @theholocron/holocron-config dependency pulled in exactly this.
+#
+# http-client itself used to be pinned here too, to keep github-client and the
+# CLI on one copy. It is no longer: the clients live in this repo (clients/*,
+# #1211), the CLI and plugins resolve it from the workspace (workspace:^),
+# and with the pin removed the lockfile still holds a single
+# http-client and the CLI and plugin suites pass. If a dependency bump ever
+# splits it again, pin it here (exactly) rather than with a caret.
+#
+# Both pins are EXACT (no caret) -- a caret range only constrains what's
+# ACCEPTABLE, and pnpm is still free to resolve different exact versions for
+# different consumers as long as each satisfies the range, recreating the same
+# split one version bump later. Found live twice with http-client: bumping
+# github-client alone pulled in http-client@1.26.0 for that one edge while every
+# other consumer stayed on 1.25.0, splitting ProviderApiError under a caret
+# override that permitted both.
+#
+# cookie and tsx are pinned too, but for unrelated reasons, and not
+# both exactly -- cookie is constrained to the 2.x line (caret range,
+# not exact: ^2.0.1) to dodge cookie@0.7.1, which broke the docs
+# prerender build (#332); tsx IS an exact pin. 6e27c06d pinned tsx to
+# 4.22.4 to dodge an ENOENT crash hit on 4.23.x (then at .12); three
+# patches have shipped since (.13/.14/.15) and none reproduce it --
+# verified against the exact vulnerable path (datapad's tsx/esm/api
+# config loader) plus a full `holocron run ci`, so pinned at current
+# latest instead of the stale downgrade. Both cookie and tsx used to
+# live in package.json's own `pnpm.overrides`, which pnpm prefers over
+# this block when both exist -- meaning this whole `overrides:` block,
+# including the single-instance pins above, was silently never
+# applied (holocron#908).
 overrides:
-  "@theholocron/http-client": ^1.14.2
-  tsx: 4.23.12
+  "@astrojs/starlight>@astrojs/markdown-satteri": 0.4.5
+  "@astrojs/starlight>satteri": 0.10.5
+  "@sentry/node": 10.75.2
+  conventional-changelog-conventionalcommits: 10.4.1
+  cookie: ^2.0.1
+  posthog-node: 5.52.5
+  tsx: 4.23.15

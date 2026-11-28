@@ -1,4 +1,5 @@
 ---
+id: SPEC-0021
 status: archived
 issue: theholocron/holocron#503
 blocked-by: []
@@ -6,7 +7,11 @@ related:
   - theholocron/holocron/docs/wiki/specifications/wiki-capability.spec.md
   - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
   - theholocron/.github-private#65
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618742878638211
 ---
+
+<!-- alex disable fires remains -->
 
 # `sync --steps wiki` — auto-generated Fern products switcher
 

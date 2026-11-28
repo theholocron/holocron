@@ -1,0 +1,81 @@
+import type { GitExec } from "@theholocron/git-utils";
+import type { Logger } from "@theholocron/observability/core";
+
+import type { LoadedConfig } from "../../config/index.js";
+import { type DeploymentTarget, PluginLoader, type RuntimeContext, type SecretScope } from "../../plugin/index.js";
+import type { DeployFilter } from "./deploy-filter/index.js";
+
+export type SyncPrintLine = (line: string) => void;
+
+export type SyncRowStatus = "ok" | "fail" | "dry-run" | "skip";
+
+export interface SyncRow {
+	destination: string;
+	/** e.g., `target=production` for deployment, `scope=repo` for secrets. */
+	scope: string;
+	key: string;
+	status: SyncRowStatus;
+	message?: string;
+}
+
+export interface SyncReport {
+	rows: SyncRow[];
+	summary: { ok: number; fail: number; skip: number; dryRun: number };
+}
+
+/** Where some vault keys land in `secrets`: one scope, and the keys that go there (every key the vault holds when omitted). */
+export interface SecretRoute {
+	scope: SecretScope;
+	keys?: string[];
+}
+
+/** Where some vault keys land as Actions variables (from `repo.variables.sync`): one scope, and the keys that go there. */
+export interface VariableRoute {
+	scope: { kind: "repo" } | { kind: "organization"; name: string };
+	keys: string[];
+	/** Organization variables only: which repositories can read them. `all` when omitted. */
+	visibility?: "all" | "private";
+}
+
+export interface RunSecretsSyncInput {
+	loaded: LoadedConfig;
+	context: RuntimeContext;
+	/** Vault environment id to read. */
+	environmentId: string;
+	/** Deployment targets to sync to. Defaults to ['production', 'preview']. */
+	targets?: DeploymentTarget[];
+	/** Vercel project id (or equivalent). Required if `deployment` is loaded. */
+	projectId?: string;
+	/** A deployed Worker to set every vault key on as a secret (needs a `workers` provider that can). */
+	workerScript?: string;
+	/**
+	 * Allowlist restricting which vault keys reach `secrets`. Omit to push
+	 * every key (the default). See this module's own docstring.
+	 */
+	githubSecretKeys?: string[];
+	/** Scope applied to every `githubSecretKeys` entry. Omit for `{ kind: "repo" }` (the default). */
+	githubSecretScope?: SecretScope;
+	/**
+	 * Routes into `secrets`, one per scope (from `repo.secrets.sync`). Used instead of `githubSecretKeys` and
+	 * `githubSecretScope`, which describe one route; omit it for those.
+	 */
+	secretRoutes?: SecretRoute[];
+	/**
+	 * Routes into Actions variables, one per scope (from `repo.variables.sync`), written through the `source`
+	 * provider. When there are some and `secretRoutes` is an empty list, the environment holds variables only: nothing
+	 * reaches `secrets`, and `deployment` is left out unless `projectId` is given.
+	 */
+	variableRoutes?: VariableRoute[];
+	/**
+	 * The names a deployment (`projectId`) or a Worker (`workerScript`) may receive, from `repo.secrets.deploy`
+	 * (`deployFilter()`). Required when either destination is used: without it the run throws a `ConfigError` before
+	 * the vault is read, and never sends every key.
+	 */
+	deployFilter?: DeployFilter;
+	/** How to read the repository's `origin` remote, to recognise the derived name of an unsynced layer (tests inject a fake). */
+	gitExec?: GitExec;
+	loader?: PluginLoader;
+	print?: SyncPrintLine;
+	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
+	logger?: Logger;
+}

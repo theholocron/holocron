@@ -1,10 +1,9 @@
 #!/bin/sh
 
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/templates/configs/pre-push/create-config.ts
+# Source:  theholocron/holocron · cli/astromech/src/templates/configs/pre-push/create-config.ts
 # Tool:    holocron setup
 # Changes: edit source in theholocron/holocron
-
 # Run the merge-gating checks locally before pushing — the same set CI runs.
 # Bypass once with:  git push --no-verify
 
@@ -12,4 +11,8 @@
 # built dev environment — the hook has nothing to add there.
 [ -n "$CI" ] && exit 0
 
-node packages/cli/dist/cli.mjs ci
+if [ ! -f "cli/cli/dist/cli.mjs" ]; then
+	echo "pre-push: cli/cli/dist/cli.mjs is not built yet. Run: pnpm install && pnpm build (or push with --no-verify)." >&2
+	exit 1
+fi
+node cli/cli/dist/cli.mjs run ci

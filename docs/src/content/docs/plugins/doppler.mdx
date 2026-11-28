@@ -3,8 +3,8 @@ title: Doppler Plugin
 description: Implements the vault capability against Doppler's REST API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-doppler"]} capability="vault" />
 
@@ -25,13 +25,6 @@ providers: {
 }
 ```
 
-### Options
-
-| Option    | Required | Description                     |
-| --------- | -------- | ------------------------------- |
-| `project` | Yes      | Doppler project name            |
-| `config`  | Yes      | Doppler config/environment name |
-
 ## Authentication
 
 1. Go to [dashboard.doppler.com](https://dashboard.doppler.com) and open your project
@@ -40,7 +33,7 @@ providers: {
 4. Copy the token — it starts with `dp.st.`
 
 ```bash
-holocron auth set doppler dp.st.xxx
+holocron new token doppler dp.st.xxx
 ```
 
 Or via env var:
@@ -55,9 +48,10 @@ export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 - `write(key, value)` — sets or updates a secret
 - `list()` — lists all secret names in the config
 - `environments?()` — lists all configs in the project (`"dev"`, `"stg"`, `"prd"`)
-- `readEnvironment?(config)` — reads all KEY=VALUE pairs from a config (powers `holocron secrets sync`)
+- `readEnvironment?(config)` — reads all KEY=VALUE pairs from a config (powers `holocron sync secrets`)
 - `ensureProject?(name)` — creates a Doppler project if missing
 - `ensureEnvironment?(project, name)` — creates a config (branch) inside a project
+- `ensureRelaySource?(input)` / `inspectRelaySource?(input)` — make and read back the project's webhook for a [Comlink relay source](/holocron/comlink/#adding-a-source) (`relay.sources.<id>` with `capability: "vault"`). The webhook is found by URL in the project (`options.project`, else the configured one) and never changed or deleted; `scope` is the config slugs; the signing secret is chosen by Holocron, sent on create only and handed to the Worker. A token Doppler refuses is a `todo`, because the reference does not say which token type can manage webhooks.
 
 ## Example: sync Doppler → GitHub + Vercel
 
@@ -65,5 +59,7 @@ export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 # Pull all secrets from the "production" config →
 # → set as GitHub Actions secrets
 # → set as Vercel env vars (production + preview)
-holocron secrets sync production --project-id prj_vercel_xxx
+holocron sync secrets --env production --project-id prj_vercel_xxx
 ```
+
+The full [API reference](/holocron/plugins/holocron-plugin-doppler/api/readme/) is generated from the package's TSDoc comments.

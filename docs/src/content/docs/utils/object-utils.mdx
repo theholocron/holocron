@@ -1,0 +1,27 @@
+---
+title: Object Utils
+description: Inspect and deep-merge plain objects.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/object-utils
+```
+
+## Usage
+
+```ts
+import { deepMerge, isPlainObject } from "@theholocron/object-utils";
+
+isPlainObject({}); // true
+isPlainObject(new Date()); // false
+
+deepMerge({ a: 1, nested: { x: 1 } }, { nested: { y: 2 } });
+// { a: 1, nested: { x: 1, y: 2 } }
+
+deepMerge({ tasks: ["a"] }, { tasks: ["b"] });
+// { tasks: ["a", "b"] }
+```
+
+The full [API reference](/holocron/utils/object-utils/api/readme/) is generated from the package's TSDoc comments.

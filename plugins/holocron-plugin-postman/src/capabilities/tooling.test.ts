@@ -1,0 +1,685 @@
+import type { spawnSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { PostmanPlanLimitError } from "@theholocron/postman-client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createPostmanClient } from "../rest.js";
+import { keepSecrets, PostmanTooling } from "./tooling.js";
+
+function makeTooling(
+	responses: Parameters<typeof stubFetch>[0],
+	opts: Partial<{
+		workspaceId: string;
+		workspace: string;
+		workspaceType: "personal" | "team";
+		collectionFiles: string[];
+		specFile: string;
+		specName: string;
+		collectionName: string;
+		envFiles: string[];
+		repoRoot: string;
+		spawn: typeof spawnSync;
+	}> = {}
+) {
+	const { fetch, calls } = stubFetch(responses);
+	const client = createPostmanClient({ token: "pmak-test", fetch });
+	const tooling = new PostmanTooling(() => client, { workspaceId: "ws-id", ...opts });
+	return { tooling, calls };
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Identity + construction
+// ──────────────────────────────────────────────────────────────────────
+
+describe("PostmanTooling identity", () => {
+	it("reports key and providerName for the capability map", () => {
+		const { tooling } = makeTooling([]);
+		expect(tooling.key).toBe("tooling");
+		expect(tooling.providerName).toBe("postman");
+	});
+
+	it("throws when neither workspaceId nor workspace is given", () => {
+		const client = createPostmanClient({ token: "t" });
+		expect(() => new PostmanTooling(() => client, { workspaceId: "" })).toThrow(/workspaceId.*workspace/);
+	});
+
+	it("accepts a workspace name alone", () => {
+		const client = createPostmanClient({ token: "t" });
+		expect(() => new PostmanTooling(() => client, { workspace: "Holocron" })).not.toThrow();
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Postman-specific methods
+// ──────────────────────────────────────────────────────────────────────
+
+describe("PostmanTooling.getMyself", () => {
+	it("GETs /me and maps to PostmanUser", async () => {
+		const { tooling, calls } = makeTooling([
+			{ status: 200, body: { user: { id: 42, username: "iamnewton", fullName: "Newton" } } },
+		]);
+		const me = await tooling.getMyself();
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/me");
+		expect(me).toEqual({ id: 42, username: "iamnewton", fullName: "Newton" });
+	});
+});
+
+describe("PostmanTooling.getMyself without a user", () => {
+	it("returns an empty user when /me has none", async () => {
+		const { tooling } = makeTooling([{ status: 200, body: {} }]);
+		expect(await tooling.getMyself()).toEqual({});
+	});
+});
+
+describe("PostmanTooling.listWorkspaces", () => {
+	it("GETs /workspaces and maps results", async () => {
+		const { tooling, calls } = makeTooling([
+			{
+				status: 200,
+				body: {
+					workspaces: [
+						{ id: "w1", name: "Personal", type: "personal" },
+						{ id: "w2", name: "Team", type: "team" },
+					],
+				},
+			},
+		]);
+		const result = await tooling.listWorkspaces();
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/workspaces");
+		expect(result).toHaveLength(2);
+		expect(result[0]).toMatchObject({ id: "w1", type: "personal" });
+	});
+});
+
+describe("PostmanTooling.findCollectionByName", () => {
+	it("GETs /collections?workspace=… and returns a match", async () => {
+		const { tooling, calls } = makeTooling([
+			{
+				status: 200,
+				body: {
+					collections: [
+						{ id: "c1", uid: "u1", name: "Other API" },
+						{ id: "c2", uid: "u2", name: "Rando API" },
+					],
+				},
+			},
+		]);
+		const result = await tooling.findCollectionByName({
+			workspaceId: "ws-id",
+			name: "Rando API",
+		});
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/collections?workspace=ws-id");
+		expect(result?.uid).toBe("u2");
+	});
+
+	it("returns null when no match", async () => {
+		const { tooling } = makeTooling([
+			{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "Other" }] } },
+		]);
+		expect(await tooling.findCollectionByName({ workspaceId: "ws-id", name: "Missing" })).toBeNull();
+	});
+});
+
+describe("PostmanTooling.deleteCollection", () => {
+	it("DELETEs by uid", async () => {
+		const { tooling, calls } = makeTooling([{ status: 200, body: {} }]);
+		await tooling.deleteCollection("u2");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/collections/u2");
+	});
+});
+
+describe("PostmanTooling.importOpenApi", () => {
+	it("POSTs /import/openapi with workspace query + stringified spec", async () => {
+		const { tooling, calls } = makeTooling([
+			{
+				status: 200,
+				body: { collections: [{ id: "c1", uid: "u1", name: "Demo" }] },
+			},
+		]);
+		const result = await tooling.importOpenApi({
+			workspaceId: "ws-id",
+			spec: { openapi: "3.0.0", info: { title: "Demo" } },
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/import/openapi?workspace=ws-id");
+		const body = calls[0]?.body as { type: string; input: string };
+		expect(body.type).toBe("string");
+		expect(JSON.parse(body.input)).toEqual({ openapi: "3.0.0", info: { title: "Demo" } });
+		expect(result.uid).toBe("u1");
+	});
+
+	it("throws clearly when Postman returns no collection on import", async () => {
+		const { tooling } = makeTooling([{ status: 200, body: { collections: [] } }]);
+		await expect(tooling.importOpenApi({ workspaceId: "ws-id", spec: {} })).rejects.toThrow(
+			/no collection on import/
+		);
+	});
+});
+
+describe("PostmanTooling environments", () => {
+	it("finds environments via /environments?workspace=…", async () => {
+		const { tooling, calls } = makeTooling([
+			{
+				status: 200,
+				body: {
+					environments: [
+						{ id: "e1", uid: "eu1", name: "staging" },
+						{ id: "e2", uid: "eu2", name: "production" },
+					],
+				},
+			},
+		]);
+		const result = await tooling.findEnvironmentByName({
+			workspaceId: "ws-id",
+			name: "production",
+		});
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/environments?workspace=ws-id");
+		expect(result?.uid).toBe("eu2");
+	});
+
+	it("createEnvironment POSTs with body wrapper", async () => {
+		const { tooling, calls } = makeTooling([
+			{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "staging" } } },
+		]);
+		await tooling.createEnvironment({
+			workspaceId: "ws-id",
+			environment: { name: "staging", values: [] },
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/environments?workspace=ws-id");
+		expect(calls[0]?.body).toEqual({ environment: { name: "staging", values: [] } });
+	});
+
+	it("updateEnvironment PUTs to /environments/{uid}", async () => {
+		const { tooling, calls } = makeTooling([
+			{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "staging" } } },
+		]);
+		await tooling.updateEnvironment({ uid: "eu1", environment: { name: "staging" } });
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/environments/eu1");
+	});
+});
+
+describe("PostmanTooling Spec Hub methods", () => {
+	it("findSpecByName matches by name within workspace", async () => {
+		const { tooling, calls } = makeTooling([
+			{
+				status: 200,
+				body: {
+					specs: [
+						{ id: "s1", name: "Other", type: "OPENAPI:3.0" },
+						{ id: "s2", name: "Demo", type: "OPENAPI:3.0" },
+					],
+				},
+			},
+		]);
+		const result = await tooling.findSpecByName({ workspaceId: "ws-id", name: "Demo" });
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/specs?workspaceId=ws-id");
+		expect(result?.id).toBe("s2");
+	});
+
+	it("createSpec POSTs flat name+type+files (not wrapped under spec)", async () => {
+		const { tooling, calls } = makeTooling([
+			{ status: 200, body: { id: "s_new", name: "Demo", type: "OPENAPI:3.0" } },
+		]);
+		await tooling.createSpec({
+			workspaceId: "ws-id",
+			name: "Demo",
+			fileContent: '{"openapi":"3.0.0"}',
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/specs?workspaceId=ws-id");
+		expect(calls[0]?.body).toEqual({
+			name: "Demo",
+			type: "OPENAPI:3.0",
+			files: [{ path: "index.json", content: '{"openapi":"3.0.0"}' }],
+		});
+	});
+
+	it("upsertSpecFile PATCHes /specs/{id}/files/{path}", async () => {
+		const { tooling, calls } = makeTooling([{ status: 200, body: {} }]);
+		await tooling.upsertSpecFile({
+			specId: "s1",
+			filePath: "index.json",
+			content: '{"openapi":"3.0.0"}',
+		});
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toBe("https://api.getpostman.com/specs/s1/files/index.json");
+		expect(calls[0]?.body).toEqual({ content: '{"openapi":"3.0.0"}' });
+	});
+});
+
+describe("PostmanRestClient — plan-limit discrimination", () => {
+	it("throws PostmanPlanLimitError when the response is a limitReachedError", async () => {
+		const { tooling } = makeTooling([
+			{
+				status: 403,
+				text: JSON.stringify({
+					error: { name: "limitReachedError", message: "You can create up to 0 APIs." },
+				}),
+			},
+		]);
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(PostmanPlanLimitError);
+		expect((err as PostmanPlanLimitError).limitMessage).toMatch(/0 APIs/);
+	});
+
+	it("throws generic ProviderApiError for non-limit 4xx", async () => {
+		const { tooling } = makeTooling([{ status: 404, text: "not found" }]);
+		const err = await tooling.getMyself().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).not.toBeInstanceOf(PostmanPlanLimitError);
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// sync() — orchestration
+// ──────────────────────────────────────────────────────────────────────
+
+describe("PostmanTooling.sync", () => {
+	let repoRoot: string;
+
+	beforeEach(async () => {
+		repoRoot = await mkdtemp(join(tmpdir(), "holocron-postman-"));
+	});
+	afterEach(async () => {
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	async function writeSpec(content: object): Promise<string> {
+		const path = "apps/api/openapi.json";
+		await mkdir(join(repoRoot, "apps/api"), { recursive: true });
+		await writeFile(join(repoRoot, path), JSON.stringify(content), "utf8");
+		return path;
+	}
+
+	it("errors when specFile is not configured", async () => {
+		const { tooling } = makeTooling([]);
+		await expect(tooling.sync()).rejects.toThrow(/specFile/);
+	});
+
+	it("flow: create spec, no existing collection → import; happy path", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0", info: { title: "Rando API" } });
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { specs: [] } },
+				{ status: 200, body: { id: "s_new", name: "Rando API", type: "OPENAPI:3.0" } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "Rando API" }] } },
+			],
+			{ specFile: specPath, repoRoot }
+		);
+		await tooling.sync();
+		expect(calls).toHaveLength(4);
+		expect(calls[0]?.url).toContain("/specs?workspaceId=ws-id");
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[2]?.url).toContain("/collections?workspace=ws-id");
+		expect(calls[3]?.url).toContain("/import/openapi?workspace=ws-id");
+	});
+
+	it("flow: existing spec → upsertSpecFile; existing collection → delete then import", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0", info: { title: "Rando API" } });
+		const { tooling, calls } = makeTooling(
+			[
+				{
+					status: 200,
+					body: { specs: [{ id: "s_existing", name: "Rando API", type: "OPENAPI:3.0" }] },
+				},
+				{ status: 200, body: {} },
+				{
+					status: 200,
+					body: { collections: [{ id: "c1", uid: "u_existing", name: "Rando API" }] },
+				},
+				{ status: 200, body: {} },
+				{ status: 200, body: { collections: [{ id: "c2", uid: "u_new", name: "Rando API" }] } },
+			],
+			{ specFile: specPath, repoRoot }
+		);
+		await tooling.sync();
+		expect(calls[1]?.method).toBe("PATCH");
+		expect(calls[3]?.method).toBe("DELETE");
+		expect(calls[3]?.url).toContain("/collections/u_existing");
+	});
+
+	it("uses info.title from the spec when specName option is omitted", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0", info: { title: "Inferred Name" } });
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { specs: [] } },
+				{ status: 200, body: { id: "s_new", name: "Inferred Name", type: "OPENAPI:3.0" } },
+				{ status: 200, body: { collections: [] } },
+				{
+					status: 200,
+					body: { collections: [{ id: "c1", uid: "u1", name: "Inferred Name" }] },
+				},
+			],
+			{ specFile: specPath, repoRoot }
+		);
+		await tooling.sync();
+		expect((calls[1]?.body as { name: string }).name).toBe("Inferred Name");
+	});
+
+	it("names the spec after its file when it has no info.title", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0" });
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { specs: [] } },
+				{ status: 200, body: { id: "s_new", name: "openapi.json", type: "OPENAPI:3.0" } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "openapi.json" }] } },
+			],
+			{ specFile: specPath, repoRoot }
+		);
+		await tooling.sync();
+		expect((calls[1]?.body as { name: string }).name).toBe("openapi.json");
+	});
+
+	it("syncs env files when configured (create + update mix)", async () => {
+		const specPath = await writeSpec({ openapi: "3.0.0", info: { title: "API" } });
+		const stagingPath = "apps/api/env-staging.json";
+		const prodPath = "apps/api/env-prod.json";
+		await writeFile(join(repoRoot, stagingPath), JSON.stringify({ name: "staging", values: [] }));
+		await writeFile(join(repoRoot, prodPath), JSON.stringify({ name: "production", values: [] }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { specs: [] } },
+				{ status: 200, body: { id: "s_new", name: "API", type: "OPENAPI:3.0" } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "API" }] } },
+				{
+					status: 200,
+					body: { environments: [{ id: "e1", uid: "eu1", name: "staging" }] },
+				},
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "staging" } } },
+				{ status: 200, body: { environments: [] } },
+				{ status: 200, body: { environment: { id: "e2", uid: "eu2", name: "production" } } },
+			],
+			{ specFile: specPath, repoRoot, envFiles: [stagingPath, prodPath] }
+		);
+		await tooling.sync();
+		expect(calls[5]?.method).toBe("PUT");
+		expect(calls[7]?.method).toBe("POST");
+	});
+
+	it("makes the workspace by name when none has it, then creates the collection", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "Sentinel" }, item: [] }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Other", type: "personal" }] } },
+				{ status: 200, body: { workspace: { id: "w-new", name: "Holocron" } } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collection: { id: "c1", uid: "u1", name: "Sentinel" } } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron", collectionFiles: ["c.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.body).toEqual({ workspace: { name: "Holocron", type: "personal" } });
+		expect(calls[2]?.url).toContain("/collections?workspace=w-new");
+		expect(calls[3]?.method).toBe("POST");
+		expect(calls[3]?.url).toContain("/collections?workspace=w-new");
+	});
+
+	it("uses the workspace that already has the name and replaces an existing collection in place", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "Sentinel" }, item: [] }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Holocron", type: "personal" }] } },
+				{ status: 200, body: { collections: [{ id: "c1", uid: "u1", name: "Sentinel" }] } },
+				{ status: 200, body: { collection: { id: "c1", uid: "u1", name: "Sentinel" } } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron", collectionFiles: ["c.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls).toHaveLength(3);
+		expect(calls[2]?.method).toBe("PUT");
+		expect(calls[2]?.url).toBe("https://api.getpostman.com/collections/u1");
+	});
+
+	it("makes a workspace of the configured type", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ info: { name: "X" } }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { workspaces: [] } },
+				{ status: 200, body: { workspace: { id: "w", name: "Holocron" } } },
+				{ status: 200, body: { collections: [] } },
+				{ status: 200, body: { collection: { id: "c", uid: "u", name: "X" } } },
+			],
+			{
+				workspaceId: undefined,
+				workspace: "Holocron",
+				workspaceType: "team",
+				collectionFiles: ["c.json"],
+				repoRoot,
+			}
+		);
+		await tooling.sync();
+		expect(calls[1]?.body).toEqual({ workspace: { name: "Holocron", type: "team" } });
+	});
+
+	it("rejects a collection file with no info.name", async () => {
+		await writeFile(join(repoRoot, "c.json"), JSON.stringify({ item: [] }));
+		const { tooling } = makeTooling([], { collectionFiles: ["c.json"], repoRoot });
+		await expect(tooling.sync()).rejects.toThrow(/info\.name/);
+	});
+
+	it("keeps the value of a secret the file leaves empty when it updates an environment", async () => {
+		await writeFile(
+			join(repoRoot, "e.json"),
+			JSON.stringify({
+				name: "Sentinel",
+				values: [
+					{ key: "baseUrl", value: "http://127.0.0.1:3000", type: "default" },
+					{ key: "webhookSecret", value: "", type: "secret" },
+				],
+			})
+		);
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Sentinel" }] } },
+				{
+					status: 200,
+					body: {
+						environment: {
+							id: "e1",
+							uid: "eu1",
+							name: "Sentinel",
+							values: [{ key: "webhookSecret", value: "held", type: "secret" }],
+						},
+					},
+				},
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Sentinel" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls[1]?.method).toBe("GET");
+		expect(calls[2]?.method).toBe("PUT");
+		const sent = calls[2]?.body as { environment: { values: { key: string; value: string }[] } };
+		expect(sent.environment.values.find((v) => v.key === "webhookSecret")?.value).toBe("held");
+	});
+});
+
+describe("PostmanTooling.sync environment files", () => {
+	let repoRoot: string;
+
+	beforeEach(async () => {
+		repoRoot = await mkdtemp(join(tmpdir(), "holocron-postman-env-"));
+	});
+	afterEach(async () => {
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	it("rejects an environment file with no name", async () => {
+		await writeFile(join(repoRoot, "e.json"), JSON.stringify({ values: [] }));
+		const { tooling } = makeTooling([], { envFiles: ["e.json"], repoRoot });
+		await expect(tooling.sync()).rejects.toThrow(/missing a "name"/);
+	});
+
+	it("updates an environment with no variables without reading it back", async () => {
+		await writeFile(join(repoRoot, "e.json"), JSON.stringify({ name: "Bare" }));
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Bare" }] } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Bare" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		expect(calls.map((c) => c.method)).toEqual(["GET", "PUT"]);
+	});
+
+	it("sends an empty secret as it is when the environment holds no variables", async () => {
+		await writeFile(
+			join(repoRoot, "e.json"),
+			JSON.stringify({ name: "Fresh", values: [{ key: "s", value: "", type: "secret" }] })
+		);
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { environments: [{ id: "e1", uid: "eu1", name: "Fresh" }] } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Fresh" } } },
+				{ status: 200, body: { environment: { id: "e1", uid: "eu1", name: "Fresh" } } },
+			],
+			{ envFiles: ["e.json"], repoRoot }
+		);
+		await tooling.sync();
+		const sent = calls[2]?.body as { environment: { values: { key: string; value: string }[] } };
+		expect(sent.environment.values).toEqual([{ key: "s", value: "", type: "secret" }]);
+	});
+});
+
+describe("keepSecrets", () => {
+	it("fills only an empty secret from the existing variable of the same key", () => {
+		const result = keepSecrets(
+			[
+				{ key: "a", value: "", type: "secret" },
+				{ key: "b", value: "mine", type: "secret" },
+				{ key: "c", value: "", type: "default" },
+				{ key: "d", value: "", type: "secret" },
+			],
+			[
+				{ key: "a", value: "held-a", type: "secret" },
+				{ key: "b", value: "held-b", type: "secret" },
+				{ key: "c", value: "held-c" },
+			]
+		);
+		expect(result.map((v) => v.value)).toEqual(["held-a", "mine", "", ""]);
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// doctor()
+// ──────────────────────────────────────────────────────────────────────
+
+describe("PostmanTooling.doctor", () => {
+	it("returns ok when /me + workspace are accessible", async () => {
+		const { tooling } = makeTooling([
+			{ status: 200, body: { user: { id: 1, username: "newton", fullName: "N" } } },
+			{
+				status: 200,
+				body: { workspaces: [{ id: "ws-id", name: "Rando", type: "team" }] },
+			},
+		]);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(true);
+		expect(report.message).toContain("newton");
+		expect(report.message).toContain("Rando");
+	});
+
+	it("returns ok:false when the configured workspace is not in the list", async () => {
+		const { tooling } = makeTooling([
+			{ status: 200, body: { user: { id: 1, username: "newton", fullName: "N" } } },
+			{ status: 200, body: { workspaces: [{ id: "other", name: "Other", type: "team" }] } },
+		]);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(false);
+		expect(report.message).toContain("not visible");
+	});
+
+	it("finds a workspace by name, and does not make it when it is absent", async () => {
+		const { tooling, calls } = makeTooling(
+			[
+				{ status: 200, body: { user: { id: 1, username: "newton" } } },
+				{ status: 200, body: { workspaces: [] } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron" }
+		);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(true);
+		expect(report.message).toContain("does not exist yet");
+		expect(calls).toHaveLength(2);
+	});
+
+	it("finds a workspace by name", async () => {
+		const { tooling } = makeTooling(
+			[
+				{ status: 200, body: { user: { id: 1, username: "newton" } } },
+				{ status: 200, body: { workspaces: [{ id: "w1", name: "Holocron", type: "personal" }] } },
+			],
+			{ workspaceId: undefined, workspace: "Holocron" }
+		);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(true);
+		expect(report.message).toContain("Holocron (personal) accessible");
+	});
+
+	it("returns ok:false with the error message when /me fails", async () => {
+		const { tooling } = makeTooling([{ status: 401, text: "invalid key" }]);
+		const report = await tooling.doctor();
+		expect(report.ok).toBe(false);
+		expect(report.message).toContain("401");
+	});
+});
+
+describe("PostmanTooling.export", () => {
+	it("runs `postman collection migrate` for each collection through the spawn it is given, and touches no API", async () => {
+		const out = await mkdtemp(join(tmpdir(), "postman-tooling-export-"));
+		try {
+			const spawn = vi.fn((_bin: string, args: readonly string[]) => {
+				const dir = args[args.length - 1] as string;
+				mkdirSync(dir, { recursive: true });
+				writeFileSync(join(dir, "collection.yaml"), "name: x\n");
+				return { status: 0, stdout: "", stderr: "" };
+			}) as unknown as typeof spawnSync;
+			const { tooling, calls } = makeTooling([], { spawn });
+			const result = await tooling.export({
+				collectionFiles: ["requests/collection.json"],
+				envFiles: [],
+				outDir: out,
+				repoRoot: "/repo",
+			});
+			expect(result).toEqual({ files: ["collection/collection.yaml"], issues: [] });
+			expect(spawn).toHaveBeenCalledWith(
+				"postman",
+				["collection", "migrate", "/repo/requests/collection.json", "--output", join(out, "collection")],
+				expect.any(Object)
+			);
+			expect(calls).toHaveLength(0);
+		} finally {
+			await rm(out, { recursive: true, force: true });
+		}
+	});
+
+	it("runs the real spawn when none is injected, and names the missing CLI", async () => {
+		const out = await mkdtemp(join(tmpdir(), "postman-tooling-export-"));
+		const path = process.env.PATH;
+		process.env.PATH = "";
+		try {
+			const { tooling } = makeTooling([]);
+			const err = await tooling
+				.export({ collectionFiles: ["c.json"], envFiles: [], outDir: out, repoRoot: out })
+				.catch((e: unknown) => e);
+			expect((err as Error).message).toContain("is not installed");
+		} finally {
+			process.env.PATH = path;
+			await rm(out, { recursive: true, force: true });
+		}
+	});
+});

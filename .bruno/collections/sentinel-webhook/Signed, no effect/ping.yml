@@ -1,0 +1,33 @@
+info:
+  name: ping
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/webhook"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: X-GitHub-Event
+      value: ping
+    - name: X-GitHub-Delivery
+      value: "{{$guid}}"
+  body:
+    type: json
+    data: '{"zen":"Keep it logically awesome.","hook_id":1}'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 200", () => expect(res.getStatus()).to.equal(200));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: "Not one of Sentinel's event categories: `{ handled: false }`."

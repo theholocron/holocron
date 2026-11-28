@@ -3,8 +3,8 @@ title: PostHog Plugin
 description: Implements the analytics capability against PostHog's management API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-posthog"]} capability="analytics" />
 
@@ -45,7 +45,7 @@ The plugin uses a **personal API key** — not the project API key. The personal
 2. Click **Create personal API key**, give it a label (e.g. "Holocron"), and copy it
 
 ```bash
-holocron auth set posthog phx_xxxxxxxxxxxxxxxxxxxx
+holocron new token posthog phx_xxxxxxxxxxxxxxxxxxxx
 ```
 
 Or via env var:
@@ -79,3 +79,5 @@ const { token, alreadyExists } = await an.ensureProject("my-app");
 // to GitHub Secrets via the secrets capability.
 console.log(`PostHog key: ${token} (${alreadyExists ? "existing" : "created"})`);
 ```
+
+The full [API reference](/holocron/plugins/holocron-plugin-posthog/api/readme/) is generated from the package's TSDoc comments.

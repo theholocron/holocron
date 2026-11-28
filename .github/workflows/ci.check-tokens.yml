@@ -1,0 +1,23 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: check-tokens
+
+run-name: "${{ github.event_name == 'workflow_dispatch' && 'Check Tokens (manual)' || github.event_name == 'schedule' && 'Check Tokens (scheduled)' || 'Check Tokens' }}"
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check-tokens:
+    name: check-tokens
+    uses: ./.github/workflows/check-tokens.yml
+    secrets: inherit

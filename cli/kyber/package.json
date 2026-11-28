@@ -1,0 +1,172 @@
+{
+  "name": "@theholocron/kyber",
+  "version": "5.0.0-alpha.549",
+  "description": "The reusable parts of a command-line tool: terminal output, prompts, the interactive menu, the update notifier, safe handling of tokens, a test harness and the global flags.",
+  "keywords": [
+    "cli",
+    "holocron",
+    "kyber",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/kyber/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "cli/kyber"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./checks": {
+      "types": "./dist/checks.d.mts",
+      "import": "./dist/checks.mjs",
+      "default": "./dist/checks.mjs"
+    },
+    "./config": {
+      "types": "./dist/config.d.mts",
+      "import": "./dist/config.mjs",
+      "default": "./dist/config.mjs"
+    },
+    "./flags": {
+      "types": "./dist/flags.d.mts",
+      "import": "./dist/flags.mjs",
+      "default": "./dist/flags.mjs"
+    },
+    "./git": {
+      "types": "./dist/git.d.mts",
+      "import": "./dist/git.mjs",
+      "default": "./dist/git.mjs"
+    },
+    "./menu": {
+      "types": "./dist/menu.d.mts",
+      "import": "./dist/menu.mjs",
+      "default": "./dist/menu.mjs"
+    },
+    "./notifier": {
+      "types": "./dist/notifier.d.mts",
+      "import": "./dist/notifier.mjs",
+      "default": "./dist/notifier.mjs"
+    },
+    "./observability": {
+      "types": "./dist/observability.d.mts",
+      "import": "./dist/observability.mjs",
+      "default": "./dist/observability.mjs"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.mts",
+      "import": "./dist/plugins.mjs",
+      "default": "./dist/plugins.mjs"
+    },
+    "./prompts": {
+      "types": "./dist/prompts.d.mts",
+      "import": "./dist/prompts.mjs",
+      "default": "./dist/prompts.mjs"
+    },
+    "./secrets": {
+      "types": "./dist/secrets.d.mts",
+      "import": "./dist/secrets.mjs",
+      "default": "./dist/secrets.mjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs",
+      "default": "./dist/testing.mjs"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.mts",
+      "import": "./dist/ui.mjs",
+      "default": "./dist/ui.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
+  "devDependencies": {
+    "@inquirer/prompts": "catalog:cli",
+    "@inquirer/search": "catalog:cli",
+    "@theholocron/datapad": "workspace:*",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/observability": "workspace:*",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@types/yargs": "catalog:cli",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "chalk": "catalog:",
+    "clipboardy": "catalog:cli",
+    "dotenv": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "ora": "catalog:cli",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "yargs": "catalog:cli"
+  },
+  "peerDependencies": {
+    "@inquirer/prompts": "^8.0.0",
+    "@inquirer/search": "^4.0.0",
+    "@napi-rs/keyring": "^1.0.0",
+    "@theholocron/datapad": "workspace:^",
+    "@theholocron/observability": "workspace:^",
+    "chalk": "^6.0.0",
+    "clipboardy": "^5.0.0",
+    "dotenv": "^17.0.0",
+    "ora": "^9.0.0",
+    "yargs": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@inquirer/prompts": {
+      "optional": true
+    },
+    "@inquirer/search": {
+      "optional": true
+    },
+    "@napi-rs/keyring": {
+      "optional": true
+    },
+    "@theholocron/datapad": {
+      "optional": true
+    },
+    "@theholocron/observability": {
+      "optional": true
+    },
+    "chalk": {
+      "optional": true
+    },
+    "clipboardy": {
+      "optional": true
+    },
+    "dotenv": {
+      "optional": true
+    },
+    "ora": {
+      "optional": true
+    },
+    "yargs": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

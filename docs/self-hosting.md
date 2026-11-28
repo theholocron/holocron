@@ -1,3 +1,5 @@
+<!-- alex disable fires -->
+
 <!-- editorconfig-checker-disable-file -->
 
 # Self-hosting — npm publishing via Trusted Publishing
@@ -24,8 +26,8 @@ Trusted Publishing for it. So the actual flow for any new
 After step 3, no operator action is needed for that package again.
 
 The initial v2 bootstrap ran this for all 7 packages together (via
-`holocron publish --initial`, which does step 1 in a single
-invocation across the workspace — a monorepo `pnpm -r --filter=./packages/*`
+`holocron publish package --initial`, which does step 1 in a single
+invocation across the workspace — a monorepo `pnpm -r --filter=./<workspace glob>`
 publish, or a plain `pnpm publish` for a single-package repo like a
 scaffolded plugin/template). Any new plugin added later needs to walk
 through steps 1–2 for itself.
@@ -48,7 +50,7 @@ pnpm build
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm exec tsx packages/cli/src/cli.ts publish --initial --otp 123456
+pnpm --filter @theholocron/cli run start:source publish package --initial --otp 123456
 
 ```
 
@@ -70,7 +72,8 @@ In the npm web UI, for each `@theholocron/*` package:
    - **Publisher**: GitHub Actions
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
+   - **Workflow filename**: `ci.release.yml` (the workflow that runs on the push; npm
+     checks the calling workflow, not the reusable `release.yml` it calls)
    - **Environment** (optional): leave blank — the `release` job declares no
      GitHub environment, and npm matches the OIDC claims exactly
    - **Label** (optional): `holocron-release` — use the same string for every
@@ -105,21 +108,21 @@ that produced it.
 ## Ad-hoc secret setting (still useful)
 
 For one-off secrets that ARE token-based (not covered by OIDC), the
-`secret set` command still helps:
+`new secret` command still helps:
 
 <!-- prettier-ignore -->
 ```bash
 # Example: set a Vercel deploy hook secret on the holocron repo.
-# The admin token (stored in the keyring via `holocron auth set github.admin`)
+# The admin token (stored in the keyring via `holocron new token github.admin`)
 # is picked up automatically — no env var needed if the keyring is populated.
 DEPLOY_HOOK=https://api.vercel.com/.../v1 \
-  holocron secret set DEPLOY_HOOK
+  holocron new secret DEPLOY_HOOK
 
 # Org-level secrets use --scope:
-holocron secret set SOME_ORG_SECRET --scope org=theholocron
+holocron new secret SOME_ORG_SECRET --scope org=theholocron
 
 ```
 
 Replaces clicking through GH Settings → Secrets → Actions → New for
 any CI secret that isn't covered by OIDC. Same pattern across your
-projects, not just this one.
+projects, not only this one.

@@ -1,0 +1,145 @@
+name: Review
+
+# ReviewDog is the annotation layer — posts inline PR diff annotations.
+# Runs on pull_request only: inline annotations require PR context,
+# and branch protection ensures all changes go through PRs anyway.
+# scan-secrets.yml / lint-data.yml
+# are the CI gates covering push + PR events. Gitleaks and YAML are
+# intentionally duplicated: those gate merges; ReviewDog surfaces exact
+# line annotations in the PR diff.
+#
+# Inclusive language (alex) is not run here: Sentinel owns that check (`lint:language / Run alex`), reading the org's own
+# allow-list (`process-sentinel-and-actions-roles`, #2263, #831).
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+
+jobs:
+  reviewdog:
+    name: Post inline lint annotations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
+        uses: theholocron/.github/.github/actions/setup@main
+
+      - name: Install ReviewDog
+        uses: reviewdog/action-setup@d8a7baabd7f3e8544ee4dbde3ee41d0011c3a93f # v1
+        with:
+          reviewdog_version: latest
+
+      # Detect which tools are relevant for this repo, excluding node_modules.
+      # hashFiles('**/*') recurses into node_modules/.pnpm and produces false
+      # positives for repos that don't own those file types.
+      # -print -quit stops find after the first match without a pipe, avoiding
+      # the SIGPIPE/pipefail exit-141 that find|head-1 triggers under
+      # GitHub Actions' default bash --noprofile --norc -e -o pipefail mode.
+      - name: Detect project features
+        id: detect
+        shell: bash
+        run: |
+          has() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+          has_ext() { find . -not -path '*/node_modules/*' -name "$1" -print -quit 2>/dev/null | grep -q .; }
+          { { has 'eslint.config.js' || has 'eslint.config.mjs' || has 'eslint.config.cjs' || \
+              has 'eslint.config.ts' || has '.eslintrc' || has '.eslintrc.js' || \
+              has '.eslintrc.cjs' || has '.eslintrc.json' || has '.eslintrc.yaml' || \
+              has '.eslintrc.yml'; } && grep -qF '"eslint":' package.json 2>/dev/null; } && echo "eslint=true" >> "$GITHUB_OUTPUT" || echo "eslint=false" >> "$GITHUB_OUTPUT"
+          { has 'tsconfig.json' && grep -qF '"typescript":' package.json 2>/dev/null; } && echo "tsconfig=true" >> "$GITHUB_OUTPUT" || echo "tsconfig=false" >> "$GITHUB_OUTPUT"
+          has_ext '*.sh' && echo "shell=true" >> "$GITHUB_OUTPUT" || echo "shell=false" >> "$GITHUB_OUTPUT"
+          has 'Dockerfile' || has_ext '*.Dockerfile' || has 'Containerfile' && \
+            echo "docker=true" >> "$GITHUB_OUTPUT" || echo "docker=false" >> "$GITHUB_OUTPUT"
+          has_ext '.env*' && echo "dotenv=true" >> "$GITHUB_OUTPUT" || echo "dotenv=false" >> "$GITHUB_OUTPUT"
+
+      #
+      # Always applicable
+      #
+
+      - name: Gitleaks (secrets)
+        uses: reviewdog/action-gitleaks@2b7b5685e3e3eecddab5d30cfa04f18123031421 # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / gitleaks"
+          fail_level: error
+          gitleaks_flags: --log-opts=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+
+      - name: YamlLint
+        if: ${{ hashFiles('.yamllint.yml') != '' }}
+        uses: reviewdog/action-yamllint@020fba38ce9fed550c704d933aeeb7d6360f7d47 # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / yamllint"
+          fail_level: error
+          yamllint_flags: -c ${{ github.workspace }}/.yamllint.yml ${{ github.workspace }}
+
+      - name: ActionLint (GitHub Actions)
+        if: ${{ hashFiles('.github/workflows/*.yml', '.github/workflows/*.yaml') != '' }}
+        uses: reviewdog/action-actionlint@ae857e78c1b42b3d0a49637181b09d3d56d402b4 # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / actionlint"
+          fail_level: error
+
+      #
+      # TypeScript / JavaScript
+      #
+
+      - name: ESLint
+        if: steps.detect.outputs.eslint == 'true'
+        uses: reviewdog/action-eslint@6dad10dc50476699ad1ddbbb19bf55d36f311a39 # v1.37.0
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / eslint"
+          fail_level: error
+          eslint_flags: .
+
+      - name: TypeScript
+        if: steps.detect.outputs.tsconfig == 'true'
+        uses: EPMatt/reviewdog-action-tsc@63d923a3c5b4497671940b8874f58a404e2351b5 # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / tsc"
+          fail_level: error
+
+      #
+      # Shell
+      #
+
+      - name: ShellCheck
+        if: steps.detect.outputs.shell == 'true'
+        uses: reviewdog/action-shellcheck@950c9d71535c8c49e5c029c33a438ade63b9009c # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / shellcheck"
+          fail_level: none
+
+      #
+      # Docker
+      #
+
+      - name: Hadolint
+        if: steps.detect.outputs.docker == 'true'
+        uses: reviewdog/action-hadolint@a3bc84c51f4ddbcbc5b91d950d0b66c15c88b113 # v1
+        with:
+          reporter: github-pr-annotations
+          tool_name: "Review / hadolint"
+          fail_level: none
+
+      #
+      # Environment files
+      #
+
+      - name: dotenv-linter
+        if: steps.detect.outputs.dotenv == 'true'
+        uses: dotenv-linter/action-dotenv-linter@afde61cfda2ecffe7bea35837b6f20b956c88689 # v3.0.0
+        with:
+          reporter: github-code-suggestions

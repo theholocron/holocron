@@ -1,0 +1,31 @@
+---
+title: Cloudflare Client
+description: TypeScript client for the Cloudflare API — manage zones, DNS, tunnels, and tokens.
+---
+
+`@theholocron/cloudflare-client` wraps the Cloudflare REST API for managing zones, DNS records, tunnels, and token verification.
+
+## Installation
+
+```bash
+pnpm add @theholocron/cloudflare-client
+```
+
+## Usage
+
+```ts
+import { createCloudflareClient } from "@theholocron/cloudflare-client";
+
+const client = createCloudflareClient({
+  token: process.env.CLOUDFLARE_API_TOKEN!,
+});
+
+const zones = await client.zones.list();
+const records = await client.dns.list(zones[0].id);
+await client.dns.create(zones[0].id, { type: "A", name: "api", content: "1.2.3.4", ttl: 1 });
+
+const tunnels = await client.tunnels.list(zones[0].id);
+const verified = await client.tokens.verify();
+```
+
+The full [API reference](/holocron/clients/cloudflare-client/api/readme/) is generated from the package's TSDoc comments.

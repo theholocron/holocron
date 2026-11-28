@@ -111,7 +111,7 @@ content is ever transmitted. Person properties are limited to `{ ci, os, node, o
 | `command_started`   | command begins                | `command`, `ci`, `dry_run`, `runId`                                                 |
 | `command_completed` | command returns ok            | `command`, `duration_ms`, `status: "ok"`, `runId`                                   |
 | `command_failed`    | command returns non-ok        | `command`, `duration_ms`, `error_type`, `runId`                                     |
-| `sync_github_run`   | each `sync-github` invocation | `repo`, `branch`, `status`, `repos_targeted`, `files_changed`, `pr_opened`, `runId` |
+| `sync_github_run`   | each `sync github` invocation | `repo`, `branch`, `status`, `repos_targeted`, `files_changed`, `pr_opened`, `runId` |
 
 `error_type` is the error constructor name only (`AuthError`, `ProviderApiError`,
 …) — never the message. Every event carries the logger's `runId`, so a PostHog

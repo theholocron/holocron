@@ -1,0 +1,853 @@
+import { randomUUID } from "node:crypto";
+import { realpathSync } from "node:fs";
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+
+import { createAstromech, mergeScripts, readWorkspacePackages } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
+import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
+import { stringifyJson } from "@theholocron/json-utils";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { getLogger } from "../../observability/logger/index.js";
+import { PluginLoader } from "../../plugin/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
+import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
+import {
+	generateAgentFiles,
+	generateClaudeFiles,
+	type GeneratedWorkflowFile,
+	generatePrivateDirFiles,
+	generateTurboFiles,
+	generateWorkflowFiles,
+} from "../repo-files/index.js";
+import {
+	CANONICAL_LABELS,
+	deriveCapabilities,
+	deriveCompliance,
+	deriveProfile,
+	deriveStack,
+	readWorkspacePackageJsons,
+	type SetupReport,
+	type SetupStepResult,
+	STALE_LABELS,
+} from "../setup/index.js";
+import { runSyncReadme } from "../sync-readme/index.js";
+import { runSyncWiki } from "../sync-wiki/index.js";
+import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
+import type { RunSyncInput, SyncStep } from "./sync.type.js";
+
+export const SYNC_STEPS = [
+	"labels",
+	"properties",
+	"teams",
+	"topics",
+	"keywords",
+	"description",
+	"homepage",
+	"readme",
+	"workflows",
+	"scripts",
+	"turbo",
+	"agents",
+	"private",
+	"claude",
+	"wiki",
+] as const;
+
+// Steps that write to the local filesystem only — no provider token needed.
+const LOCAL_STEPS = new Set<SyncStep>([
+	"keywords",
+	"description",
+	"homepage",
+	"readme",
+	"workflows",
+	"scripts",
+	"turbo",
+	"agents",
+	"private",
+	"claude",
+	"wiki",
+]);
+
+export async function runSync(input: RunSyncInput): Promise<SetupReport> {
+	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
+	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+
+	const config = input.loaded.resolved;
+	const dryRun = input.context.dryRun ?? false;
+	const requestedSteps = input.steps;
+	const steps: SetupStepResult[] = [];
+	// `--cwd` picks which holocron.config.ts to load — for a monorepo
+	// subpackage (e.g. apps/sentinel) that's NOT the git repo root.
+	// Anything inherently repo-wide (.github/workflows, turbo.json,
+	// pnpm-workspace.yaml, the root package.json's own devDependencies,
+	// "is this repo a monorepo") must resolve against the real root or it
+	// silently writes into a GitHub-invisible nested .github/ instead
+	// (holocron#1014) — package-local writes (this package's own
+	// package.json scripts/keywords/description, its own README) stay
+	// keyed to `input.context.repoRoot` (= --cwd) unchanged below.
+	// `fallback: "start"` means this always resolves to a string (the start dir when
+	// there is no `.git` above it); the declared `string | undefined` is the no-fallback case.
+	const gitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
+	// `findRootSync` (with `realpath`) resolves symlinks and relative segments internally; a
+	// plain `===` against the raw, unresolved `input.context.repoRoot`
+	// would mark a real root invocation as a subpackage whenever --cwd's
+	// spelling differs at all from gitRoot's resolved form (e.g. `--cwd
+	// ./` at the actual root) — resolved once here for that comparison.
+	// Falls back to the raw value on a nonexistent path (tests routinely
+	// use a synthetic `repoRoot` like `"/tmp/test"` that's never actually
+	// created) — same soft-skip `fallback: "start"` keeps.
+	let resolvedRepoRoot: string;
+	try {
+		resolvedRepoRoot = realpathSync(input.context.repoRoot);
+	} catch {
+		resolvedRepoRoot = input.context.repoRoot;
+	}
+	// Stamped into every generated workflow file (below) so a second
+	// subpackage opting into the same generic task name is detected as a
+	// collision instead of silently overwriting the first's file
+	// (holocron#1026). Derived from the discovered config's own directory,
+	// not --cwd itself — see resolvePkgRelPath's doc comment.
+	const pkgRelPath = resolvePkgRelPath(gitRoot, input.loaded.filepath);
+
+	logger.info({ config: config.name, steps: requestedSteps ?? "all", dryRun: dryRun || undefined }, "sync: start");
+
+	// `load()` soft-skips any plugin it can't load (missing token, package
+	// not installed). Remote steps then push a `skip` result when
+	// `source` is absent; local steps (keywords, description, readme…)
+	// write to disk regardless.
+	await loader.load();
+	for (const failure of loader.loadFailures()) {
+		logger.warn(
+			{ capability: failure.key, provider: failure.provider, reason: failure.error.message },
+			`sync: plugin ${failure.provider} unavailable`
+		);
+	}
+
+	print(`Holocron sync — ${config.name}${dryRun ? " (dry-run)" : ""}`);
+	print(`  config: ${input.loaded.filepath}`);
+	print("");
+
+	if (loader.has("source")) {
+		const source = loader.get("source");
+		print("  → source");
+
+		for (const stepName of SYNC_STEPS) {
+			if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
+				continue;
+			}
+			// Local steps are handled below, outside this block.
+			if (LOCAL_STEPS.has(stepName)) continue;
+
+			if (stepName === "labels") {
+				if (source.syncLabels) {
+					steps.push(
+						await runSyncStep("source", "sync labels", dryRun, () =>
+							source.syncLabels!(CANONICAL_LABELS, STALE_LABELS)
+						)
+					);
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else {
+					steps.push({
+						capability: "source",
+						step: "sync labels",
+						status: "skip",
+						message: "provider does not implement syncLabels",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+			}
+
+			if (stepName === "properties") {
+				if (source.syncProperties) {
+					const repo = config.repo;
+					const properties: Record<string, string | string[]> = {};
+					const effectivePreset = repo?.protection;
+					if (effectivePreset && effectivePreset !== "none")
+						properties["holocron_branch_protection_level"] = effectivePreset;
+					const isMonorepo = await isWorkspaceRoot(gitRoot);
+					properties["monorepo"] = String(isMonorepo);
+					const manual = repo?.properties ?? {};
+					if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
+					if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
+					if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
+					if (manual.uses_external_packages !== undefined)
+						properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+					// #677 — derived fields, distinct from the manual ones above: signal
+					// that isn't an explicit holocron.config.ts field today (framework
+					// choice, repo archetype, capability drift).
+					{
+						const rootPackageJson = await readFile(join(gitRoot, "package.json"), "utf8")
+							.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+							.catch(() => null);
+						const workspacePackages = readWorkspacePackages(gitRoot);
+						const workspacePackageJsons = await readWorkspacePackageJsons(gitRoot, workspacePackages);
+						properties["holocron_profile"] = deriveProfile({
+							rootPackageJson,
+							repoName: basename(gitRoot),
+							isMonorepo,
+							workspacePackageJsons,
+						});
+						properties["holocron_stack"] = deriveStack(rootPackageJson);
+						const capabilities = deriveCapabilities(config.providers);
+						properties["holocron_capabilities"] = capabilities;
+						properties["holocron_compliance"] = deriveCompliance(capabilities);
+					}
+
+					steps.push(
+						await runSyncStep("source", "sync properties", dryRun, () => source.syncProperties!(properties))
+					);
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else {
+					steps.push({
+						capability: "source",
+						step: "sync properties",
+						status: "skip",
+						message: "provider does not implement syncProperties",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+			}
+
+			if (stepName === "teams") {
+				const teams = config.repo?.teams ?? [];
+				if (teams.length === 0) {
+					steps.push({
+						capability: "source",
+						step: "sync teams",
+						status: "skip",
+						message: "no teams configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else if (source.syncTeams) {
+					steps.push(await runSyncStep("source", "sync teams", dryRun, () => source.syncTeams!(teams)));
+					print(formatSyncStep(steps[steps.length - 1]));
+
+					const repoCoord = input.context.repo ?? config.repo?.name ?? "";
+					const org = repoCoord.includes("/") ? repoCoord.split("/")[0] : "";
+					const writeableTeams = teams
+						.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+						.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+					if (org && writeableTeams.length > 0) {
+						steps.push(
+							await runSyncStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+								const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+								await source.writeRepoFile(".github/CODEOWNERS", content);
+							})
+						);
+						print(formatSyncStep(steps[steps.length - 1]));
+					}
+				} else {
+					steps.push({
+						capability: "source",
+						step: "sync teams",
+						status: "skip",
+						message: "provider does not implement syncTeams",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+			}
+
+			if (stepName === "topics") {
+				const topics = config.repo?.topics ?? [];
+				if (topics.length === 0) {
+					steps.push({
+						capability: "source",
+						step: "sync topics",
+						status: "skip",
+						message: "no topics configured",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else if (source.syncTopics) {
+					steps.push(await runSyncStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else {
+					steps.push({
+						capability: "source",
+						step: "sync topics",
+						status: "skip",
+						message: "provider does not implement syncTopics",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+			}
+		}
+
+		// Report unknown step names
+		if (requestedSteps) {
+			for (const name of requestedSteps) {
+				if (!(SYNC_STEPS as ReadonlyArray<string>).includes(name)) {
+					steps.push({
+						capability: "source",
+						step: `sync ${name}`,
+						status: "skip",
+						message: `unknown step "${name}"`,
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+			}
+		}
+	}
+
+	// ── local-only steps (no provider token required) ──────────────────
+	// keywords, description, homepage, readme, and workflows write to local
+	// files and optionally push to GitHub when source is loaded. They run
+	// outside the `if (loader.has("source"))` block so they work without a token.
+
+	for (const stepName of [
+		"keywords",
+		"description",
+		"homepage",
+		"readme",
+		"workflows",
+		"scripts",
+		"turbo",
+		"agents",
+		"private",
+		"claude",
+		"wiki",
+	] as const) {
+		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
+			continue;
+		}
+
+		if (stepName === "keywords") {
+			const topics = config.repo?.topics ?? [];
+			if (topics.length === 0) {
+				steps.push({
+					capability: "local",
+					step: "sync keywords",
+					status: "skip",
+					message: "no topics configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+			} else {
+				steps.push(
+					await runSyncStep("local", "sync keywords", dryRun, async () => {
+						const wrote = await writePackageJsonField(input.context.repoRoot, "keywords", topics);
+						return wrote
+							? `${topics.length} keywords written`
+							: `${topics.length} topics (no package.json)`;
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "description") {
+			const description = config.description;
+			if (!description) {
+				steps.push({
+					capability: "local",
+					step: "sync description",
+					status: "skip",
+					message: "no description configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+			} else {
+				const source = loader.has("source") ? loader.get("source") : null;
+				steps.push(
+					await runSyncStep("local", "sync description", dryRun, async () => {
+						const pkgWrote = await writePackageJsonField(
+							input.context.repoRoot,
+							"description",
+							description
+						);
+						const readmeWrote = await updateReadmeDescription(input.context.repoRoot, description);
+						if (source?.syncDescription) {
+							await source.syncDescription(description);
+						}
+						const parts: string[] = [];
+						if (pkgWrote) parts.push("package.json");
+						if (readmeWrote) parts.push("README.md");
+						if (source?.syncDescription) parts.push("GitHub");
+						return parts.length > 0 ? parts.join(", ") + " updated" : "description synced";
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "homepage") {
+			const homepage = config.homepage;
+			if (!homepage) {
+				steps.push({
+					capability: "local",
+					step: "sync homepage",
+					status: "skip",
+					message: "no homepage configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+			} else {
+				const source = loader.has("source") ? loader.get("source") : null;
+				steps.push(
+					await runSyncStep("local", "sync homepage", dryRun, async () => {
+						const pkgWrote = await writePackageJsonField(input.context.repoRoot, "homepage", homepage);
+						if (source?.syncHomepage) {
+							await source.syncHomepage(homepage);
+						}
+						const parts: string[] = [];
+						if (pkgWrote) parts.push("package.json");
+						if (source?.syncHomepage) parts.push("GitHub");
+						return parts.length > 0 ? parts.join(", ") + " updated" : "homepage synced";
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "readme") {
+			const report = await runSyncReadme({ loaded: input.loaded, context: input.context, print: () => {} });
+			const problems = report.problems ?? [];
+			const status = report.status === "ok" ? "ok" : report.status === "dry-run" ? "dry-run" : "skip";
+			steps.push({
+				capability: "local",
+				step: "sync readme",
+				status: problems.length > 0 ? "fail" : status,
+				...(problems.length > 0
+					? { message: problems.join("; ") }
+					: report.message
+						? { message: report.message }
+						: {}),
+			});
+			print(formatSyncStep(steps[steps.length - 1]));
+		}
+
+		if (stepName === "workflows") {
+			// The same files `setup` writes, from the same function (`generateWorkflowFiles`).
+			const statusContexts = coverageStatusContexts({
+				loader,
+				repoRoot: input.context.repoRoot,
+				docsCoverage: config.repoValidation?.docsCoverage,
+			});
+			const entries = generateWorkflowFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				...(statusContexts ? { statusContexts } : {}),
+				logger,
+			});
+			if ((config.tasks ?? []).length === 0) {
+				steps.push({
+					capability: "local",
+					step: "sync workflows",
+					status: "skip",
+					message: "no tasks configured",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+			for (const entry of entries) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else {
+					const { task, filename } = entry.workflow;
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await assertNoPackageCollision(task, pkgRelPath, filename, () =>
+								readExistingWorkflowFile(gitRoot, filename)
+							);
+							await writeWorkflowFile(gitRoot, filename, entry.content);
+						})
+					);
+				}
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+			// A generated caller whose task left the config or a preset is removed (#2338). With no tasks there is nothing
+			// to compare against, and a task with no template leaves its file unaccounted for, so neither removes anything.
+			if ((config.tasks ?? []).length > 0) {
+				const files = entries.filter((entry): entry is GeneratedWorkflowFile => entry.kind === "file");
+				if (files.length < entries.length) {
+					steps.push({
+						capability: "local",
+						step: "sync obsolete workflows",
+						status: "skip",
+						message: "a task has no template, so no workflow is removed",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				} else {
+					try {
+						const obsolete = findObsoleteWorkflows({
+							workflows: await readWorkflowFiles(gitRoot),
+							written: new Set(files.map((entry) => entry.workflow.filename)),
+							pkgRelPath,
+						});
+						for (const filename of obsolete) {
+							steps.push(
+								await runSyncStep("local", `remove obsolete workflow ${filename}`, dryRun, () =>
+									unlink(join(gitRoot, ".github", "workflows", filename))
+								)
+							);
+							print(formatSyncStep(steps[steps.length - 1]));
+						}
+					} catch (err) {
+						steps.push({
+							capability: "local",
+							step: "sync obsolete workflows",
+							status: "fail",
+							message: errorMessage(err),
+						});
+						print(formatSyncStep(steps[steps.length - 1]));
+					}
+				}
+			}
+		}
+
+		if (stepName === "scripts") {
+			if (config.syncScripts === false) {
+				steps.push({
+					capability: "local",
+					step: "sync scripts",
+					status: "skip",
+					message: "syncScripts: false",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+			} else {
+				const tasksConfig: TasksConfig = { tasks: config.tasks };
+				if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
+				const astromechScripts = createAstromech({
+					cwd: input.context.repoRoot,
+					config: tasksConfig,
+					logger,
+				});
+				const desired = astromechScripts.packageScripts();
+				// #747: the keys turbo.json would fan out — the only ones an existing
+				// direct-tool root script is ever protected for. See mergeScripts().
+				const turboContent = astromechScripts.turboConfig();
+				const turboEligible = new Set<string>(
+					turboContent
+						? Object.keys((JSON.parse(turboContent) as { tasks: Record<string, unknown> }).tasks)
+						: []
+				);
+
+				steps.push(
+					await runSyncStep("local", "sync scripts", dryRun, async () => {
+						const changed = await mergePackageJsonScripts(input.context.repoRoot, desired, turboEligible);
+						if (changed === null) return "no package.json";
+						if (changed.length === 0) return `${Object.keys(desired).length} scripts already current`;
+						return `${changed.join(", ")} set`;
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "turbo") {
+			// turbo.json, pnpm-workspace.yaml, and the root package.json's own
+			// devDependencies are each a single, whole-workspace file — one
+			// subpackage's holocron.config.ts can't correctly own writing
+			// them (which other subpackage's tasks would it be allowed to
+			// clobber?). A monorepo subpackage sync (holocron#1014's exact
+			// shape — --cwd resolves to a package, not the git root) skips
+			// this entire step rather than guessing at a merge semantic; the
+			// repo's own root-level sync run (where --cwd IS gitRoot) is the
+			// one place these get written.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync turbo.json",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root to sync turbo.json",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+				continue;
+			}
+
+			// turbo.json and the two edits that go with it (pnpm-workspace.yaml, the root package.json) come from the
+			// same function `setup` uses (`generateTurboFiles`), see there for why the edits exist.
+			for (const entry of await generateTurboFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else {
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
+					);
+				}
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "agents") {
+			// The org agent instructions block in AGENTS.md: one file at the git root, like turbo.json.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync agents",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+				continue;
+			}
+			for (const entry of await generateAgentFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else {
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
+					);
+				}
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "private") {
+			// The private directory's `.gitkeep` and `.gitignore` block: repo-wide files at the checkout root, like AGENTS.md.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync private directory",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+				});
+				print(formatSyncStep(steps[steps.length - 1]));
+				continue;
+			}
+			for (const entry of await generatePrivateDirFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				steps.push(
+					await runSyncStep("local", entry.syncStep, dryRun, async () => {
+						await mkdir(dirname(join(gitRoot, entry.path)), { recursive: true });
+						await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+					})
+				);
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "claude") {
+			// `.claude/settings.json` with the dcg hook, only for a repo that opts in with `agent: ["claude", { dcg: true }]`: repo-wide, at the checkout root.
+			if (resolvedRepoRoot !== gitRoot) {
+				if (input.loaded.resolved.agentOptions?.dcg === true) {
+					steps.push({
+						capability: "local",
+						step: "sync claude settings",
+						status: "skip",
+						message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+					});
+					print(formatSyncStep(steps[steps.length - 1]));
+				}
+				continue;
+			}
+			for (const entry of await generateClaudeFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				if (entry.kind === "error") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "fail", message: entry.message });
+				} else {
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await mkdir(dirname(join(gitRoot, entry.path)), { recursive: true });
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
+					);
+				}
+				print(formatSyncStep(steps[steps.length - 1]));
+			}
+		}
+
+		if (stepName === "wiki") {
+			// fern/docs.yml is repo-wide, same category as turbo.json —
+			// runSyncWiki resolves it via context.repoRoot, so a monorepo
+			// subpackage sync needs gitRoot there instead, or it looks for
+			// (and fails to find) packages/<pkg>/fern/docs.yml.
+			const result = await runSyncWiki({
+				loaded: input.loaded,
+				context: { ...input.context, repoRoot: gitRoot },
+			});
+			steps.push(result);
+			print(formatSyncStep(result));
+		}
+	}
+
+	for (const s of steps) {
+		logger[s.status === "fail" ? "warn" : "info"](
+			{ capability: s.capability, step: s.step, status: s.status, ...(s.message ? { detail: s.message } : {}) },
+			`sync: ${s.step}`
+		);
+	}
+
+	const summary = steps.reduce(
+		(acc, s) => {
+			if (s.status === "ok") acc.ok += 1;
+			else if (s.status === "fail") acc.fail += 1;
+			else if (s.status === "skip") acc.skip += 1;
+			else if (s.status === "dry-run") acc.dryRun += 1;
+			return acc;
+		},
+		{ ok: 0, fail: 0, skip: 0, dryRun: 0 }
+	);
+
+	logger[summary.fail > 0 ? "warn" : "info"]({ ...summary }, "sync: done");
+
+	print("");
+	print(
+		`  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
+			dryRun ? `, ${summary.dryRun} would-do` : ""
+		}`
+	);
+
+	return { steps, summary };
+}
+
+async function runSyncStep(
+	capability: string,
+	step: string,
+	dryRun: boolean,
+	body: () => Promise<string | void>
+): Promise<SetupStepResult> {
+	if (dryRun) {
+		return { capability, step, status: "dry-run" };
+	}
+	try {
+		const note = await body();
+		const result: SetupStepResult = { capability, step, status: "ok" };
+		if (typeof note === "string") result.message = note;
+		return result;
+	} catch (err) {
+		return {
+			capability,
+			step,
+			status: "fail",
+			message: errorMessage(err),
+		};
+	}
+}
+
+function formatSyncStep(step: SetupStepResult): string {
+	const icon = step.status === "ok" ? "✓" : step.status === "fail" ? "✗" : step.status === "dry-run" ? "…" : "·";
+	const detail = step.message ? `  (${step.message})` : "";
+	return `    ${icon} ${step.step}${detail}`;
+}
+
+async function writePackageJsonField(repoRoot: string, field: string, value: unknown): Promise<boolean> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return false;
+	}
+	const pkg = JSON.parse(content) as Record<string, unknown>;
+	pkg[field] = value;
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
+	return true;
+}
+
+/**
+ * Merge `desired` script entries into `package.json#scripts` (`mergeScripts()` in astromech decides which, and why a
+ * real command in a script turbo fans out is left alone, #747) — sets only the listed keys, never touches the rest.
+ * Returns the sorted list of keys that drifted (empty when all current), or `null` when there is no `package.json`.
+ */
+async function mergePackageJsonScripts(
+	repoRoot: string,
+	desired: Record<string, string>,
+	turboKeys: ReadonlySet<string>
+): Promise<string[] | null> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return null;
+	}
+	const pkg = JSON.parse(content) as Record<string, unknown>;
+	const { scripts, changed } = mergeScripts((pkg.scripts ?? {}) as Record<string, string>, desired, turboKeys);
+	if (changed.length === 0) return [];
+	pkg.scripts = scripts;
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
+	return changed;
+}
+
+const README_DESC_START = "<!-- holocron:description -->";
+const README_DESC_END = "<!-- /holocron:description -->";
+
+async function updateReadmeDescription(repoRoot: string, description: string): Promise<boolean> {
+	const readmePath = join(repoRoot, "README.md");
+	let content: string;
+	try {
+		content = await readFile(readmePath, "utf8");
+	} catch {
+		return false;
+	}
+	const lines = content.split("\n");
+
+	const startIdx = lines.findIndex((l) => l.trim() === README_DESC_START);
+	const endIdx = lines.findIndex((l) => l.trim() === README_DESC_END);
+	if (startIdx !== -1) {
+		if (endIdx === -1 || endIdx <= startIdx) return false;
+		lines.splice(startIdx + 1, endIdx - startIdx - 1, description);
+		await writeFile(readmePath, lines.join("\n"), "utf8");
+		return true;
+	}
+
+	const h1Index = lines.findIndex((l) => /^# /.test(l));
+	if (h1Index === -1) return false;
+
+	lines.splice(h1Index + 1, 0, "", README_DESC_START, description, README_DESC_END);
+	await writeFile(readmePath, lines.join("\n"), "utf8");
+	return true;
+}
+
+/**
+ * Writes via a temp file + rename in the same directory, not a direct
+ * `writeFile` — a monorepo subpackage sync can target the same root-level
+ * file a root sync (or another subpackage's sync) also writes, and a
+ * process killed mid-write would otherwise leave the live GitHub Actions
+ * workflow truncated until some later sync happens to restore it. A same-
+ * directory rename is atomic on POSIX filesystems, so readers only ever
+ * see the old complete content or the new complete content, never a
+ * partial write.
+ */
+async function writeWorkflowFile(repoRoot: string, filename: string, content: string): Promise<void> {
+	const dir = join(repoRoot, ".github", "workflows");
+	await mkdir(dir, { recursive: true });
+	const tmpPath = join(dir, `.${filename}.${randomUUID()}.tmp`);
+	await writeFile(tmpPath, content, "utf8");
+	await rename(tmpPath, join(dir, filename));
+}
+
+/** Every `.yml` and `.yaml` file in `.github/workflows`, by file name, with its text; none when the folder is missing. */
+async function readWorkflowFiles(repoRoot: string): Promise<Map<string, string>> {
+	const dir = join(repoRoot, ".github", "workflows");
+	let names: string[];
+	try {
+		names = (await readdir(dir, { withFileTypes: true }))
+			.filter((entry) => entry.isFile() && /\.ya?ml$/.test(entry.name))
+			.map((entry) => entry.name);
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "ENOENT") return new Map();
+		throw err;
+	}
+	return new Map(
+		await Promise.all(names.map(async (name) => [name, await readFile(join(dir, name), "utf8")] as const))
+	);
+}
+
+/** `assertNoPackageCollision`'s local-disk read, with ENOENT mapped to "nothing there." */
+async function readExistingWorkflowFile(repoRoot: string, filename: string): Promise<string | null> {
+	try {
+		return await readFile(join(repoRoot, ".github", "workflows", filename), "utf8");
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+		throw err;
+	}
+}

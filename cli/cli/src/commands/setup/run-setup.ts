@@ -1,0 +1,1095 @@
+/**
+ * `holocron setup` — orchestrates per-capability setup actions across
+ * every plugin loaded from `holocron.config.json`.
+ *
+ * Per CLAUDE.md soft-skip: each step is wrapped in a try/catch and
+ * failures don't abort subsequent capabilities. The summary at the end
+ * reports counts so the operator can see what worked + what didn't.
+ *
+ * Per the Standards: when `ctx.dryRun` is true, mutating calls are
+ * replaced with "would" log lines. Read-only probes (e.g.,
+ * `vault.list`) still run so the operator sees real state.
+ *
+ * The orchestrator knows about specific capability methods by name
+ * (e.g., `source.enableVulnerabilityAlerts`). This deliberate coupling
+ * makes the "what does setup do" contract explicit and concrete —
+ * decoupling via a per-capability `setupSteps()` method would be more
+ * extensible but pushes the same knowledge into N plugins instead of
+ * one central place.
+ */
+
+import { readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+
+import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
+import { holocronEnv } from "@theholocron/env-utils/lookup";
+import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
+import { stringifyJson } from "@theholocron/json-utils";
+import { style, withSpinner } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { areaLabelDefs } from "../../area-labels/index.js";
+import { AuthError, createFeatureResolver } from "../../auth/index.js";
+import { getLogger } from "../../observability/logger/index.js";
+import { assertPluginsResolvable, type DnsRecordRequest, PluginLoader } from "../../plugin/index.js";
+import { aggregatePin } from "../aggregate-pin/index.js";
+import { coverageConfigFiles } from "../coverage-config-files/index.js";
+import { coverageStatusContexts } from "../coverage-status-contexts/index.js";
+import { declaredRequiredChecks } from "../declared-required-checks/index.js";
+import { handOffHeartbeats, type HeartbeatPing } from "../heartbeat-handoff/index.js";
+import { findObsoleteWorkflows } from "../obsolete-workflows/index.js";
+import { hostsReusables } from "../repo-files/hosted-reusables.js";
+import { generateRepoFiles } from "../repo-files/index.js";
+import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
+import { installAgentPrompts } from "./agent-prompts.js";
+import { upsertBranchProtection } from "./branch-protection.js";
+import { handOffDashboardKey } from "./dashboard-key/index.js";
+import { deriveRepoStack } from "./derive-repo-stack/index.js";
+import {
+	deriveCapabilities,
+	deriveCompliance,
+	deriveProfile,
+	deriveStack,
+	KNOWN_STACK_DEPS,
+	readWorkspacePackageJsons,
+} from "./derived-properties/index.js";
+import { describeProviderError } from "./describe-provider-error/index.js";
+import { dnsRecordsStep } from "./dns-records-step/index.js";
+import { installEngineeringStructure } from "./engineering.js";
+import { errorsEnvKeys } from "./errors-env-keys/index.js";
+import { issueTypesStep } from "./issue-types-step/index.js";
+import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
+import { previewConfigOf } from "./preview-config-of.js";
+import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
+import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
+import { SETUP_ENVIRONMENTS } from "./setup-environments.js";
+import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
+import { statusPagesStep } from "./status-pages-step/index.js";
+
+export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
+	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = getLogger();
+	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
+	await withSpinner("Loading plugins…", () => loader.load());
+	assertPluginsResolvable(loader, "setup");
+
+	const config = input.loaded.resolved;
+	const dryRun = input.context.dryRun ?? false;
+	const steps: SetupStepResult[] = [];
+	const repo = config.repo;
+	const effectivePreset = repo?.protection;
+	// What the `coverage` provider posts, for the `ci` aggregate and the ruleset; none keeps the task runner's default.
+	const statusContexts = coverageStatusContexts({
+		loader,
+		repoRoot: input.context.repoRoot,
+		docsCoverage: config.repoValidation?.docsCoverage,
+	});
+	// What the `coverage` provider writes (`codecov.yml`); none means no coverage config is written.
+	const coverageFiles = coverageConfigFiles({
+		loader,
+		repoRoot: input.context.repoRoot,
+		docsCoverage: config.repoValidation?.docsCoverage,
+	});
+	// Stamped into every workflow thin caller written below, same marker
+	// `holocron sync` uses (holocron#1026) and checked the same way
+	// via assertNoPackageCollision -- before writing, read the file back
+	// through the loaded Source capability and compare its marker (holocron#1068;
+	// previously setup could only stamp its own marker for a LATER sync
+	// run to catch, with no protection of its own in either direction).
+	const setupGitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
+	const setupPkgRelPath = resolvePkgRelPath(setupGitRoot, input.loaded.filepath);
+
+	print(style.header(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`));
+	print(style.dim(`  config: ${input.loaded.filepath}`));
+	print("");
+
+	// ── source: security toggles + repo policy ──────────────────────────
+	if (loader.has("source")) {
+		const source = loader.get("source");
+		print(style.step("source"));
+		const SECURITY_SKIP_CODES: Partial<Record<string, number[]>> = {
+			enableSecretScanning: [422],
+			enablePrivateVulnerabilityReporting: [404],
+		};
+		for (const method of [
+			"enableVulnerabilityAlerts",
+			"enableAutomatedSecurityFixes",
+			"enableSecretScanning",
+			"enablePrivateVulnerabilityReporting",
+			"enableDependencyGraph",
+		] as const) {
+			steps.push(
+				await runStep(
+					"source",
+					method,
+					dryRun,
+					async () => {
+						await source[method]();
+					},
+					{ skipCodes: SECURITY_SKIP_CODES[method] }
+				)
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		const usesAdvancedCodeQL = (config.tasks ?? [])
+			.map((e) => (typeof e === "string" ? e : e.name))
+			.some((name) => isTask(name, "scan:code"));
+		steps.push(
+			await runStep(
+				"source",
+				usesAdvancedCodeQL ? "disableDefaultCodeScanning" : "enableCodeScanning",
+				dryRun,
+				async () => {
+					if (usesAdvancedCodeQL) {
+						await source.disableDefaultCodeScanning();
+					} else {
+						return await source.enableCodeScanning();
+					}
+				}
+			)
+		);
+		print(formatStep(steps[steps.length - 1]));
+
+		if (effectivePreset && effectivePreset !== "none") {
+			steps.push(
+				await runStep("source", "updateRepoSettings", dryRun, async () => {
+					await source.updateRepoSettings({
+						...BALANCED_REPO_SETTINGS,
+						...(repo?.defaultBranch ? { default_branch: repo.defaultBranch } : {}),
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+
+			const tasksConfig: TasksConfig = { tasks: config.tasks };
+			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
+			if (config.ci) tasksConfig.ci = config.ci;
+			// A list the repo writes down is the whole list; otherwise it is derived from the tasks.
+			const requiredChecks =
+				effectivePreset === "strict"
+					? (declaredRequiredChecks(config.repo) ??
+						createAstromech({
+							cwd: input.context.repoRoot,
+							config: tasksConfig,
+							logger,
+							...(statusContexts ? { statusContexts } : {}),
+						}).requiredChecks(hostsReusables(input.context.repoRoot)))
+					: [];
+			const pinPlan = aggregatePin(config.ci, requiredChecks);
+			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks, pinPlan.pins));
+			print(formatStep(steps[steps.length - 1]));
+			if (pinPlan.problem) {
+				steps.push({
+					capability: "source",
+					step: "pin ci / Required checks",
+					status: "skip",
+					message: pinPlan.problem,
+				});
+				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+	}
+
+	// ── source: the files generated from the config ─────────────────────
+	// Thin-caller workflows, config files, git hooks, codecov.yml and turbo.json come from `generateRepoFiles`, which
+	// needs no provider; this only writes what it returns through the source. `sync` writes the same files.
+	if (loader.has("source")) {
+		const source = loader.get("source");
+		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));
+
+		const generatedEntries = await generateRepoFiles({
+			loaded: input.loaded,
+			repoRoot: input.context.repoRoot,
+			hooks: input.hooks,
+			...(statusContexts ? { statusContexts } : {}),
+			...(coverageFiles ? { coverageConfigFiles: coverageFiles } : {}),
+			logger,
+		});
+		for (const entry of generatedEntries) {
+			if (entry.kind === "skip") {
+				steps.push({ capability: "source", step: entry.step, status: "skip", message: entry.message });
+			} else if (entry.kind === "error") {
+				steps.push(
+					await runStep("source", entry.step, dryRun, async () => {
+						throw new Error(entry.message);
+					})
+				);
+			} else {
+				steps.push(
+					await runStep("source", entry.step, dryRun, async () => {
+						if (entry.workflow) {
+							const { task, filename } = entry.workflow;
+							await assertNoPackageCollision(task, setupPkgRelPath, filename, () =>
+								source.readWorkflowFile(filename)
+							);
+							await source.writeWorkflowFile(filename, entry.content);
+						} else {
+							await source.writeRepoFile(entry.path, entry.content);
+						}
+						return entry.note;
+					})
+				);
+			}
+			print(formatStep(steps[steps.length - 1]));
+
+			if (entry.kind === "file" && entry.path === ".husky/pre-commit" && config.syncScripts !== false) {
+				steps.push(
+					await runStep("source", "set package.json prepare script", dryRun, async () => {
+						return (await ensurePrepareScript(input.context.repoRoot))
+							? "prepare now runs husky"
+							: "already runs husky";
+					})
+				);
+				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+
+		// A generated caller whose task left the config or a preset is removed, by the rule `sync` uses (#2466). With no
+		// tasks there is nothing to compare against, and a task with no template leaves its file unaccounted for, so
+		// neither removes anything.
+		if ((config.tasks ?? []).length > 0) {
+			const written = new Set<string>();
+			let unaccounted = false;
+			for (const entry of generatedEntries) {
+				if (entry.kind === "file" && entry.workflow) written.add(entry.workflow.filename);
+				// The skip `generateWorkflowFiles` makes for a task with no template.
+				else if (entry.kind === "skip" && entry.step.startsWith("write workflow ")) unaccounted = true;
+			}
+			if (unaccounted) {
+				steps.push({
+					capability: "source",
+					step: "remove obsolete workflows",
+					status: "skip",
+					message: "a task has no template, so no workflow is removed",
+				});
+				print(formatStep(steps[steps.length - 1]));
+			} else {
+				try {
+					const workflows = new Map<string, string>();
+					for (const name of await source.listWorkflowFiles()) {
+						const text = await source.readWorkflowFile(name);
+						if (text !== null) workflows.set(name, text);
+					}
+					const obsolete = findObsoleteWorkflows({
+						workflows,
+						written,
+						pkgRelPath: setupPkgRelPath,
+					});
+					for (const filename of obsolete) {
+						steps.push(
+							await runStep("source", `remove obsolete workflow ${filename}`, dryRun, async () => {
+								await source.removeWorkflowFile(filename);
+							})
+						);
+						print(formatStep(steps[steps.length - 1]));
+					}
+				} catch (err) {
+					steps.push({
+						capability: "source",
+						step: "remove obsolete workflows",
+						status: "fail",
+						message: errorMessage(err),
+					});
+					print(formatStep(steps[steps.length - 1]));
+				}
+			}
+		}
+	}
+
+	if (loader.has("source")) {
+		const source = loader.get("source");
+
+		if (source.syncLabels) {
+			steps.push(
+				await runStep("source", "sync labels", dryRun, async () => {
+					return source.syncLabels!(CANONICAL_LABELS, STALE_LABELS);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		// The `area:<name>` labels this repo declares: made when missing, never patched or deleted, and never part of
+		// the canonical set (an area names this repo's folders).
+		const areaLabels = areaLabelDefs(repo?.labels?.areas);
+		if (areaLabels.length > 0) {
+			if (source.ensureLabels) {
+				steps.push(
+					await runStep("source", "ensure area labels", dryRun, async () => source.ensureLabels!(areaLabels))
+				);
+			} else {
+				steps.push({
+					capability: "source",
+					step: "ensure area labels",
+					status: "skip",
+					message: `the \`${source.providerName}\` provider cannot make labels one by one`,
+				});
+			}
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		const properties: Record<string, string | string[]> = {};
+
+		if (effectivePreset && effectivePreset !== "none")
+			properties["holocron_branch_protection_level"] = effectivePreset;
+
+		const isMonorepo = await isWorkspaceRoot(input.context.repoRoot);
+		properties["monorepo"] = String(isMonorepo);
+
+		const manual = repo?.properties ?? {};
+		if (manual.lifecycle) properties["lifecycle"] = manual.lifecycle;
+		if (manual.open_source !== undefined) properties["open_source"] = String(manual.open_source);
+		if (manual.runtime_environment) properties["runtime_environment"] = manual.runtime_environment;
+		if (manual.uses_external_packages !== undefined)
+			properties["uses_external_packages"] = String(manual.uses_external_packages);
+
+		// #677 — derived fields, distinct from the manual ones above: signal
+		// that isn't an explicit holocron.config.ts field today (framework
+		// choice, repo archetype, capability drift).
+		{
+			const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+				.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+				.catch(() => null);
+			const workspacePackages = readWorkspacePackages(input.context.repoRoot);
+			const workspacePackageJsons = await readWorkspacePackageJsons(input.context.repoRoot, workspacePackages);
+			properties["holocron_profile"] = deriveProfile({
+				rootPackageJson,
+				repoName: basename(input.context.repoRoot),
+				isMonorepo,
+				workspacePackageJsons,
+			});
+			properties["holocron_stack"] = deriveStack(rootPackageJson);
+			const capabilities = deriveCapabilities(config.providers);
+			properties["holocron_capabilities"] = capabilities;
+			properties["holocron_compliance"] = deriveCompliance(capabilities);
+		}
+
+		if (source.syncProperties) {
+			steps.push(await runStep("source", "sync properties", dryRun, () => source.syncProperties!(properties)));
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		const topics = repo?.topics ?? [];
+		if (topics.length > 0 && source.syncTopics) {
+			steps.push(await runStep("source", "sync topics", dryRun, () => source.syncTopics!(topics)));
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		const variables = repo?.variables;
+		const prune = variables?.prune === true;
+		// A scope that is declared empty still matters with `prune`: it deletes everything in it.
+		const declares = (scope: object | undefined): boolean =>
+			scope !== undefined && (Object.keys(scope).length > 0 || prune);
+		// A dry run still reads what exists, so the step can say what would change; it writes nothing.
+		const variableStep = async (step: string, body: (dryRun: boolean) => Promise<string>) => {
+			const result = await runStep("source", step, false, () => body(dryRun));
+			return dryRun && result.status === "ok" ? { ...result, status: "dry-run" as const } : result;
+		};
+		if (declares(variables?.repo)) {
+			if (!source.syncVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync variables",
+					status: "skip",
+					message: "provider does not implement syncVariables",
+				});
+			} else {
+				steps.push(
+					await variableStep("sync variables", (dry) =>
+						source.syncVariables!(variables!.repo!, { prune, dryRun: dry })
+					)
+				);
+			}
+			print(formatStep(steps[steps.length - 1]));
+		}
+		if (declares(variables?.org)) {
+			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0];
+			if (!source.syncOrgVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "skip",
+					message: "provider does not implement syncOrgVariables",
+				});
+			} else if (!org) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "fail",
+					message: "no organization: set `org` in the config or run inside a repository",
+				});
+			} else {
+				const declared = Object.fromEntries(
+					Object.entries(variables!.org!).map(([name, v]) => [
+						name,
+						typeof v === "string"
+							? { value: v, visibility: "all" as const }
+							: { value: v.value, visibility: v.visibility ?? ("all" as const) },
+					])
+				);
+				steps.push(
+					await variableStep("sync org variables", (dry) =>
+						source.syncOrgVariables!(org, declared, { prune, dryRun: dry })
+					)
+				);
+			}
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		if (config.description && source.syncDescription) {
+			steps.push(
+				await runStep("source", "sync description", dryRun, () => source.syncDescription!(config.description!))
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		if (config.homepage && source.syncHomepage) {
+			steps.push(await runStep("source", "sync homepage", dryRun, () => source.syncHomepage!(config.homepage!)));
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		const teams = repo?.teams ?? [];
+		if (teams.length > 0) {
+			if (source.syncTeams) {
+				steps.push(
+					await runStep("source", "sync teams", dryRun, () => source.syncTeams!(teams), { skipCodes: [422] })
+				);
+				print(formatStep(steps[steps.length - 1]));
+
+				const repoCoord = input.context.repo ?? repo?.name ?? "";
+				const org = repoCoord.includes("/") ? repoCoord.split("/")[0] : "";
+				const writeableTeams = teams
+					.map((t) => (typeof t === "string" ? { slug: t, permission: "push" as const } : t))
+					.filter((t) => ["push", "maintain", "admin"].includes(t.permission));
+				if (org && writeableTeams.length > 0) {
+					steps.push(
+						await runStep("source", "write .github/CODEOWNERS", dryRun, async () => {
+							const content = writeableTeams.map((t) => `* @${org}/${t.slug}`).join("\n") + "\n";
+							await source.writeRepoFile(".github/CODEOWNERS", content);
+						})
+					);
+					print(formatStep(steps[steps.length - 1]));
+				}
+			} else {
+				steps.push({
+					capability: "source",
+					step: "sync teams",
+					status: "skip",
+					message: "provider does not implement syncTeams",
+				});
+				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+	}
+
+	// ── environments ────────────────────────────────────────────────────
+	if (loader.has("environments")) {
+		const envs = loader.get("environments");
+		print(style.step("environments"));
+		for (const envName of SETUP_ENVIRONMENTS) {
+			steps.push(
+				await runStep("environments", `upsert ${envName}`, dryRun, async () => {
+					await envs.upsertEnvironment({ name: envName });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── docs: configure GitHub Pages ────────────────────────────────────
+	if (loader.has("source") && config.docs) {
+		const source = loader.get("source");
+		const resolveDeployToken = createFeatureResolver({
+			envName: "HOLOCRON_DEPLOY_TOKEN",
+			keyringKey: "github.deploy",
+		});
+		let deployToken: string | undefined;
+		try {
+			deployToken = resolveDeployToken({ keyring: input.keyring });
+		} catch (err) {
+			if (!(err instanceof AuthError)) throw err;
+		}
+		print(style.step("docs"));
+		if (!deployToken) {
+			steps.push({
+				capability: "source",
+				step: "configure GitHub Pages",
+				status: "skip",
+				message:
+					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron new token github.deploy <PAT>",
+			});
+			print(formatStep(steps[steps.length - 1]));
+		} else if (source.configurePages) {
+			steps.push(
+				await runStep("source", "configure GitHub Pages", dryRun, async () => {
+					await source.configurePages!(config.docs!, deployToken);
+					const parts: string[] = [config.docs!.build];
+					if (config.docs!.domain) parts.push(`domain: ${config.docs!.domain}`);
+					if (config.docs!.https) parts.push("https: enforced");
+					return parts.join(", ");
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── wiki: provision engineering wiki config ──────────────────────────
+	if (loader.has("wiki")) {
+		const wiki = loader.get("wiki");
+		print(style.step("wiki"));
+		steps.push(
+			await runStep("wiki", "provision wiki config", dryRun, async () => {
+				return await wiki.provision({ name: config.name });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]));
+
+		const wikiDns = wiki.dnsRecord?.();
+		const wikiProxy = wiki.proxyConfig?.();
+		if (wikiDns && loader.has("dns")) {
+			const dns = loader.get("dns");
+			steps.push(
+				await runStep("dns", `upsertRecord ${wikiDns.record.name}`, dryRun, async () => {
+					await dns.upsertRecord(wikiDns.zone, {
+						...wikiDns.record,
+						ttl: 1,
+						...(wikiProxy ? { proxied: true } : {}),
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		if (wikiProxy && wikiDns && loader.has("workers")) {
+			const workers = loader.get("workers");
+			steps.push(
+				await runStep("workers", `upsertProxy ${wikiDns.record.name}`, dryRun, async () => {
+					await workers.upsertProxy(wikiDns.record.name, wikiProxy);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── deployment: ensure project + preview infrastructure ─────────────
+	if (loader.has("deployment")) {
+		const deploy = loader.get("deployment");
+		print(style.step("deployment"));
+
+		const previewCfg = previewConfigOf(config);
+		const ensureCustomDomain = async (projectId: string, hostname: string) => {
+			if (!deploy.ensureCustomDomain) return;
+			const customDomainDns = { value: null as DnsRecordRequest | null };
+			steps.push(
+				await runStep("deployment", `ensureCustomDomain ${hostname}`, dryRun, async () => {
+					customDomainDns.value = await deploy.ensureCustomDomain!(projectId, hostname);
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+
+			if (customDomainDns.value && loader.has("dns")) {
+				const dns = loader.get("dns");
+				const dnsRecord = customDomainDns.value;
+				steps.push(
+					await runStep("dns", `upsertRecord ${dnsRecord.record.name}`, dryRun, async () => {
+						await dns.upsertRecord(dnsRecord.zone, { ...dnsRecord.record, ttl: 1 });
+					})
+				);
+				print(formatStep(steps[steps.length - 1]));
+			}
+		};
+
+		if (!previewCfg) {
+			steps.push(
+				await runStep("deployment", `ensureProject ${config.name}`, dryRun, async () => {
+					await deploy.ensureProject({ name: config.name });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+			if (deploy.domain) {
+				await ensureCustomDomain(config.name, deploy.domain);
+			}
+		}
+
+		if (previewCfg) {
+			steps.push(
+				await runStep("deployment", `ensureProject ${previewCfg.project}`, dryRun, async () => {
+					await deploy.ensureProject({ name: previewCfg.project });
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		if (previewCfg?.domain) {
+			await ensureCustomDomain(previewCfg.project, previewCfg.domain);
+		}
+
+		// Cloudflare Pages doesn't expose its DNS challenge, so retain its
+		// provider-specific apex + wildcard records. Other providers return
+		// their required record from ensureCustomDomain() above.
+		if (previewCfg?.domain && deploy.providerName === "cloudflare" && loader.has("dns")) {
+			const dns = loader.get("dns");
+			const wildcardDomain = `*.${previewCfg.domain}`;
+			steps.push(
+				await runStep("dns", `upsertRecord ${previewCfg.domain}`, dryRun, async () => {
+					await dns.upsertRecord(previewCfg.domain!, {
+						type: "CNAME",
+						name: previewCfg.domain!,
+						content: `${previewCfg.project}.pages.dev`,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+			steps.push(
+				await runStep("dns", `upsertRecord ${wildcardDomain}`, dryRun, async () => {
+					await dns.upsertRecord(previewCfg.domain!, {
+						type: "CNAME",
+						name: wildcardDomain,
+						content: `${previewCfg.project}.pages.dev`,
+						ttl: 1,
+					});
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── auth: ensure webhook app (optional method) ──────────────────────
+	if (loader.has("auth")) {
+		const auth = loader.get("auth");
+		print(style.step("auth"));
+		if (auth.ensureWebhookApp) {
+			steps.push(
+				await runStep("auth", "ensureWebhookApp", dryRun, async () => {
+					const result = await auth.ensureWebhookApp!();
+					return `webhook ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		} else {
+			steps.push({
+				capability: "auth",
+				step: "ensureWebhookApp",
+				status: "skip",
+				message: "provider does not implement ensureWebhookApp",
+			});
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── vault: bootstrap project + configs, then read-only probe ───────
+	if (loader.has("vault")) {
+		const vault = loader.get("vault");
+		print(style.step("vault"));
+
+		if (vault.ensureProject) {
+			steps.push(
+				await runStep("vault", `ensureProject ${config.name}`, dryRun, async () => {
+					const result = await vault.ensureProject!(config.name);
+					return `project ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		if (vault.ensureEnvironment) {
+			for (const envName of ["dev", "stg", "prd"]) {
+				steps.push(
+					await runStep("vault", `ensureEnvironment ${envName}`, dryRun, async () => {
+						const result = await vault.ensureEnvironment!(config.name, envName);
+						return `${envName} ${result.alreadyExists ? "exists" : "created"}`;
+					})
+				);
+				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+
+		try {
+			const keys = await vault.list();
+			steps.push({
+				capability: "vault",
+				step: "list",
+				status: "ok",
+				message: `${keys.length} keys available`,
+			});
+		} catch (err) {
+			steps.push({
+				capability: "vault",
+				step: "list",
+				status: "fail",
+				message: describeProviderError(err),
+			});
+		}
+		print(formatStep(steps[steps.length - 1]));
+	}
+
+	// ── errors: provision the tracker project + push the DSN to secrets ─
+	if (loader.has("errors")) {
+		const errors = loader.get("errors");
+		print(style.step("errors"));
+
+		if (errors.ensureProject) {
+			let dsn: string | undefined;
+			steps.push(
+				await runStep("errors", `ensureProject ${config.name}`, dryRun, async () => {
+					const result = await errors.ensureProject!({ name: config.name });
+					dsn = result.dsn;
+					return `project ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+
+			if (dsn && loader.has("secrets")) {
+				const secrets = loader.get("secrets");
+				// `envKeys` always; a framework's `frameworkEnvKeys` (`NEXT_PUBLIC_SENTRY_DSN` for `next`)
+				// only when the root or a workspace package depends on it. No package.json means no framework.
+				// Reading the workspace packages can throw (an unreadable directory): the root alone is
+				// used then, said once, so `SENTRY_DSN` is still pushed.
+				const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+					.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+					.catch(() => null);
+				let workspacePackageJsons: Awaited<ReturnType<typeof readWorkspacePackageJsons>> = [];
+				try {
+					workspacePackageJsons = await readWorkspacePackageJsons(
+						input.context.repoRoot,
+						(input.workspacePackages ?? readWorkspacePackages)(input.context.repoRoot)
+					);
+				} catch (err) {
+					steps.push({
+						capability: "errors",
+						step: "detect stack",
+						status: "skip",
+						message: `workspace packages not read (${errorMessage(err)}); using the root package.json only`,
+					});
+					print(formatStep(steps[steps.length - 1]));
+				}
+				const stack = deriveRepoStack(rootPackageJson, workspacePackageJsons);
+				const { keys, unknown } = errorsEnvKeys(await errors.describe(), stack);
+				for (const name of unknown) {
+					steps.push({
+						capability: "errors",
+						step: `frameworkEnvKeys ${name}`,
+						status: "skip",
+						message: `"${name}" is not a known framework name (${KNOWN_STACK_DEPS.join(", ")}); its keys are not pushed`,
+					});
+					print(formatStep(steps[steps.length - 1]));
+				}
+				for (const key of keys) {
+					steps.push(
+						await runStep("errors", `set secret ${key}`, dryRun, async () => {
+							await secrets.setSecret({ kind: "repo" }, key, dsn!);
+						})
+					);
+					print(formatStep(steps[steps.length - 1]));
+				}
+			}
+		}
+	}
+
+	// ── logs: provision the aggregation dataset ───────────────────────
+	if (loader.has("logs")) {
+		const logs = loader.get("logs");
+		print(style.step("logs"));
+
+		if (logs.ensureDataset) {
+			// The CLI's own dataset, `holocron`, shared by its environments (ADR-0019): `HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`.
+			const dataset = holocronEnv().get("AXIOM_DATASET");
+			if (dataset) {
+				steps.push(
+					await runStep("logs", `ensureDataset ${dataset}`, dryRun, async () => {
+						const result = await logs.ensureDataset!(dataset);
+						return `${dataset} ${result.alreadyExists ? "exists" : "created"}`;
+					})
+				);
+			} else {
+				steps.push({
+					capability: "logs",
+					step: "ensureDataset",
+					status: "skip",
+					message: "no dataset named (set HOLOCRON_AXIOM_DATASET or AXIOM_DATASET)",
+				});
+			}
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── dns: the records `holocron new domain` keeps in .holocron/dns-records.json ──
+	const dnsSteps = await dnsRecordsStep(loader, input.context.repoRoot, dryRun);
+	if (dnsSteps.length > 0) {
+		print(style.step("dns"));
+		for (const step of dnsSteps) {
+			steps.push(step);
+			print(formatStep(step));
+		}
+	}
+
+	// ── issues: the organization's issue Types the org area declares (only when it declares some) ──
+	const issueTypeSteps = await issueTypesStep({
+		declared: config.issueTypes,
+		loader,
+		dryRun,
+		...(input.yes ? { yes: true } : {}),
+		...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
+		...(input.confirm ? { confirm: input.confirm } : {}),
+	});
+	if (issueTypeSteps.length > 0) {
+		print(style.step("issue types"));
+		for (const step of issueTypeSteps) {
+			steps.push(step);
+			print(formatStep(step));
+		}
+	}
+
+	// ── monitoring: ensure each configured check exists ─────────────────
+	if (loader.has("monitoring")) {
+		const monitoring = loader.get("monitoring");
+		print(style.step("monitoring"));
+
+		for (const checkInput of monitoring.checks) {
+			steps.push(
+				await runStep("monitoring", `ensureCheck ${checkInput.name}`, dryRun, async () => {
+					const result = await monitoring.ensureCheck(checkInput);
+					return `${checkInput.name} ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+
+		// Dashboards: private unless declared otherwise. A key the provider returns is handed over, never shown.
+		for (const dashboard of monitoring.dashboards ?? []) {
+			if (!monitoring.ensureDashboard) {
+				steps.push({
+					capability: "monitoring",
+					step: `ensureDashboard ${dashboard.name}`,
+					status: "skip",
+					message: "provider has no dashboards",
+				});
+				print(formatStep(steps[steps.length - 1]));
+				continue;
+			}
+			let key: string | undefined;
+			steps.push(
+				await runStep("monitoring", `ensureDashboard ${dashboard.name}`, dryRun, async () => {
+					const result = await monitoring.ensureDashboard!(dashboard);
+					key = result.key;
+					const changed = result.updated?.length ? ` (updated ${result.updated.join(", ")})` : "";
+					return `${dashboard.name} ${result.created ? "created" : "exists"}${changed}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+			if (key !== undefined) {
+				// Not inside `runStep`: its spinner would draw over the wait for the 1Password import.
+				const step = `hand over dashboard key for ${dashboard.name}`;
+				try {
+					await handOffDashboardKey({ key, repoRoot: input.context.repoRoot, print });
+					steps.push({ capability: "monitoring", step, status: "ok" });
+				} catch (err) {
+					steps.push({ capability: "monitoring", step, status: "fail", message: errorMessage(err) });
+				}
+				print(formatStep(steps[steps.length - 1]));
+			}
+		}
+		// Status pages after the checks, whose tags their rules match (and their domain's DNS record).
+		for (const step of await statusPagesStep(monitoring, loader, dryRun)) {
+			steps.push(step);
+			print(formatStep(step));
+		}
+
+		// Heartbeats: ensured by name; the ping URL of each one made is a credential, handed over through the private
+		// import file and never printed (a dry run makes nothing, so it writes no file).
+		const pings: HeartbeatPing[] = [];
+		for (const beat of monitoring.ensureHeartbeat ? (monitoring.heartbeats ?? []) : []) {
+			steps.push(
+				await runStep("monitoring", `ensureHeartbeat ${beat.name}`, dryRun, async () => {
+					const result = await monitoring.ensureHeartbeat!(beat);
+					if (!result.alreadyExists && result.pingUrl) pings.push({ name: beat.name, url: result.pingUrl });
+					return `${beat.name} ${result.alreadyExists ? "exists" : "created"}`;
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+		if (pings.length > 0) {
+			const handed = await (input.handOffHeartbeats ?? handOffHeartbeats)({
+				pings,
+				base: dirname(input.loaded.filepath),
+				print: (line) => print(`    ${line}`),
+				interactive: process.stdin.isTTY === true,
+			});
+			steps.push({
+				capability: "monitoring",
+				step: "heartbeat ping URLs for import",
+				status: handed.status === "fail" ? "fail" : handed.status === "skip" ? "skip" : "ok",
+				message:
+					handed.status === "ok"
+						? `${handed.written.join(", ")} written for import, not printed`
+						: handed.reason,
+			});
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── tooling: sync each (many cardinality) ───────────────────────────
+	if (loader.has("tooling")) {
+		const tools = loader.get("tooling");
+		print(style.step("tooling"));
+		for (const tool of tools) {
+			steps.push(
+				await runStep("tooling", `${tool.providerName}.sync`, dryRun, async () => {
+					await tool.sync();
+				})
+			);
+			print(formatStep(steps[steps.length - 1]));
+		}
+	}
+
+	// ── skills: install agent skills from registry ──────────────────────
+	if (config.skills && config.skills.length > 0 && config.agent) {
+		print(style.step("skills"));
+		if (!(config.agent in AGENT_SYMLINK_PATHS)) {
+			steps.push({
+				capability: "skills",
+				step: "install skills",
+				status: "skip",
+				message: `agent "${config.agent}" has no known skill install path`,
+			});
+		} else {
+			steps.push(
+				await runStep("skills", "install skills", dryRun, async () => {
+					return await installSkills({
+						agent: config.agent!,
+						skills: config.skills!,
+						repoRoot: input.context.repoRoot,
+					});
+				})
+			);
+		}
+		print(formatStep(steps[steps.length - 1]));
+	}
+
+	// ── prompts: write agent role prompts to .agents/prompts/ ────────────
+	if (config.agent) {
+		print(style.step("prompts"));
+		steps.push(
+			await runStep("prompts", "install agent prompts", dryRun, async () => {
+				return await installAgentPrompts({ repoRoot: input.context.repoRoot });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]));
+	}
+
+	// ── engineering: provision docs/decisions/ and docs/engineering/ ─────
+	if (config.docs) {
+		print(style.step("engineering"));
+		steps.push(
+			await runStep("engineering", "provision engineering structure", dryRun, async () => {
+				return await installEngineeringStructure({ repoRoot: input.context.repoRoot });
+			})
+		);
+		print(formatStep(steps[steps.length - 1]));
+	}
+
+	const summary = steps.reduce(
+		(acc, s) => {
+			if (s.status === "ok") acc.ok += 1;
+			else if (s.status === "fail") acc.fail += 1;
+			else if (s.status === "skip") acc.skip += 1;
+			else if (s.status === "dry-run") acc.dryRun += 1;
+			return acc;
+		},
+		{ ok: 0, fail: 0, skip: 0, dryRun: 0 }
+	);
+
+	print("");
+	const summaryLine = `  ${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${
+		dryRun ? `, ${summary.dryRun} would-do` : ""
+	}`;
+	print(summary.fail > 0 ? style.fail(summaryLine.trim()) : style.success(summaryLine.trim()));
+
+	const skippedSteps = steps.filter((s) => s.status === "skip");
+	if (skippedSteps.length > 0) {
+		print("");
+		print(style.hint("  Skipped:"));
+		for (const s of skippedSteps) {
+			/* v8 ignore next -- all skip steps set message; empty fallback is defensive */
+			print(style.hint(`    · ${s.step}${s.message ? `  (${s.message})` : ""}`));
+		}
+	}
+
+	if (steps.some((s) => s.reason === "permissions")) {
+		print("");
+		print(style.warn("Some steps failed with 403 (insufficient token permissions)."));
+		print(style.hint("     Repo-scoped operations (rulesets, settings, workflows) require a"));
+		print(style.hint("     fine-grained PAT passed via --token or HOLOCRON_ADMIN_TOKEN:"));
+		print("");
+		print(style.hint("       · Administration          — read and write"));
+		print(style.hint("       · Code scanning alerts    — read and write"));
+		print(style.hint("       · Contents                — read and write"));
+		print(style.hint("       · Custom properties       — read and write"));
+		print(style.hint("       · Environments            — read and write"));
+		print(style.hint("       · Issues                  — read and write (labels)"));
+		print(style.hint("       · Secret scanning alerts  — read and write"));
+		print(style.hint("       · Secrets                 — read and write"));
+		print(style.hint("       · Variables               — read and write (Actions variables)"));
+		print(style.hint("       · Workflows               — read and write"));
+		print(style.hint("       · Metadata                — read (added automatically)"));
+		print("");
+		print(style.hint("     Org-scoped operations (teams, organization Actions variables) require"));
+		print(style.hint("     HOLOCRON_ORG_TOKEN — a fine-grained PAT with resource owner set to the org:"));
+		print("");
+		print(style.hint("       · Administration          — read and write (repository permission)"));
+		print(style.hint("       · Members                 — read (organization permission)"));
+		print(style.hint("       · Variables               — read and write (organization permission)"));
+		print(style.hint("       · Metadata                — read (repository permission, auto-included)"));
+		print("");
+		if (steps.some((s) => s.reason === "permissions" && /GitHub Pages/.test(s.step))) {
+			print("");
+			print(style.hint("     GitHub Pages uses HOLOCRON_DEPLOY_TOKEN (keyring key github.deploy):"));
+			print("");
+			print(style.hint("       · Pages                   — read and write"));
+			print(style.hint("       · Administration          — read and write"));
+			print(style.hint("       · Metadata                — read (added automatically)"));
+		}
+		print("");
+		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
+		print(
+			style.hint(
+				"     Store them:       HOLOCRON_ADMIN_TOKEN / HOLOCRON_ORG_TOKEN / HOLOCRON_DEPLOY_TOKEN env vars,"
+			)
+		);
+		print(style.hint("                       or keyring keys github.admin / github.org / github.deploy"));
+		print(style.hint("     Then re-run:      holocron setup"));
+		print(style.hint("     (--token <pat> overrides every token, the org one included; use it only when one"));
+		print(style.hint("      token covers everything.)"));
+	}
+
+	return { steps, summary };
+}
+
+/**
+ * Ensure `package.json#scripts.prepare` runs `husky` so git hooks register on
+ * install. Merge-only: an existing `prepare` that does more than husky (e.g.
+ * `turbo run build` — needed where root config files import a workspace
+ * package's `dist/`, theholocron/holocron#654) is preserved and husky is
+ * appended. Leaves every other script untouched. Returns `true` when it wrote
+ * a change, `false` when already runs husky or there is no `package.json`.
+ */
+async function ensurePrepareScript(repoRoot: string): Promise<boolean> {
+	const pkgPath = join(repoRoot, "package.json");
+	let content: string;
+	try {
+		content = await readFile(pkgPath, "utf8");
+	} catch {
+		return false;
+	}
+	const pkg = JSON.parse(content) as { scripts?: Record<string, string> };
+	const scripts = pkg.scripts ?? {};
+	const current = scripts.prepare?.trim() ?? "";
+	// Already invokes husky (bare, or as a step in a chain) → nothing to do.
+	if (/(^|[\s&|;])husky($|[\s&|;])/.test(current)) return false;
+	scripts.prepare = current ? `${current} && husky` : "husky";
+	pkg.scripts = scripts;
+	await writeFile(pkgPath, stringifyJson(pkg, { like: content }), "utf8");
+	return true;
+}

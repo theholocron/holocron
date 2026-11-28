@@ -1,6 +1,9 @@
 codecov:
   require_ci_to_pass: true
 
+ignore:
+  - "**/*.mdx"
+
 coverage:
   precision: 2
   round: down
@@ -8,110 +11,757 @@ coverage:
   status:
     project:
       default:
+        flags:
+          - cli
+          - observability
+          - skills
+          - comlink
+          - council
+          - sentinel
+          - astromech
+          - dagobah
+          - datapad
+          - kyber
+          - axiom-client
+          - checkly-client
+          - clerk-client
+          - cloudflare-client
+          - confluence-client
+          - discord-client
+          - doppler-client
+          - github-client
+          - google-client
+          - http-client
+          - infisical-client
+          - jira-client
+          - linear-client
+          - neon-client
+          - netlify-client
+          - posthog-client
+          - postman-client
+          - sentry-client
+          - slack-client
+          - turbo-client
+          - vercel-client
+          - zendesk-client
+          - astro-config
+          - browserslist-config
+          - commitlint-config
+          - devmoji-config
+          - eslint-config
+          - lighthouse-config
+          - lint-staged-config
+          - markdownlint-config
+          - prettier-config
+          - rollup-plugin-transform-template
+          - semantic-release-config
+          - storybook-config
+          - stylelint-config
+          - tsconfig
+          - tsdown-config
+          - vite-config
+          - vitest-config
+          - holocron-plugin-1password
+          - holocron-plugin-axiom
+          - holocron-plugin-bruno
+          - holocron-plugin-checkly
+          - holocron-plugin-clerk
+          - holocron-plugin-cloudflare
+          - holocron-plugin-discord
+          - holocron-plugin-doppler
+          - holocron-plugin-fern
+          - holocron-plugin-github
+          - holocron-plugin-infisical
+          - holocron-plugin-linear
+          - holocron-plugin-neon
+          - holocron-plugin-netlify
+          - holocron-plugin-obsidian
+          - holocron-plugin-posthog
+          - holocron-plugin-postman
+          - holocron-plugin-sentry
+          - holocron-plugin-slack
+          - holocron-plugin-turbo
+          - holocron-plugin-vercel
+          - docs-theme
+          - array-utils
+          - date-time-utils
+          - env-utils
+          - fs-utils
+          - git-utils
+          - json-utils
+          - location-utils
+          - misc-utils
+          - object-utils
+          - pkg-utils
+          - storage-utils
+          - string-utils
+          - uri-utils
+          - ci
+          - council
+          - codecov-client
+          - holocron-plugin-codecov
         target: auto
+        if_not_found: success
         threshold: 2%
+      # Doc-comment coverage of the public API (#1368), uploaded as its own flag by the measure:docs
+      # workflow. Its own named status, so the required codecov/project above keeps counting only the tests.
+      documentation:
+        flags:
+          - documentation
+        target: auto
+        if_not_found: success
     patch:
       default:
+        flags:
+          - cli
+          - observability
+          - skills
+          - comlink
+          - council
+          - sentinel
+          - astromech
+          - dagobah
+          - datapad
+          - kyber
+          - axiom-client
+          - checkly-client
+          - clerk-client
+          - cloudflare-client
+          - confluence-client
+          - discord-client
+          - doppler-client
+          - github-client
+          - google-client
+          - http-client
+          - infisical-client
+          - jira-client
+          - linear-client
+          - neon-client
+          - netlify-client
+          - posthog-client
+          - postman-client
+          - sentry-client
+          - slack-client
+          - turbo-client
+          - vercel-client
+          - zendesk-client
+          - astro-config
+          - browserslist-config
+          - commitlint-config
+          - devmoji-config
+          - eslint-config
+          - lighthouse-config
+          - lint-staged-config
+          - markdownlint-config
+          - prettier-config
+          - rollup-plugin-transform-template
+          - semantic-release-config
+          - storybook-config
+          - stylelint-config
+          - tsconfig
+          - tsdown-config
+          - vite-config
+          - vitest-config
+          - holocron-plugin-1password
+          - holocron-plugin-axiom
+          - holocron-plugin-bruno
+          - holocron-plugin-checkly
+          - holocron-plugin-clerk
+          - holocron-plugin-cloudflare
+          - holocron-plugin-discord
+          - holocron-plugin-doppler
+          - holocron-plugin-fern
+          - holocron-plugin-github
+          - holocron-plugin-infisical
+          - holocron-plugin-linear
+          - holocron-plugin-neon
+          - holocron-plugin-netlify
+          - holocron-plugin-obsidian
+          - holocron-plugin-posthog
+          - holocron-plugin-postman
+          - holocron-plugin-sentry
+          - holocron-plugin-slack
+          - holocron-plugin-turbo
+          - holocron-plugin-vercel
+          - docs-theme
+          - array-utils
+          - date-time-utils
+          - env-utils
+          - fs-utils
+          - git-utils
+          - json-utils
+          - location-utils
+          - misc-utils
+          - object-utils
+          - pkg-utils
+          - storage-utils
+          - string-utils
+          - uri-utils
+          - ci
+          - codecov-client
+          - holocron-plugin-codecov
         target: 80%
+        if_not_found: success
         threshold: 2%
+      documentation:
+        flags:
+          - documentation
+        target: 100%
+        if_not_found: success
 
 comment:
-  layout: "reach,diff,flags,components"
+  layout: "reach,diff,flags"
   behavior: default
-  require_changes: true
+  require_changes: false
+
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: cli
+    - name: observability
+    - name: skills
+    - name: comlink
+    - name: council
+    - name: sentinel
+    - name: astromech
+    - name: dagobah
+    - name: datapad
+    - name: kyber
+    - name: axiom-client
+    - name: checkly-client
+    - name: clerk-client
+    - name: cloudflare-client
+    - name: confluence-client
+    - name: discord-client
+    - name: doppler-client
+    - name: github-client
+    - name: google-client
+    - name: http-client
+    - name: infisical-client
+    - name: jira-client
+    - name: linear-client
+    - name: neon-client
+    - name: netlify-client
+    - name: posthog-client
+    - name: postman-client
+    - name: sentry-client
+    - name: slack-client
+    - name: turbo-client
+    - name: vercel-client
+    - name: zendesk-client
+    - name: astro-config
+    - name: browserslist-config
+    - name: commitlint-config
+    - name: devmoji-config
+    - name: eslint-config
+    - name: lighthouse-config
+    - name: lint-staged-config
+    - name: markdownlint-config
+    - name: prettier-config
+    - name: rollup-plugin-transform-template
+    - name: semantic-release-config
+    - name: storybook-config
+    - name: stylelint-config
+    - name: tsconfig
+    - name: tsdown-config
+    - name: vite-config
+    - name: vitest-config
+    - name: holocron-plugin-1password
+    - name: holocron-plugin-axiom
+    - name: holocron-plugin-bruno
+    - name: holocron-plugin-checkly
+    - name: holocron-plugin-clerk
+    - name: holocron-plugin-cloudflare
+    - name: holocron-plugin-discord
+    - name: holocron-plugin-doppler
+    - name: holocron-plugin-fern
+    - name: holocron-plugin-github
+    - name: holocron-plugin-infisical
+    - name: holocron-plugin-linear
+    - name: holocron-plugin-neon
+    - name: holocron-plugin-netlify
+    - name: holocron-plugin-obsidian
+    - name: holocron-plugin-posthog
+    - name: holocron-plugin-postman
+    - name: holocron-plugin-sentry
+    - name: holocron-plugin-slack
+    - name: holocron-plugin-turbo
+    - name: holocron-plugin-vercel
+    - name: docs-theme
+    - name: array-utils
+    - name: date-time-utils
+    - name: env-utils
+    - name: fs-utils
+    - name: git-utils
+    - name: json-utils
+    - name: location-utils
+    - name: misc-utils
+    - name: object-utils
+    - name: pkg-utils
+    - name: storage-utils
+    - name: string-utils
+    - name: uri-utils
+    - name: documentation
+    - name: ci
+    - name: codecov-client
+    - name: holocron-plugin-codecov
 
 component_management:
   default_rules:
     statuses:
       - type: patch
         target: 80%
+        if_not_found: success
+        informational: true
   individual_components:
-    - component_id: cli
-      name: "cli"
+    # apps
+    - component_id: comlink
+      name: "comlink"
       paths:
-        - packages/cli/**
+        - apps/comlink/**
 
+    - component_id: council
+      name: "council"
+      paths:
+        - apps/council/**
+
+    - component_id: sentinel
+      name: "sentinel"
+      paths:
+        - apps/sentinel/**
+
+    # ci
+    - component_id: ci
+      name: "ci"
+      paths:
+        - ci/**
+
+    # cli
     - component_id: astromech
       name: "astromech"
       paths:
-        - packages/astromech/**
+        - cli/astromech/**
+
+    - component_id: cli
+      name: "cli"
+      paths:
+        - cli/cli/**
+
+    - component_id: dagobah
+      name: "dagobah"
+      paths:
+        - cli/dagobah/**
 
     - component_id: datapad
       name: "datapad"
       paths:
-        - packages/datapad/**
+        - cli/datapad/**
 
+    - component_id: kyber
+      name: "kyber"
+      paths:
+        - cli/kyber/**
+
+    # clients
+    - component_id: axiom-client
+      name: "axiom-client"
+      paths:
+        - clients/axiom-client/**
+
+    - component_id: checkly-client
+      name: "checkly-client"
+      paths:
+        - clients/checkly-client/**
+
+    - component_id: clerk-client
+      name: "clerk-client"
+      paths:
+        - clients/clerk-client/**
+
+    - component_id: cloudflare-client
+      name: "cloudflare-client"
+      paths:
+        - clients/cloudflare-client/**
+
+    - component_id: codecov-client
+      name: "codecov-client"
+      paths:
+        - clients/codecov-client/**
+
+    - component_id: confluence-client
+      name: "confluence-client"
+      paths:
+        - clients/confluence-client/**
+
+    - component_id: discord-client
+      name: "discord-client"
+      paths:
+        - clients/discord-client/**
+
+    - component_id: doppler-client
+      name: "doppler-client"
+      paths:
+        - clients/doppler-client/**
+
+    - component_id: github-client
+      name: "github-client"
+      paths:
+        - clients/github-client/**
+
+    - component_id: google-client
+      name: "google-client"
+      paths:
+        - clients/google-client/**
+
+    - component_id: http-client
+      name: "http-client"
+      paths:
+        - clients/http-client/**
+
+    - component_id: infisical-client
+      name: "infisical-client"
+      paths:
+        - clients/infisical-client/**
+
+    - component_id: jira-client
+      name: "jira-client"
+      paths:
+        - clients/jira-client/**
+
+    - component_id: linear-client
+      name: "linear-client"
+      paths:
+        - clients/linear-client/**
+
+    - component_id: neon-client
+      name: "neon-client"
+      paths:
+        - clients/neon-client/**
+
+    - component_id: netlify-client
+      name: "netlify-client"
+      paths:
+        - clients/netlify-client/**
+
+    - component_id: posthog-client
+      name: "posthog-client"
+      paths:
+        - clients/posthog-client/**
+
+    - component_id: postman-client
+      name: "postman-client"
+      paths:
+        - clients/postman-client/**
+
+    - component_id: sentry-client
+      name: "sentry-client"
+      paths:
+        - clients/sentry-client/**
+
+    - component_id: slack-client
+      name: "slack-client"
+      paths:
+        - clients/slack-client/**
+
+    - component_id: turbo-client
+      name: "turbo-client"
+      paths:
+        - clients/turbo-client/**
+
+    - component_id: vercel-client
+      name: "vercel-client"
+      paths:
+        - clients/vercel-client/**
+
+    - component_id: zendesk-client
+      name: "zendesk-client"
+      paths:
+        - clients/zendesk-client/**
+
+    # configs
+    - component_id: astro-config
+      name: "astro-config"
+      paths:
+        - configs/astro-config/**
+
+    - component_id: browserslist-config
+      name: "browserslist-config"
+      paths:
+        - configs/browserslist-config/**
+
+    - component_id: commitlint-config
+      name: "commitlint-config"
+      paths:
+        - configs/commitlint-config/**
+
+    - component_id: devmoji-config
+      name: "devmoji-config"
+      paths:
+        - configs/devmoji-config/**
+
+    - component_id: eslint-config
+      name: "eslint-config"
+      paths:
+        - configs/eslint-config/**
+
+    - component_id: lighthouse-config
+      name: "lighthouse-config"
+      paths:
+        - configs/lighthouse-config/**
+
+    - component_id: lint-staged-config
+      name: "lint-staged-config"
+      paths:
+        - configs/lint-staged-config/**
+
+    - component_id: markdownlint-config
+      name: "markdownlint-config"
+      paths:
+        - configs/markdownlint-config/**
+
+    - component_id: prettier-config
+      name: "prettier-config"
+      paths:
+        - configs/prettier-config/**
+
+    - component_id: rollup-plugin-transform-template
+      name: "rollup-plugin-transform-template"
+      paths:
+        - configs/rollup-plugin-transform-template/**
+
+    - component_id: semantic-release-config
+      name: "semantic-release-config"
+      paths:
+        - configs/semantic-release-config/**
+
+    - component_id: storybook-config
+      name: "storybook-config"
+      paths:
+        - configs/storybook-config/**
+
+    - component_id: stylelint-config
+      name: "stylelint-config"
+      paths:
+        - configs/stylelint-config/**
+
+    - component_id: tsconfig
+      name: "tsconfig"
+      paths:
+        - configs/tsconfig/**
+
+    - component_id: tsdown-config
+      name: "tsdown-config"
+      paths:
+        - configs/tsdown-config/**
+
+    - component_id: vite-config
+      name: "vite-config"
+      paths:
+        - configs/vite-config/**
+
+    - component_id: vitest-config
+      name: "vitest-config"
+      paths:
+        - configs/vitest-config/**
+
+    # docs
+    - component_id: docs
+      name: "docs"
+      paths:
+        - docs/**
+
+    # observability
+    - component_id: observability
+      name: "observability"
+      paths:
+        - observability/**
+
+    # plugins
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
-        - packages/holocron-plugin-1password/**
+        - plugins/holocron-plugin-1password/**
 
     - component_id: holocron-plugin-axiom
       name: "holocron-plugin-axiom"
       paths:
-        - packages/holocron-plugin-axiom/**
+        - plugins/holocron-plugin-axiom/**
+
+    - component_id: holocron-plugin-bruno
+      name: "holocron-plugin-bruno"
+      paths:
+        - plugins/holocron-plugin-bruno/**
+
+    - component_id: holocron-plugin-checkly
+      name: "holocron-plugin-checkly"
+      paths:
+        - plugins/holocron-plugin-checkly/**
 
     - component_id: holocron-plugin-clerk
       name: "holocron-plugin-clerk"
       paths:
-        - packages/holocron-plugin-clerk/**
+        - plugins/holocron-plugin-clerk/**
 
     - component_id: holocron-plugin-cloudflare
       name: "holocron-plugin-cloudflare"
       paths:
-        - packages/holocron-plugin-cloudflare/**
+        - plugins/holocron-plugin-cloudflare/**
+
+    - component_id: holocron-plugin-codecov
+      name: "holocron-plugin-codecov"
+      paths:
+        - plugins/holocron-plugin-codecov/**
 
     - component_id: holocron-plugin-discord
       name: "holocron-plugin-discord"
       paths:
-        - packages/holocron-plugin-discord/**
+        - plugins/holocron-plugin-discord/**
 
     - component_id: holocron-plugin-doppler
       name: "holocron-plugin-doppler"
       paths:
-        - packages/holocron-plugin-doppler/**
+        - plugins/holocron-plugin-doppler/**
 
     - component_id: holocron-plugin-fern
       name: "holocron-plugin-fern"
       paths:
-        - packages/holocron-plugin-fern/**
+        - plugins/holocron-plugin-fern/**
 
     - component_id: holocron-plugin-github
       name: "holocron-plugin-github"
       paths:
-        - packages/holocron-plugin-github/**
+        - plugins/holocron-plugin-github/**
 
     - component_id: holocron-plugin-infisical
       name: "holocron-plugin-infisical"
       paths:
-        - packages/holocron-plugin-infisical/**
+        - plugins/holocron-plugin-infisical/**
+
+    - component_id: holocron-plugin-linear
+      name: "holocron-plugin-linear"
+      paths:
+        - plugins/holocron-plugin-linear/**
 
     - component_id: holocron-plugin-neon
       name: "holocron-plugin-neon"
       paths:
-        - packages/holocron-plugin-neon/**
+        - plugins/holocron-plugin-neon/**
+
+    - component_id: holocron-plugin-netlify
+      name: "holocron-plugin-netlify"
+      paths:
+        - plugins/holocron-plugin-netlify/**
+
+    - component_id: holocron-plugin-obsidian
+      name: "holocron-plugin-obsidian"
+      paths:
+        - plugins/holocron-plugin-obsidian/**
 
     - component_id: holocron-plugin-posthog
       name: "holocron-plugin-posthog"
       paths:
-        - packages/holocron-plugin-posthog/**
+        - plugins/holocron-plugin-posthog/**
 
     - component_id: holocron-plugin-postman
       name: "holocron-plugin-postman"
       paths:
-        - packages/holocron-plugin-postman/**
+        - plugins/holocron-plugin-postman/**
 
     - component_id: holocron-plugin-sentry
       name: "holocron-plugin-sentry"
       paths:
-        - packages/holocron-plugin-sentry/**
+        - plugins/holocron-plugin-sentry/**
 
     - component_id: holocron-plugin-slack
       name: "holocron-plugin-slack"
       paths:
-        - packages/holocron-plugin-slack/**
+        - plugins/holocron-plugin-slack/**
+
+    - component_id: holocron-plugin-turbo
+      name: "holocron-plugin-turbo"
+      paths:
+        - plugins/holocron-plugin-turbo/**
 
     - component_id: holocron-plugin-vercel
       name: "holocron-plugin-vercel"
       paths:
-        - packages/holocron-plugin-vercel/**
+        - plugins/holocron-plugin-vercel/**
+
+    # skills
+    - component_id: skills
+      name: "skills"
+      paths:
+        - skills/**
+
+    # themes
+    - component_id: docs-theme
+      name: "docs-theme"
+      paths:
+        - themes/docs-theme/**
+
+    # utils
+    - component_id: array-utils
+      name: "array-utils"
+      paths:
+        - utils/array-utils/**
+
+    - component_id: date-time-utils
+      name: "date-time-utils"
+      paths:
+        - utils/date-time-utils/**
+
+    - component_id: env-utils
+      name: "env-utils"
+      paths:
+        - utils/env-utils/**
+
+    - component_id: fs-utils
+      name: "fs-utils"
+      paths:
+        - utils/fs-utils/**
+
+    - component_id: git-utils
+      name: "git-utils"
+      paths:
+        - utils/git-utils/**
+
+    - component_id: json-utils
+      name: "json-utils"
+      paths:
+        - utils/json-utils/**
+
+    - component_id: location-utils
+      name: "location-utils"
+      paths:
+        - utils/location-utils/**
+
+    - component_id: misc-utils
+      name: "misc-utils"
+      paths:
+        - utils/misc-utils/**
+
+    - component_id: object-utils
+      name: "object-utils"
+      paths:
+        - utils/object-utils/**
+
+    - component_id: pkg-utils
+      name: "pkg-utils"
+      paths:
+        - utils/pkg-utils/**
+
+    - component_id: storage-utils
+      name: "storage-utils"
+      paths:
+        - utils/storage-utils/**
+
+    - component_id: string-utils
+      name: "string-utils"
+      paths:
+        - utils/string-utils/**
+
+    - component_id: uri-utils
+      name: "uri-utils"
+      paths:
+        - utils/uri-utils/**

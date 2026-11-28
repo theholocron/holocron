@@ -1,0 +1,410 @@
+/**
+ * Workflow templates + thin-caller generation.
+ *
+ * `WORKFLOW_TEMPLATES` holds each reusable `.github/workflows/<name>.yml`
+ * (synced to `theholocron/.github`); `generateThinCallerContent` wraps one
+ * into the thin caller `holocron setup` / `holocron sync` write locally.
+ */
+
+import { idFromSource } from "@theholocron/ci";
+
+import { rehomeAll, reusableWorkflowRef } from "../ci-ref/index.js";
+import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
+import { groupedPublishCaller } from "./grouped-publish/index.js";
+import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
+import { withRunName } from "./with-run-name/index.js";
+
+/** The thin-caller template sources by their path from this file (`../../templates/workflows/lint/code.yml`). */
+const TEMPLATE_SOURCES = import.meta.glob<string>("../../templates/workflows/**/*.yml", {
+	eager: true,
+	import: "default",
+});
+
+/**
+ * The reusable-workflow thin-caller templates, by task id. A template's id is its path under `templates/workflows/`
+ * (`lint/code.yml` is `lint:code`, see `idFromSource`). The workflow `name:`, the job id and the job `name:` of each are
+ * the id (see `legacyCaller` for the names they had before).
+ */
+export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll(
+	Object.fromEntries(
+		Object.entries(TEMPLATE_SOURCES).map(([path, text]) => {
+			const id = idFromSource(path);
+			return [id, withRunName(text, id, workflowTriggers(text))];
+		})
+	)
+);
+
+/** The task names that have a thin-caller workflow template. */
+export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
+
+/**
+ * The GitHub status-check context a `required` task contributes, by task id. Format: `"{caller job name} / {called job
+ * name}"`, and the caller job name is the id, so the `ci` aggregate (which waits for a check starting with `<id> / `)
+ * reads the id from the part before the slash.
+ *
+ * Most of these are single-job workflows (D3's decomposition split what used to be multi-job `lint`/`audit` into one
+ * task per concern), so the context names that job directly; a single job's own conclusion already *is* the workflow's
+ * conclusion. `Conclusion` fan-in jobs are kept only where a task has several conditionally-run jobs feeding one
+ * check: `test:unit` (unit / Storybook / Chromatic / interaction / user-flow, each gated by its own `run-*` input).
+ * `format` has no workflow of its own: its check is a step of `lint:code` (the `ci/actions/format` action), so it is
+ * listed under that. Only merge-gating workflows are listed.
+ * `astromech.requiredChecks()` reads this for every `required` task.
+ */
+export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
+	build: "build / Build every workspace",
+	"test:unit": "test:unit / Conclusion",
+	typecheck: "typecheck / Run tsc --noEmit",
+	"test:perf": "test:perf / Run Lighthouse CI",
+	"lint:code": "lint:code / Run eslint, actionlint and prettier",
+	"lint:editorconfig": "lint:editorconfig / Run editorconfig-checker",
+	"lint:markdown": "lint:markdown / Run markdownlint",
+	"lint:data": "lint:data / Run yamllint",
+	"lint:unused": "lint:unused / Run knip",
+	"scan:secrets": "scan:secrets / Run gitleaks",
+	"lint:commits": "lint:commits / Run commitlint",
+	"validate:specs": "validate:specs / Validate ADRs and specs",
+	"validate:docs": "validate:docs / Validate docs",
+	"validate:deps": "validate:deps / Check dependency catalogs",
+	"validate:generated": "validate:generated / Check generated files",
+	"measure:bundle": "measure:bundle / Upload bundle stats to Codecov",
+};
+
+/**
+ * Triggers actionlint treats as low-trust: their runs default to read-only
+ * cache access, so a reusable-workflow call must cap what the callee may ask
+ * for (`cache-call-unrestricted`).
+ */
+const LOW_TRUST_TRIGGERS = new Set([
+	"branch_protection_rule",
+	"check_run",
+	"check_suite",
+	"deployment",
+	"deployment_status",
+	"discussion",
+	"discussion_comment",
+	"fork",
+	"gollum",
+	"image_version",
+	"issue_comment",
+	"issues",
+	"label",
+	"milestone",
+	"public",
+	"pull_request_target",
+	"status",
+	"watch",
+	"workflow_run",
+]);
+
+/** Top-level event names of a workflow's `on:` (scalar, flow list, or block mapping). */
+export function workflowTriggers(yaml: string): string[] {
+	const onMatch = yaml.match(/^on:[^\S\n]*([^#\n]*)(?:#[^\n]*)?\n((?:[ \t]+[^\n]*\n|\n)*)/m);
+	if (!onMatch) return [];
+	const inline = onMatch[1].trim();
+	if (inline) {
+		return inline
+			.replace(/[[\]{}]/g, "")
+			.split(",")
+			.map((t) => t.trim());
+	}
+	return [...onMatch[2].matchAll(/^ {2}([a-z_]+):/gm)].map((m) => m[1]);
+}
+
+/**
+ * Cap callee cache access on callers with a low-trust trigger: adds
+ * `cache-mode: read` to every reusable-workflow job. Without it the callee
+ * could request cache writes despite the trigger's read-only default.
+ */
+export function withCacheMode(yaml: string): string {
+	if (!workflowTriggers(yaml).some((t) => LOW_TRUST_TRIGGERS.has(t))) return yaml;
+	return yaml.replace(/^( {4}uses: [^\n]+\n)(?! {4}cache-mode:)/gm, "$1    cache-mode: read\n");
+}
+
+/**
+ * Generate the thin caller content for a workflow, optionally injecting or
+ * merging `with:` overrides into the jobs block.
+ *
+ * Two strategies are used depending on the template:
+ * - Templates that already have a `with:` block (e.g. lint):
+ *   the override entries are merged in, replacing existing keys and appending
+ *   new ones.
+ * - Templates that end with `    secrets: inherit`: a new `with:` block is
+ *   injected immediately before `secrets: inherit`.
+ * If neither pattern matches the template, a warning is emitted and the
+ * base template is returned unchanged.
+ */
+export function generateThinCallerContent(
+	name: string,
+	withOverrides?: Record<string, unknown>,
+	additionalPaths?: string[],
+	/** Optional sink for the "could not inject `with:`" warning. */
+	logger?: { warn(obj: Record<string, unknown>, msg: string): void },
+	/**
+	 * `with:` key → a `# comment` line rendered immediately above that entry.
+	 * Only honored when injecting a fresh `with:` block (no template today
+	 * ships one), which is the path `lint` takes.
+	 */
+	comments?: Record<string, string>
+): string {
+	const template = WORKFLOW_TEMPLATES[name];
+	if (!template) return "";
+	const base = withCacheMode(template);
+
+	// A repo that releases several version groups gets a matrix caller (see groupedPublishCaller).
+	if (name === "release" && withOverrides && "groups" in withOverrides) {
+		const { groups, ungrouped, republish, ...shared } = withOverrides;
+		return groupedPublishCaller(base, groups, shared, ungrouped, republish === true);
+	}
+
+	const fmt = (k: string, v: unknown) => {
+		const line = `      ${k}: ${yamlScalar(v)}`;
+		return comments?.[k] ? `      # ${comments[k]}\n${line}` : line;
+	};
+
+	let result = base;
+
+	// Append extra push.paths entries after an existing paths: block (deduplicating), or
+	// insert a fresh paths: block after `branches: [main]` when the template has none.
+	if (additionalPaths && additionalPaths.length > 0) {
+		const pathsBlockRe = /( {4}paths:\n)((?:[ ]{6}- [^\n]+\n)+)/;
+		if (pathsBlockRe.test(result)) {
+			result = result.replace(pathsBlockRe, (_: string, header: string, existing: string) => {
+				const existingPaths = new Set([...existing.matchAll(/- (.+)/g)].map((m) => m[1]));
+				const newEntries = additionalPaths
+					.filter((p) => !existingPaths.has(p))
+					.map((p) => `      - ${p}\n`)
+					.join("");
+				return header + existing + newEntries;
+			});
+		} else {
+			const pathsBlock = `    paths:\n${additionalPaths.map((p) => `      - ${p}\n`).join("")}`;
+			result = result.replace(/( {4}branches: \[main\]\n)/, `$1${pathsBlock}`);
+		}
+	}
+
+	if (!withOverrides || Object.keys(withOverrides).length === 0) return result;
+
+	// If the template already has a with: block, merge overrides into it.
+	// Existing keys are replaced; new keys are appended.
+	const withBlockRe = /( {4}with:\n)((?:[ ]{6}[^\n]+\n)*)/;
+	const existingMatch = result.match(withBlockRe);
+	if (existingMatch) {
+		const existingEntries = new Map(
+			existingMatch[2]
+				.split("\n")
+				.filter(Boolean)
+				.filter((line) => !line.trim().startsWith("#"))
+				.map((line) => {
+					const m = line.match(/^ {6}([^:]+):\s*(.*)/);
+					return m ? ([m[1].trim(), m[2].trim()] as [string, string]) : null;
+				})
+				.filter((e): e is [string, string] => e !== null)
+		);
+		for (const [k, v] of Object.entries(withOverrides)) {
+			existingEntries.set(k, yamlScalar(v));
+		}
+		const merged = [...existingEntries.entries()].map(([k, v]) => `      ${k}: ${v}`).join("\n");
+		return result.replace(withBlockRe, `    with:\n${merged}\n`);
+	}
+
+	// No existing with: block — inject before `    secrets: inherit` at end.
+	const withBlock = Object.entries(withOverrides)
+		.map(([k, v]) => fmt(k, v))
+		.join("\n");
+	const injected = result.replace(/ {4}secrets: inherit\n$/, `    with:\n${withBlock}\n    secrets: inherit\n`);
+	if (injected === result) {
+		logger?.warn({ template: name }, "generateThinCallerContent: could not inject `with:` overrides");
+	}
+	return injected;
+}
+
+/**
+ * Extract the Cloudflare Pages preview config from a deploy workflow's `with:` object.
+ *
+ * Accepts three forms:
+ * - `preview: true` — derive both project and domain from org context
+ * - `preview: { project: "..." }` — explicit project; domain derived from context if omitted
+ * - `preview: { project: "...", domain: "..." }` — fully explicit
+ *
+ * Returns null when `preview:` is absent, false, or can't be resolved.
+ */
+export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgContext = {}): PreviewConfig | null {
+	const preview = raw["preview"];
+	if (!preview) return null;
+
+	// preview: true — derive both values from org context
+	if (preview === true) {
+		const project = ctx.org ? `${ctx.org}-preview` : null;
+		const domain = ctx.domain ? `preview.${ctx.domain}` : undefined;
+		if (!project) return null;
+		return { project, ...(domain ? { domain } : {}) };
+	}
+
+	if (typeof preview !== "object") return null;
+	const p = preview as Record<string, unknown>;
+
+	const project =
+		typeof p["project"] === "string" && p["project"] ? p["project"] : ctx.org ? `${ctx.org}-preview` : null;
+	if (!project) return null;
+
+	const domain =
+		typeof p["domain"] === "string" && p["domain"] ? p["domain"] : ctx.domain ? `preview.${ctx.domain}` : undefined;
+
+	return { project, ...(domain ? { domain } : {}) };
+}
+
+/**
+ * Generate the full thin-caller YAML for a `deploy.yml` that handles both
+ * production (push to main → GitHub Pages) and preview (pull_request →
+ * Cloudflare Pages) in a single file.
+ *
+ * Both jobs receive the same docs/storybook `with:` inputs. If the per-repo
+ * config supplies `cloudflare-project` it is forwarded; otherwise the reusable
+ * falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable (filled from the 1Password sync) — set that once and
+ * all repos with a `deploy` workflow get previews without per-repo config.
+ */
+export function generateCombinedDeployContent(
+	deployWith: Record<string, unknown>,
+	paths: string[],
+	preview: Pick<PreviewConfig, "project">,
+	/** The task id the caller is for: the workflow name, and the name of both jobs (`deploy`, `deploy-docs`, `deploy-components`). */
+	id = "deploy"
+): string {
+	const withLines = (entries: Record<string, unknown>) =>
+		Object.entries(entries)
+			.map(([k, v]) => `      ${k}: ${yamlScalar(v)}`)
+			.join("\n");
+
+	const pathsBlock = paths.length > 0 ? `    paths:\n${paths.map((p) => `      - ${p}\n`).join("")}` : "";
+
+	const previewWith = { ...deployWith, "cloudflare-project": preview.project };
+
+	const deployWithBlock = Object.keys(deployWith).length > 0 ? `    with:\n${withLines(deployWith)}\n` : "";
+	// previewWith always has at least cloudflare-project, so the block is never empty.
+	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
+
+	return withRunName(
+		[
+			`name: ${id}`,
+			``,
+			`on: # yamllint disable-line rule:truthy`,
+			`  push:`,
+			`    branches: [main]`,
+			...(pathsBlock ? [`${pathsBlock}`] : []),
+			`  pull_request:`,
+			`    branches: [main]`,
+			`    types: [opened, synchronize, reopened, closed]`,
+			...(pathsBlock ? [`${pathsBlock}`] : []),
+			`  workflow_dispatch:`,
+			``,
+			`concurrency:`,
+			`  group: $\{{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}`,
+			`  cancel-in-progress: $\{{ github.event_name == 'pull_request' && github.event.action != 'closed' }}`,
+			``,
+			`permissions:`,
+			`  contents: read`,
+			`  deployments: write`,
+			`  pages: write`,
+			`  id-token: write`,
+			`  pull-requests: write`,
+			``,
+			`jobs:`,
+			`  ${id}:`,
+			`    name: ${id}`,
+			`    if: \${{ github.event_name != 'pull_request' }}`,
+			`    uses: ${reusableWorkflowRef("deploy.yml")}`,
+			...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
+			`    secrets: inherit`,
+			``,
+			`  ${id}-preview:`,
+			`    name: ${id}`,
+			`    if: \${{ github.event_name == 'pull_request' }}`,
+			`    uses: ${reusableWorkflowRef("preview.yml")}`,
+			previewWithBlock.trimEnd(),
+			`    secrets: inherit`,
+			``,
+		].join("\n"),
+		id,
+		["push", "pull_request", "workflow_dispatch"]
+	);
+}
+
+/**
+ * Expand structured with-values to flat GitHub Actions inputs before
+ * generating the thin caller. Handles:
+ *   - deploy shorthand: docs/storybook → type + storybook-projects
+ *   - preview: stripped (handled separately via extractPreviewConfig)
+ *   - chromatic-projects entries' untraced array → newline-joined string
+ *   - plain arrays → JSON-stringified for YAML scalar quoting
+ *
+ * Used by both `holocron setup` and `sync-workflow-templates`.
+ */
+export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<string, unknown> {
+	const result = { ...raw };
+	delete result["preview"];
+
+	const hasDocs = raw["docs"] === true || (raw["docs"] !== null && typeof raw["docs"] === "object");
+	const storybookProjects = raw["storybook"];
+	if (hasDocs) {
+		result["type"] = "docs";
+		delete result["docs"];
+	}
+	if (Array.isArray(storybookProjects)) {
+		if (!hasDocs) result["type"] = "storybook";
+		result["storybook-projects"] = JSON.stringify(
+			(storybookProjects as Array<{ name: string; path?: string }>).map(({ name, path = "." }) => ({
+				name,
+				workingDir: path,
+			}))
+		);
+		delete result["storybook"];
+	}
+
+	// verification.visualRegression's `chromatic-projects` (holocron#394/#1062):
+	// each project entry's `untraced` glob list is authored as an array but the
+	// reusable workflow's chromaui/action step wants it newline-joined.
+	const chromaticProjects = raw["chromatic-projects"];
+	if (Array.isArray(chromaticProjects)) {
+		result["chromatic-projects"] = (chromaticProjects as Record<string, unknown>[]).map((p) => ({
+			...p,
+			...(Array.isArray(p.untraced) ? { untraced: (p.untraced as string[]).join("\n") } : {}),
+		}));
+	}
+
+	for (const [k, v] of Object.entries(result)) {
+		// delivery.publish's `groups` stays a list: the grouped caller builds a matrix from it.
+		if (Array.isArray(v) && k !== "groups") result[k] = JSON.stringify(v);
+	}
+	return result;
+}
+
+/**
+ * Derive on.push.paths entries from the deploy with: shorthand.
+ * Used by both `holocron setup` and `sync-workflow-templates`.
+ */
+export function deriveDeployPaths(raw: Record<string, unknown>): string[] {
+	const paths: string[] = [];
+	const docs = raw["docs"];
+	if (docs === true) {
+		paths.push("docs/**");
+		paths.push("astro.config.ts");
+		paths.push("pnpm-workspace.yaml");
+		paths.push("pnpm-lock.yaml");
+	} else if (docs !== null && typeof docs === "object" && "path" in docs) {
+		const p = (docs as { path: string }).path;
+		if (p && p !== ".") paths.push(`${p}/**`);
+	}
+	const storybookProjects = raw["storybook"];
+	if (Array.isArray(storybookProjects)) {
+		for (const s of storybookProjects as Array<{ path?: string }>) {
+			const p = s.path || ".";
+			if (p === ".") {
+				paths.push("src/**");
+				paths.push(".storybook/**");
+			} else {
+				paths.push(`${p}/**`);
+			}
+		}
+	}
+	return paths;
+}

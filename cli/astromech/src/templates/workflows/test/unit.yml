@@ -1,0 +1,23 @@
+name: test:unit
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  statuses: write
+
+jobs:
+  test-unit:
+    name: test:unit
+    uses: theholocron/.github/.github/workflows/test-unit.yml@main
+    with:
+      run-unit: true
+    secrets: inherit

@@ -1,0 +1,15 @@
+name: lint:unused
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-unused:
+    name: lint:unused
+    uses: theholocron/.github/.github/workflows/lint-unused.yml@main
+    secrets: inherit

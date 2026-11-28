@@ -1,0 +1,9 @@
+import { type MenuEntry } from "@theholocron/kyber/menu";
+
+export const npmBumpVersionsEntry: MenuEntry = {
+	name: "publish bump-versions",
+	description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
+	positionals: [{ key: "newVersion", cliArg: "new-version", message: "New version:", type: "input" }],
+	skipOptions: ["group", "exclude-group", "include-private"],
+	supportsDryRun: true,
+};

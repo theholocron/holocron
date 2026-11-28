@@ -1,0 +1,147 @@
+import { type Environment, ENVIRONMENTS } from "@theholocron/env-utils/lookup";
+import { describe, expect, it, vi } from "vitest";
+
+import type { LogEnv } from "../core/logger.js";
+import {
+	detectEnv,
+	generateRunId,
+	isCI,
+	isTelemetryDisabled,
+	parseLogLevel,
+	resolveAxiomFromEnv,
+	resolveLevel,
+} from "./context.js";
+
+describe("generateRunId", () => {
+	it("returns a v4 UUID", () => {
+		expect(generateRunId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+	});
+
+	it("returns a different id each call", () => {
+		expect(generateRunId()).not.toBe(generateRunId());
+	});
+});
+
+describe("isCI", () => {
+	it("is false when CI is unset", () => {
+		expect(isCI({})).toBe(false);
+	});
+
+	it("is false when CI is an explicit falsy string", () => {
+		expect(isCI({ CI: "false" })).toBe(false);
+		expect(isCI({ CI: "0" })).toBe(false);
+	});
+
+	it("is true for CI=true and other truthy values", () => {
+		expect(isCI({ CI: "true" })).toBe(true);
+		expect(isCI({ CI: "1" })).toBe(true);
+	});
+});
+
+describe("detectEnv and isCI", () => {
+	it("are env-utils' detectEnvironment and isCI, so there is one definition", () => {
+		expect(detectEnv({ ENVIRONMENT: "prod" })).toBe("production");
+		expect(detectEnv({ CI: "true" })).toBe("ci");
+		expect(detectEnv({})).toBe("local");
+		expect(isCI({ CI: "true" })).toBe(true);
+	});
+
+	it("name the same environments as the LogEnv type", () => {
+		const same: Equal<LogEnv, Environment> = true;
+		expect(same).toBe(true);
+		expect(([...ENVIRONMENTS] as string[]).sort()).toEqual([
+			"ci",
+			"development",
+			"local",
+			"preview",
+			"production",
+			"test",
+		]);
+	});
+});
+
+describe("parseLogLevel", () => {
+	it("accepts the four known levels", () => {
+		for (const level of ["debug", "info", "warn", "error"] as const) {
+			expect(parseLogLevel(level)).toBe(level);
+		}
+	});
+
+	it("rejects anything else", () => {
+		expect(parseLogLevel("trace")).toBeUndefined();
+		expect(parseLogLevel("")).toBeUndefined();
+		expect(parseLogLevel(undefined)).toBeUndefined();
+	});
+});
+
+describe("resolveLevel", () => {
+	it("prefers the explicit level over env and default", () => {
+		expect(resolveLevel("warn", { HOLOCRON_LOG_LEVEL: "debug" })).toBe("warn");
+	});
+
+	it("falls back to HOLOCRON_LOG_LEVEL when no explicit level", () => {
+		expect(resolveLevel(undefined, { HOLOCRON_LOG_LEVEL: "debug" })).toBe("debug");
+	});
+
+	it("ignores an unrecognised env value and falls through to the default", () => {
+		expect(resolveLevel(undefined, { HOLOCRON_LOG_LEVEL: "loud" })).toBe("info");
+	});
+
+	it("defaults to info", () => {
+		expect(resolveLevel(undefined, {})).toBe("info");
+	});
+});
+
+describe("isTelemetryDisabled", () => {
+	it("is true only for the exact string 'false'", () => {
+		expect(isTelemetryDisabled({ HOLOCRON_TELEMETRY: "false" })).toBe(true);
+		expect(isTelemetryDisabled({ HOLOCRON_TELEMETRY: "true" })).toBe(false);
+		expect(isTelemetryDisabled({})).toBe(false);
+	});
+});
+
+describe("resolveAxiomFromEnv", () => {
+	it("treats a blank primary variable as unset and uses the vendor-native one", () => {
+		expect(
+			resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "", AXIOM_TOKEN: "xaat-v", AXIOM_DATASET: "vendor-ds" })
+		).toEqual({ token: "xaat-v", dataset: "vendor-ds" });
+	});
+
+	it("reads the process environment when none is given", () => {
+		vi.stubEnv("HOLOCRON_AXIOM_TOKEN", "xaat-p");
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "proc-ds");
+		expect(resolveAxiomFromEnv()).toEqual({ token: "xaat-p", dataset: "proc-ds" });
+		vi.unstubAllEnvs();
+	});
+
+	it("returns the credentials when both token and dataset are present", () => {
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "xaat-t", HOLOCRON_AXIOM_DATASET: "my-dataset" })).toEqual({
+			token: "xaat-t",
+			dataset: "my-dataset",
+		});
+	});
+
+	it("falls back to the vendor-native env vars", () => {
+		expect(resolveAxiomFromEnv({ AXIOM_TOKEN: "t", AXIOM_DATASET: "d" })).toEqual({ token: "t", dataset: "d" });
+	});
+
+	it("prefers the HOLOCRON_-prefixed vars over the vendor-native ones", () => {
+		expect(
+			resolveAxiomFromEnv({
+				HOLOCRON_AXIOM_TOKEN: "hlc",
+				AXIOM_TOKEN: "vendor",
+				HOLOCRON_AXIOM_DATASET: "hlc-ds",
+				AXIOM_DATASET: "vendor-ds",
+			})
+		).toEqual({ token: "hlc", dataset: "hlc-ds" });
+	});
+
+	it("returns undefined unless BOTH a token and a dataset are set", () => {
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "t" })).toBeUndefined();
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_DATASET: "d" })).toBeUndefined();
+		expect(resolveAxiomFromEnv({})).toBeUndefined();
+	});
+});
+
+/** True when `A` and `B` are the same type. */
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;

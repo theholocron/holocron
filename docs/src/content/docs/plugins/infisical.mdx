@@ -3,8 +3,8 @@ title: Infisical Plugin
 description: Implements the vault capability against Infisical's REST API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-infisical"]} capability="vault" />
 
@@ -17,23 +17,13 @@ import { getPlugins } from "@theholocron/registry-doc";
 ```ts
 providers: {
   vault: ["infisical", {
-    // Required: Infisical project/workspace id
-    projectId: "abc123",
-    // Required: Environment slug
+    // Required: Infisical workspace (project) id
+    workspace: "abc123",
+    // Required: Environment slug (e.g. "dev", "stg", "prd")
     environment: "prod",
-    // Optional: Secret path (default: "/")
-    path: "/",
   }],
 }
 ```
-
-### Options
-
-| Option        | Required | Description                               |
-| ------------- | -------- | ----------------------------------------- |
-| `projectId`   | Yes      | Infisical workspace/project id            |
-| `environment` | Yes      | Environment slug (e.g. `"prod"`, `"dev"`) |
-| `path`        | No       | Secret folder path (default: `"/"`)       |
 
 ## Authentication
 
@@ -45,7 +35,7 @@ The plugin uses Infisical **Universal Auth** (machine identity). This lets a mac
 4. Copy the **Client Secret** (shown once)
 
 ```bash
-holocron auth set infisical <client-secret>
+holocron new token infisical <client-secret>
 ```
 
 Or via env var:
@@ -59,4 +49,6 @@ export HOLOCRON_INFISICAL_TOKEN=<client-secret>
 - `read(key)` — reads a single secret from the configured project + environment + path
 - `write(key, value)` — creates or updates a secret
 - `list()` — lists all secret keys in the configured path
-- `readEnvironment?(environment)` — reads all KEY=VALUE pairs from an environment (powers `holocron secrets sync`)
+- `readEnvironment?(environment)` — reads all KEY=VALUE pairs from an environment (powers `holocron sync secrets`)
+
+The full [API reference](/holocron/plugins/holocron-plugin-infisical/api/readme/) is generated from the package's TSDoc comments.

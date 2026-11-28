@@ -1,0 +1,337 @@
+## [1.17.0-alpha.6](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.5...utils-v1.17.0-alpha.6) (2026-11-26)
+
+### Features
+
+* **env-utils:** ✨ add preview to the standard environments ([#2620](https://github.com/theholocron/holocron/issues/2620)) ([e81c217](https://github.com/theholocron/holocron/commit/e81c217d5adfbd6643e79c849e170ac21bc929e4)), closes [#2608](https://github.com/theholocron/holocron/issues/2608)
+
+## [1.17.0-alpha.5](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.4...utils-v1.17.0-alpha.5) (2026-11-17)
+
+### Features
+
+* **eslint-config:** ✨ type-aware rules, and fix this repo to pass them ([#2313](https://github.com/theholocron/holocron/issues/2313)) ([bfaa45a](https://github.com/theholocron/holocron/commit/bfaa45af3bffadb3398d8fa5af3ce5cd29d40a95)), closes [#851](https://github.com/theholocron/holocron/issues/851) [#851](https://github.com/theholocron/holocron/issues/851) [#1021](https://github.com/theholocron/holocron/issues/1021)
+
+## [1.17.0-alpha.4](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.3...utils-v1.17.0-alpha.4) (2026-11-10)
+
+### Bug Fixes
+
+* **pkg-utils:** 🐛 read ** and ! workspace patterns and package.json workspaces ([#2050](https://github.com/theholocron/holocron/issues/2050)) ([df2ae93](https://github.com/theholocron/holocron/commit/df2ae930a8af766a3587a9d86b19147c885699af)), closes [#2049](https://github.com/theholocron/holocron/issues/2049)
+
+## [1.17.0-alpha.3](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.2...utils-v1.17.0-alpha.3) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read HOLOCRON_ENVIRONMENT before ENVIRONMENT ([#1971](https://github.com/theholocron/holocron/issues/1971)) ([34c7660](https://github.com/theholocron/holocron/commit/34c76602a4e6cef2036d6d703862a8bc93b2f2d1)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
+## [1.17.0-alpha.2](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.1...utils-v1.17.0-alpha.2) (2026-11-07)
+
+### Features
+
+* **env:** 🏷️ share one HOLOCRON prefix and a prefix option on resolveValue ([#1909](https://github.com/theholocron/holocron/issues/1909)) ([9cae3f1](https://github.com/theholocron/holocron/commit/9cae3f18025987d44ba3c3d81a36c2da7d9aa053)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+## [1.17.0-alpha.1](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.4...utils-v1.17.0-alpha.1) (2026-11-04)
+
+### Features
+
+* **env-utils:** 🌍 one definition of the environment names and of CI detection ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1696](https://github.com/theholocron/holocron/issues/1696)) ([ffb77bf](https://github.com/theholocron/holocron/commit/ffb77bffafcc44cb4a049ee25f71c3dc3dc550e9))
+
+## [1.16.1-alpha.4](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.3...utils-v1.16.1-alpha.4) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
+### Documentation
+
+* **array-utils:** 📝 generate the API reference from TSDoc ([#1374](https://github.com/theholocron/holocron/issues/1374)) ([13e2205](https://github.com/theholocron/holocron/commit/13e2205f3e4b2fdaeed21cc4d4fd4ef2462a1d49)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **utils:** 📝 document observability and the utils packages with TSDoc ([#1495](https://github.com/theholocron/holocron/issues/1495)) ([69333e2](https://github.com/theholocron/holocron/commit/69333e291421b9c74822fbca7736217e7a307a0d))
+* **utils:** 📝 trim the utils pages the generated reference duplicates ([#1521](https://github.com/theholocron/holocron/issues/1521)) ([5ff11f9](https://github.com/theholocron/holocron/commit/5ff11f9f5e8af1486d1bd096ef12d8b70af22dc7)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+
+## [1.16.1-alpha.3](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.2...utils-v1.16.1-alpha.3) (2026-10-31)
+
+### Refactoring
+
+* **pkg-utils:** ♻️ gather the pnpm-workspace readers ([#1466](https://github.com/theholocron/holocron/issues/1466)) ([49024cd](https://github.com/theholocron/holocron/commit/49024cdbe22625ea46f88b8071a32a398cd41c4b)), closes [#1240](https://github.com/theholocron/holocron/issues/1240) [#1240](https://github.com/theholocron/holocron/issues/1240)
+
+## [1.16.1-alpha.2](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.1...utils-v1.16.1-alpha.2) (2026-10-31)
+
+### Refactoring
+
+* **pkg-utils:** ♻️ move workspace discovery out of astromech ([#1464](https://github.com/theholocron/holocron/issues/1464)) ([83f5889](https://github.com/theholocron/holocron/commit/83f5889746285b5cc47b8b8465e03c0aead442e2)), closes [#1240](https://github.com/theholocron/holocron/issues/1240)
+
+### Documentation
+
+* 📝 carry the per-repo agent rules into the monorepo groups ([#1425](https://github.com/theholocron/holocron/issues/1425)) ([77f60e1](https://github.com/theholocron/holocron/commit/77f60e19f321a76dddc23d4840a25855e2729fce)), closes [#1394](https://github.com/theholocron/holocron/issues/1394) [#1394](https://github.com/theholocron/holocron/issues/1394)
+
+### Chores
+
+* **platform:** ♻️ build every package from one root tsdown config ([#1375](https://github.com/theholocron/holocron/issues/1375)) ([d8e7a7d](https://github.com/theholocron/holocron/commit/d8e7a7dc87c377eefb2c7e5f29cbaed74f912666)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** ♻️ resolve the in-repo packages from the workspace ([#1370](https://github.com/theholocron/holocron/issues/1370)) ([26c62c2](https://github.com/theholocron/holocron/commit/26c62c2b32124177339fecc2fdf66f808c1981c3)), closes [#1292](https://github.com/theholocron/holocron/issues/1292) [#1367](https://github.com/theholocron/holocron/issues/1367) [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** 🗂️ organize the pnpm catalogs by group and add a who-uses-what report ([#1384](https://github.com/theholocron/holocron/issues/1384)) ([49246a3](https://github.com/theholocron/holocron/commit/49246a3ea3652a6db9539f947fd73a93c7c5370c)), closes [#1380](https://github.com/theholocron/holocron/issues/1380)
+* **utils:** 🔥 remove the redundant .npmrc ([#1319](https://github.com/theholocron/holocron/issues/1319)) ([ff475c9](https://github.com/theholocron/holocron/commit/ff475c9153b6034cc7588fd300b04d719c8fadab))
+
+## [1.16.1-alpha.1](https://github.com/theholocron/holocron/compare/utils-v1.16.0...utils-v1.16.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **utils:** 🐛 point the READMEs at the docs site ([#1279](https://github.com/theholocron/holocron/issues/1279)) ([8df40c7](https://github.com/theholocron/holocron/commit/8df40c70b7925eb2ff82cc4f963fd1885321ba54)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+### Documentation
+
+* **utils:** 📝 move the package pages into the docs site ([dcdf180](https://github.com/theholocron/holocron/commit/dcdf18090c1998aa4ad8cb5d17de5dd129c746d2)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+### Chores
+
+* **utils:** ⏪ undo the README link change merged with a non-conventional title ([#1278](https://github.com/theholocron/holocron/issues/1278)) ([0c7e17c](https://github.com/theholocron/holocron/commit/0c7e17c1af97b2807fc0fea2d6a4da6ac6778f00)), closes [#1277](https://github.com/theholocron/holocron/issues/1277) [#1277](https://github.com/theholocron/holocron/issues/1277) [#1209](https://github.com/theholocron/holocron/issues/1209)
+* **utils:** 🔧 adapt the imported packages to the workspace ([b4a71e8](https://github.com/theholocron/holocron/commit/b4a71e89fcb8c0606ea9496c48f900faf2c9923e)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+## [1.16.0](https://github.com/theholocron/utils/compare/v1.15.1...v1.16.0) (2026-10-20)
+
+### Features
+
+* **fs-utils:** add isWorkspaceRoot helper for pnpm workspace detection ([#322](https://github.com/theholocron/utils/issues/322)) ([083c962](https://github.com/theholocron/utils/commit/083c96283bf3ae7f6947dec99c2bdce68ae7d0c4)), closes [#321](https://github.com/theholocron/utils/issues/321) [#321](https://github.com/theholocron/utils/issues/321)
+
+## [1.15.1](https://github.com/theholocron/utils/compare/v1.15.0...v1.15.1) (2026-10-16)
+
+### Bug Fixes
+
+* 🐛 mark dotenv as an optional peer dependency of env-utils ([#320](https://github.com/theholocron/utils/issues/320)) ([201aa69](https://github.com/theholocron/utils/commit/201aa6971f8d77d9fb1e7a8aedd8bc3c0f6bccb7))
+
+## [1.15.0](https://github.com/theholocron/utils/compare/v1.14.0...v1.15.0) (2026-10-16)
+
+### Features
+
+* ✨ add withEnvPrefix to env-utils for prefix-first lookups ([#319](https://github.com/theholocron/utils/issues/319)) ([0ed0322](https://github.com/theholocron/utils/commit/0ed03225f465b709bc077736ae944d479f7a7bde))
+
+## [1.14.0](https://github.com/theholocron/utils/compare/v1.13.0...v1.14.0) (2026-10-16)
+
+### Features
+
+* ✨ add firstEnv to env-utils for env-var precedence chains ([#318](https://github.com/theholocron/utils/issues/318)) ([8235ded](https://github.com/theholocron/utils/commit/8235dedf075559c571d500a865958d6f5b61179b))
+
+## [1.13.0](https://github.com/theholocron/utils/compare/v1.12.0...v1.13.0) (2026-10-16)
+
+### Features
+
+* ✨ add walkFilesSync to fs-utils and listWorkspacePackagesSync to pkg-utils ([#316](https://github.com/theholocron/utils/issues/316)) ([6b8ab89](https://github.com/theholocron/utils/commit/6b8ab895b4f31a69ae8706bd48b15a4ba3aade8b))
+
+## [1.12.0](https://github.com/theholocron/utils/compare/v1.11.0...v1.12.0) (2026-10-15)
+
+### Features
+
+* **pkg-utils:** ✨ add pkg-utils, package.json readers and package-manager detection ([#315](https://github.com/theholocron/utils/issues/315)) ([6c2f6c3](https://github.com/theholocron/utils/commit/6c2f6c3890269253645d181197116249ce69c99c))
+
+## [1.11.0](https://github.com/theholocron/utils/compare/v1.10.0...v1.11.0) (2026-10-15)
+
+### Features
+
+* **fs-utils:** ✨ add findExecutable, a PATH lookup ([#314](https://github.com/theholocron/utils/issues/314)) ([ef8bb75](https://github.com/theholocron/utils/commit/ef8bb75e870e1526e979fb7ed0f8524e8b06670b))
+
+## [1.10.0](https://github.com/theholocron/utils/compare/v1.9.2...v1.10.0) (2026-10-15)
+
+### Features
+
+* ✨ add @theholocron/git-utils ([#303](https://github.com/theholocron/utils/issues/303)) ([5fdcab6](https://github.com/theholocron/utils/commit/5fdcab6189cf609838e2962074abdc965bf7a023)), closes [#298](https://github.com/theholocron/utils/issues/298) [#298](https://github.com/theholocron/utils/issues/298)
+* ✨ add @theholocron/json-utils ([#302](https://github.com/theholocron/utils/issues/302)) ([6ddb21e](https://github.com/theholocron/utils/commit/6ddb21edba64e52d8fcae130d93281843792f54a)), closes [#299](https://github.com/theholocron/utils/issues/299) [#299](https://github.com/theholocron/utils/issues/299)
+* **fs-utils:** ✨ add findRoot and findRootSync ([#301](https://github.com/theholocron/utils/issues/301)) ([1a9707d](https://github.com/theholocron/utils/commit/1a9707dbf9549be31409bce64c08df1942fb3ad0)), closes [#297](https://github.com/theholocron/utils/issues/297) [#297](https://github.com/theholocron/utils/issues/297)
+
+### Bug Fixes
+
+* **release:** 🐛 🚀 call bump-versions as the pinned CLI knows it ([#313](https://github.com/theholocron/utils/issues/313)) ([5bbfb78](https://github.com/theholocron/utils/commit/5bbfb7820e01e7c1c8d1ded38ff0e4c273e29e6f)), closes [#310](https://github.com/theholocron/utils/issues/310)
+* **release:** 🐛 🚀 call package bump-versions ([#310](https://github.com/theholocron/utils/issues/310)) ([752f1b3](https://github.com/theholocron/utils/commit/752f1b3b2515ca6f2bf3ad8293bbd56a4bbf434e))
+
+### Chores
+
+* 🔧 ignore the generated CHANGELOG.md in prettier ([#300](https://github.com/theholocron/utils/issues/300)) ([21e42f6](https://github.com/theholocron/utils/commit/21e42f69889ceb2dd37b8bd4b8988b87f3a2ea4f))
+* **deps:** Bump @theholocron/astromech ([#308](https://github.com/theholocron/utils/issues/308)) ([49d784b](https://github.com/theholocron/utils/commit/49d784bc4e4f27edd4991164c941d47d06336f13))
+
+## [1.9.2](https://github.com/theholocron/utils/compare/v1.9.1...v1.9.2) (2026-10-07)
+
+### Bug Fixes
+
+* 🐛 bump holocron lockstep catalog to alpha.114 for --skip-already-published ([#296](https://github.com/theholocron/utils/issues/296)) ([a472018](https://github.com/theholocron/utils/commit/a4720185952eb1b030f4c26bce44f99a6825afae)), closes [#294](https://github.com/theholocron/utils/issues/294)
+
+## [1.9.1](https://github.com/theholocron/utils/compare/v1.9.0...v1.9.1) (2026-10-07)
+
+### Bug Fixes
+
+- use holocron publish --skip-already-published, sync npm Trusted Publisher trust ([#294](https://github.com/theholocron/utils/issues/294)) ([276f678](https://github.com/theholocron/utils/commit/276f678fcf07f106405731bfbd7a4c919eb6eb68)), closes [pre-#284](https://github.com/theholocron/pre-/issues/284)
+
+## [1.9.0](https://github.com/theholocron/utils/compare/v1.8.3...v1.9.0) (2026-10-06)
+
+### Features
+
+- add object-utils and fs-utils, errorMessage to misc-utils ([#292](https://github.com/theholocron/utils/issues/292)) ([2af94da](https://github.com/theholocron/utils/commit/2af94da1dc790f4d15f19d9e5132a4b561fd6dd8)), closes [#291](https://github.com/theholocron/utils/issues/291) [theholocron/docs#57](https://github.com/theholocron/docs/issues/57)
+
+## [1.8.3](https://github.com/theholocron/utils/compare/v1.8.2...v1.8.3) (2026-09-15)
+
+### Bug Fixes
+
+- 🐛 drop stale npm prefix from release prepareCmd ([#285](https://github.com/theholocron/utils/issues/285)) ([c0d069e](https://github.com/theholocron/utils/commit/c0d069e216af526e6f6a39ccab2bda64e5fc9499))
+
+### Refactoring
+
+- ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/utils/issues/672)) ([#284](https://github.com/theholocron/utils/issues/284)) ([ab406ec](https://github.com/theholocron/utils/commit/ab406ec2043654e90339dbead483a1be7939b8e9))
+
+### Chores
+
+- 🔧 sync from holocron.config ([#281](https://github.com/theholocron/utils/issues/281)) ([05e3bff](https://github.com/theholocron/utils/commit/05e3bff1c6d5e3efc491647a5aed02290f2cc2d4))
+- sync README and repo metadata ([#282](https://github.com/theholocron/utils/issues/282)) ([2074b81](https://github.com/theholocron/utils/commit/2074b81513ff895d24ab176665f7b927b5df7dde))
+
+## [1.8.2](https://github.com/theholocron/utils/compare/v1.8.1...v1.8.2) (2026-09-12)
+
+### Bug Fixes
+
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#280](https://github.com/theholocron/utils/issues/280)) ([2a2b6fb](https://github.com/theholocron/utils/commit/2a2b6fbb7dcfa63519fada600d863493ec664d26))
+
+### Chores
+
+- 🔧 sync from holocron.config ([#277](https://github.com/theholocron/utils/issues/277)) ([91a8ddc](https://github.com/theholocron/utils/commit/91a8ddc16ced2166c78053ddef39668b33fc44e0))
+
+## [1.8.1](https://github.com/theholocron/utils/compare/v1.8.0...v1.8.1) (2026-09-11)
+
+### Bug Fixes
+
+- **hooks:** scope pre-commit GitLeaks scan to staged changes ([#279](https://github.com/theholocron/utils/issues/279)) ([47c43ca](https://github.com/theholocron/utils/commit/47c43caf8b954958658bcf1f53647621dc67b786))
+
+## [1.8.0](https://github.com/theholocron/utils/compare/v1.7.1...v1.8.0) (2026-09-11)
+
+### Features
+
+- **observability:** ✨ add optional logger seams to env-utils, location-utils, storage-utils ([#278](https://github.com/theholocron/utils/issues/278)) ([f59b27d](https://github.com/theholocron/utils/commit/f59b27db84712b611f45a784f8bf2ed7f34921f4)), closes [theholocron/holocron#638](https://github.com/theholocron/holocron/issues/638)
+
+### Chores
+
+- ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#273](https://github.com/theholocron/utils/issues/273)) ([28fc69f](https://github.com/theholocron/utils/commit/28fc69faaed93c9fbca4b2b96df0ab39ec450259)), closes [#647](https://github.com/theholocron/utils/issues/647)
+- 🔧 holocron setup — ruleset + workflow/config sync ([#275](https://github.com/theholocron/utils/issues/275)) ([255639d](https://github.com/theholocron/utils/commit/255639dee94ac0259ebeb7350181c922e35485f5)), closes [#647](https://github.com/theholocron/utils/issues/647) [#649](https://github.com/theholocron/utils/issues/649) [#649](https://github.com/theholocron/utils/issues/649) [#647](https://github.com/theholocron/utils/issues/647)
+
+## [1.7.1](https://github.com/theholocron/utils/compare/v1.7.0...v1.7.1) (2026-09-09)
+
+### Chores
+
+- **deps:** Bump the all-dependencies group with 25 updates ([#268](https://github.com/theholocron/utils/issues/268)) ([ffee2b3](https://github.com/theholocron/utils/commit/ffee2b391cdb6f2c358b73f905460335bf125f97))
+
+## [1.7.0](https://github.com/theholocron/utils/compare/v1.6.0...v1.7.0) (2026-09-06)
+
+### Features
+
+- ✨ add wiki navbar links ([#267](https://github.com/theholocron/utils/issues/267)) ([3fc90a3](https://github.com/theholocron/utils/commit/3fc90a358e376d984e138608f726e34730892bae))
+
+### Chores
+
+- 🔧 ✨ add wiki icon to fern provider options ([#264](https://github.com/theholocron/utils/issues/264)) ([5d24de1](https://github.com/theholocron/utils/commit/5d24de11952be07511eab9a504ff7db01e637a1b))
+- 🗑️ remove orphaned workflow files ([#263](https://github.com/theholocron/utils/issues/263)) ([d1811fb](https://github.com/theholocron/utils/commit/d1811fbe5b30e04bdffedba61de8d3a8ed02c7c2))
+
+## [1.6.0](https://github.com/theholocron/utils/compare/v1.5.2...v1.6.0) (2026-09-03)
+
+### Features
+
+- ✨ add createEnvLookup ([#262](https://github.com/theholocron/utils/issues/262)) ([c3a0716](https://github.com/theholocron/utils/commit/c3a0716ede99a712d41aab6bffac1e853fce7cad))
+
+## [1.5.2](https://github.com/theholocron/utils/compare/v1.5.1...v1.5.2) (2026-09-02)
+
+### Chores
+
+- **deps:** Bump the all-dependencies group with 11 updates ([#259](https://github.com/theholocron/utils/issues/259)) ([c825016](https://github.com/theholocron/utils/commit/c825016448315c50f2053882601a573f0ba6043b))
+- sync from holocron.config ([#261](https://github.com/theholocron/utils/issues/261)) ([3bdf288](https://github.com/theholocron/utils/commit/3bdf288720b6e180b8980126daae49cb844ea741))
+
+## [1.5.1](https://github.com/theholocron/utils/compare/v1.5.0...v1.5.1) (2026-09-02)
+
+### Bug Fixes
+
+- 🐛 pass fern-org and base-path to enable deployment widget ([#260](https://github.com/theholocron/utils/issues/260)) ([00a72cc](https://github.com/theholocron/utils/commit/00a72cc6ce20e1a7da4527b014bcca174ad0fe87))
+
+### Chores
+
+- 🔧 bump CLI to ^3.45.1 and run holocron setup ([#258](https://github.com/theholocron/utils/issues/258)) ([b0b3418](https://github.com/theholocron/utils/commit/b0b341841b3dddad6f3cc5c4072bd707efdf9ebf))
+
+## [1.5.0](https://github.com/theholocron/utils/compare/v1.4.3...v1.5.0) (2026-09-02)
+
+### Features
+
+- ✨ add wiki() capability — wiki.theholocron.dev/utils ([#257](https://github.com/theholocron/utils/issues/257)) ([517c1f9](https://github.com/theholocron/utils/commit/517c1f9747bcc8f6737e974653905ed832d6a1b8))
+
+### Chores
+
+- 🔧 ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#251](https://github.com/theholocron/utils/issues/251)) ([d3a45e9](https://github.com/theholocron/utils/commit/d3a45e9f6b6db3047397b7196e6e1282d2d8301f))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#253](https://github.com/theholocron/utils/issues/253)) ([48ffeed](https://github.com/theholocron/utils/commit/48ffeedd80fe6770c606cc8a7ece1a36fbc00973))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#254](https://github.com/theholocron/utils/issues/254)) ([c90a37b](https://github.com/theholocron/utils/commit/c90a37b72940bf53cc55a4e4dc2d01bfb389a24f))
+- sync from holocron.config ([#255](https://github.com/theholocron/utils/issues/255)) ([6b57fa5](https://github.com/theholocron/utils/commit/6b57fa5d1ab17ead3029b25ce6fb77505ebee1a9))
+- sync from theholocron/holocron ([#252](https://github.com/theholocron/utils/issues/252)) ([66204e9](https://github.com/theholocron/utils/commit/66204e9104da64252b0ff4428500f7050f88dd7c))
+- sync package.json ([#248](https://github.com/theholocron/utils/issues/248)) ([aac973d](https://github.com/theholocron/utils/commit/aac973d9c7ecc58057ed7024654bd1dba3538c5c))
+
+## [1.4.3](https://github.com/theholocron/utils/compare/v1.4.2...v1.4.3) (2026-08-26)
+
+### Bug Fixes
+
+- package.json lint violations + bump eslint-config to 7.25.3 ([#247](https://github.com/theholocron/utils/issues/247)) ([f043575](https://github.com/theholocron/utils/commit/f04357550565499d2e953cb594c4d8f4cb937fd4))
+
+### Chores
+
+- update description to holocron.config.ts ([2fb9e62](https://github.com/theholocron/utils/commit/2fb9e6278f3af164f79fae91e645aa0d10392e9a))
+
+## [1.4.2](https://github.com/theholocron/utils/compare/v1.4.1...v1.4.2) (2026-08-26)
+
+### Chores
+
+- **deps:** Bump the all-dependencies group with 5 updates ([#244](https://github.com/theholocron/utils/issues/244)) ([d9c8de7](https://github.com/theholocron/utils/commit/d9c8de764b45de499efe6f30bec25b6ac9f8d6c1))
+
+## [1.4.1](https://github.com/theholocron/utils/compare/v1.4.0...v1.4.1) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#243](https://github.com/theholocron/utils/issues/243)) ([952347e](https://github.com/theholocron/utils/commit/952347ebf362a0bbc131f61e1bfcb37321e2191f))
+
+### Chores
+
+- add sync workflow to holocron.config ([#239](https://github.com/theholocron/utils/issues/239)) ([00a022d](https://github.com/theholocron/utils/commit/00a022df1d366863abdf78aa7e140b464dd764fb))
+- sync from theholocron/holocron ([#240](https://github.com/theholocron/utils/issues/240)) ([7948c4d](https://github.com/theholocron/utils/commit/7948c4d92b03cc4290cb40b801112602c640bc34))
+- sync from theholocron/holocron ([#241](https://github.com/theholocron/utils/issues/241)) ([30c6876](https://github.com/theholocron/utils/commit/30c6876672fc824896fc7b76db2746d6267bab5a))
+- sync from theholocron/holocron ([#242](https://github.com/theholocron/utils/issues/242)) ([53ac219](https://github.com/theholocron/utils/commit/53ac219000cbf88bb514fb9985a75b982ea1f4d2))
+
+## [1.4.0](https://github.com/theholocron/utils/compare/v1.3.5...v1.4.0) (2026-08-25)
+
+## [1.3.5](https://github.com/theholocron/utils/compare/v1.3.4...v1.3.5) (2026-08-24)
+
+## [1.3.4](https://github.com/theholocron/utils/compare/v1.3.3...v1.3.4) (2026-08-19)
+
+## [1.3.3](https://github.com/theholocron/utils/compare/v1.3.2...v1.3.3) (2026-08-19)
+
+## [1.3.2](https://github.com/theholocron/utils/compare/v1.3.1...v1.3.2) (2026-08-19)
+
+## [1.3.1](https://github.com/theholocron/utils/compare/v1.3.0...v1.3.1) (2026-08-18)
+
+## [1.3.0](https://github.com/theholocron/utils/compare/v1.2.5...v1.3.0) (2026-08-18)
+
+## [1.2.5](https://github.com/theholocron/utils/compare/v1.2.4...v1.2.5) (2026-08-17)
+
+## [1.2.4](https://github.com/theholocron/utils/compare/v1.2.3...v1.2.4) (2026-08-15)
+
+## [1.2.3](https://github.com/theholocron/utils/compare/v1.2.2...v1.2.3) (2026-08-12)
+
+## [1.2.2](https://github.com/theholocron/utils/compare/v1.2.1...v1.2.2) (2026-08-12)
+
+## [1.2.1](https://github.com/theholocron/utils/compare/v1.2.0...v1.2.1) (2026-08-07)
+
+## [1.2.0](https://github.com/theholocron/utils/compare/v1.1.3...v1.2.0) (2026-08-07)
+
+## [1.1.3](https://github.com/theholocron/utils/compare/v1.1.2...v1.1.3) (2026-08-05)
+
+## [1.1.2](https://github.com/theholocron/utils/compare/v1.1.1...v1.1.2) (2026-08-03)
+
+## [1.1.1](https://github.com/theholocron/utils/compare/v1.1.0...v1.1.1) (2026-08-02)
+
+## [1.1.0](https://github.com/theholocron/utils/compare/v1.0.6...v1.1.0) (2026-07-31)
+
+## [1.0.6](https://github.com/theholocron/utils/compare/v1.0.5...v1.0.6) (2026-07-29)
+
+## [1.0.5](https://github.com/theholocron/utils/compare/v1.0.4...v1.0.5) (2026-07-29)
+
+## [1.0.4](https://github.com/theholocron/utils/compare/v1.0.3...v1.0.4) (2026-07-29)
+
+## [1.0.3](https://github.com/theholocron/utils/compare/v1.0.2...v1.0.3) (2026-07-29)
+
+## [1.0.2](https://github.com/theholocron/utils/compare/v1.0.1...v1.0.2) (2026-07-27)
+
+## [1.0.1](https://github.com/theholocron/utils/compare/v1.0.0...v1.0.1) (2026-07-23)
+
+## 1.0.0 (2026-07-23)

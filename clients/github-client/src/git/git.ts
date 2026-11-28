@@ -1,0 +1,322 @@
+import { ProviderApiError } from "@theholocron/http-client";
+
+import type { RestClient } from "../utils.js";
+import { filePath, repoBase, toBase64 } from "../utils.js";
+
+/** A git reference (such as a branch) and the object it points at. */
+export interface GitRef {
+	/** The object the reference points at. */
+	object: {
+		/** The object's SHA. */
+		sha: string;
+		/** The object's type, e.g. `commit`. */
+		type: string;
+		/** The API URL of the object. */
+		url: string;
+	};
+	/** The full reference name, e.g. `refs/heads/main`. */
+	ref: string;
+	/** The API URL of the reference. */
+	url: string;
+}
+
+/** A git commit, with only the fields this client reads. */
+export interface GitCommit {
+	/** The commit's SHA. */
+	sha: string;
+	/** The tree the commit points at. */
+	tree: {
+		/** The tree's SHA. */
+		sha: string;
+		/** The API URL of the tree. */
+		url: string;
+	};
+}
+
+/** One entry of a git tree. */
+export interface GitTreeItem {
+	/** The entry's path within the tree. */
+	path: string;
+	/** The entry's object SHA. */
+	sha: string;
+	/** The kind of object the entry points at, e.g. `blob` or `tree`. */
+	type: string;
+	/** The entry's file mode, e.g. `100644`. */
+	mode?: string;
+	/** The blob's size in bytes; absent for trees. */
+	size?: number;
+}
+
+/** A git tree as GitHub returns it. */
+export interface GitTree {
+	/** The tree's SHA. */
+	sha: string;
+	/** The entries of the tree. */
+	tree: GitTreeItem[];
+	/** Whether GitHub cut the entry list short because the tree was too large. */
+	truncated: boolean;
+}
+
+/** A file's contents as the contents API returns them. */
+export interface GitContents {
+	/** The file content, encoded as named by `encoding`. */
+	content: string;
+	/** The encoding of `content`, normally `base64`. */
+	encoding: string;
+	/** The file's blob SHA. */
+	sha: string;
+	/** The file's name. */
+	name: string;
+	/** The file's path in the repository. */
+	path: string;
+}
+
+/** One entry of a directory listing from the contents API. */
+export interface GitDirectoryEntry {
+	/** The entry's name, without its directory. */
+	name: string;
+	/** The entry's path from the repository root, e.g. `.holocron/notifications.ts`. */
+	path: string;
+	/** What the entry is; `dir` entries are listed, and descended into only when `recursive` is set. */
+	type: "file" | "dir" | "symlink" | "submodule";
+	/** The size in bytes; GitHub reports `0` for directories and submodules. */
+	size: number;
+	/** The entry's object SHA. */
+	sha: string;
+}
+
+/** What a git tree entry is, in the words of the contents API: a blob is a file, unless its mode says symlink. */
+function treeEntryType(item: GitTreeItem): GitDirectoryEntry["type"] {
+	if (item.type === "tree") return "dir";
+	if (item.type === "commit") return "submodule";
+	return item.mode === "120000" ? "symlink" : "file";
+}
+
+/** Options for `listDirectory()`. */
+export interface ListDirectoryOptions {
+	/** A branch, tag or commit SHA; defaults to the repo's default branch. */
+	ref?: string;
+	/** Also list the contents of every nested directory, as one flat list of full paths. Defaults to `false`. */
+	recursive?: boolean;
+}
+
+/** What `git.putContents` returns: the file's new blob sha (the `sha` to pass next time) and the commit it made. */
+export interface PutContentsResult {
+	/** The file written: its path and its new blob SHA. */
+	content: {
+		/** The file's new blob SHA. */
+		sha: string;
+		/** The file's path. */
+		path: string;
+	};
+	/** The commit that was made. */
+	commit: {
+		/** The new commit's SHA. */
+		sha: string;
+	};
+}
+
+/** The body of a `putContents()` request. */
+export interface PutContentsInput {
+	/** The commit message. */
+	message: string;
+	/** The new file text (UTF-8); the client encodes it. */
+	content: string;
+	/**
+	 * The blob `sha` of the file being replaced, from `getContents`. Required to update an existing file,
+	 * and omitted to create one. This is what makes the write safe: if someone changed the file since it was
+	 * read, GitHub refuses (409) instead of overwriting, so the caller can read again and retry.
+	 */
+	sha?: string;
+	/** Defaults to the repo's default branch. */
+	branch?: string;
+}
+
+/** A git blob created in the repository. */
+export interface GitBlob {
+	/** The blob's SHA. */
+	sha: string;
+	/** The API URL of the blob. */
+	url: string;
+}
+
+/** A pull request as returned when one is created, with only the fields this client reads. */
+export interface GitPull {
+	/** The pull request's number. */
+	number: number;
+	/** The URL of the pull request's page on GitHub. */
+	html_url: string;
+	/** The pull request's title. */
+	title: string;
+}
+
+/** The body of a `createPull()` request. */
+export interface CreatePullInput {
+	/** The pull request's title. */
+	title: string;
+	/** The branch the changes come from. */
+	head: string;
+	/** The branch the changes are to be merged into. */
+	base: string;
+	/** The pull request's description. */
+	body?: string;
+}
+
+export function git(rest: RestClient) {
+	return {
+		getRef: (repo: string, branch: string): Promise<GitRef> =>
+			rest.request<GitRef>(`${repoBase(repo)}/git/ref/heads/${branch}`),
+
+		getCommit: (repo: string, sha: string): Promise<GitCommit> =>
+			rest.request<GitCommit>(`${repoBase(repo)}/git/commits/${sha}`),
+
+		getTree: (repo: string, sha: string, recursive = false): Promise<GitTree> =>
+			rest.request<GitTree>(`${repoBase(repo)}/git/trees/${sha}${recursive ? "?recursive=1" : ""}`),
+
+		/**
+		 * `ref` defaults to the repo's default branch (GitHub's own default)
+		 * when omitted — the security-relevant choice every existing caller
+		 * relies on (D4/D6, `validateConfig()`'s own docstring). Pass it
+		 * explicitly to read a specific commit/branch's content instead — a
+		 * same-repo PR branch is no longer a new trust boundary for this org
+		 * (D6-amended, `tech-sentinel-ci-runner.spec.md`), just never a fork's.
+		 */
+		getContents: (repo: string, path: string, ref?: string): Promise<GitContents> =>
+			rest.request<GitContents>(`${repoBase(repo)}/contents/${path}`, ref ? { query: { ref } } : undefined),
+
+		/**
+		 * Lists the directory at `path` through the contents API (`GET /repos/:repo/contents/:path`, which
+		 * answers an array for a directory). A 404 (no such directory) is an empty list, not an error; any
+		 * other failure is the usual `ProviderApiError`. One request lists one level: with
+		 * `recursive: true` it makes one more request per nested directory and returns a flat list of
+		 * full paths (directories included). A `path` that is a file, not a directory, throws.
+		 */
+		listDirectory: async (
+			repo: string,
+			path: string,
+			options: ListDirectoryOptions = {}
+		): Promise<GitDirectoryEntry[]> => {
+			const list = async (at: string): Promise<GitDirectoryEntry[]> => {
+				let body: unknown;
+				try {
+					body = await rest.request<unknown>(
+						`${repoBase(repo)}/contents/${filePath(at)}`,
+						options.ref ? { query: { ref: options.ref } } : undefined
+					);
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 404) return [];
+					throw err;
+				}
+				if (!Array.isArray(body)) throw new Error(`${repo}:${at} is a file, not a directory`);
+				const entries = (body as GitDirectoryEntry[]).map(({ name, path: p, type, size, sha }) => ({
+					name,
+					path: p,
+					type,
+					size,
+					sha,
+				}));
+				if (!options.recursive) return entries;
+				const nested = await Promise.all(entries.filter((e) => e.type === "dir").map((e) => list(e.path)));
+				return [...entries, ...nested.flat()];
+			};
+			return list(path.replace(/^\/+|\/+$/g, ""));
+		},
+
+		/**
+		 * Lists a directory and everything under it in ONE request, through the git trees API
+		 * (`GET /repos/:repo/git/trees/<ref>:<path>?recursive=1`), as the same flat list of full paths
+		 * `listDirectory(..., { recursive: true })` returns, which makes one request per directory. It answers
+		 * `undefined`, so the caller can list the directory the other way, when it cannot answer for certain:
+		 * a `ref` that is not the default branch, a full commit SHA or a branch name with no slash (a name with a
+		 * slash is ambiguous in this form and GitHub answers 404), a tree GitHub cut short (`truncated`), a directory GitHub says it does not have (404) or a
+		 * request it cannot read (422). Any other failure throws. Checked against the live API with `HEAD`, a
+		 * commit SHA and a plain branch name, and a missing directory.
+		 */
+		listTree: async (
+			repo: string,
+			path: string,
+			options: Pick<ListDirectoryOptions, "ref"> = {}
+		): Promise<GitDirectoryEntry[] | undefined> => {
+			const dir = path.replace(/^\/+|\/+$/g, "");
+			const ref = options.ref ?? "HEAD";
+			if (!/^(HEAD|[0-9a-f]{40}|[\w.-]+)$/i.test(ref)) return undefined;
+			let tree: GitTree;
+			try {
+				tree = await rest.request<GitTree>(`${repoBase(repo)}/git/trees/${ref}:${filePath(dir)}`, {
+					query: { recursive: "1" },
+				});
+			} catch (err) {
+				if (err instanceof ProviderApiError && (err.status === 404 || err.status === 422)) return undefined;
+				throw err;
+			}
+			if (tree.truncated) return undefined;
+			return tree.tree.map((item) => ({
+				name: item.path.slice(item.path.lastIndexOf("/") + 1),
+				path: `${dir}/${item.path}`,
+				type: treeEntryType(item),
+				size: item.size ?? 0,
+				sha: item.sha,
+			}));
+		},
+
+		/**
+		 * `PUT /repos/:repo/contents/:path` — creates or updates one file in a single commit. Pass `sha` when
+		 * updating so a concurrent change is refused (409) and not silently overwritten.
+		 */
+		putContents: (repo: string, path: string, input: PutContentsInput): Promise<PutContentsResult> =>
+			rest.request<PutContentsResult>(`${repoBase(repo)}/contents/${filePath(path)}`, {
+				method: "PUT",
+				body: {
+					message: input.message,
+					content: toBase64(input.content),
+					...(input.sha ? { sha: input.sha } : {}),
+					...(input.branch ? { branch: input.branch } : {}),
+				},
+			}),
+
+		createBlob: (repo: string, content: string, encoding = "utf-8"): Promise<GitBlob> =>
+			rest.request<GitBlob>(`${repoBase(repo)}/git/blobs`, {
+				method: "POST",
+				body: { content, encoding },
+			}),
+
+		createTree: (
+			repo: string,
+			tree: Array<{
+				path: string;
+				mode: string;
+				type: string;
+				sha: string;
+			}>,
+			baseTree?: string
+		): Promise<GitTree> =>
+			rest.request<GitTree>(`${repoBase(repo)}/git/trees`, {
+				method: "POST",
+				body: { base_tree: baseTree, tree },
+			}),
+
+		createCommit: (repo: string, message: string, tree: string, parents: string[]): Promise<GitCommit> =>
+			rest.request<GitCommit>(`${repoBase(repo)}/git/commits`, {
+				method: "POST",
+				body: { message, tree, parents },
+			}),
+
+		createRef: (repo: string, ref: string, sha: string): Promise<GitRef> =>
+			rest.request<GitRef>(`${repoBase(repo)}/git/refs`, {
+				method: "POST",
+				body: { ref, sha },
+			}),
+
+		updateRef: (repo: string, ref: string, sha: string, force = false): Promise<GitRef> =>
+			rest.request<GitRef>(`${repoBase(repo)}/git/refs/${ref}`, {
+				method: "PATCH",
+				body: { sha, force },
+			}),
+
+		createPull: (repo: string, input: CreatePullInput): Promise<GitPull> =>
+			rest.request<GitPull>(`${repoBase(repo)}/pulls`, {
+				method: "POST",
+				body: input,
+			}),
+	};
+}

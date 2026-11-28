@@ -1,0 +1,224 @@
+import { doctorCiCommand, runDoctorCi } from "../doctor-ci/index.js";
+import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
+import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
+import { doctorErrorsCommand, runDoctorErrors } from "../doctor-errors/index.js";
+import { doctorGitHubAppCommand, runDoctorGitHubApp } from "../doctor-github-app/index.js";
+import { doctorLogsCommand, runDoctorLogs } from "../doctor-logs/index.js";
+import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
+import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
+import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
+import { doctorReleasesCommand, runDoctorReleases } from "../doctor-releases/index.js";
+import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
+import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
+import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
+import { doctorWikiCommand, runDoctorWiki } from "../doctor-wiki/index.js";
+import { doctorWorkersCommand, runDoctorWorkers } from "../doctor-workers/index.js";
+import type { DeepCheck } from "./deep-checks.type.js";
+
+/**
+ * Every `doctor <capability>` deep check, in the order `doctor --all` runs them. Adding one is an entry here
+ * plus its `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries; `deep-checks.test.ts` fails without them.
+ */
+export const DEEP_CHECKS: readonly DeepCheck[] = [
+	{
+		name: "notifications",
+		capability: "notifications",
+		command: doctorNotificationsCommand as never,
+		async run(input) {
+			// `doctor --all` never changes anything, so it leaves out the step that posts a test message.
+			const report = await runDoctorNotifications({ ...input, builtOnly: true });
+			// A run that could not verify anything (no provider, no layout) has nothing to compare: here that is
+			// a skip with its reason, where `doctor notifications` on its own fails.
+			if (report.message) {
+				return { status: "skip", summary: { ok: 0, fail: 0, skip: 1 }, reason: report.message };
+			}
+			return {
+				status: report.status,
+				summary: { ok: report.summary.pass, fail: report.summary.fail, skip: report.summary.skip },
+			};
+		},
+	},
+	{
+		name: "environments",
+		capability: "environments",
+		command: doctorEnvironmentsCommand as never,
+		async run(input) {
+			const report = await runDoctorEnvironments(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "monitoring",
+		capability: "monitoring",
+		command: doctorMonitoringCommand as never,
+		async run(input) {
+			const report = await runDoctorMonitoring(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "dns",
+		capability: "dns",
+		command: doctorDnsCommand as never,
+		async run(input) {
+			const report = await runDoctorDns(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "repo",
+		capability: "source",
+		command: doctorRepoCommand as never,
+		async run(input) {
+			const report = await runDoctorRepo(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "secrets",
+		capability: "secrets",
+		command: doctorSecretsCommand as never,
+		async run(input) {
+			const report = await runDoctorSecrets(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "tokens",
+		// The tokens are read from the layers' Environments through the vault, and each is probed at its own provider.
+		capability: "vault",
+		command: doctorTokensCommand as never,
+		async run(input) {
+			const report = await runDoctorTokens(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "ci",
+		// It reads the config and the workflow files, no provider; `source` is the capability the repo's CI belongs to.
+		capability: "source",
+		command: doctorCiCommand as never,
+		async run(input) {
+			// Never a skip: the tasks row always runs, so there is no reason to carry.
+			const report = await runDoctorCi(input);
+			return { status: report.status, summary: report.summary };
+		},
+	},
+	{
+		name: "github-app",
+		capability: "vault",
+		command: doctorGitHubAppCommand as never,
+		async run(input) {
+			const report = await runDoctorGitHubApp(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "logs",
+		capability: "logs",
+		command: doctorLogsCommand as never,
+		async run(input) {
+			const report = await runDoctorLogs(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "releases",
+		// It reads git tags and npm's public registry, no provider; `source` is the capability the repo's releases belong to.
+		capability: "source",
+		command: doctorReleasesCommand as never,
+		async run(input) {
+			const report = await runDoctorReleases(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "project",
+		capability: "projects",
+		command: doctorProjectCommand as never,
+		async run(input) {
+			const report = await runDoctorProject(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "wiki",
+		capability: "wiki",
+		command: doctorWikiCommand as never,
+		async run(input) {
+			const report = await runDoctorWiki(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "errors",
+		capability: "errors",
+		command: doctorErrorsCommand as never,
+		async run(input) {
+			const report = await runDoctorErrors(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "workers",
+		// The declared Workers; the deployment projects are read through the `deployment` provider in the same run.
+		capability: "workers",
+		command: doctorWorkersCommand as never,
+		async run(input) {
+			const report = await runDoctorWorkers(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+];

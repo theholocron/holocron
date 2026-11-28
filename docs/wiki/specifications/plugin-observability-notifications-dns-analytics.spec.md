@@ -1,8 +1,14 @@
 ---
+id: SPEC-0010
 status: archived
 issue: theholocron/holocron#74
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618739443499108
 ---
+
+<!-- alex disable just -->
+<!-- markdownlint-disable MD024 -->
 
 # New plugins — observability, notifications, dns, analytics
 
@@ -151,6 +157,8 @@ async describe() {
 2. Push both `SENTRY_DSN=<dsn>` and `NEXT_PUBLIC_SENTRY_DSN=<dsn>` to GitHub
    Secrets via the `secrets` capability — same value, different names, both
    required by the Sentry Next.js SDK
+   > Update (2026-11-10, #2046): `NEXT_PUBLIC_SENTRY_DSN` is now under
+   > `frameworkEnvKeys.next` and is pushed only when Next.js is detected.
 3. Derive `platform` from `runtime_environment` in `holocron.config` repo
    properties (`"browser"` → `"javascript"`, else `"node"`)
 
@@ -244,13 +252,13 @@ readonly providerName = "discord";
 
 Discord supports both a full Bot API and per-channel Incoming Webhooks. Webhooks
 are the right choice here: they require no bot in a server, no OAuth2
-application, and no `MANAGE_WEBHOOKS` permission — just a URL the channel owner
+application, and no `MANAGE_WEBHOOKS` permission — only a URL the channel owner
 generates in Discord's UI. The `send()` interface maps cleanly: `channel` is
 the webhook URL (or a named alias resolved from plugin options), `message` is
 the content.
 
 Bot tokens are out of scope for v1. They add complexity (guild membership,
-intent declarations, permission grants) without benefit for a simple
+intent declarations, permission grants) without benefit for a plain
 notification use case.
 
 ### Plugin options

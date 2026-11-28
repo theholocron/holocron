@@ -1,0 +1,20 @@
+opencollection: 1.0.0
+
+info:
+  name: Comlink relay
+  version: "5.0.0-alpha.468"
+
+request:
+  variables:
+    - name: baseUrl
+      value: http://127.0.0.1:8787
+
+docs:
+  content: Requests for Comlink's relay Worker (`/<source>`, today `/sentry`). Point `baseUrl` at a Worker run locally, with `COMLINK_SENTRY_SECRET` set to `sentrySecret` and `COMLINK_SENTRY_WEBHOOK` set to a throwaway Discord webhook. The relay answers 405 to a non-POST, 404 to an unknown source, 413 to a body over 256 KB, 401 to a wrong signature, 400 to a body that is not JSON, 202 to a delivery it does not carry and 422 to one it cannot read.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

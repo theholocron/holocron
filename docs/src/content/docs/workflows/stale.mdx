@@ -11,18 +11,18 @@ milestone or project, and issues labelled `in-progress` or `wip`, are never mark
 
 ## Enabling
 
-Add `"stale"` to `workflows` in `holocron.config.ts`:
+Add `"mark-stale"` to `tasks` in `holocron.config.ts`:
 
 ```ts
-workflows: ["stale"],
+tasks: ["mark-stale"],
 ```
 
 With overrides:
 
 ```ts
-workflows: [
+tasks: [
   {
-    name: "stale",
+    name: "mark-stale",
     with: {
       "days-before-stale": 60,
       "days-before-close": 14,

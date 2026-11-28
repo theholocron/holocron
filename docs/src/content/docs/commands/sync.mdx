@@ -5,9 +5,56 @@ description: Sync repository metadata from holocron.config.ts to GitHub and loca
 
 ```bash
 holocron sync [steps..] [--repo owner/name] [--dry-run]
+holocron sync <app> --env <environment>... [--dry-run]
 ```
 
 `sync` pushes metadata defined in `holocron.config.ts` to the configured `source` provider (GitHub) and to local files. Run it after updating any of the synced fields in config.
+
+## Subcommands
+
+`sync` on its own syncs this repo. The other things that are kept in step are subcommands:
+
+| Command                                                | What it syncs                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------- |
+| [`sync readme`](/holocron/commands/sync-readme/)       | The Installation and Usage block of `README.md`                      |
+| [`sync github`](/holocron/commands/sync-github/)       | The generated reusable workflows, pushed to `theholocron/.github`    |
+| [`sync issues`](/holocron/commands/sync-issues/)       | Issues from one tracker to another                                   |
+| [`sync incidents`](/holocron/commands/sync-incidents/) | A status page's incidents, mirrored into a forum                     |
+| [`sync ideas`](/holocron/commands/sync-ideas/)         | Idea notes, filed as issues                                          |
+| [`sync tooling`](/holocron/commands/sync-tooling/)     | Collections, environments and specs, pushed to a tool                |
+| [`sync requests`](/holocron/commands/sync-requests/)   | A tool's own workspace and the request files, kept in step both ways |
+| [`sync specs`](/holocron/commands/sync-specs/)         | ADRs and specs, with their forum posts                               |
+| [`sync secrets`](/holocron/commands/sync-secrets/)     | A vault environment, fanned out to CI secrets and deployments        |
+| [`sync roles`](/holocron/commands/sync-roles/)         | Who holds a server role, from a GitHub team                          |
+
+## Syncing an app's secrets by name
+
+`holocron sync <app> --env prod` sends a workspace app's secrets from its vault Environment to where it runs, without
+the project id, the Worker name or `--cwd` written out (spec `tool-app-deploy-sync`, #2608). Run it from the repository
+root, or from inside the app's folder and leave the name off.
+
+```bash
+holocron sync sentinel --env prod
+cd apps/comlink && holocron sync --env prod
+holocron sync sentinel --env production --env preview --dry-run
+```
+
+`--env` (alias `--environment`, the two are interchangeable) names an environment to write to, from the standard list of
+`@theholocron/env-utils` with its aliases: `production` (or `prod`) or `preview`. Repeat the flag for both. Both read
+their secrets from the `prod` vault layer, as `sync secrets` does for those two targets. `local`, `development`, `ci`
+and `test` are refused; `sync secrets --env ci` is what fills GitHub Actions.
+
+What it does for each app comes from the app's own `holocron.config`, never its name:
+
+| The app declares                           | `sync <app>` does                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| a `deployment` provider (Sentinel: Vercel) | checks the project named like the app serves the app's `domain`, then sends it the secrets |
+| a `workers` provider (Comlink: Cloudflare) | sets the secrets on the Worker script named like the app                                   |
+| neither (Council, an Obsidian plugin)      | says there is nothing to sync and exits 0                                                  |
+
+It is `sync secrets` with the arguments filled in: only the keys `repo.secrets.deploy` names for the `prod` layer are
+sent (an app with a destination and no such entry fails and says so), and `repo.secrets.sync` and `repo.variables.sync`
+in the app's config are followed as they are there. A first value that is not an app's name is a step, as before.
 
 ## Steps
 
@@ -18,30 +65,89 @@ holocron sync                               # run all steps
 holocron sync labels properties             # run only labels and properties
 ```
 
-| Step          | What it syncs                                                                               | Requires provider token      |
-| ------------- | ------------------------------------------------------------------------------------------- | ---------------------------- |
-| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                                   | Yes (`HOLOCRON_ADMIN_TOKEN`) |
-| `properties`  | Org-level custom properties (`repo.properties`)                                             | Yes                          |
-| `teams`       | Team repository access (`repo.teams`)                                                       | Yes                          |
-| `topics`      | GitHub topics (`repo.topics`)                                                               | Yes                          |
-| `keywords`    | `package.json#keywords` — set from `repo.topics`                                            | No                           |
-| `description` | `package.json#description` and GitHub repo description                                      | No (local) / Yes (GitHub)    |
-| `homepage`    | `package.json#homepage` and GitHub repo website field                                       | No (local) / Yes (GitHub)    |
-| `readme`      | Regenerates the README Installation/Usage block                                             | No                           |
-| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                         | No                           |
-| `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No                           |
-| `wiki`        | Publishes engineering docs to the wiki                                                      | No                           |
+| Step          | What it syncs                                                                                                                                                                                                         | Requires provider token      |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                                                                                                                                                             | Yes (`HOLOCRON_ADMIN_TOKEN`) |
+| `properties`  | Org-level custom properties (`repo.properties`)                                                                                                                                                                       | Yes                          |
+| `teams`       | Team repository access (`repo.teams`)                                                                                                                                                                                 | Yes                          |
+| `topics`      | GitHub topics (`repo.topics`)                                                                                                                                                                                         | Yes                          |
+| `keywords`    | `package.json#keywords` — set from `repo.topics`                                                                                                                                                                      | No                           |
+| `description` | `package.json#description` and GitHub repo description                                                                                                                                                                | No (local) / Yes (GitHub)    |
+| `homepage`    | `package.json#homepage` and GitHub repo website field                                                                                                                                                                 | No (local) / Yes (GitHub)    |
+| `readme`      | Regenerates the README Installation/Usage block and the scripts table; fails when the README tells the reader to run a task script the package lacks (`pnpm test` with no `test` script)                              | No                           |
+| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                                                                                                                                                   | No                           |
+| `private`     | `.holocron/.private/.gitkeep` and the `.gitignore` block that ignores everything else in that directory                                                                                                               | No                           |
+| `claude`      | `.claude/settings.json` with the `dcg` hook, only when `agent: ["claude", { dcg: true }]` is set (see [Claude Code settings](/holocron/config/#claude-code-settings)); the file already there is merged, not replaced | No                           |
+| `scripts`     | `package.json#scripts` — the `holocron` entry + one script per runnable task in `tasks`                                                                                                                               | No                           |
+| `turbo`       | `turbo.json` — generated from the fan-out-eligible tasks in `tasks`                                                                                                                                                   | No                           |
+| `wiki`        | Publishes engineering docs to the wiki                                                                                                                                                                                | No                           |
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
+
+### `workflows`
+
+The `workflows` step also removes a generated caller whose task is no longer in `tasks`, for example `ci.annotate.yml` after `annotate` left a preset. Each removal is its own step row (`remove obsolete workflow <file>`), and `--dry-run` lists it without deleting. The step removes a file only when all of these are true:
+
+- It starts with the generated-file header (`AUTO-GENERATED`).
+- It is not marked `# HAND-MAINTAINED`.
+- Its `# Source package:` line is the package you are syncing. A run for `apps/sentinel` never removes a root file, and a file with no `# Source package:` line (written by an old version) is left for `holocron probe generated check` to report.
+- This run does not write it.
+
+It removes nothing when `tasks` is empty, or when a task has no template (that step is skipped, with a row that says why). Any other file in `.github/workflows` stays as it is.
+
+### `private`
+
+`.holocron/.private/` is the one place for files that hold secrets, such as the `.credentials` file [`export tokens`](/holocron/commands/export-tokens/) and [`new github-app`](/holocron/commands/new-github-app/) write. The step writes an empty, tracked `.gitkeep` there and a managed block in `.gitignore`:
+
+```text
+# managed by holocron setup — private directory
+.holocron/.private/*
+!.holocron/.private/.gitkeep
+# end managed by holocron setup — private directory
+```
+
+The block is merged into the `.gitignore` already there; the rest of the file is kept. `setup` writes the same bytes, and `holocron probe generated check` fails when either differs. A command that writes to the directory refuses when git does not ignore the path and tells you to run `holocron sync`.
 
 ### `scripts`
 
 Merges into `package.json#scripts` — only the managed keys are touched, every other script is left alone:
 
 - `holocron` → the value of `holocronScript` (default `"holocron"`, the installed bin)
-- one `"<task>": "holocron run <task>"` per runnable task in `tasks`
+- one script per runnable task in `tasks`, named by the task id in its script spelling (`test:unit`, `deploy:preview`) and one per suite (`test`, `lint`, `scan`):
+  - in a pnpm workspace with a `turbo.json`, `turbo run <task>` for a task that runs in each package and for each suite, and the tool's own command (`prettier --write .`, `knip`) for a task that runs once at the root. The `holocron` bin is built from this repo, so on a fresh clone it does not exist yet while turbo does;
+  - in a single package, `holocron run <task> --` (`holocron run test unit --` for a suite member). The trailing `--` is there because pnpm appends arguments as typed.
+- a task with no local command (`scan:code`, `release`) has no script in a workspace.
 
-Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely (the Holocron repo itself does this — its root scripts must stay bootstrap-safe).
+A root script that already holds a real command for a task turbo runs in each package (a root that is itself a package) is left alone, because turbo would call the root script, which would call turbo again. Any other hand edit of a script this step owns is overwritten, and `holocron probe generated check` fails until it is. That check also fails a package script named like an npm lifecycle word (`publish`, `install`) or a suite (`test`, `lint`), and a leaf script in a package that calls `turbo run` or `holocron run`.
+
+Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely.
+
+### `turbo`
+
+Generates `turbo.json` — full ownership, never hand-edited. In a pnpm workspace it also writes each suite (`test`, `lint`, `scan`) as a task with no script that depends on its leaves, and a `//#<task>` root task (uncached) for each task of a suite that runs once at the root, such as `lint:markdown`. Only tasks with real per-workspace fan-out (a build/compile/test step — `build`, `typecheck`, `test:unit`, `lint:code` today) get an entry; whole-repo, single-run tools (prettier, gitleaks, commitlint, yamllint, …) stay off the file and run once, un-fanned-out, the same way they already do. Skipped with no write when nothing in `tasks` is fan-out-eligible.
+
+A task entry's `turbo.passThroughEnv` appends extra env vars to that task's cache-key hashing, on top of the registry default (a no-op on a task with no fan-out config to add onto):
+
+```typescript
+tasks: [{ name: "build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] } }];
+```
+
+`turbo.inputs` appends input globs the same way. `turbo.dependsOn` appends tasks the task waits for, for a build it loads without listing the package as a dependency (turbo syntax, `"<package>#<task>"`):
+
+```typescript
+tasks: [{ name: "lint:code", turbo: { dependsOn: ["@theholocron/eslint-config#build"] } }];
+```
+
+### The repo that holds the reusables
+
+The reusable workflows and composite actions that every repo's callers use are written in one repo, in its `ci/` folder (the private `@theholocron/ci` package). A repo with that package is the **home repo**: the `workflows` step does two things differently there.
+
+- **Its callers call the reusable in the same checkout.** They are named `ci.<name>.yml` (so they do not clash with the reusable of the same name) and say `uses: ./.github/workflows/<flat name>.yml` (`test-unit.yml`, `lint-code.yml`), so a pull request that edits a reusable runs the edit. A caller's workflow `name:`, job and file are the task id (`ci.test-unit.yml` holds `name: test:unit` and the job `test-unit`), so its checks are named `test:unit / Conclusion`; the `ci` aggregate waits for them by the id before the slash. Any other repo keeps the names its callers had (`verification.unitTests.yml`, `name: Verification`) while they call the frozen reusables in `theholocron/.github`, because its ruleset lists those checks.
+- **It writes the reusables themselves** into its `.github/workflows`, under flat file names, from `ci/workflows/<suite>/<leaf>.yml` (or `ci/workflows/<id>.yml` for a leaf in no suite): `ci/workflows/test/unit.yml` is `test-unit.yml`. The folder is the leaf's suite, so a file in the wrong folder fails a test. Only the ones that run when another workflow calls them: a reusable that is also started by an event or by hand (`tag`, `sync-dispatch`) runs where it lives, so it is not copied.
+
+Composite actions are not copied: a reusable called from another repository cannot see this checkout, so they stay on their full reference. Until the `ci-v1` tag exists that is the org's `.github` repository, and the home repo's own CI picks up a change to an action only after the actions are published there.
+
+Every other repo keeps plain file names and calls the reusables by reference. `holocron probe generated check` covers the reusables like any other generated file.
 
 ## Options
 

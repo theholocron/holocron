@@ -1,8 +1,13 @@
 ---
+id: SPEC-0004
 status: archived
 issue:
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620345136451644
 ---
+
+<!-- alex disable just -->
 
 <!-- editorconfig-checker-disable-file -->
 
@@ -158,10 +163,10 @@ Every existing plugin's `auth.ts` gains one line:
 
 <!-- prettier-ignore -->
 ```ts
-import { getToken as getKeyringToken } from "@theholocron/cli";
+import { keyring } from "@theholocron/cli";
 
 // after existing --token / HOLOCRON_<X> / <native> checks:
-const keyringToken = await getKeyringToken(providerSlug);
+const keyringToken = keyring.get(providerSlug);
 if (keyringToken) return keyringToken;
 
 ```
@@ -190,7 +195,7 @@ the auth precedence:
 
 `@napi-rs/keyring` gracefully returns platform-unsupported errors
 in headless environments; the keyring lookup at precedence step 4
-simply returns `null` when unsupported. No CI code path breaks.
+merely returns `null` when unsupported. No CI code path breaks.
 
 ## Migration strategy
 

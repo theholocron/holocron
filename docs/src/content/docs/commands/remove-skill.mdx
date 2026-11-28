@@ -1,0 +1,38 @@
+---
+title: "remove skill"
+description: Remove installed agent skills.
+---
+
+```bash
+holocron remove skill [names..] [--all]
+```
+
+Removes installed skills via `npx skills remove`. Name the skills to remove, or pass `--all` for every installed skill.
+
+With neither, a terminal gets a list of the installed skills to pick from. Without a terminal the command refuses and
+says to name skills or pass `--all`, so a bare call never removes everything by accident.
+
+## Arguments
+
+| Argument    | Default | Description                                    |
+| ----------- | ------- | ---------------------------------------------- |
+| `[names..]` |         | The skills to remove (not with `--all`)        |
+| `--all`     | off     | Remove every installed skill (not with a name) |
+
+## Examples
+
+```bash
+# One skill
+holocron remove skill git-safety
+
+# Several
+holocron remove skill git-safety pr-workflow
+
+# All of them
+holocron remove skill --all
+
+# Pick from the installed skills (terminal only)
+holocron remove skill
+```
+
+Related: [`list skills`](/holocron/commands/list-skills/), [`install skills`](/holocron/commands/install-skills/), [`update skills`](/holocron/commands/update-skills/).

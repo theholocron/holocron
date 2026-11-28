@@ -1,0 +1,47 @@
+---
+title: "deploy on-release"
+description: Deploy the workspace packages that opt in to a release-time deploy and changed in the release.
+---
+
+```bash
+holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--record-file <file>] [--record] [--dry-run]
+```
+
+Deploys every workspace package whose own `holocron.config` declares `{ name: "deploy", with: { on: "release" } }`, when two things hold:
+
+- the release is on the task's `channel` (default `main`, the stable release), and
+- the release changes the package, or one of its `workspace:*` dependencies, between `--from` and `--to`.
+
+Each package is compared from the commit it was last deployed at, not only from `--from`. A successful deploy is recorded as a `deployed/<package>` tag (`@theholocron/sentinel` is `deployed/theholocron-sentinel`) at the release commit, so when a release's deploy job fails, the next release deploys the package even if it changes nothing in it. A package with no tag yet, or one whose tag is not an ancestor of `--to`, is compared from `--from`, and the skip line then says `No deploy is recorded for it yet.`
+
+The tag is written by a second step, so the app's deploy script never holds a write token:
+
+1. `deploy on-release --record-file <file>` deploys and lists the packages that deployed in `<file>` (a failed one is left out). It writes no tag.
+2. `deploy on-release --record --record-file <file>` tags and pushes each listed package, reading the token from `GITHUB_TOKEN` and giving it to `git push` in that command's environment only (never in `.git/config` or the arguments). A tag that cannot be pushed fails this step, naming the package; a missing or empty file is a skip.
+
+`--dry-run` writes nothing in either step. In the release workflow the second step runs after the deploy step even when it failed, and is the only step given `github.token`.
+
+It waits for npm to serve the release's new dependency versions, then runs `pnpm --filter <pkg> deploy`. A package that does not apply is skipped. A deploy that does not succeed exits non-zero.
+
+The shared `release` workflow runs this as its own `deploy` job after the release job; opt in with `deploy-on-release: true`.
+
+## Options
+
+| Option          | Default | Description                                                                                       |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `--channel`     | `""`    | The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release  |
+| `--from`        | —       | The previous release's commit, to diff against. Omit when there is none                           |
+| `--to`          | `HEAD`  | The release commit                                                                                |
+| `--dry-run`     | `false` | Print which packages would be deployed without deploying                                          |
+| `--record-file` | —       | A file the deploy lists the packages it deployed in, and `--record` reads                         |
+| `--record`      | `false` | Tag and push the marker of each package in `--record-file` (uses `GITHUB_TOKEN`); deploys nothing |
+
+## Examples
+
+```bash
+# A stable release
+holocron deploy on-release --from v1.2.0
+
+# An alpha release, previewed
+holocron deploy on-release --channel alpha --from v1.3.0-alpha.4 --dry-run
+```

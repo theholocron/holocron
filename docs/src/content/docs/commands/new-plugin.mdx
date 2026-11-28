@@ -1,0 +1,58 @@
+---
+title: "new plugin"
+description: Scaffold a new @theholocron/holocron-plugin-<slug> package inside the monorepo.
+---
+
+```bash
+holocron new plugin <slug> <vendor> [--capability <key>] [--token-env <name>] [--vendor-env <name>] [--base-url <url>] [--no-verify]
+```
+
+Generates the full scaffold for a new Holocron plugin package. If `--capability`, `--vendor-env`, or `--base-url` are omitted, the CLI prompts interactively.
+
+## Arguments and options
+
+| Argument / Option | Required     | Description                                                                   |
+| ----------------- | ------------ | ----------------------------------------------------------------------------- |
+| `<slug>`          | Yes          | Package slug in kebab-case (e.g. `stripe`) → creates `holocron-plugin-stripe` |
+| `<vendor>`        | Yes          | Vendor display name in PascalCase (e.g. `Stripe`)                             |
+| `--capability`    | _(prompted)_ | Capability key the plugin implements                                          |
+| `--token-env`     | No           | Holocron env var name for the token (default: `HOLOCRON_<VENDOR>_TOKEN`)      |
+| `--vendor-env`    | _(prompted)_ | Vendor-native env var name (e.g. `STRIPE_SECRET_KEY`)                         |
+| `--base-url`      | _(prompted)_ | REST base URL (e.g. `https://api.stripe.com`)                                 |
+| `--no-verify`     | `false`      | Skip post-scaffold `pnpm install` + type check, lint and tests                |
+
+## Available capability keys
+
+`source` · `ci` · `secrets` · `environments` · `issues` · `deployment` · `storage` · `auth` · `vault` · `dns` · `tooling` · `notifications` · `analytics` · `errors` · `logs` · `wiki` · `workers`
+
+## What gets generated
+
+- `plugins/holocron-plugin-<slug>/` — fully-typed plugin package with:
+  - `src/index.ts` — `createPlugin` factory + `AUTH_HINT` + public re-exports
+  - `src/auth.ts` — token resolver using `createResolveToken`
+  - `src/verify-token.ts` — `verifyToken` called by `holocron new token`
+  - `src/rest.ts` — thin REST client factory
+  - `src/capabilities/<capability>.ts` — capability implementation stub
+  - `package.json`, `tsconfig.json`, `eslint.config.ts`, `vitest.config.ts` (re-exports the shared `@theholocron/vitest-config` library bundle)
+  - Starter tests beside the code they cover (`src/auth.test.ts`, `src/rest.test.ts`, `src/index.test.ts`, `src/capabilities/<capability>.test.ts`, …); there is no `__tests__/` directory
+  - `tsdown.config.ts` re-exporting the `@theholocron/tsdown-config` library preset, but only when the workspace root has no `tsdown.config.ts` of its own. In this monorepo the root file is found by tsdown walking up from the package directory, so the package does not carry one. The `@theholocron/tsdown-config` devDependency is kept either way, so turbo builds the preset first.
+
+The generated `package.json` matches the existing plugins: scripts call the tools directly (`tsdown`, `eslint .`, `tsc --noEmit`, `vitest run`), in-repo dependencies use `workspace:^` (the CLI is `workspace:*`), and the peer dependencies resolve through the `utils` catalog.
+
+After writing the files, the command runs `pnpm install` and the package's `typecheck`, `lint:code` and `test:unit` tasks (skip with `--no-verify`).
+
+## Example
+
+```bash
+# Interactive
+holocron new plugin stripe Stripe
+
+# Fully non-interactive
+holocron new plugin stripe Stripe \
+  --capability vault \
+  --vendor-env STRIPE_API_KEY \
+  --base-url https://api.stripe.com
+
+# Skip post-scaffold checks
+holocron new plugin stripe Stripe --no-verify
+```

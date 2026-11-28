@@ -3,8 +3,8 @@ title: GitHub Plugin
 description: Implements source, ci, secrets, environments, and issues against the GitHub REST API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-github"]} capability="source" />
 
@@ -17,6 +17,7 @@ import { getPlugins } from "@theholocron/registry-doc";
     { capability: "secrets", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
     { capability: "environments", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
     { capability: "issues", token: "HOLOCRON_ISSUES_TOKEN (github.issues)" },
+    { capability: "projects", token: "HOLOCRON_ORG_TOKEN (github.org)" },
   ]}
 />
 
@@ -52,11 +53,11 @@ providers: {
 Requires up to five separate fine-grained PATs depending on which capabilities you configure:
 
 ```bash
-holocron auth set github.admin   ghp_xxx  # source, secrets, environments
-holocron auth set github.read    ghp_yyy  # ci, clone
-holocron auth set github.issues  ghp_zzz  # issues
-holocron auth set github.sync    ghp_aaa  # sync-github
-holocron auth set github.release ghp_bbb  # semantic-release
+holocron new token github.admin   ghp_xxx  # source, secrets, environments
+holocron new token github.read    ghp_yyy  # ci, clone
+holocron new token github.issues  ghp_zzz  # issues
+holocron new token github.sync    ghp_aaa  # sync-github
+holocron new token github.release ghp_bbb  # semantic-release
 ```
 
 See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each needs.
@@ -69,14 +70,108 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
 - Workflow file read/write (`.github/workflows/`)
 - Arbitrary repo file write (`.github/dependabot.yml`, etc.)
 - Labels, custom properties, topics, teams, description, homepage sync
+- Pull requests (the optional `Source` methods the `work` commands use, #2429):
+  - `createPullRequest(input)` opens a draft (set `draft: false` for a ready one) from `head` into `base`, adds a `Closes` or `Refs` line for `link.issue` to the body unless the body already names it, then puts `labels`, `assignees`, `milestone` and `projects` on it. It is safe to run twice: an open pull request for the same head is returned with `created: false`.
+  - `updatePullRequest(number, patch)` changes `title`, `body`, `base` or `state`, adds `labels` and `assignees` (it never removes an assignee), takes off `removeLabels`, sets a milestone by title and puts the pull request on boards by title. A field not in the patch is left alone.
+  - `markReady(number)` takes a draft out of draft and answers `true`; a pull request that is not a draft, or is closed, answers `false` and is left alone.
+  - A milestone or board that does not exist, or that GitHub refuses, comes back in `dropped` by name and is never created. GitHub opens no pull request whose head has no commit beyond the base (it answers 422).
+
+### The Dependabot relay webhook
+
+`source` also implements the optional `ensureRelaySource` and `inspectRelaySource`, so `holocron setup notifications` makes the GitHub webhook the [Comlink](/holocron/comlink/) `dependabot` source receives, and `holocron doctor notifications` reads it back (`relay-source:dependabot`). Declare it in the layout with `capability: "source"`:
+
+```ts
+relay: {
+	host: "comlink.example.dev",
+	sources: {
+		dependabot: { capability: "source", scope: ["owner/name"], events: ["dependabot_alert"] },
+	},
+},
+```
+
+- **One webhook, one place.** A webhook has one URL, so a source covers one place: `scope` is a single repository as `owner/name` (when it is left out, the plugin's own repository), or `options: { org: "name" }` for an organization, never both and never a list. Anything else is reported as a failing step that names it.
+- **Found by URL.** The webhook whose `config.url` is `https://<relay.host>/<id>` is adopted. When none has it, a JSON webhook is made with `active: true`, `events` from the layout (`["dependabot_alert"]` when none) and a secret setup chose; that secret is given to the Worker and never printed. An adopted webhook has only its `events` and `active` flag brought in line (the config is not sent, so the URL and the secret stay); nothing is deleted. GitHub never returns a secret, so the doctor cannot check it.
+- **Tokens.** A repository webhook is made with `HOLOCRON_ADMIN_TOKEN` (`github.admin`), the token the `source` capability already uses; an organization webhook with `HOLOCRON_ORG_TOKEN` (`github.org`), falling back to the admin token. A fine-grained token needs **Webhooks: read and write** (repository) or **Organization webhooks: read and write** (organization); a classic token needs `admin:repo_hook` or `admin:org_hook`. A refusal (403, or the 404 GitHub gives a token that cannot see the resource) is a failing step naming the permission. The permissions are declared for `local` and `dev` and must be absent from `ci`: see the [token reference](../tokens#github-tokens), and check them with `holocron probe github token --environment dev`. The probe's read proves the token can see webhooks, not that it can write them.
 
 ## What `issues` provides
 
-- Search by assignee or open-only filter
+- Search by assignee, open-only filter or `text` (title or body, any case)
 - Create issues with summary, body, labels, milestone
 - Transition issues via label: `inProgress` → sets `labels.inProgress`, `done` → closes
 - Add comments
 - `doctor()` — lists available labels and validates lifecycle slot mapping
+
+### Searching by text
+
+`search({ text })` returns the issues whose title or body contains the text, compared without regard to case, and
+leaves out pull requests. `openOnly`, `assignee` and `limit` (default 50) still apply. It does not use GitHub's
+issue search (`GET /search/issues`): that index matches words, so punctuation and a hidden HTML comment such as
+`<!-- holocron:idea notes/a.md -->` cannot be relied on to match. It is also limited to 30 requests a minute and is
+eventually consistent, so an issue made a moment ago may be missing. Instead the plugin lists the issues, newest
+update first, 100 a page, and compares the text itself until it has `limit` matches or the issues run out. It reads
+at most 20 pages, the 2000 most recently updated issues, so in a repository larger than that an older match is not
+found. Without `text`, `search` makes one request as before.
+
+### Creating and updating issues
+
+`create` and `update` (`holocron new issue`, `holocron update issue`) carry more than the title and labels: the issue Type (`bug`, `feature`, `task` as Bug, Feature, Task), the organization's `Priority`, `Effort`, `Start date` and `Target date` issue fields, a parent (a sub-issue link) and blockers (dependency records), all in this repository. The issue is made first; a Type, field, option, parent or blocker GitHub refuses (401, 403, 404 or 422) is a `dropped` line and never a failure, and a rate limit is thrown. Fields use the Priority pattern (`issue-field-setter.ts`): the list is read once, a value is added with `POST`, a different one is removed first, `PUT` is never used. `update` compares first, so an issue that is already as asked is written to not at all. Writing Type, Effort, the dates, sub-issues and dependencies follows GitHub's documented REST shapes and has not been run against the live API.
+
+### Migrating and syncing
+
+`export`, `import` and `sync` let `holocron migrate` and `holocron sync issues` move issues to and from another tracker. The issue's kind travels as `IssueRecord.kind` (#2485, spec `tech-issue-kind-on-record`): `export` reads it from the issue Type (Bug, Feature, Task), else from the one kind label (`bug`, `enhancement`, `chore`; two different ones name none), and `import` and `sync` write it as the issue Type with the issues API, without adding a kind label. A Type GitHub refuses (401, 403, 404 or 422, for instance an organization without that Type) is reported under "not carried across" as `kind <Type> (…)` and does not fail the run; `sync` leaves an issue whose Type already matches and reports `kind` among the changes otherwise; a dry run writes nothing. Writing the Type has not been run against the live API. A copy carries a `<!-- holocron:migrated-from <url> -->` marker at the end of its body, which is how a later run finds it and how the reverse sync knows to skip it. `sync` updates title, description, state and labels (priority is the `priority: <level>` label) of a copy, and sets the organization's `Priority` issue field (Urgent, High, Medium, Low) from the record's priority on a copy and on a new issue, beside the label (the field is added with `POST`, which leaves the issue's other field values alone, and a different value is removed first; a record with no priority never clears one; an organization without the field, a level it has no option for, or a refusal from GitHub is reported under "not carried across" as `priority field (…)` and does not fail the run), keeps its `status:*` labels, and adds the comments it lacks; an assignee is set only when `sync issues` found the person's GitHub login in the assignees file (a Linear user is not a GitHub login), and is never cleared. A 429, or a 403 that names the rate limit, stops the run with the rest left for the next one. See [sync issues](/holocron/commands/sync-issues/).
+
+## Backfilling issues
+
+`holocron probe github issue-types` (spec `tech-github-area-labels`, rollout item 5) is a writer probe for the one-time repair of existing issues. The maintainer runs it, with a dry run first; it is never scheduled and no agent runs it against the live service. It needs the `github.issues` and `github.org` tokens, each with one organization permission the other uses do not need (the issues token: **Issue fields: read**, for `GET /orgs/{org}/issue-fields`; the org token: **Issue types: read**, for `organization.issueTypes`; a classic token needs `read:org`; see [the token tables](/holocron/tokens/)), and the `repo.labels` map (`holocron setup` makes the `area:<name>` labels first). Everything it changes goes through the probe's `write`, so `--dry-run` prints each change as `would ...` and writes nothing; a real run asks first (`--yes` without a terminal), and a second run changes nothing. A token without its permission fails the run with a 403 on the issue fields (the `github.issues` token) or `FORBIDDEN` on `organization.issueTypes` (the `github.org` token); `holocron probe github token --token-name HOLOCRON_ISSUES_TOKEN` (or `HOLOCRON_ORG_TOKEN`) shows `Organization: Issue fields` and `Organization: Issue types` as `info` rows before you start. Creating issue types is not done and not granted: the maintainer makes them in the organization settings.
+
+What it sets, for each issue it reads, and never over a value that is already there:
+
+- **Type**: `bug` gives Bug, `enhancement` gives Feature and `chore` gives Task. An issue that already has a Type keeps it. An issue with none of those three but with `ci`, `documentation`, `refactor`, `test`, `performance` or `dependencies` gets Task (issue #2494); the three always win. An issue with two of the three labels is listed and left for a person, and one with no label that maps to a Type has no source.
+- **The kind labels are configuration** (spec `tech-backfill-config-mapping`, #2495): `repo.labels.kinds` (label to Type, the main table) and `repo.labels.fallbackKinds` (used only when none of the main labels is there) replace the defaults above, table by table. A Type the organization lacks is a failing row naming it, and that repository's run writes nothing.
+- **Repositories**: `--repo owner/name` (repeatable) or `repo.labels.repos`, else this repository. Each is printed under a heading and a failure in one does not stop the next. A repository other than this one has its area labels read from its own `.holocron/repo.json`; one whose areas are in `.holocron/repo.ts` gets a skipped row and no area step, because evaluating TypeScript is what Sentinel's config reader does and the plugin cannot reach it. Its Type step still runs.
+- **Area labels**: from the scope of the title through `repo.labels.scopes`; with `--pull-requests`, a pull request gets them from its changed files through `repo.labels.areas`. Labels are only added, never removed (the kind labels stay), and one the repository does not have is reported and not added.
+- **Milestone**: from the issue's parent when the parent has one; otherwise `--milestone` for an issue in the window named by `--issues` or `--since`. No other source is used: it does not guess from a sibling or a linked pull request.
+- **Project**: `--project` adds an issue in the window that is on no project. An issue on any other project is left alone.
+
+It never sets a Priority or an Effort. It ends with the **issues it read that are still without a project, a milestone, a Priority or an Effort**, one list per field, counted after the changes it would make, so the maintainer can hand them to someone to decide. **The number of issues missing a project or a milestone has not been counted**: the dry run is what counts it. The Priority and Effort lists cover the organization's issue fields of those names and are skipped, with the reason, when the fields cannot be listed.
+
+`--limit` caps **each run** (default 100 items, oldest first); it is not the size of the job. A rate limit (429, or a 403 naming it) also stops a run cleanly. Until nothing is left, the last rows say so and print the command with `--after <number>` to continue; run it again until the `summary` row ends with "the window is finished". Pull requests are passed over unless `--pull-requests` is given.
+
+The report is about items, not checks. The `summary` row gives the items read (and how many are pull requests), the items changed (or, on a dry run, that would be), the pull requests passed over, the failures, and whether the limit or the rate limit stopped the run. Each "without ..." row is an `info` row measured over the items that run read, for example `0 of 100 items read`. So the footer `N ok, M fail` counts nothing the run did: do not read it as the number of changes. If the organization issue fields cannot be read (the token was refused), Priority and Effort were **not checked**, and a `fail` row says so with the reason; that is a gap in the report, not an empty list.
+
+```text
+info summary: read 100 items; would change 31; passed over 12 pull requests (give --pull-requests to include them); 0 failures; stopped at the limit of 100, more remain
+info without a project: 87 of 100 items read
+info resume: the limit was reached; to continue: holocron probe github issue-types -- --after 802 --limit 100 ...
+```
+
+Not verified against the live API: reading the organization's issue Types, reading another repository's `.holocron/repo.json`, writing an issue's Type, adding an issue to a project (`addProjectV2ItemById`), and the sub-issue parent and issue-field value reads. The kind labels, the Type names and the project and milestone titles used here (`v5.0`, `v5`) are the maintainer's, not read.
+
+## What `projects` provides
+
+GitHub Projects v2 boards over GraphQL, for `list projects`, `new project`, `setup project`. It uses the org token with the **Projects**
+organization permission. Items are keyed `#N` in the configured `repo` and `owner/repo#N` elsewhere.
+
+- `list` / `find`: every project of the organization (open and closed), or the open one with an exact name
+- `create`: copies the board a template names as `source` (fields, options, views and automation rules, no items), or
+  creates a project and applies the template
+- `close`: `updateProjectV2` with `closed: true`, reversible
+- `read` / `ensure`: the live board, and adding what the template lists and the board lacks. `ensure` never deletes. It
+  sends every existing status option with its `id`, because an option list sent without ids blanks the field on every
+  item; it stops if the field cannot be read, and writes values back by name if a re-read shows any gone
+- `items` / `setStatus`: each item's status, category, open state and open blockers; an idempotent status change
+- `move`: puts open items on another board with status and priority (only where the target has none); closed and merged
+  items stay and are set to the done status when theirs is not a done one
+- `addItems`: puts issues on a board by node id (`addProjectV2ItemById`) and sets Status and Priority through the single
+  select update, only where the item has none; used by `holocron migrate project --to github`. A status or priority with
+  no option on the board is reported, never created. Priority matches an option named `urgent`, `high`, `medium`, `low`
+  or `P0` to `P3`
+- Automation rules cannot be created or switched on through the API, nor can a view's grouping; `ensure` returns them
+  as `todos`
+
+## Checking a token
+
+`holocron probe github token` tries a token with a read per permission, says whether it is classic or fine-grained, and under `--environment <layer>` checks every GitHub token that layer's Environment holds against the permissions that token should and should not have in that layer. See [Check a GitHub token](/holocron/tokens/#check-a-github-token) and [`probe`](/holocron/commands/probe/#github).
 
 ## Webhook events
 
@@ -93,3 +188,5 @@ const event = await parseWebhook({
 // event.type: "user.created" | "user.updated" | "user.deleted"
 // event.user: NormalizedAuthUser
 ```
+
+The full [API reference](/holocron/plugins/holocron-plugin-github/api/readme/) is generated from the package's TSDoc comments.

@@ -1,16 +1,38 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/cli/src/commands/setup.ts
-# Tool:    holocron sync-github
-# Changes: edit source in theholocron/holocron and push to alpha or main.
+# Source:  theholocron/holocron · cli/astromech/src/templates/configs/dependabot/create-config.ts
+# Tool:    holocron setup
+# Changes: edit source in theholocron/holocron
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    labels:
+      - dependencies
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
+    ignore:
+      - dependency-name: "@theholocron/axiom-client"
+      - dependency-name: "@theholocron/checkly-client"
+      - dependency-name: "@theholocron/clerk-client"
+      - dependency-name: "@theholocron/cloudflare-client"
+      - dependency-name: "@theholocron/codecov-client"
+      - dependency-name: "@theholocron/discord-client"
+      - dependency-name: "@theholocron/doppler-client"
+      - dependency-name: "@theholocron/fs-utils"
+      - dependency-name: "@theholocron/github-client"
+      - dependency-name: "@theholocron/infisical-client"
+      - dependency-name: "@theholocron/linear-client"
+      - dependency-name: "@theholocron/misc-utils"
+      - dependency-name: "@theholocron/neon-client"
+      - dependency-name: "@theholocron/netlify-client"
+      - dependency-name: "@theholocron/postman-client"
+      - dependency-name: "@theholocron/sentry-client"
+      - dependency-name: "@theholocron/slack-client"
+      - dependency-name: "@theholocron/turbo-client"
+      - dependency-name: "@theholocron/vercel-client"
     groups:
       security-patches:
         applies-to: security-updates
@@ -22,9 +44,15 @@ updates:
           - patch
 
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - /
+      - /ci/workflows
+      - /ci/workflows/*
+      - /ci/actions/*
     schedule:
       interval: weekly
+    labels:
+      - dependencies
     commit-message:
       prefix: "chore(deps)"
     groups:

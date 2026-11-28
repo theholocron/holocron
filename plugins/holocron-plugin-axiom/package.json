@@ -1,0 +1,74 @@
+{
+  "name": "@theholocron/holocron-plugin-axiom",
+  "version": "5.0.0-alpha.549",
+  "description": "Holocron plugin for Axiom. Implements the logs capability against Axiom's REST API — dataset provisioning and connectivity checks, plus verifyToken + AUTH_HINT for `holocron auth`.",
+  "keywords": [
+    "axiom",
+    "holocron",
+    "logs",
+    "plugin"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/axiom/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "plugins/holocron-plugin-axiom"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "validate:plugin": "tsx scripts/validate.mjs"
+  },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
+  "devDependencies": {
+    "@theholocron/axiom-client": "workspace:^",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@theholocron/axiom-client": "catalog:peers",
+    "@theholocron/cli": "workspace:*",
+    "@theholocron/misc-utils": "catalog:peers"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

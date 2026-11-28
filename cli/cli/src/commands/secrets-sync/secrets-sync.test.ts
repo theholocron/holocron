@@ -1,0 +1,1455 @@
+import { stripVTControlCharacters } from "node:util";
+
+import { fakeLogger } from "@theholocron/observability/testing";
+import { describe, expect, it, vi } from "vitest";
+
+import { type LoadedConfig, resolveConfig } from "../../config/index.js";
+import { type PluginImporter, PluginLoader, type SecretScope } from "../../plugin/index.js";
+import type { DeployFilter } from "./deploy-filter/index.js";
+import { runSecretsSync } from "./secrets-sync.js";
+
+/** A filter that passes every name. Config validation refuses an empty prefix; these tests are about other behaviour. */
+/** An organization scope with its readers, which a secret needs (#2062). */
+const ORG_SCOPE: SecretScope = {
+	kind: "organization",
+	name: "theholocron",
+	visibility: "selected",
+	repos: ["holocron", ".github"],
+};
+
+const everyKey: DeployFilter = { keys: [], prefixes: [""] };
+
+function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
+	return {
+		resolved: resolveConfig(rawConfig),
+		filepath: "/tmp/test/holocron.config.json",
+	};
+}
+
+function makePlugin(name: string, caps: Record<string, unknown>) {
+	return {
+		createPlugin: (_opts: Record<string, unknown>) => ({
+			name,
+			capabilities: Object.fromEntries(Object.entries(caps).map(([k, impl]) => [k, () => impl])),
+		}),
+	};
+}
+
+function makeLoaderWith(loaded: LoadedConfig, modules: Record<string, unknown>): PluginLoader {
+	const importer = vi.fn(async (pkg: string) => {
+		if (!(pkg in modules)) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+		return modules[pkg] as Awaited<ReturnType<PluginImporter>>;
+	});
+	return new PluginLoader(
+		loaded.resolved,
+		{ repoRoot: "/tmp/test", repo: "theholocron/holocron" },
+		importer as unknown as PluginImporter
+	);
+}
+
+describe("runSecretsSync", () => {
+	it("errors when the vault provider does not implement readEnvironment", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				// No readEnvironment method
+				vault: { providerName: "1password", list: async () => [] },
+			}),
+		});
+
+		await expect(
+			runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "env_1",
+				secretRoutes: [{ scope: { kind: "repo" } }],
+				loader,
+				print: () => {},
+			})
+		).rejects.toThrow(/readEnvironment/);
+	});
+
+	it("puts a PEM key whose line breaks became spaces back on its lines before it reaches the secret", async () => {
+		// built from parts so no complete private-key block sits in this file
+		const kind = "RSA PRIVATE KEY";
+		const begin = ["-----", "BEGIN ", kind, "-----"].join("");
+		const end = ["-----", "END ", kind, "-----"].join("");
+		const body = "QUJD".repeat(40);
+		const setSecretCalls: Array<{ name: string; value: string }> = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ APP_PRIVATE_KEY: `${begin} ${body} ${end}`, PLAIN: "sk_test_xxx" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string, value: string) => {
+						setSecretCalls.push({ name, value });
+					},
+				},
+			}),
+		});
+
+		await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+
+		const key = setSecretCalls.find((c) => c.name === "APP_PRIVATE_KEY")!.value;
+		expect(key).toBe(`${begin}\n${body.slice(0, 64)}\n${body.slice(64, 128)}\n${body.slice(128)}\n${end}\n`);
+		expect(setSecretCalls.find((c) => c.name === "PLAIN")!.value).toBe("sk_test_xxx");
+	});
+
+	it("skips a name GitHub would refuse with the reason, without calling the API (holocron#1907)", async () => {
+		const setSecretCalls: string[] = [];
+		const lines: string[] = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({
+						GITHUB_APP_ID: "123",
+						GITHUB_APP_PRIVATE_KEY: "pem",
+						"1BAD": "x",
+						"has-dash": "x",
+						SENTINEL_WEBHOOK_SECRET: "s",
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push(name);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: (l: string) => lines.push(l),
+			logger: fakeLogger(),
+		});
+
+		expect(setSecretCalls).toEqual(["SENTINEL_WEBHOOK_SECRET"]);
+		expect(report.summary).toMatchObject({ ok: 1, fail: 0, skip: 4 });
+		const skipped = report.rows.find((r) => r.key === "GITHUB_APP_ID")!;
+		expect(skipped.status).toBe("skip");
+		expect(skipped.message).toMatch(/invalid name: GitHub reserves names starting with GITHUB_/);
+		expect(lines.join("\n")).toMatch(/GITHUB_APP_PRIVATE_KEY/);
+	});
+
+	it("does not apply GitHub's naming rules to a secrets provider that is not GitHub", async () => {
+		const setSecretCalls: string[] = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "1password", readEnvironment: async () => ({ GITHUB_APP_ID: "123" }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "other",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push(name);
+					},
+				},
+			}),
+		});
+
+		await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+
+		expect(setSecretCalls).toEqual(["GITHUB_APP_ID"]);
+	});
+
+	it("fans out vault keys to secrets (repo scope)", async () => {
+		const setSecretCalls: Array<{ name: string; value: string }> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async (_id: string) => ({
+						CLERK_SECRET_KEY: "sk_test_xxx",
+						NEON_DATABASE_URL: "postgresql://...",
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string, value: string) => {
+						setSecretCalls.push({ name, value });
+					},
+				},
+			}),
+		});
+
+		const log = fakeLogger();
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+			logger: log,
+		});
+
+		expect(setSecretCalls).toHaveLength(2);
+		expect(setSecretCalls.map((c) => c.name).sort()).toEqual(["CLERK_SECRET_KEY", "NEON_DATABASE_URL"]);
+		expect(report.summary.ok).toBe(2);
+		expect(report.summary.fail).toBe(0);
+
+		// per-secret lines log the KEY name, never the value
+		expect(log.info).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "CLERK_SECRET_KEY", status: "ok" }),
+			expect.stringContaining("CLERK_SECRET_KEY")
+		);
+		const logged = JSON.stringify(log.info.mock.calls);
+		expect(logged).not.toContain("sk_test_xxx");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ keys: 2 }), "sync secrets: done");
+	});
+
+	it("skips deployment sync when projectId is missing", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ A: "a" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					setEnvVar: async () => {
+						throw new Error("should not be called when projectId is missing");
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+		});
+
+		const skipped = report.rows.filter((r) => r.status === "skip");
+		expect(skipped.length).toBeGreaterThan(0);
+		expect(skipped[0]?.message).toMatch(/projectId/);
+	});
+
+	it("fans out to deployment env vars for each target when projectId is provided", async () => {
+		const setEnvCalls: Array<{
+			projectId: string;
+			target: string;
+			name: string;
+			value: string;
+		}> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", deployment: "vercel" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ KEY_A: "a", KEY_B: "b" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					setEnvVar: async (projectId: string, target: string, name: string, value: string) => {
+						setEnvCalls.push({ projectId, target, name, value });
+					},
+				},
+			}),
+		});
+
+		await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			projectId: "prj_123",
+			deployFilter: everyKey,
+			targets: ["production", "preview"],
+			loader,
+			print: () => {},
+		});
+
+		expect(setEnvCalls).toHaveLength(4); // 2 keys × 2 targets
+		expect(new Set(setEnvCalls.map((c) => c.target))).toEqual(new Set(["production", "preview"]));
+		expect(setEnvCalls.every((c) => c.projectId === "prj_123")).toBe(true);
+	});
+
+	it("dry-run reports `dry-run` rows without calling mutators", async () => {
+		let called = false;
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ X: "x" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						called = true;
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test", dryRun: true },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+		});
+
+		expect(called).toBe(false);
+		expect(report.rows.every((r) => r.status === "dry-run")).toBe(true);
+		expect(report.summary.dryRun).toBe(1);
+	});
+
+	it("soft-skips with string coercion when provider throws a non-Error", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ KEY: "value" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						throw "403 forbidden string";
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.fail).toBe(1);
+		const failedRow = report.rows.find((r) => r.status === "fail");
+		expect(failedRow?.message).toBe("403 forbidden string");
+	});
+
+	it("githubSecretKeys restricts secrets to only the listed keys", async () => {
+		const setSecretCalls: Array<{ name: string }> = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ INGEST_TOKEN: "t", OTHER_KEY: "o", DEPLOY_ONLY: "d" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push({ name });
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			githubSecretKeys: ["INGEST_TOKEN"],
+			loader,
+			print: () => {},
+		});
+
+		expect(setSecretCalls).toEqual([{ name: "INGEST_TOKEN" }]);
+		expect(report.summary.ok).toBe(1);
+	});
+
+	it("githubSecretScope: organization passes the given scope straight through to setSecret", async () => {
+		const scopesSeen: unknown[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ ORG_TOKEN: "t" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (scope: unknown) => {
+						scopesSeen.push(scope);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			githubSecretKeys: ["ORG_TOKEN"],
+			githubSecretScope: {
+				kind: "organization",
+				name: "theholocron",
+				visibility: "selected",
+				repos: ["holocron"],
+			},
+			loader,
+			print: () => {},
+		});
+
+		expect(scopesSeen).toEqual([
+			{ kind: "organization", name: "theholocron", visibility: "selected", repos: ["holocron"] },
+		]);
+		expect(report.summary.ok).toBe(1);
+	});
+
+	it("githubSecretScope: environment scope routes to the environment endpoint", async () => {
+		const scopesSeen: unknown[] = [];
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ ENV_TOKEN: "t" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (scope: unknown) => {
+						scopesSeen.push(scope);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "environment", name: "production" } }],
+			loader,
+			print: () => {},
+		});
+
+		expect(scopesSeen).toEqual([{ kind: "environment", name: "production" }]);
+		expect(report.summary.ok).toBe(1);
+	});
+
+	it("soft-skips individual key failures (continues with other keys)", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ GOOD: "g", BAD: "b", ALSO_GOOD: "g2" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => {
+						if (name === "BAD") throw new Error("403 forbidden");
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			secretRoutes: [{ scope: { kind: "repo" } }],
+			loader,
+			print: () => {},
+		});
+
+		expect(report.summary.ok).toBe(2);
+		expect(report.summary.fail).toBe(1);
+		const failedRow = report.rows.find((r) => r.status === "fail");
+		expect(failedRow?.key).toBe("BAD");
+		expect(failedRow?.message).toContain("403 forbidden");
+	});
+
+	describe("--worker", () => {
+		const vaultPlugin = {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ COMLINK_SENTRY_SECRET: "shh" }),
+				},
+			}),
+		};
+
+		it("sets every vault key on the Worker as a secret, and nowhere else", async () => {
+			const calls: Array<[string, string, string]> = [];
+			const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+			const loader = makeLoaderWith(loaded, {
+				...vaultPlugin,
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: {
+						providerName: "cloudflare",
+						setSecret: async (script: string, name: string, value: string) =>
+							void calls.push([script, name, value]),
+					},
+				}),
+			});
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prd",
+				workerScript: "comlink",
+				deployFilter: everyKey,
+				loader,
+				print: (l) => lines.push(l),
+			});
+			expect(calls).toEqual([["comlink", "COMLINK_SENTRY_SECRET", "shh"]]);
+			expect(report.summary.ok).toBe(1);
+			expect(lines.join("\n")).not.toContain("shh");
+		});
+
+		it("previews in a dry run without setting anything", async () => {
+			const setSecret = vi.fn();
+			const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+			const loader = makeLoaderWith(loaded, {
+				...vaultPlugin,
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: { providerName: "cloudflare", setSecret },
+				}),
+			});
+			const report = await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				environmentId: "prd",
+				workerScript: "comlink",
+				deployFilter: everyKey,
+				loader,
+				print: () => {},
+			});
+			expect(setSecret).not.toHaveBeenCalled();
+			expect(report.summary.dryRun).toBe(1);
+		});
+
+		it("fails, naming the fix, with no workers provider or one that cannot set secrets", async () => {
+			for (const withWorkers of [false, true]) {
+				const loaded = loadedFrom({
+					name: "comlink",
+					providers: { vault: "1password", ...(withWorkers ? { workers: "cloudflare" } : {}) },
+				});
+				const loader = makeLoaderWith(loaded, {
+					...vaultPlugin,
+					...(withWorkers
+						? {
+								"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+									workers: { providerName: "cloudflare" },
+								}),
+							}
+						: {}),
+				});
+				const report = await runSecretsSync({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId: "prd",
+					workerScript: "comlink",
+					deployFilter: everyKey,
+					loader,
+					print: () => {},
+				});
+				expect(report.summary.fail).toBe(1);
+				expect(report.rows[0]!.message).toMatch(
+					withWorkers ? /cannot set secrets/ : /needs a `workers` provider/
+				);
+			}
+		});
+	});
+
+	it("prints, and reports as a failure, a vault environment that cannot be read", async () => {
+		const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+		const setSecret = vi.fn();
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "doppler",
+					readEnvironment: async () => {
+						throw new Error("Doppler GET /configs/config/secrets/download failed: 403");
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				workers: { providerName: "cloudflare", setSecret },
+			}),
+		});
+		const lines: string[] = [];
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prd",
+			workerScript: "comlink",
+			deployFilter: everyKey,
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(report.summary).toEqual({ ok: 0, fail: 1, skip: 0, dryRun: 0 });
+		expect(report.rows[0]).toMatchObject({ destination: "vault:doppler", status: "fail" });
+		// It goes through the shared summary, so the failure row and the totals are printed too.
+		expect(lines.join("\n")).toContain("0 ok, 1 fail, 0 skipped");
+		expect(lines.join("\n")).toMatch(/could not read vault environment prd: .*403/);
+		expect(setSecret).not.toHaveBeenCalled();
+	});
+
+	it("says why the workers provider is missing when its plugin failed to load", async () => {
+		const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "doppler", readEnvironment: async () => ({ K: "v" }) },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": {
+				createPlugin: () => {
+					throw new Error("Cloudflare accountId is required");
+				},
+			},
+		});
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prd",
+			workerScript: "comlink",
+			deployFilter: everyKey,
+			loader,
+			print: () => {},
+		});
+		expect(report.rows[0]!.message).toMatch(/needs a `workers` provider.*failed to load.*accountId is required/);
+	});
+	describe("blank and missing values", () => {
+		const everywhere = (readEnvironment: () => Promise<Record<string, string>>) => {
+			const loaded = loadedFrom({
+				name: "demo",
+				providers: { vault: "1password", secrets: "github", deployment: "vercel", workers: "cloudflare" },
+			});
+			const secretCalls: string[] = [];
+			const envCalls: string[] = [];
+			const workerCalls: string[] = [];
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: { providerName: "1password", readEnvironment },
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					secrets: {
+						providerName: "github",
+						setSecret: async (_scope: unknown, name: string) => void secretCalls.push(name),
+					},
+				}),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+					deployment: {
+						providerName: "vercel",
+						setEnvVar: async (_project: string, _target: string, name: string) => void envCalls.push(name),
+					},
+				}),
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: {
+						providerName: "cloudflare",
+						setSecret: async (_script: string, name: string) => void workerCalls.push(name),
+					},
+				}),
+			});
+			return { loaded, loader, secretCalls, envCalls, workerCalls };
+		};
+
+		it("skips a blank value in every destination, in a dry run too, and never pushes it", async () => {
+			for (const dryRun of [false, true]) {
+				const t = everywhere(async () => ({ FILLED: "v", BLANK: "", SPACES: "  " }));
+				const lines: string[] = [];
+				const report = await runSecretsSync({
+					loaded: t.loaded,
+					context: { repoRoot: "/tmp/test", dryRun },
+					environmentId: "env_1",
+					secretRoutes: [{ scope: { kind: "repo" } }],
+					projectId: "prj_1",
+					deployFilter: everyKey,
+					targets: ["production"],
+					workerScript: "w",
+					loader: t.loader,
+					print: (l) => lines.push(l),
+				});
+				expect([...t.secretCalls, ...t.envCalls, ...t.workerCalls]).toEqual(
+					dryRun ? [] : ["FILLED", "FILLED", "FILLED"]
+				);
+				const skipped = report.rows.filter((r) => r.status === "skip");
+				expect(skipped.map((r) => r.key).sort()).toEqual([
+					"BLANK",
+					"BLANK",
+					"BLANK",
+					"SPACES",
+					"SPACES",
+					"SPACES",
+				]);
+				expect(skipped.every((r) => r.message === "blank in the vault environment")).toBe(true);
+				expect(report.summary.fail).toBe(0);
+			}
+		});
+
+		it("skips a listed key the vault does not hold, and still pushes the rest", async () => {
+			const t = everywhere(async () => ({ HERE: "v" }));
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "env_1",
+				githubSecretKeys: ["MISSING", "HERE"],
+				loader: t.loader,
+				print: () => {},
+			});
+			expect(t.secretCalls).toEqual(["HERE"]);
+			expect(report.rows.find((r) => r.key === "MISSING")).toMatchObject({
+				status: "skip",
+				message: "not in the vault environment",
+			});
+		});
+	});
+
+	describe("secretRoutes", () => {
+		it("pushes each route's keys at its own scope, one step per scope", async () => {
+			const calls: Array<[unknown, string]> = [];
+			const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: {
+						providerName: "1password",
+						readEnvironment: async () => ({ ORG_ONE: "1", REPO_ONE: "2", UNLISTED: "3" }),
+					},
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					secrets: {
+						providerName: "github",
+						setSecret: async (scope: unknown, name: string) => void calls.push([scope, name]),
+					},
+				}),
+			});
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "CI",
+				secretRoutes: [
+					{ scope: ORG_SCOPE, keys: ["ORG_ONE"] },
+					{ scope: { kind: "repo" }, keys: ["REPO_ONE"] },
+				],
+				loader,
+				print: (l) => lines.push(l),
+			});
+			expect(calls).toEqual([
+				[ORG_SCOPE, "ORG_ONE"],
+				[{ kind: "repo" }, "REPO_ONE"],
+			]);
+			expect(report.summary.ok).toBe(2);
+			const out = lines.join("\n");
+			expect(out).toContain("secrets (scope=organization,org=theholocron)");
+			expect(out).toContain("secrets (scope=repo)");
+		});
+	});
+
+	describe("variableRoutes", () => {
+		interface Doubles {
+			secrets: string[];
+			deployments: string[];
+			repoVars: Array<Record<string, string>>;
+			orgVars: Array<[string, Record<string, { value: string; visibility: string }>]>;
+			loaded: LoadedConfig;
+			loader: PluginLoader;
+		}
+
+		function doubles(
+			values: Record<string, string>,
+			source: Record<string, unknown> | null = {},
+			withDeployment = false
+		): Doubles {
+			const d = { secrets: [], deployments: [], repoVars: [], orgVars: [] } as unknown as Doubles;
+			const providers: Record<string, string> = { vault: "1password", secrets: "github" };
+			if (source) providers["source"] = "github";
+			if (withDeployment) providers["deployment"] = "vercel";
+			d.loaded = loadedFrom({ name: "demo", providers });
+			const github = {
+				...(source
+					? {
+							source: {
+								providerName: "github",
+								syncVariables: async (v: Record<string, string>) => {
+									d.repoVars.push(v);
+									return "ok";
+								},
+								syncOrgVariables: async (
+									org: string,
+									v: Record<string, { value: string; visibility: string }>
+								) => {
+									d.orgVars.push([org, v]);
+									return "ok";
+								},
+								...source,
+							},
+						}
+					: {}),
+				secrets: {
+					providerName: "github",
+					setSecret: async (_s: unknown, name: string) => void d.secrets.push(name),
+				},
+			};
+			d.loader = makeLoaderWith(d.loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: { providerName: "1password", readEnvironment: async () => values },
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", github),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vc", {
+					deployment: {
+						providerName: "vercel",
+						setEnvVar: async (_p: string, _t: string, key: string) => void d.deployments.push(key),
+					},
+				}),
+			});
+			return d;
+		}
+
+		const run = (d: Doubles, extra: Partial<Parameters<typeof runSecretsSync>[0]> = {}) => {
+			const lines: string[] = [];
+			return runSecretsSync({
+				loaded: d.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "Vars",
+				secretRoutes: [],
+				variableRoutes: [
+					{ scope: { kind: "organization", name: "theholocron" }, keys: ["TURBO_TEAM", "BLANK", "ABSENT"] },
+				],
+				loader: d.loader,
+				print: (l) => lines.push(l),
+				...extra,
+			}).then((report) => ({ report, out: lines.join("\n") }));
+		};
+
+		it("writes variables, not secrets, and skips a blank or missing value", async () => {
+			const d = doubles({ TURBO_TEAM: "iamnewton", BLANK: "  ", OTHER: "x" }, {}, true);
+			const { report, out } = await run(d);
+			expect(d.orgVars).toEqual([["theholocron", { TURBO_TEAM: { value: "iamnewton", visibility: "all" } }]]);
+			expect(d.repoVars).toEqual([]);
+			expect(d.secrets).toEqual([]);
+			expect(d.deployments).toEqual([]);
+			expect(report.rows.map((r) => [r.key, r.status])).toEqual([
+				["TURBO_TEAM", "ok"],
+				["BLANK", "skip"],
+				["ABSENT", "skip"],
+			]);
+			expect(out).toContain("variables (scope=organization,org=theholocron)");
+			expect(out).not.toContain("projectId");
+			expect(report.rows.every((r) => r.destination === "variables:github")).toBe(true);
+		});
+
+		it("writes a repository route through syncVariables, and an organization one with its visibility", async () => {
+			const d = doubles({ A: "1", B: "2" });
+			await run(d, {
+				variableRoutes: [
+					{ scope: { kind: "repo" }, keys: ["A"] },
+					{ scope: { kind: "organization", name: "o" }, keys: ["B"], visibility: "private" },
+				],
+			});
+			expect(d.repoVars).toEqual([{ A: "1" }]);
+			expect(d.orgVars).toEqual([["o", { B: { value: "2", visibility: "private" } }]]);
+		});
+
+		it("writes nothing on a dry run, and never prints a value", async () => {
+			const d = doubles({ TURBO_TEAM: "super-visible-value-123" });
+			const { report, out } = await run(d, { context: { repoRoot: "/tmp/test", dryRun: true } });
+			expect(d.orgVars).toEqual([]);
+			expect(report.rows[0]).toMatchObject({ key: "TURBO_TEAM", status: "dry-run" });
+			expect(out).not.toContain("super-visible-value-123");
+			expect(JSON.stringify(report)).not.toContain("super-visible-value-123");
+		});
+
+		it("also pushes a secrets route the same environment declares", async () => {
+			const d = doubles({ TURBO_TEAM: "t", S: "s" });
+			await run(d, { secretRoutes: [{ scope: { kind: "repo" }, keys: ["S"] }] });
+			expect(d.secrets).toEqual(["S"]);
+			expect(d.orgVars).toHaveLength(1);
+		});
+
+		it("fails one row per route when the source is missing or cannot write variables", async () => {
+			const none = await run(doubles({ TURBO_TEAM: "t" }, null));
+			expect(none.report.rows).toEqual([expect.objectContaining({ key: "(all)", status: "fail" })]);
+			expect(none.report.rows[0]!.message).toMatch(/needs a `source` provider/);
+
+			const noOrg = await run(doubles({ A: "1" }, { syncOrgVariables: undefined }));
+			expect(noOrg.report.rows[0]!.message).toMatch(/does not implement syncOrgVariables/);
+
+			const noRepo = await run(doubles({ A: "1" }, { syncVariables: undefined }), {
+				variableRoutes: [{ scope: { kind: "repo" }, keys: ["A"] }],
+			});
+			expect(noRepo.report.rows[0]!.message).toMatch(/does not implement syncVariables/);
+		});
+
+		it("makes a provider failure one failed row", async () => {
+			const d = doubles(
+				{ TURBO_TEAM: "t" },
+				{
+					syncOrgVariables: async () => {
+						throw new Error("403");
+					},
+				}
+			);
+			const { report } = await run(d);
+			expect(report.rows[0]).toMatchObject({ key: "TURBO_TEAM", status: "fail", message: "403" });
+		});
+	});
+
+	describe("deployment and Worker key filter (#2061)", () => {
+		const vault = {
+			ADMIN_TOKEN: "admin-secret-value",
+			SENTINEL_WEBHOOK_SECRET: "w",
+			SENTINEL_GITHUB_APP_ID: "1",
+			HOLOCRON_RELEASE_TOKEN: "release-secret-value",
+		};
+		function build() {
+			const sent: string[] = [];
+			const workerSent: string[] = [];
+			const loaded = loadedFrom({
+				name: "demo",
+				providers: { vault: "1password", deployment: "vercel", workers: "cloudflare" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: { providerName: "1password", readEnvironment: async () => vault },
+				}),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+					deployment: {
+						providerName: "vercel",
+						setEnvVar: async (_p: string, _t: string, name: string) => void sent.push(name),
+					},
+				}),
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: {
+						providerName: "cloudflare",
+						setSecret: async (_s: string, name: string) => void workerSent.push(name),
+					},
+				}),
+			});
+			return { loaded, loader, sent, workerSent };
+		}
+
+		it("sends only the prefixed and listed names, never another name to setEnvVar or the Worker", async () => {
+			const t = build();
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				projectId: "prj_1",
+				workerScript: "w",
+				targets: ["production"],
+				deployFilter: { keys: ["HOLOCRON_RELEASE_TOKEN"], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: (l) => lines.push(l),
+			});
+			expect(t.sent.sort()).toEqual([
+				"HOLOCRON_RELEASE_TOKEN",
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+			]);
+			expect(t.workerSent.sort()).toEqual(t.sent.sort());
+			const filtered = report.rows.filter((r) => r.message?.startsWith("filtered"));
+			expect(filtered.map((r) => [r.destination, r.key, r.status])).toEqual([
+				["deployment:vercel", "ADMIN_TOKEN", "skip"],
+				["workers:cloudflare", "ADMIN_TOKEN", "skip"],
+			]);
+			expect(lines.join("\n")).toContain("not sent (1, outside SENTINEL_*, HOLOCRON_RELEASE_TOKEN): ADMIN_TOKEN");
+			expect(lines.join("\n")).not.toContain("admin-secret-value");
+			expect(report.summary.fail).toBe(0);
+		});
+
+		it("takes a prefix alone", async () => {
+			const t = build();
+			await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				projectId: "prj_1",
+				targets: ["production", "preview"],
+				deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: () => {},
+			});
+			expect(t.sent).toEqual([
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+			]);
+		});
+
+		it("prints sent and filtered names in a dry run and sets nothing", async () => {
+			const t = build();
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				environmentId: "prod",
+				projectId: "prj_1",
+				targets: ["production"],
+				deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: (l) => lines.push(l),
+			});
+			const out = lines.join("\n");
+			expect(t.sent).toEqual([]);
+			expect(out).toContain("… SENTINEL_GITHUB_APP_ID");
+			expect(out).toContain("… SENTINEL_WEBHOOK_SECRET");
+			expect(out).toContain("ADMIN_TOKEN, HOLOCRON_RELEASE_TOKEN");
+			expect(report.summary.dryRun).toBe(2);
+		});
+
+		it("throws a ConfigError before reading the vault when a deployment or Worker has no filter", async () => {
+			for (const extra of [{ projectId: "prj_1" }, { workerScript: "w" }]) {
+				const t = build();
+				const err = await runSecretsSync({
+					loaded: t.loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId: "prod",
+					secretRoutes: [{ scope: { kind: "repo" } }],
+					...extra,
+					loader: t.loader,
+					print: () => {},
+				}).catch((e: unknown) => e);
+				expect((err as Error).name).toBe("ConfigError");
+				expect((err as Error).message).toMatch(/repo\.secrets\.deploy/);
+				expect(t.sent).toEqual([]);
+				expect(t.workerSent).toEqual([]);
+			}
+		});
+
+		it("needs no filter when nothing goes to a deployment or Worker", async () => {
+			const t = build();
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				secretRoutes: [{ scope: { kind: "repo" } }],
+				loader: t.loader,
+				print: () => {},
+			});
+			expect(t.sent).toEqual([]);
+			expect(report.summary.fail).toBe(0);
+		});
+	});
+});
+
+describe("runSecretsSync — who can read an organization secret (#2062)", () => {
+	function setup(options: { access?: unknown; accessThrows?: boolean; values?: Record<string, string> } = {}) {
+		const written: Array<[unknown, string]> = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const secrets: Record<string, unknown> = {
+			providerName: "github",
+			setSecret: async (scope: unknown, name: string) => void written.push([scope, name]),
+		};
+		if (options.access !== undefined || options.accessThrows) {
+			secrets.listSecretAccess = async () => {
+				if (options.accessThrows) throw new Error("no scope");
+				return options.access;
+			};
+		}
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => options.values ?? { OLD: "1", SAME: "2", FRESH: "3", BLANK: " " },
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { secrets }),
+		});
+		const lines: string[] = [];
+		const run = (dryRun: boolean, extra: Partial<Parameters<typeof runSecretsSync>[0]> = {}) =>
+			runSecretsSync({
+				loaded,
+				loader,
+				context: { repoRoot: "/tmp/test", dryRun },
+				environmentId: "CI",
+				secretRoutes: [{ scope: ORG_SCOPE, keys: ["OLD", "SAME", "FRESH", "BLANK"] }],
+				print: (l) => lines.push(stripVTControlCharacters(l)),
+				...extra,
+			});
+		return { written, lines, run };
+	}
+
+	const current = {
+		OLD: { visibility: "all" },
+		SAME: { visibility: "selected", repos: [".github", "holocron"] },
+	};
+
+	it("shows the change by name in a dry run, and writes nothing", async () => {
+		const { written, lines, run } = setup({ access: current });
+		const report = await run(true);
+		expect(written).toEqual([]);
+		const out = lines.join("\n");
+		expect(out).toContain("OLD  (readers all -> selected [.github, holocron])");
+		expect(out).toContain("SAME  (readers unchanged (selected [.github, holocron]))");
+		expect(out).toContain("FRESH  (new, readers selected [.github, holocron])");
+		expect(report.summary).toMatchObject({ dryRun: 3, skip: 1 });
+	});
+
+	it("writes with the readers and says the same thing in the real run; a skipped row has no readers note", async () => {
+		const { written, lines, run } = setup({ access: current });
+		const report = await run(false);
+		expect(written.map(([scope, name]) => [name, (scope as { repos: string[] }).repos])).toEqual([
+			["OLD", ["holocron", ".github"]],
+			["SAME", ["holocron", ".github"]],
+			["FRESH", ["holocron", ".github"]],
+		]);
+		const out = lines.join("\n");
+		expect(out).toContain("OLD  (readers all -> selected");
+		expect(out).toContain("BLANK  (blank in the vault environment)");
+		expect(report.summary.ok).toBe(3);
+	});
+
+	it("matches names without regard to case, because GitHub does", async () => {
+		const { lines, run } = setup({ access: { old: { visibility: "private" } } });
+		await run(true);
+		expect(lines.join("\n")).toContain("OLD  (readers private -> selected");
+	});
+
+	it("names only the new readers when the provider cannot report who reads now", async () => {
+		const { lines, run } = setup();
+		await run(true);
+		expect(lines.join("\n")).toContain("OLD  (readers -> selected [.github, holocron])");
+	});
+
+	it("says once that the listing could not be read, and goes on writing", async () => {
+		const { written, lines, run } = setup({ accessThrows: true });
+		const report = await run(false);
+		const out = lines.join("\n");
+		expect(out).toContain("could not read who can read the organization's secrets (no scope)");
+		expect(out).toContain("OLD  (readers -> selected");
+		expect(written).toHaveLength(3);
+		expect(report.summary.ok).toBe(3);
+	});
+
+	it("is a failing row, with no readers note, when the write fails (for example a repository that does not resolve)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "1password", readEnvironment: async () => ({ OLD: "1" }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						throw new Error("could not resolve repository theholocron/nope");
+					},
+				},
+			}),
+		});
+		const report = await runSecretsSync({
+			loaded,
+			loader,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "CI",
+			secretRoutes: [{ scope: ORG_SCOPE, keys: ["OLD"] }],
+			print: () => {},
+		});
+		expect(report.rows[0]).toMatchObject({
+			status: "fail",
+			message: "could not resolve repository theholocron/nope",
+		});
+		expect(report.rows[0]).not.toHaveProperty("readers");
+	});
+
+	it("never says anything about readers for a repository scope", async () => {
+		const { lines, run } = setup({ access: current });
+		await run(true, { secretRoutes: [{ scope: { kind: "repo" }, keys: ["OLD"] }] });
+		expect(lines.join("\n")).not.toContain("readers");
+	});
+
+	it("fails closed before reading the vault when an organization route names no readers", async () => {
+		const { run } = setup({ access: current });
+		const err = await run(true, {
+			secretRoutes: [{ scope: { kind: "organization", name: "theholocron" }, keys: ["OLD"] }],
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toMatch(/need an explicit reader list/);
+		const manual = await run(true, {
+			secretRoutes: undefined,
+			githubSecretKeys: ["OLD"],
+			githubSecretScope: { kind: "organization", name: "theholocron" },
+		}).catch((e: unknown) => e);
+		expect((manual as Error).name).toBe("ConfigError");
+		const emptyList = await run(true, {
+			secretRoutes: [{ scope: { kind: "organization", name: "theholocron", repos: [] }, keys: ["OLD"] }],
+		}).catch((e: unknown) => e);
+		expect((emptyList as Error).name).toBe("ConfigError");
+	});
+});
+
+describe("runSecretsSync — an environment with no repo.secrets.sync entry (#2104)", () => {
+	function build(entries: Array<{ environment: string; keys: string[] }> = []) {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github", deployment: "vercel" },
+			repo: { secrets: { sync: entries } },
+		});
+		const reads: string[] = [];
+		const secretCalls: string[] = [];
+		const envCalls: string[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async (id: string) => {
+						reads.push(id);
+						return { SENTINEL_A: "v", OTHER: "v" };
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => void secretCalls.push(name),
+				},
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					setEnvVar: async (_project: string, _target: string, name: string) => void envCalls.push(name),
+				},
+			}),
+		});
+		return { loaded, loader, reads, secretCalls, envCalls };
+	}
+
+	it.each([false, true])("throws a ConfigError before the vault is read (dryRun %s)", async (dryRun) => {
+		const t = build([{ environment: "theholocron/holocron - ci", keys: ["A"] }]);
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test", dryRun },
+			environmentId: "theholocron/holocron - dev",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toContain('"theholocron/holocron - dev"');
+		expect((err as Error).message).toContain('"theholocron/holocron - ci"');
+		expect(t.reads).toEqual([]);
+		expect(t.secretCalls).toEqual([]);
+	});
+
+	it("says none when the config has no entries at all", async () => {
+		const t = build();
+		const bare = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const none = await runSecretsSync({
+			loaded: bare,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "staging",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((none as Error).message).toContain("Environments with an entry: none");
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "staging",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).message).toContain("Environments with an entry: none");
+	});
+
+	it("refuses --github-secret-scope alone, since it names a scope but no keys", async () => {
+		const t = build();
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "ci",
+			githubSecretScope: { kind: "repo" },
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toContain("names a scope but no keys");
+		expect(t.reads).toEqual([]);
+	});
+
+	it("runs with --github-secret keys alone, at repo scope", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "ci",
+			githubSecretKeys: ["OTHER"],
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.secretCalls).toEqual(["OTHER"]);
+	});
+
+	it("runs with --github-secret keys", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "ci",
+			githubSecretKeys: ["OTHER"],
+			githubSecretScope: { kind: "repo" },
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.secretCalls).toEqual(["OTHER"]);
+	});
+
+	it("sends a deployment only what repo.secrets.deploy names, and nothing to secrets", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prod",
+			projectId: "prj_1",
+			targets: ["production"],
+			deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.envCalls).toEqual(["SENTINEL_A"]);
+		expect(t.secretCalls).toEqual([]);
+	});
+});
+
+describe("runSecretsSync — the local and dev layers are never synced (#2104)", () => {
+	const gitExec = async () => "git@github.com:theholocron/holocron.git\n";
+	const plugins = (reads: string[]) => ({
+		"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+			vault: {
+				providerName: "1password",
+				readEnvironment: async (id: string) => {
+					reads.push(id);
+					return { A: "v" };
+				},
+			},
+		}),
+		"@theholocron/holocron-plugin-github": makePlugin("gh", {
+			secrets: { providerName: "github", setSecret: async () => {} },
+		}),
+	});
+	const extras: Array<[string, Record<string, unknown>]> = [
+		["nothing else", {}],
+		["--dry-run", { context: { repoRoot: "/tmp/test", dryRun: true } }],
+		["githubSecretKeys", { githubSecretKeys: ["A"] }],
+		["secretRoutes", { secretRoutes: [{ scope: { kind: "repo" } }] }],
+		["projectId", { projectId: "prj_1", deployFilter: { keys: ["A"], prefixes: [] } }],
+		["workerScript", { workerScript: "w", deployFilter: { keys: ["A"], prefixes: [] } }],
+	];
+
+	it.each(["local", "dev", "theholocron/holocron - local", "theholocron/holocron - dev"])(
+		"refuses %s before anything is read, with %s",
+		async (environmentId) => {
+			for (const [, extra] of extras) {
+				const reads: string[] = [];
+				const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+				const err = await runSecretsSync({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId,
+					gitExec,
+					loader: makeLoaderWith(loaded, plugins(reads)),
+					print: () => {},
+					...extra,
+				} as never).catch((e: unknown) => e);
+				expect((err as Error).name).toBe("ConfigError");
+				expect((err as Error).message).toContain("never synced");
+				expect(reads).toEqual([]);
+			}
+		}
+	);
+
+	it("leaves ci and prod, by word or by derived name, to the other rules", async () => {
+		for (const environmentId of ["ci", "prod", "theholocron/holocron - ci", "theholocron/holocron - prod"]) {
+			const reads: string[] = [];
+			const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+			await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId,
+				gitExec,
+				githubSecretKeys: ["A"],
+				loader: makeLoaderWith(loaded, plugins(reads)),
+				print: () => {},
+			});
+			expect(reads).toEqual([environmentId]);
+		}
+	});
+});

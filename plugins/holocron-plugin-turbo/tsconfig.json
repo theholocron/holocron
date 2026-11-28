@@ -1,0 +1,12 @@
+{
+  "display": "Holocron Plugin: Turbo",
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

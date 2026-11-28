@@ -1,0 +1,23 @@
+info:
+  name: GET is not a webhook
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/webhook"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: test("status is 405", () => expect(res.getStatus()).to.equal(405));
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
+
+docs: Only POST is accepted.

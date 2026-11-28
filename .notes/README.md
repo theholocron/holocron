@@ -4,6 +4,9 @@
 discussion (`status: draft` / `proposed`). Every spec needs a companion GitHub
 issue — the `issue:` frontmatter field references it.
 
+A spec has an `id:` (`SPEC-0007`) too, but you do not pick it: `holocron specs sync` numbers a spec once it is on the
+default branch, in the same pull request that links its discussion post. `holocron probe specs check` warns until then.
+
 Once the design is settled, the spec **moves to
 `docs/wiki/specifications/`**:
 
@@ -12,5 +15,5 @@ Once the design is settled, the spec **moves to
 - `archived` / `superseded` — the work shipped, or the exploration was dropped
   or replaced.
 
-`scripts/validate-adrs.mjs` validates frontmatter in both directories (runs in
-the Lint workflow).
+`holocron probe specs check` validates frontmatter in both directories (the
+`validate:specs` task).

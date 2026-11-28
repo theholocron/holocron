@@ -1,0 +1,13 @@
+[
+  {
+    "type": "TXT",
+    "name": "_vercel.theholocron.dev",
+    "value": "vc-domain-verify=status.theholocron.dev,5db4f029ab0bcc2773ff"
+  },
+  {
+    "type": "CNAME",
+    "name": "status.theholocron.dev",
+    "value": "checkly-dashboards.com",
+    "note": "Checkly dashboard"
+  }
+]

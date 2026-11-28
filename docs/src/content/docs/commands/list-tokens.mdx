@@ -1,0 +1,24 @@
+---
+title: "list tokens"
+description: List the providers that have a token in the OS keyring.
+---
+
+```bash
+holocron list tokens
+```
+
+Lists every provider that has a stored token. It prints provider names only, never a token.
+
+## Example
+
+```bash
+holocron list tokens
+```
+
+```text
+github.admin   ✓ stored
+github.read    ✓ stored
+vercel         ✓ stored
+```
+
+Related: [`new token`](/holocron/commands/new-token/), [`check token`](/holocron/commands/check-token/), [`remove token`](/holocron/commands/remove-token/).

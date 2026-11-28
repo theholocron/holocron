@@ -1,3 +1,18 @@
+---
+id: ADR-0010
+title: "Datapad: the shared config loader"
+status: accepted
+date: 2026-09-07
+owners: []
+specs:
+  - docs/wiki/specifications/tech-datapad-config-loader.spec.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618653544157324
+supersedes: []
+superseded-by: []
+tags: [datapad, config]
+---
+
 # ADR-0010 — Datapad: the shared config loader
 
 ## Status

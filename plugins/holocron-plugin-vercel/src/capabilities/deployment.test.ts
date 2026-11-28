@@ -1,0 +1,711 @@
+import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
+
+import { createVercelClient } from "../rest.js";
+import { VercelDeployment } from "./deployment.js";
+
+function makeDeployment(
+	responses: Parameters<typeof stubFetch>[0],
+	opts: { teamId?: string; defaultFramework?: string } = {}
+) {
+	const { fetch, calls } = stubFetch(responses);
+	const clientOpts: Parameters<typeof createVercelClient>[0] = { token: "pat", fetch };
+	if (opts.teamId !== undefined) clientOpts.teamId = opts.teamId;
+	const client = createVercelClient(clientOpts);
+	const deploymentOpts: ConstructorParameters<typeof VercelDeployment>[1] = {};
+	if (opts.defaultFramework !== undefined) deploymentOpts.defaultFramework = opts.defaultFramework;
+	const deployment = new VercelDeployment(() => client, deploymentOpts);
+	return { deployment, calls };
+}
+
+function project(
+	overrides: Partial<{
+		id: string;
+		name: string;
+		framework: string | null;
+		rootDirectory: string | null;
+		link: { type?: string; repoId?: number; repo?: string } | null;
+	}> = {}
+) {
+	return {
+		id: "prj_123",
+		name: "web",
+		framework: "nextjs",
+		rootDirectory: null,
+		link: null,
+		...overrides,
+	};
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// listProjects + ensureProject
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.listProjects", () => {
+	it("GETs /v10/projects and maps the result", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { projects: [project({ id: "p1", name: "web" })] } },
+		]);
+		const result = await deployment.listProjects();
+		expect(calls[0]?.url).toBe("https://api.vercel.com/v10/projects");
+		expect(result).toEqual([{ id: "p1", name: "web", framework: "nextjs", gitLinked: false, rootDirectory: null }]);
+	});
+
+	it("includes teamId in the query string when configured", async () => {
+		const { deployment, calls } = makeDeployment([{ status: 200, body: { projects: [] } }], { teamId: "team_xx" });
+		await deployment.listProjects();
+		expect(calls[0]?.url).toContain("teamId=team_xx");
+	});
+
+	it("maps gitLinked=true when project.link.repoId is set", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { projects: [project({ link: { repoId: 42, type: "github" } })] },
+			},
+		]);
+		const [p] = await deployment.listProjects();
+		expect(p?.gitLinked).toBe(true);
+	});
+});
+
+describe("VercelDeployment.ensureProject", () => {
+	it("returns the existing project when one exists (no POST)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: project({ id: "prj_existing", name: "web" }) },
+		]);
+		const result = await deployment.ensureProject({ name: "web" });
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.method).toBe("GET");
+		expect(result.id).toBe("prj_existing");
+	});
+
+	it("creates a new project when none exists (404→POST)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 404, text: "not found" },
+			{ status: 201, body: project({ id: "prj_new", name: "web", framework: "nextjs" }) },
+		]);
+		const result = await deployment.ensureProject({ name: "web" });
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.url).toContain("/v11/projects");
+		expect(calls[1]?.body).toEqual({ name: "web", framework: "nextjs" });
+		expect(result.id).toBe("prj_new");
+	});
+
+	it("includes git + rootDirectory when supplied to create", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 404, text: "not found" },
+			{ status: 201, body: project({ id: "prj_new", name: "web" }) },
+		]);
+		await deployment.ensureProject({
+			name: "web",
+			repo: "theholocron/holocron",
+			rootDirectory: "apps/web",
+		});
+		expect(calls[1]?.body).toEqual({
+			name: "web",
+			framework: "nextjs",
+			gitRepository: { type: "github", repo: "theholocron/holocron" },
+			rootDirectory: "apps/web",
+		});
+	});
+
+	it("uses defaultFramework override when supplied", async () => {
+		const { deployment, calls } = makeDeployment(
+			[
+				{ status: 404, text: "not found" },
+				{ status: 201, body: project() },
+			],
+			{ defaultFramework: "remix" }
+		);
+		await deployment.ensureProject({ name: "app" });
+		expect((calls[1]?.body as { framework: string }).framework).toBe("remix");
+	});
+
+	it("rethrows non-404 errors from the GET (does not swallow 500s)", async () => {
+		const { deployment } = makeDeployment([{ status: 500, text: "oops" }]);
+		await expect(deployment.ensureProject({ name: "web" })).rejects.toBeInstanceOf(ProviderApiError);
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// updateProjectSettings
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.updateProjectSettings", () => {
+	it("PATCHes only the fields supplied (no over-writing of defaults)", async () => {
+		const { deployment, calls } = makeDeployment([{ status: 200, body: project() }]);
+		await deployment.updateProjectSettings("prj_123", { previewDeploymentsDisabled: true });
+		expect(calls[0]?.method).toBe("PATCH");
+		expect(calls[0]?.url).toContain("/v9/projects/prj_123");
+		expect(calls[0]?.body).toEqual({ previewDeploymentsDisabled: true });
+	});
+
+	it("wraps gitProviderCreateDeployments in gitProviderOptions", async () => {
+		const { deployment, calls } = makeDeployment([{ status: 200, body: project() }]);
+		await deployment.updateProjectSettings("prj_123", { gitProviderCreateDeployments: false });
+		expect(calls[0]?.body).toEqual({
+			gitProviderOptions: { createDeployments: false },
+		});
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// env vars
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.listEnvVars", () => {
+	it("returns only the names of vars scoped to the requested target", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					envs: [
+						{ id: "e1", key: "PROD_ONLY", target: ["production"] },
+						{ id: "e2", key: "EVERYWHERE", target: ["production", "preview", "development"] },
+						{ id: "e3", key: "PREVIEW_ONLY", target: ["preview"] },
+					],
+				},
+			},
+		]);
+		const names = await deployment.listEnvVars("prj_123", "production");
+		expect(names).toEqual(["PROD_ONLY", "EVERYWHERE"]);
+	});
+});
+
+describe("VercelDeployment.setEnvVar", () => {
+	it("POSTs with upsert=true + the right target + encrypted type", async () => {
+		const { deployment, calls } = makeDeployment([{ status: 201, body: {} }]);
+		await deployment.setEnvVar("prj_123", "production", "CLERK_WEBHOOK_SECRET", "val");
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.vercel.com/v10/projects/prj_123/env?upsert=true");
+		expect(calls[0]?.body).toEqual({
+			key: "CLERK_WEBHOOK_SECRET",
+			value: "val",
+			target: ["production"],
+			type: "encrypted",
+		});
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// triggerDeployment + getDeployment
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.triggerDeployment", () => {
+	it("looks up repoId from the project, then POSTs the deploy with gitSource", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: project({ link: { repoId: 42, type: "github" } }) },
+			{
+				status: 201,
+				body: {
+					id: "dpl_1",
+					url: "web-abc.vercel.app",
+					readyState: "QUEUED",
+				},
+			},
+		]);
+		const result = await deployment.triggerDeployment({
+			projectId: "prj_123",
+			branch: "feat/x",
+		});
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.url).toBe("https://api.vercel.com/v13/deployments");
+		expect(calls[1]?.body).toEqual({
+			name: "web",
+			gitSource: { type: "github", ref: "feat/x", repoId: 42 },
+		});
+		expect(result.status).toBe("queued");
+		expect(result.branch).toBe("feat/x");
+	});
+
+	it("passes named `target` through to the deploy body", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: project({ link: { repoId: 42 } }) },
+			{ status: 201, body: { id: "dpl_1", url: "x", readyState: "BUILDING", target: "production" } },
+		]);
+		await deployment.triggerDeployment({
+			projectId: "prj_123",
+			branch: "main",
+			target: "production",
+		});
+		expect((calls[1]?.body as { target: string }).target).toBe("production");
+	});
+
+	it("throws a clear error when the project has no linked git repo", async () => {
+		const { deployment } = makeDeployment([{ status: 200, body: project({ link: null }) }]);
+		await expect(deployment.triggerDeployment({ projectId: "prj_123", branch: "main" })).rejects.toThrow(
+			/no linked GitHub repo/
+		);
+	});
+
+	it('normalizes readyState CANCELED → status "cancelled" (US spelling)', async () => {
+		const { deployment } = makeDeployment([
+			{ status: 200, body: project({ link: { repoId: 42 } }) },
+			{ status: 201, body: { id: "dpl_1", url: "x", readyState: "CANCELED" } },
+		]);
+		const result = await deployment.triggerDeployment({
+			projectId: "prj_123",
+			branch: "main",
+		});
+		expect(result.status).toBe("cancelled");
+	});
+});
+
+describe("VercelDeployment.getDeployment", () => {
+	it("carries Vercel's errorMessage through on a failed build (holocron#911)", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					id: "dpl_C9DQ",
+					url: "sentinel-anqm7fpm8-iamnewton.vercel.app",
+					readyState: "ERROR",
+					target: "production",
+					errorCode: "invalid_version_value",
+					errorMessage: 'Command "npm install" exited with 1',
+				},
+			},
+		]);
+		const result = await deployment.getDeployment("dpl_C9DQ");
+		expect(result).toEqual({
+			id: "dpl_C9DQ",
+			url: "sentinel-anqm7fpm8-iamnewton.vercel.app",
+			branch: null,
+			status: "error",
+			target: "production",
+			errorMessage: 'Command "npm install" exited with 1',
+		});
+	});
+
+	it("GETs the deployment and extracts branch from meta.githubCommitRef", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					id: "dpl_1",
+					url: "web-abc.vercel.app",
+					readyState: "READY",
+					meta: { githubCommitRef: "main" },
+				},
+			},
+		]);
+		const result = await deployment.getDeployment("dpl_1");
+		expect(calls[0]?.url).toBe("https://api.vercel.com/v13/deployments/dpl_1");
+		expect(result).toEqual({
+			id: "dpl_1",
+			url: "web-abc.vercel.app",
+			branch: "main",
+			status: "ready",
+		});
+	});
+
+	it("returns branch=null when the deployment has no git source", async () => {
+		const { deployment } = makeDeployment([{ status: 200, body: { id: "dpl_1", url: "x", readyState: "READY" } }]);
+		const result = await deployment.getDeployment("dpl_1");
+		expect(result.branch).toBeNull();
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// deployFunction
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.deployFunction", () => {
+	it("POSTs inline files with no gitSource and framework: null", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_1", url: "sentinel-abc.vercel.app", readyState: "QUEUED" } },
+		]);
+		const result = await deployment.deployFunction("sentinel", {
+			files: { "api/webhook.js": "export default () => {};" },
+		});
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.url).toBe("https://api.vercel.com/v13/deployments");
+		expect(calls[0]?.body).toEqual({
+			name: "sentinel",
+			files: [
+				{
+					file: "api/webhook.js",
+					data: Buffer.from("export default () => {};", "utf8").toString("base64"),
+					encoding: "base64",
+				},
+			],
+			projectSettings: { framework: null },
+		});
+		expect(result).toEqual({ deploymentId: "dpl_1", url: "sentinel-abc.vercel.app" });
+	});
+
+	it("passes every file in the map, and target when provided", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_2", url: "x", readyState: "QUEUED", target: "production" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "api/webhook.js": "a", "package.json": "{}" },
+			target: "production",
+		});
+		const body = calls[0]?.body as { files: { file: string }[]; target: string };
+		expect(body.files.map((f) => f.file)).toEqual(["api/webhook.js", "package.json"]);
+		expect(body.target).toBe("production");
+	});
+
+	it("ignores defaultFramework — deployFunction always ships with no framework preset", async () => {
+		const { deployment, calls } = makeDeployment(
+			[{ status: 201, body: { id: "dpl_3", url: "x", readyState: "QUEUED" } }],
+			{ defaultFramework: "nextjs" }
+		);
+		await deployment.deployFunction("sentinel", { files: { "index.js": "x" } });
+		expect((calls[0]?.body as { projectSettings: { framework: unknown } }).projectSettings.framework).toBeNull();
+	});
+
+	it("sends the installCommand of an uploaded vercel.json as a project setting", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_4", url: "x", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "vercel.json": JSON.stringify({ installCommand: "npm install --legacy-peer-deps" }) },
+		});
+		expect((calls[0]?.body as { projectSettings: unknown }).projectSettings).toEqual({
+			framework: null,
+			installCommand: "npm install --legacy-peer-deps",
+		});
+	});
+
+	it.each([
+		["has no vercel.json", { "index.js": "x" }],
+		["has a vercel.json that sets no installCommand", { "vercel.json": "{}" }],
+		["has a vercel.json that is not JSON", { "vercel.json": "not json" }],
+		["has a vercel.json whose installCommand is not a string", { "vercel.json": '{"installCommand":1}' }],
+	])("sends no installCommand when the deployment %s", async (_, files) => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_5", url: "x", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", { files });
+		expect((calls[0]?.body as { projectSettings: unknown }).projectSettings).toEqual({ framework: null });
+	});
+});
+
+describe("VercelDeployment.ensureCustomDomain", () => {
+	it("already attached + DNS already routes to Vercel → no-op (list → config, no POST)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: { configuredBy: "CNAME", misconfigured: false, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(2);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+		expect(result).toBeNull();
+	});
+
+	it("already attached but DNS never configured → returns the record from config() (the 409-on-readd case)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: {
+					configuredBy: null,
+					misconfigured: true,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(2);
+		expect(calls[1]?.url).toContain("/v6/domains/sentinel.theholocron.dev/config");
+		expect(calls[1]?.url).toContain("projectIdOrName=prj_123");
+		expect(result).toEqual({
+			zone: "theholocron.dev",
+			record: { type: "CNAME", name: "sentinel.theholocron.dev", content: "d1d4fc829fe7bc7c.vercel-dns-017.com" },
+		});
+	});
+
+	it("adds the domain when missing, then checks DNS config (list → POST → config)", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { domains: [] } },
+			{
+				status: 201,
+				body: {
+					name: "sentinel.theholocron.dev",
+					apexName: "theholocron.dev",
+					verified: false,
+					verification: [
+						{
+							type: "CNAME",
+							domain: "sentinel.theholocron.dev",
+							value: "should-be-ignored.vercel-dns.com",
+							reason: "Set the following record",
+						},
+					],
+				},
+			},
+			{
+				status: 200,
+				body: {
+					configuredBy: null,
+					misconfigured: true,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(3);
+		expect(calls[1]?.method).toBe("POST");
+		expect(calls[1]?.url).toBe("https://api.vercel.com/v10/projects/prj_123/domains");
+		expect(calls[1]?.body).toEqual({ name: "sentinel.theholocron.dev" });
+		// The value comes from config(), not add()'s own verification challenge.
+		expect(result).toEqual({
+			zone: "theholocron.dev",
+			record: { type: "CNAME", name: "sentinel.theholocron.dev", content: "d1d4fc829fe7bc7c.vercel-dns-017.com" },
+		});
+	});
+
+	it("a 409 on add (race — already attached) falls back to a re-list for apexName", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { domains: [] } },
+			{ status: 409, text: "domain already exists" },
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: { configuredBy: "CNAME", misconfigured: false, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(4);
+		expect(result).toBeNull();
+	});
+
+	it("rethrows non-409 errors from add() (does not swallow 500s)", async () => {
+		const { deployment } = makeDeployment([
+			{ status: 200, body: { domains: [] } },
+			{ status: 500, text: "oops" },
+		]);
+		await expect(deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev")).rejects.toBeInstanceOf(
+			ProviderApiError
+		);
+	});
+
+	it("returns null when misconfigured but config() has no CNAME recommendation", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.theholocron.dev", apexName: "theholocron.dev", verified: true }] },
+			},
+			{
+				status: 200,
+				body: { configuredBy: null, misconfigured: true, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		const result = await deployment.ensureCustomDomain("prj_123", "sentinel.theholocron.dev");
+		expect(result).toBeNull();
+	});
+});
+
+describe("VercelDeployment.expectedDomainRecord", () => {
+	it("returns Vercel's recommended CNAME, DNS-only, with a single GET and no write", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					configuredBy: "CNAME",
+					misconfigured: false,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await deployment.expectedDomainRecord("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/v6/domains/sentinel.theholocron.dev/config");
+		expect(calls[0]?.url).toContain("projectIdOrName=prj_123");
+		expect(result).toEqual({
+			zone: "sentinel.theholocron.dev",
+			record: {
+				type: "CNAME",
+				name: "sentinel.theholocron.dev",
+				content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+				proxied: false,
+			},
+		});
+	});
+
+	it("returns null when Vercel recommends no CNAME", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { configuredBy: null, misconfigured: true, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		expect(await deployment.expectedDomainRecord("prj_123", "theholocron.dev")).toBeNull();
+	});
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// preview cleanup (holocron#1021)
+// ──────────────────────────────────────────────────────────────────────
+
+describe("VercelDeployment.deployFunction meta", () => {
+	it("tags the deployment with the given meta, and sends none when there is none", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_1", url: "a.vercel.app", readyState: "QUEUED" } },
+			{ status: 201, body: { id: "dpl_2", url: "b.vercel.app", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "index.js": "x" },
+			meta: { holocronPreview: "holocron-pr-7" },
+		});
+		await deployment.deployFunction("sentinel", { files: { "index.js": "x" } });
+		expect(calls[0]?.body).toMatchObject({ meta: { holocronPreview: "holocron-pr-7" } });
+		expect(calls[1]?.body).not.toHaveProperty("meta");
+	});
+});
+
+describe("VercelDeployment.listPreviewDeployments", () => {
+	const page = (deployments: unknown[], next?: number) => ({
+		status: 200,
+		body: { deployments, pagination: next ? { next } : {} },
+	});
+	const dpl = (id: string, meta: Record<string, string>, extra: Record<string, unknown> = {}) => ({
+		id,
+		url: `${id}.vercel.app`,
+		readyState: "READY",
+		createdAt: 1700000000000,
+		meta,
+		...extra,
+	});
+
+	it("reads only the given project's deployments and keeps those tagged for the branch alias", async () => {
+		const { deployment, calls } = makeDeployment([
+			page([
+				dpl("a", { holocronPreview: "holocron-pr-7" }),
+				dpl("b", { holocronPreview: "holocron-pr-8" }),
+				dpl("c", { githubCommitRef: "main" }),
+			]),
+		]);
+		const found = await deployment.listPreviewDeployments("sentinel", "holocron-pr-7");
+		expect(calls[0]?.url).toContain("/v6/deployments");
+		expect(calls[0]?.url).toContain("projectId=sentinel");
+		expect(found.map((d) => d.id)).toEqual(["a"]);
+		expect(found[0]).toMatchObject({ url: "a.vercel.app", status: "ready", createdAt: "2023-11-14T22:13:20.000Z" });
+	});
+
+	it("never offers a production or staging deployment, whatever its tag", async () => {
+		const { deployment } = makeDeployment([
+			page([dpl("p", { holocronPreview: "holocron-pr-7" }, { target: "production" })]),
+		]);
+		expect(await deployment.listPreviewDeployments("sentinel", "holocron-pr-7")).toEqual([]);
+	});
+
+	it("follows the pages until there is no next one", async () => {
+		const { deployment, calls } = makeDeployment([
+			page([dpl("a", { holocronPreview: "holocron-pr-7" })], 1699999999999),
+			page([dpl("b", { holocronPreview: "holocron-pr-7" })]),
+		]);
+		const found = await deployment.listPreviewDeployments("sentinel", "holocron-pr-7");
+		expect(found.map((d) => d.id)).toEqual(["a", "b"]);
+		expect(calls[1]?.url).toContain("until=1699999999999");
+	});
+
+	it("finds nothing for a project with no deployments", async () => {
+		const { deployment } = makeDeployment([page([])]);
+		expect(await deployment.listPreviewDeployments("sentinel", "holocron-pr-7")).toEqual([]);
+	});
+});
+
+describe("VercelDeployment.deletePreviewDeployments", () => {
+	it("deletes each deployment and counts them", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 200, body: { uid: "a", state: "DELETED" } },
+			{ status: 200, body: { uid: "b", state: "DELETED" } },
+		]);
+		expect(await deployment.deletePreviewDeployments("sentinel", ["a", "b"])).toBe(2);
+		expect(calls.map((c) => c.method)).toEqual(["DELETE", "DELETE"]);
+		expect(calls[1]?.url).toContain("/v13/deployments/b");
+	});
+
+	it("does not count, and does not fail on, a deployment that is already gone", async () => {
+		const { deployment } = makeDeployment([
+			{ status: 404, body: { error: { code: "not_found" } } },
+			{ status: 200, body: { uid: "b", state: "DELETED" } },
+		]);
+		expect(await deployment.deletePreviewDeployments("sentinel", ["a", "b"])).toBe(1);
+	});
+
+	it("fails on any other error", async () => {
+		const { deployment } = makeDeployment([{ status: 403, body: { error: { code: "forbidden" } } }]);
+		const err = await deployment.deletePreviewDeployments("sentinel", ["a"]).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(403);
+	});
+});
+
+describe("VercelDeployment.latestDeployment and listDomains", () => {
+	const dpl = (id: string, extra: Record<string, unknown> = {}) => ({
+		id,
+		url: `${id}.vercel.app`,
+		readyState: "READY",
+		createdAt: 1700000000000,
+		...extra,
+	});
+
+	it("returns the newest production deployment with its time, skipping previews", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					deployments: [dpl("prev"), dpl("prod", { target: "production", readyState: "ERROR" })],
+					pagination: {},
+				},
+			},
+		]);
+		expect(await deployment.latestDeployment("sentinel")).toMatchObject({
+			id: "prod",
+			status: "error",
+			target: "production",
+			createdAt: "2023-11-14T22:13:20.000Z",
+		});
+		expect(calls[0]?.url).toContain("projectId=sentinel");
+	});
+
+	it("leaves out the time when Vercel reports none", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { deployments: [{ id: "p", url: "p.vercel.app", readyState: "READY", target: "production" }] },
+			},
+		]);
+		const found = await deployment.latestDeployment("sentinel");
+		expect(found).toMatchObject({ id: "p", status: "ready" });
+		expect(found).not.toHaveProperty("createdAt");
+	});
+
+	it("is null with no production deployment", async () => {
+		const { deployment } = makeDeployment([{ status: 200, body: { deployments: [dpl("prev")] } }]);
+		expect(await deployment.latestDeployment("sentinel")).toBeNull();
+	});
+
+	it("lists the project's domain names", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { domains: [{ name: "sentinel.example.dev", apexName: "example.dev", verified: true }] },
+			},
+		]);
+		expect(await deployment.listDomains("sentinel")).toEqual(["sentinel.example.dev"]);
+	});
+});

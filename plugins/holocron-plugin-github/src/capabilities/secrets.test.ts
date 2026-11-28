@@ -1,0 +1,271 @@
+import type { SecretScope } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
+
+import { createGitHubClient } from "../rest.js";
+import { sodium } from "../sodium.js";
+import { GitHubSecrets } from "./secrets.js";
+
+const REPO = "theholocron/holocron";
+
+async function makeKeypair() {
+	await sodium.ready;
+	const { publicKey, privateKey } = sodium.crypto_box_keypair();
+	return {
+		publicKey,
+		privateKey,
+		publicKeyBase64: sodium.to_base64(publicKey, sodium.base64_variants.ORIGINAL),
+	};
+}
+
+function makeSecrets(responses: Parameters<typeof stubFetch>[0]) {
+	const { fetch, calls } = stubFetch(responses);
+	const rest = createGitHubClient({ token: "pat", fetch });
+	const secrets = new GitHubSecrets(rest, { repo: REPO });
+	return { secrets, calls };
+}
+
+describe("GitHubSecrets — repo scope", () => {
+	it("listSecrets → GET /actions/secrets and returns names", async () => {
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { total_count: 2, secrets: [{ name: "A" }, { name: "B" }] } },
+		]);
+		expect(await secrets.listSecrets({ kind: "repo" })).toEqual(["A", "B"]);
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/actions/secrets`);
+	});
+
+	it("setSecret fetches public key, encrypts, then PUTs the encrypted value", async () => {
+		const { publicKey, privateKey, publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { key_id: "keyid-1", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+
+		await secrets.setSecret({ kind: "repo" }, "CLERK_WEBHOOK_SECRET", "plaintext-value");
+
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/actions/secrets/public-key`);
+		expect(calls[1]?.method).toBe("PUT");
+		expect(calls[1]?.url).toBe(`https://api.github.com/repos/${REPO}/actions/secrets/CLERK_WEBHOOK_SECRET`);
+		const putBody = calls[1]?.body as { encrypted_value: string; key_id: string };
+		expect(putBody.key_id).toBe("keyid-1");
+
+		// Verify the encrypted payload decrypts back to the plaintext.
+		const ciphertext = sodium.from_base64(putBody.encrypted_value, sodium.base64_variants.ORIGINAL);
+		const decrypted = sodium.crypto_box_seal_open(ciphertext, publicKey, privateKey);
+		expect(sodium.to_string(decrypted)).toBe("plaintext-value");
+	});
+
+	it("deleteSecret → DELETE /actions/secrets/{name}", async () => {
+		const { secrets, calls } = makeSecrets([{ status: 204 }]);
+		await secrets.deleteSecret({ kind: "repo" }, "GONE");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/actions/secrets/GONE`);
+	});
+});
+
+describe("GitHubSecrets — environment scope", () => {
+	it("listSecrets → environments/{env}/secrets", async () => {
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { total_count: 1, secrets: [{ name: "PROD_X" }] } },
+		]);
+		expect(await secrets.listSecrets({ kind: "environment", name: "production" })).toEqual(["PROD_X"]);
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/environments/production/secrets`);
+	});
+
+	it("setSecret hits the environment-scoped public key + secret PUT", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { key_id: "env-keyid", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ kind: "environment", name: "staging" }, "KEY", "val");
+
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/environments/staging/secrets/public-key`);
+		expect(calls[1]?.url).toBe(`https://api.github.com/repos/${REPO}/environments/staging/secrets/KEY`);
+	});
+
+	it("deleteSecret → DELETE environments/{env}/secrets/{name}", async () => {
+		const { secrets, calls } = makeSecrets([{ status: 204 }]);
+		await secrets.deleteSecret({ kind: "environment", name: "staging" }, "KEY");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toBe(`https://api.github.com/repos/${REPO}/environments/staging/secrets/KEY`);
+	});
+});
+
+describe("GitHubSecrets — organization scope", () => {
+	it("listSecrets → /orgs/{org}/actions/secrets", async () => {
+		const { secrets, calls } = makeSecrets([{ status: 200, body: { total_count: 0, secrets: [] } }]);
+		await secrets.listSecrets({ kind: "organization", name: "theholocron" });
+		expect(calls[0]?.url).toBe("https://api.github.com/orgs/theholocron/actions/secrets");
+	});
+
+	it("setSecret keeps visibility=all when the scope names no readers (an older caller; the CLI always names them)", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { key_id: "org-keyid", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ kind: "organization", name: "theholocron" }, "SHARED", "val");
+		const body = calls[1]?.body as Record<string, unknown>;
+		expect(body.visibility).toBe("all");
+		expect(body.key_id).toBe("org-keyid");
+	});
+});
+
+describe("GitHubSecrets — organization readers", () => {
+	const org = { kind: "organization", name: "theholocron" } as const;
+
+	it("setSecret with selected readers resolves each name to an id and sends visibility=selected with the ids", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { id: 11, default_branch: "main", full_name: "theholocron/holocron" } },
+			{ status: 200, body: { id: 22, default_branch: "main", full_name: "theholocron/.github" } },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ ...org, visibility: "selected", repos: ["holocron", ".github"] }, "TOKEN", "val");
+		expect(calls[0]?.url).toBe("https://api.github.com/repos/theholocron/holocron");
+		expect(calls[1]?.url).toBe("https://api.github.com/repos/theholocron/.github");
+		const body = calls[3]?.body as Record<string, unknown>;
+		expect(body.visibility).toBe("selected");
+		expect(body.selected_repository_ids).toEqual([11, 22]);
+	});
+
+	it("asks GitHub for a repository once, however many secrets name it", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { id: 11, default_branch: "main", full_name: "theholocron/holocron" } },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		const scope: SecretScope = { ...org, visibility: "selected", repos: ["holocron"] };
+		await secrets.setSecret(scope, "ONE", "a");
+		await secrets.setSecret(scope, "TWO", "b");
+		expect(calls.filter((c) => c.url.endsWith("/repos/theholocron/holocron"))).toHaveLength(1);
+		expect(calls).toHaveLength(5);
+	});
+
+	it("writes nothing and names the repository when a name does not resolve", async () => {
+		const { secrets, calls } = makeSecrets([{ status: 404, body: { message: "Not Found" } }]);
+		const err = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: ["nope"] }, "TOKEN", "val")
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/could not resolve repository theholocron\/nope/);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("reports a failure that is not an Error by its text", async () => {
+		const client = {
+			repos: { getRepo: () => Promise.reject("boom") },
+			secrets: {},
+		} as never;
+		const secrets = new GitHubSecrets(client, { repo: REPO });
+		const err = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: ["x"] }, "T", "v")
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toBe("could not resolve repository theholocron/x: boom");
+	});
+
+	it("refuses selected readers with no repositories", async () => {
+		const { secrets, calls } = makeSecrets([]);
+		const err = await secrets.setSecret({ ...org, visibility: "selected" }, "T", "v").catch((e: unknown) => e);
+		expect((err as Error).message).toMatch(/needs a non-empty repos list/);
+		const empty = await secrets
+			.setSecret({ ...org, visibility: "selected", repos: [] }, "T", "v")
+			.catch((e: unknown) => e);
+		expect((empty as Error).message).toMatch(/needs a non-empty repos list/);
+		expect(calls).toHaveLength(0);
+	});
+
+	it("sends visibility=private as given, with no repository ids", async () => {
+		const { publicKeyBase64 } = await makeKeypair();
+		const { secrets, calls } = makeSecrets([
+			{ status: 200, body: { key_id: "k", key: publicKeyBase64 } },
+			{ status: 204 },
+		]);
+		await secrets.setSecret({ ...org, visibility: "private" }, "T", "v");
+		const body = calls[1]?.body as Record<string, unknown>;
+		expect(body.visibility).toBe("private");
+		expect(body).not.toHaveProperty("selected_repository_ids");
+	});
+
+	it("listSecretAccess gives visibility by name and the repositories of a selected secret, never a value", async () => {
+		const { secrets, calls } = makeSecrets([
+			{
+				status: 200,
+				body: {
+					total_count: 2,
+					secrets: [
+						{ name: "OPEN", visibility: "all" },
+						{ name: "NARROW", visibility: "selected" },
+					],
+				},
+			},
+			{ status: 200, body: { total_count: 1, repositories: [{ name: "holocron" }] } },
+		]);
+		expect(await secrets.listSecretAccess(org)).toEqual({
+			OPEN: { visibility: "all" },
+			NARROW: { visibility: "selected", repos: ["holocron"] },
+		});
+		expect(calls[1]?.url).toContain("/orgs/theholocron/actions/secrets/NARROW/repositories");
+	});
+
+	it("listSecretAccess has nothing to say for a scope without visibility", async () => {
+		const { secrets, calls } = makeSecrets([]);
+		expect(await secrets.listSecretAccess({ kind: "repo" })).toEqual({});
+		expect(calls).toHaveLength(0);
+	});
+});
+
+describe("GitHubSecrets — token per scope", () => {
+	function makeTwoClient() {
+		const repoStub = stubFetch([{ status: 200, body: { total_count: 0, secrets: [] } }]);
+		const orgStub = stubFetch([{ status: 200, body: { total_count: 0, secrets: [] } }]);
+		const secrets = new GitHubSecrets(
+			createGitHubClient({ token: "admin-pat", fetch: repoStub.fetch }),
+			{ repo: REPO },
+			createGitHubClient({ token: "org-pat", fetch: orgStub.fetch })
+		);
+		return { secrets, repoStub, orgStub };
+	}
+
+	it("lists org secrets with the org client and repo secrets with the repo client", async () => {
+		const { secrets, repoStub, orgStub } = makeTwoClient();
+		await secrets.listSecrets({ kind: "organization", name: "theholocron" });
+		expect(orgStub.calls).toHaveLength(1);
+		expect(orgStub.calls[0]?.headers.authorization).toBe("Bearer org-pat");
+		expect(repoStub.calls).toHaveLength(0);
+
+		const second = makeTwoClient();
+		await second.secrets.listSecrets({ kind: "repo" });
+		expect(second.repoStub.calls[0]?.headers.authorization).toBe("Bearer admin-pat");
+		expect(second.orgStub.calls).toHaveLength(0);
+	});
+
+	it("uses the repo client for environment secrets and for deletes by scope", async () => {
+		const repoStub = stubFetch([{ status: 204 }]);
+		const orgStub = stubFetch([{ status: 204 }]);
+		const secrets = new GitHubSecrets(
+			createGitHubClient({ token: "admin-pat", fetch: repoStub.fetch }),
+			{ repo: REPO },
+			createGitHubClient({ token: "org-pat", fetch: orgStub.fetch })
+		);
+		await secrets.deleteSecret({ kind: "environment", name: "production" }, "X");
+		await secrets.deleteSecret({ kind: "organization", name: "theholocron" }, "Y");
+		expect(repoStub.calls[0]?.headers.authorization).toBe("Bearer admin-pat");
+		expect(orgStub.calls[0]?.headers.authorization).toBe("Bearer org-pat");
+	});
+
+	it("uses its single client for every scope when no org client is given", async () => {
+		const stub = stubFetch([
+			{ status: 200, body: { total_count: 0, secrets: [] } },
+			{ status: 200, body: { total_count: 0, secrets: [] } },
+		]);
+		const secrets = new GitHubSecrets(createGitHubClient({ token: "only-pat", fetch: stub.fetch }), { repo: REPO });
+		await secrets.listSecrets({ kind: "repo" });
+		await secrets.listSecrets({ kind: "organization", name: "theholocron" });
+		expect(stub.calls.map((c) => c.headers.authorization)).toEqual(["Bearer only-pat", "Bearer only-pat"]);
+	});
+});
