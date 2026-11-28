@@ -1,3 +1,9 @@
+## [1.17.0-alpha.7](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.6...utils-v1.17.0-alpha.7) (2026-11-28)
+
+### Bug Fixes
+
+* 🐛 close the open CodeQL alerts ([#2654](https://github.com/theholocron/holocron/issues/2654)) ([d3a4090](https://github.com/theholocron/holocron/commit/d3a40901d05078fd53d8deb29e454d201e76488f)), references [#2651](https://github.com/theholocron/holocron/issues/2651)
+
 ## [1.17.0-alpha.6](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.5...utils-v1.17.0-alpha.6) (2026-11-26)
 
 ### Features
