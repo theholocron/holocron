@@ -48,6 +48,9 @@
  * released (the plugins sit at 5.0.0-alpha.132 on disk and 5.0.0-alpha.393 on npm, and each peers on exactly one CLI
  * version), so an `@theholocron/*` dependency installed at an `alpha` prerelease is pinned to npm's `alpha` tag
  * instead (`pinAlphaReleases()`); the lookup fails when npm cannot be reached, rather than staging the stale version.
+ * A release that is still publishing leaves the tags disagreeing (one package at the new release, another at the old),
+ * which Vercel's install rejects, so `settleAlphaPins()` looks them up again after a wait and fails, naming the
+ * packages, if they never agree.
  */
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -59,7 +62,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { alphaRelease } from "./alpha-release/index.js";
 import type { StageDeployInput, StageDeployReport } from "./deploy-stage.type.js";
 import { installedPeers } from "./installed-peers.js";
-import { pinAlphaReleases } from "./pin-alpha-releases/index.js";
+import { settleAlphaPins } from "./settle-alpha-pins/index.js";
 import { undeclaredExternals } from "./undeclared-externals.js";
 import { vercelEngines } from "./vercel-engines.js";
 
@@ -128,9 +131,14 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 		);
 		// A workspace package keeps the version it was last committed at, which a release does not update, so what is
 		// installed can be far behind what npm serves; pin the `alpha` tag instead.
-		const { dependencies, changes, mismatches } = pinAlphaReleases(installed, input.alphaRelease ?? alphaRelease);
+		// A release that is still publishing makes the tags disagree; the pins are looked up again after a wait, and the
+		// stage fails naming the packages if they never settle, rather than staging a tree Vercel cannot install.
+		const { dependencies, changes } = settleAlphaPins(installed, input.alphaRelease ?? alphaRelease, {
+			print,
+			...(input.sleep ? { sleep: input.sleep } : {}),
+			...(input.pinWaits ? { waits: input.pinWaits } : {}),
+		});
 		for (const change of changes) print(`  pinned to npm's alpha tag: ${change}`);
-		for (const mismatch of mismatches) print(`  warning: ${mismatch}`);
 
 		rmSync(outDir, { recursive: true, force: true });
 		mkdirSync(join(outDir, "api"), { recursive: true });

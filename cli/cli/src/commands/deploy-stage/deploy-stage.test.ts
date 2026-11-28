@@ -83,7 +83,7 @@ describe("stageDeploy", () => {
 			resolvePeers: () => ({ "@theholocron/cli": "5.0.0-alpha.394" }),
 			alphaRelease: (name) =>
 				name === "@theholocron/plugin"
-					? { version: "5.0.0-alpha.393", peerDependencies: { "@theholocron/cli": "5.0.0-alpha.392" } }
+					? { version: "5.0.0-alpha.393", peerDependencies: { "@theholocron/cli": "5.0.0-alpha.393" } }
 					: { version: "5.0.0-alpha.393" },
 			print: (l) => lines.push(l),
 		});
@@ -95,7 +95,27 @@ describe("stageDeploy", () => {
 		expect(staged.dependencies).toEqual(report.dependencies);
 		expect(lines).toContain("  pinned to npm's alpha tag: @theholocron/plugin 5.0.0-alpha.132 → 5.0.0-alpha.393");
 		expect(lines).toContain("  pinned to npm's alpha tag: @theholocron/cli 5.0.0-alpha.394 → 5.0.0-alpha.393");
-		expect(lines.some((l) => l.startsWith("  warning: @theholocron/plugin@5.0.0-alpha.393 peers"))).toBe(true);
+	});
+
+	it("looks the alpha tags up again while they disagree, and fails naming the packages if they never settle", () => {
+		makePackage("export {};", { "@theholocron/plugin": "workspace:^" });
+		const waited: number[] = [];
+		const report = stageDeploy({
+			packageDir: dir,
+			resolveVersion: () => "5.0.0-alpha.132",
+			resolvePeers: () => ({ "@theholocron/cli": "5.0.0-alpha.394" }),
+			alphaRelease: (name) =>
+				name === "@theholocron/plugin"
+					? { version: "5.0.0-alpha.393", peerDependencies: { "@theholocron/cli": "5.0.0-alpha.392" } }
+					: { version: "5.0.0-alpha.393" },
+			pinWaits: [1, 2],
+			sleep: (ms) => waited.push(ms),
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("still do not agree");
+		expect(report.message).toContain("@theholocron/plugin@5.0.0-alpha.393 peers @theholocron/cli@5.0.0-alpha.392");
+		expect(waited).toEqual([1, 2]);
+		expect(existsSync(join(dir, ".vercel-deploy"))).toBe(false);
 	});
 
 	it("fails, writing nothing, when npm's alpha tag cannot be looked up", () => {
