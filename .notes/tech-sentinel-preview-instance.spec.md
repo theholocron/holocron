@@ -53,11 +53,18 @@ Decided with the maintainer on 2026-11-27 and 2026-11-28.
   preview App is a human step done after the instance is verified (below), and until then both are not installed together.
 - **Deploy on `workflow_run`.** A caller (`ci.deploy-sentinel-preview.yml`) runs after the release workflow finishes
   successfully on `alpha`, so the release has published every package before the deploy reads the tags (#2657 makes the
-  lookup retry as well). It is a separate caller and job with its own concurrency group; production's caller
-  (`ci.deploy-sentinel.yml`, the manual job) is not touched.
-- **Sentinel's release-time `deploy` task moves.** The `on: release, channel: alpha` task runs `pnpm run deploy`, which is
-  production's. It changes to the preview instance's deploy, so a release no longer deploys `alpha` code to production.
-  Production is deployed by hand from the manual job, and from `main` releases once there are any.
+  lookup retry as well). It is a separate caller and job with its own concurrency group, and it deploys only when the
+  release changed Sentinel or a package it bundles (the paths `deploy on-release` already uses).
+- **Production deploys itself from `main`, and only from `main`.** Sentinel's release-time `deploy` task
+  (`on: release`) today names `channel: alpha`, and runs `pnpm run deploy`, which deploys with `--target production`: alpha
+  code reaches production on release. It changes to the default channel (`main`), so a stable release that changes Sentinel or
+  a package it bundles deploys production, through the machinery `deploy on-release` already has: it waits for npm to serve
+  the release's packages, diffs from the commit last deployed (`deployed/theholocron-sentinel`, so a missed deploy is made
+  up by the next release) and records the tag only after a success. The path trigger on a push to `main` that touches
+  `apps/sentinel/**` (`ci.deploy-sentinel.yml`) is dropped: it deploys before the release has published the bundled packages,
+  and the release job covers it. `workflow_dispatch` stays, as the way to re-run a deploy by hand. Both run under the
+  `sentinel-deploy` concurrency group, so two never overlap. Because `alpha` reaches `main` only when a stable release is cut,
+  production runs stable code and the preview instance runs `alpha`.
 - **Crons stay with production.** `/api/scheduled` and its `CRON_SECRET` belong to the production project (the dispatch
   of `sync-incidents` and the others, #2609). The preview Environment leaves `CRON_SECRET` and `SENTINEL_SCHEDULE_REPO`
   out, so its `/api/scheduled` answers 503 and a call that reaches it does nothing. The staged preview payload leaves
@@ -93,7 +100,8 @@ and is made with `holocron new github-app`, which writes its id, key and webhook
   project's Vercel preview target today, which holds production's variables; moving it is a separate change.
 - A second Discord bot or Checkly checks for the preview instance. Its Environment can hold copies of the same values, by
   hand; monitoring a second hostname is not part of this.
-- Deploying production from `main` automatically. The manual job stays.
+- Who may approve a production deploy. It is automatic on a stable release, like every other deploy-on-release; a gate
+  (a protected Environment with a reviewer) is a separate choice.
 
 ## Verification
 
@@ -111,7 +119,8 @@ domain creation, that a project's own production deployment serves the domain, t
    layer, `PluginToken.expect`), docs and tests.
 3. `instances.preview` in the config schema; `deploy <app>` and `sync <app>` use it; the staged payload without `crons`.
 4. `setup` makes the project and domain; the manifest and `githubApps` entry; `doctor github-app` reads it.
-5. The `workflow_run` deploy caller, and Sentinel's `deploy` task moved off production.
+5. The `workflow_run` deploy caller for the preview instance; Sentinel's `deploy` task moved to the `main` channel; the push
+   trigger dropped from production's caller.
 6. Human steps, in order: the `preview` Environment in 1Password, `new github-app` and its installation, `setup`, `sync
 sentinel --env preview`, the first deploy, a pull request's checks read from the preview App, then moving this repository's
    installation from the production App to it.
