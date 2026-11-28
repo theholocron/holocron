@@ -150,6 +150,31 @@ describe("stageDeploy", () => {
 		expect(readFileSync(join(dir, ".vercel-deploy", ".npmrc"), "utf8")).toBe("legacy-peer-deps=true\n");
 	});
 
+	it("copies vercel.json as it is, crons included, unless asked to leave them out", () => {
+		makePackage("export {};");
+		const config = { crons: [{ path: "/api/scheduled?task=x", schedule: "*/10 * * * *" }], maxDuration: 300 };
+		write("vercel.json", JSON.stringify(config));
+		stageDeploy({ packageDir: dir, resolveVersion });
+		expect(JSON.parse(readFileSync(join(dir, ".vercel-deploy", "vercel.json"), "utf8"))).toEqual(config);
+	});
+
+	it("leaves the crons out of vercel.json, and nothing else, with omitCrons", () => {
+		makePackage("export {};");
+		write("vercel.json", JSON.stringify({ crons: [{ path: "/a", schedule: "* * * * *" }], maxDuration: 300 }));
+		const lines: string[] = [];
+		const out = join(dir, "preview");
+		const report = stageDeploy({
+			packageDir: dir,
+			outDir: out,
+			resolveVersion,
+			omitCrons: true,
+			print: (l) => lines.push(l),
+		});
+		expect(report.status).toBe("ok");
+		expect(JSON.parse(readFileSync(join(out, "vercel.json"), "utf8"))).toEqual({ maxDuration: 300 });
+		expect(lines).toContain("  left the crons out of vercel.json");
+	});
+
 	it("writes to --out when given, replacing what was there", () => {
 		makePackage("export {};");
 		const out = join(dir, "elsewhere");

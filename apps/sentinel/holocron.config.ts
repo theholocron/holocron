@@ -185,11 +185,26 @@ export default defineConfig({
 						"HOLOCRON_USER_SYNC_TOKEN",
 					],
 				},
+				// The preview instance's own entry (#2662): its own Environment, read with no fallback to `prod`. No
+				// `CRON_SECRET`: the crons belong to production, and the preview payload has none.
+				{
+					layer: "preview",
+					prefix: "SENTINEL_",
+					keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+				},
 			],
 		},
 	},
 	providers: {
-		deployment: ["vercel", { domain: sentinelHost }],
+		// The preview instance (spec `tech-sentinel-preview-instance`, #2659): a project of its own that `deploy sentinel
+		// --env preview` and `sync sentinel --env preview` address, so `alpha` code never runs on production's servers.
+		deployment: [
+			"vercel",
+			{
+				domain: sentinelHost,
+				instances: { preview: { project: "sentinel-preview", domain: `sentinel-preview.${domain}` } },
+			},
+		],
 		dns: "cloudflare",
 		tunnels: "cloudflare",
 		monitoring: [

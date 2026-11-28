@@ -56,6 +56,13 @@ anything is built, the project must serve that domain (`Deployment.listDomains()
 with both names and writes nothing. The app is then built (`pnpm run build`), staged (`deploy stage`) and its files
 deployed (`deploy --files`), so the result is what the app's `deploy` script did.
 
+**A preview instance.** An app can declare one in its `deployment` options (`instances: { preview: { project, domain } }`;
+Sentinel's is `sentinel-preview`). `--env preview` then deploys to that project, as the project's own production
+deployment, from a payload whose `vercel.json` has no `crons` (the crons belong to production), and the project must
+serve the instance's `domain` before anything is written. The payload is staged apart from production's
+(`.vercel-deploy-preview`). An app with no instance keeps the earlier meaning of `--env preview`, a Vercel preview
+deployment of its one project.
+
 An app with no `deployment` provider has nothing to deploy, and the command says so and exits 0: Comlink's Worker is
 made by `setup notifications`, which has the channel webhooks it needs, and
 Council is an Obsidian plugin installed by hand. `--dry-run` runs the domain check, then lists what it would do.

@@ -28,7 +28,7 @@ const everything: AppEnv = { targets: ["production", "preview"] };
 
 /** Fakes for every seam; `run()` calls `runAppDeploy` with them, `over` replacing any. */
 function setup({ domains = ["sentinel.example"], hasDeployment = true, dryRun = false } = {}) {
-	const deployment = { providerName: "vercel", listDomains: vi.fn(async () => domains) };
+	const deployment = { providerName: "vercel", listDomains: vi.fn(async (_project: string) => domains) };
 	const loader = {
 		load: vi.fn(async () => {}),
 		has: vi.fn(() => hasDeployment),
@@ -43,7 +43,7 @@ function setup({ domains = ["sentinel.example"], hasDeployment = true, dryRun = 
 		load,
 		print: vi.fn(),
 		build: vi.fn(() => ({ status: "built" as const })),
-		stage: vi.fn(() => ({ status: "ok" as const, outDir: "/r/apps/sentinel/.vercel-deploy" })),
+		stage: vi.fn((_input: object) => ({ status: "ok" as const, outDir: "/r/apps/sentinel/.vercel-deploy" })),
 		deployFiles: vi.fn(async (_input: object) => ({ deployment: null, status: "ok" as const })),
 	};
 	const run = (over: Partial<RunAppDeployInput> = {}) =>
@@ -74,6 +74,84 @@ describe("runAppDeploy", () => {
 		expect(s.deployFiles).toHaveBeenCalledTimes(2);
 		expect(s.deployFiles.mock.calls[0]![0]).toHaveProperty("target", "production");
 		expect(s.deployFiles.mock.calls[1]![0]).not.toHaveProperty("target");
+	});
+
+	describe("an app that declares a preview instance", () => {
+		const withInstance = app({
+			config: configOf({
+				deployment: {
+					cardinality: "single",
+					tuple: tuple("vercel", {
+						domain: "sentinel.example",
+						instances: { preview: { project: "sentinel-preview", domain: "preview.example" } },
+					}),
+				},
+			}),
+		});
+
+		it("deploys preview to the instance's own project as its production, from a payload without the crons", async () => {
+			const s = setup();
+			s.stage.mockImplementation(((input: { outDir?: string }) => ({
+				status: "ok" as const,
+				outDir: input.outDir ?? "/r/apps/sentinel/.vercel-deploy",
+			})) as never);
+			s.deployment.listDomains.mockImplementation(async (project: string) =>
+				project === "sentinel-preview" ? ["preview.example"] : ["sentinel.example"]
+			);
+			const report = await s.run({ app: withInstance, env: everything });
+			expect(report.status).toBe("ok");
+			expect(s.stage).toHaveBeenCalledTimes(2);
+			expect(s.stage.mock.calls[0]![0]).not.toHaveProperty("omitCrons");
+			expect(s.stage.mock.calls[1]![0]).toMatchObject({
+				omitCrons: true,
+				outDir: "/r/apps/sentinel/.vercel-deploy-preview",
+			});
+			expect(s.deployFiles.mock.calls[0]![0]).toMatchObject({
+				projectId: "sentinel",
+				dir: "/r/apps/sentinel/.vercel-deploy",
+				target: "production",
+			});
+			expect(s.deployFiles.mock.calls[1]![0]).toMatchObject({
+				projectId: "sentinel-preview",
+				dir: "/r/apps/sentinel/.vercel-deploy-preview",
+				target: "production",
+			});
+		});
+
+		it("stops before building when the instance's project does not serve its domain", async () => {
+			const s = setup();
+			s.deployment.listDomains.mockImplementation(async (project: string) =>
+				project === "sentinel-preview" ? [] : ["sentinel.example"]
+			);
+			const report = await s.run({ app: withInstance, env: everything });
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/"sentinel-preview" does not serve preview\.example/);
+			expect(s.build).not.toHaveBeenCalled();
+		});
+
+		it("names both projects on a dry run and writes nothing", async () => {
+			const s = setup({ dryRun: true });
+			s.deployment.listDomains.mockImplementation(async (project: string) =>
+				project === "sentinel-preview" ? ["preview.example"] : ["sentinel.example"]
+			);
+			const report = await s.run({ app: withInstance, env: everything });
+			expect(report).toMatchObject({ status: "dry-run" });
+			expect(report.message).toContain("sentinel (production) + sentinel-preview (preview)");
+			expect(s.build).not.toHaveBeenCalled();
+		});
+
+		it("fails with the config problem when the instance has no project", async () => {
+			const s = setup();
+			const broken = app({
+				config: configOf({
+					deployment: { cardinality: "single", tuple: tuple("vercel", { instances: { preview: {} } }) },
+				}),
+			});
+			const report = await s.run({ app: broken, env: everything });
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/instances\.preview/);
+			expect(s.build).not.toHaveBeenCalled();
+		});
 	});
 
 	it("stops before building when the project does not serve the app's domain", async () => {

@@ -7,6 +7,11 @@ export interface StageDeployInput {
 	/** Where the payload goes. Default `<packageDir>/.vercel-deploy`. */
 	outDir?: string;
 	print?: (line: string) => void;
+	/**
+	 * Leaves the `crons` of `vercel.json` out of the payload. For an instance the crons do not belong to (a preview
+	 * instance beside production, which Vercel would otherwise call on a schedule).
+	 */
+	omitCrons?: boolean;
 	/** Injectable for testing. */
 	resolveVersion?: (packageDir: string, name: string) => string;
 	/** The required peers of an installed dependency with their installed versions. Injectable for testing. */

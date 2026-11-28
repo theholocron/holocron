@@ -39,7 +39,7 @@ function setup({
 	hasDeployment = true,
 	dryRun = false,
 } = {}) {
-	const deployment = { providerName: "vercel", listDomains: vi.fn(async () => domains) };
+	const deployment = { providerName: "vercel", listDomains: vi.fn(async (_project: string) => domains) };
 	const loader = {
 		load: vi.fn(async () => {}),
 		has: vi.fn(() => hasDeployment),
@@ -112,6 +112,76 @@ describe("runAppSync", () => {
 			targets: ["preview"],
 			deployFilter: { keys: ["ONLY_PREVIEW"] },
 		});
+	});
+
+	it("sends preview to the instance's own project, as its production, after checking its domain", async () => {
+		const instanced = {
+			providers: {
+				deployment: {
+					cardinality: "single",
+					tuple: tuple("vercel", {
+						domain: "sentinel.example",
+						instances: { preview: { project: "sentinel-preview", domain: "preview.example" } },
+					}),
+				},
+			},
+			repo: {
+				secrets: {
+					deploy: [
+						{ environment: "acme/repo - prod", prefix: "SENTINEL_" },
+						{ environment: "acme/repo - preview", prefix: "SENTINEL_" },
+					],
+				},
+			},
+		} as unknown as ResolvedHolocronConfig;
+		const s = setup({ resolved: instanced });
+		s.deployment.listDomains.mockImplementation(async (project: string) =>
+			project === "sentinel-preview" ? ["preview.example"] : ["sentinel.example"]
+		);
+		const report = await s.run(
+			app("sentinel", instanced),
+			{ resolveEnvironment: vi.fn(async (layer: string) => `acme/repo - ${layer}`) },
+			everything
+		);
+		expect(report.status).toBe("ok");
+		expect(s.syncSecrets.mock.calls[0]![0]).toMatchObject({ projectId: "sentinel", targets: ["production"] });
+		expect(s.syncSecrets.mock.calls[1]![0]).toMatchObject({
+			projectId: "sentinel-preview",
+			targets: ["production"],
+			environmentId: "acme/repo - preview",
+		});
+	});
+
+	it("writes nothing when the instance's project does not serve its domain", async () => {
+		const instanced = {
+			providers: {
+				deployment: {
+					cardinality: "single",
+					tuple: tuple("vercel", {
+						instances: { preview: { project: "sentinel-preview", domain: "preview.example" } },
+					}),
+				},
+			},
+			repo: { secrets: { deploy } },
+		} as unknown as ResolvedHolocronConfig;
+		const s = setup({ resolved: instanced, domains: [] });
+		const report = await s.run(app("sentinel", instanced), {}, { targets: ["preview"] });
+		expect(report.status).toBe("fail");
+		expect(s.syncSecrets).not.toHaveBeenCalled();
+	});
+
+	it("fails with the config problem when the instance has no project", async () => {
+		const broken = {
+			providers: {
+				deployment: { cardinality: "single", tuple: tuple("vercel", { instances: { preview: {} } }) },
+			},
+			repo: { secrets: { deploy } },
+		} as unknown as ResolvedHolocronConfig;
+		const s = setup({ resolved: broken });
+		const report = await s.run(app("sentinel", broken), {}, { targets: ["preview"] });
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/instances\.preview/);
+		expect(s.syncSecrets).not.toHaveBeenCalled();
 	});
 
 	it("gives preview no filter, so the sync stops, when the config has no deploy entry for the preview layer", async () => {

@@ -91,7 +91,7 @@ dist
 apps/sentinel/.tmp
 # apps/sentinel's staged deploy artifact (scripts/stage-deploy.mjs) —
 # api/ + dist/ + a trimmed package.json, built fresh before every deploy
-apps/sentinel/.vercel-deploy
+apps/sentinel/.vercel-deploy*
 # datapad's own loadConfigFromContent tests write real fixture files inside
 # the package tree to prove node_modules resolution (see load.test.ts)
 cli/datapad/.test-tmp-*
