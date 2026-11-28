@@ -1,13 +1,19 @@
+import { join } from "node:path";
+
 import { style } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import { checkProjectDomain } from "../app-domain-check/index.js";
+import type { AppTarget } from "../app-env/index.js";
+import { type AppInstance, appInstance } from "../app-instance/index.js";
 import { appPlan } from "../app-plan/index.js";
 import type { AppDeployReport, RunAppDeployInput } from "./app-deploy.type.js";
 
 /**
- * `holocron deploy <app> --env <env>`: builds the app, stages it and deploys the staged files to the project that takes
- * the app folder's name, once for each environment `--env` names (production, then preview). Before anything is written the
- * project must serve the app's configured `domain`. An app with no `deployment` provider has nothing to deploy and is
+ * `holocron deploy <app> --env <env>`: builds the app, stages it and deploys the staged files, once for each environment
+ * `--env` names (production, then preview). Production goes to the project that takes the app folder's name; preview goes
+ * to the instance the app declares (`appInstance()`: a project of its own, its crons left out), or to a preview deployment
+ * of the same project when it declares none. Before anything is written every project must serve its configured `domain`. An app with no `deployment` provider has nothing to deploy and is
  * reported, not failed (Comlink's Worker is made by `setup notifications`; Council is installed by hand).
  *
  * @param input - The app, the environment, its loaded config and the seams tests replace.
@@ -36,33 +42,54 @@ export async function runAppDeploy(input: RunAppDeployInput): Promise<AppDeployR
 
 	await loader.load();
 	if (!loader.has("deployment")) return fail(`${app.name}: the deployment provider did not load`);
-	const domain = plan.deployment.options.domain;
-	const checked = await checkProjectDomain(
-		loader.get("deployment"),
-		app.name,
-		typeof domain === "string" ? domain : undefined
-	);
-	if (checked.status === "fail") return fail(checked.message);
-	print(`  ${style.dim(checked.message)}`);
+	let instances: { target: AppTarget; instance: AppInstance }[];
+	try {
+		instances = env.targets.map((target) => ({
+			target,
+			instance: appInstance(app.name, plan.deployment!.options, target),
+		}));
+	} catch (err) {
+		return fail(errorMessage(err));
+	}
+	// Every project must serve its domain before anything is written.
+	for (const { instance } of instances) {
+		const checked = await checkProjectDomain(loader.get("deployment"), instance.project, instance.domain);
+		if (checked.status === "fail") return fail(checked.message);
+		print(`  ${style.dim(checked.message)}`);
+	}
 
 	if (dryRun) {
-		const message = `would: build and stage ${app.path}, then deploy it to ${app.name} (${env.targets.join(" + ")})`;
+		const where = instances.map(({ target, instance }) => `${instance.project} (${target})`).join(" + ");
+		const message = `would: build and stage ${app.path}, then deploy it to ${where}`;
 		print(`  ${style.dim(`… ${message}`)}`);
 		return { status: "dry-run", message };
 	}
 
 	const built = input.build(app.dir);
 	if (built.status === "fail") return fail(built.message);
-	const staged = input.stage({ packageDir: app.dir, print });
-	if (staged.status === "fail" || !staged.outDir) return fail(`stage: ${staged.message ?? "no payload was made"}`);
 
-	for (const target of env.targets) {
+	// A preview instance is staged on its own, without the crons, so the two payloads never overwrite each other.
+	const staged = new Map<boolean, string>();
+	for (const { target, instance } of instances) {
+		let dir = staged.get(instance.omitCrons);
+		if (!dir) {
+			const result = input.stage({
+				packageDir: app.dir,
+				print,
+				...(instance.omitCrons ? { omitCrons: true, outDir: join(app.dir, ".vercel-deploy-preview") } : {}),
+			});
+			if (result.status === "fail" || !result.outDir) {
+				return fail(`stage: ${result.message ?? "no payload was made"}`);
+			}
+			dir = result.outDir;
+			staged.set(instance.omitCrons, dir);
+		}
 		const report = await input.deployFiles({
 			loaded,
 			context,
-			projectId: app.name,
-			dir: staged.outDir,
-			...(target === "production" ? { target: "production" as const } : {}),
+			projectId: instance.project,
+			dir,
+			...(instance.production ? { target: "production" as const } : {}),
 			loader,
 			print,
 		});

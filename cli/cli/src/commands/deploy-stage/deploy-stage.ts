@@ -151,7 +151,16 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 			copyFileSync(join(packageDir, "api", entry), join(outDir, "api", entry));
 		}
 		copyFileSync(distIndex, join(outDir, "dist", "index.mjs"));
-		copyFileSync(join(packageDir, "vercel.json"), join(outDir, "vercel.json"));
+		if (input.omitCrons) {
+			const vercelConfig = JSON.parse(readFileSync(join(packageDir, "vercel.json"), "utf8")) as {
+				crons?: unknown;
+			};
+			delete vercelConfig.crons;
+			writeFileSync(join(outDir, "vercel.json"), stringifyJson(vercelConfig));
+			print("  left the crons out of vercel.json");
+		} else {
+			copyFileSync(join(packageDir, "vercel.json"), join(outDir, "vercel.json"));
+		}
 
 		const deployPkg = {
 			name: pkg.name,

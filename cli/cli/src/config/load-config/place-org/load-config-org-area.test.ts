@@ -92,6 +92,12 @@ describe("the org area in this repo (#1820)", () => {
 				prefix: "SENTINEL_",
 				keys: ["CRON_SECRET", "HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
 			},
+			// And the preview instance's own entry (#2662): its own Environment, no `CRON_SECRET` (the crons are production's).
+			{
+				environment: "theholocron/holocron - preview",
+				prefix: "SENTINEL_",
+				keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+			},
 		]);
 		delete resolved.repo;
 		// And the Postman collection (#2172): Sentinel's `tooling` provider pushes its collection and environment to
@@ -121,6 +127,13 @@ describe("the org area in this repo (#1820)", () => {
 			],
 		});
 		delete providers.tooling;
+		// And the preview instance (#2663): a project of its own beside production's, which the `deployment` options name.
+		const deploymentOptions = (providers.deployment as { tuple: { options: Record<string, unknown> } }).tuple
+			.options;
+		expect(deploymentOptions.instances).toEqual({
+			preview: { project: "sentinel-preview", domain: "sentinel-preview.theholocron.dev" },
+		});
+		delete deploymentOptions.instances;
 		// And (#2302): each of Sentinel's two checks carries the tag a dashboard and the status page pick it by.
 		const checks = (providers.monitoring as { tuple: { options: { checks: { tags?: string[] }[] } } }).tuple.options
 			.checks;

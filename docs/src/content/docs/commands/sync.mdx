@@ -53,6 +53,10 @@ What it does for each app comes from the app's own `holocron.config`, never its 
 | a `workers` provider (Comlink: Cloudflare) | sets the secrets on the Worker script named like the app                                   |
 | neither (Council, an Obsidian plugin)      | says there is nothing to sync and exits 0                                                  |
 
+An app that declares a preview instance (`deployment` option `instances.preview`, see [deploy](/holocron/commands/deploy/))
+has its `preview` secrets sent to that instance's project, as its production target; the project must serve the
+instance's `domain` first.
+
 It is `sync secrets` with the arguments filled in: only the keys `repo.secrets.deploy` names for the target's layer are
 sent (an app with a destination and no such entry fails and says so; a `preview` sync needs its own `layer: "preview"`
 entry), and `repo.secrets.sync` and `repo.variables.sync`

@@ -1,6 +1,9 @@
 import { style } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
 
 import { checkProjectDomain } from "../app-domain-check/index.js";
+import type { AppTarget } from "../app-env/index.js";
+import { type AppInstance, appInstance } from "../app-instance/index.js";
 import { appLayer } from "../app-layer/index.js";
 import { appPlan } from "../app-plan/index.js";
 import { deployFilter, secretRoutes, variableRoutes } from "../secrets-sync/index.js";
@@ -45,17 +48,23 @@ export async function runAppSync(input: RunAppSyncInput): Promise<AppSyncReport>
 		)
 	);
 
+	const instances = new Map<AppTarget, AppInstance>();
 	if (plan.deployment) {
 		await loader.load();
 		if (!loader.has("deployment")) return fail(`${app.name}: the deployment provider did not load`);
-		const domain = plan.deployment.options.domain;
-		const checked = await checkProjectDomain(
-			loader.get("deployment"),
-			app.name,
-			typeof domain === "string" ? domain : undefined
-		);
-		if (checked.status === "fail") return fail(checked.message);
-		print(`  ${style.dim(checked.message)}`);
+		try {
+			for (const target of env.targets) {
+				instances.set(target, appInstance(app.name, plan.deployment.options, target));
+			}
+		} catch (err) {
+			return fail(errorMessage(err));
+		}
+		// Every project must serve its domain before anything is written.
+		for (const instance of instances.values()) {
+			const checked = await checkProjectDomain(loader.get("deployment"), instance.project, instance.domain);
+			if (checked.status === "fail") return fail(checked.message);
+			print(`  ${style.dim(checked.message)}`);
+		}
 	}
 
 	const resolved = loaded.resolved;
@@ -77,7 +86,13 @@ export async function runAppSync(input: RunAppSyncInput): Promise<AppSyncReport>
 			context,
 			loader,
 			environmentId: environment,
-			...(plan.deployment ? { projectId: app.name, targets: [target] } : {}),
+			...(plan.deployment
+				? {
+						projectId: instances.get(target)?.project ?? app.name,
+						// a preview instance is its own project's production target, so its variables go there
+						targets: [instances.get(target)?.production ? ("production" as const) : target],
+					}
+				: {}),
 			...(plan.workers ? { workerScript: app.name } : {}),
 			...(filter ? { deployFilter: filter } : {}),
 			...(routes.length ? { secretRoutes: routes } : variablesOnly ? { secretRoutes: [] } : {}),
