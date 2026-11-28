@@ -35,6 +35,18 @@ describe("Session Storage", () => {
 			}).toThrow("Nothing is currently registered!");
 		});
 
+		test.each(["__proto__", "constructor", "prototype"])(
+			"refuses a key that would reach the prototype: %s",
+			(reserved) => {
+				const vault = storage.session.create("mockapp");
+				vault.registerApp("myApp");
+
+				expect(() => vault.sendTo(`${reserved}.polluted`, true)).toThrow(`reserved key "${reserved}"`);
+				expect(() => vault.sendTo(`a.${reserved}`, true)).toThrow(`reserved key "${reserved}"`);
+				expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+			}
+		);
+
 		test("send data to the vault", () => {
 			const vault = storage.session.create("mockapp");
 
@@ -88,6 +100,18 @@ describe("Session Storage", () => {
 					},
 				},
 			});
+		});
+	});
+
+	describe("inherited properties are not part of the store", () => {
+		test("getFrom and removeFrom look at the store's own keys only", () => {
+			const vault = storage.session.create("mockapp");
+			vault.registerApp("myApp");
+
+			expect(vault.getFrom("toString")).toBeNull();
+			expect(vault.getFrom("a.constructor")).toBeNull();
+			expect(() => vault.removeFrom("toString")).not.toThrow();
+			expect(() => vault.removeFrom("x.toString")).not.toThrow();
 		});
 	});
 

@@ -731,6 +731,18 @@ describe("GitHubProjects items and setStatus", () => {
 		await expect(projects.setStatus("org", BOARD, "#99", "Todo")).rejects.toThrow(/not on board/);
 		await expect(projects.setStatus("org", BOARD, "abc", "Todo")).rejects.toThrow(/not an issue key/);
 	});
+
+	it("reads a bare number whole, not as its last digit, and refuses a key that is not one", () => {
+		const { projects } = endpoint([]);
+		const parse = (key: string) =>
+			(projects as unknown as { parseKey(key: string): { repo: string; number: number } }).parseKey(key);
+		expect(parse("12").number).toBe(12);
+		expect(parse("#123").number).toBe(123);
+		expect(parse(" o/r#45 ")).toEqual({ repo: "o/r", number: 45 });
+		for (const bad of ["", "#", "o/r#", "a b#1", "a#b#1", "x12y"]) {
+			expect(() => parse(bad)).toThrow(/not an issue key/);
+		}
+	});
 });
 
 describe("GitHubProjects.move", () => {

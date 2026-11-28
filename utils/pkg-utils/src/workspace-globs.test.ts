@@ -39,6 +39,20 @@ describe("readWorkspaceGlobs", () => {
 	});
 });
 
+describe("readWorkspaceGlobs comments", () => {
+	it("strips a comment after whitespace, keeps a # inside a word, and reads a line that is only a comment mark", () => {
+		expect(
+			readWorkspaceGlobs(["packages:", "  - a/* # why", "  - b#c/*", "  - #only", "  - d/*"].join("\n")).include
+		).toEqual(["a/*", "b#c/*", "d/*"]);
+	});
+
+	it("reads a very long indented item without backtracking", () => {
+		const started = Date.now();
+		readWorkspaceGlobs(["packages:", `${" ".repeat(100_000)}- ${" ".repeat(100_000)}x`].join("\n"));
+		expect(Date.now() - started).toBeLessThan(1000);
+	});
+});
+
 describe("readWorkspacePatterns", () => {
 	it("keeps file order, with a `!` on each negation, so inclusions and exclusions interleave", () => {
 		const yaml = "packages:\n  - 'a/*'\n  - '!./a/x/'\n  - b/**\n";

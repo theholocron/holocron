@@ -26,6 +26,17 @@ export type TSessionStorage = {
 
 const ERROR_MSG = "Nothing is currently registered!";
 
+/** Path segments that would reach an object's prototype instead of the store (prototype pollution). */
+const RESERVED_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
+/** Throws when a dotted key writes under a segment that would reach an object's prototype. */
+function assertWritablePath(keys: readonly string[]): void {
+	const reserved = keys.find((segment) => RESERVED_KEYS.has(segment));
+	if (reserved !== undefined) {
+		throw new Error(`Refusing to write under the reserved key "${reserved}"`);
+	}
+}
+
 const isSessionStorageAvailable: boolean = typeof window !== "undefined" && "sessionStorage" in window;
 
 /**
@@ -71,6 +82,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 			}
 			const appStorage = getAppStorage(lastRegisteredApp);
 			const keys = key.split("."); // Split the key by '.'
+			assertWritablePath(keys);
 			let currentLevel = appStorage;
 
 			// Traverse through the keys except the last one
@@ -78,7 +90,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 				const subKey = keys[i];
 
 				// If the key doesn't exist, create an empty object
-				if (!(subKey in currentLevel)) {
+				if (!Object.hasOwn(currentLevel, subKey)) {
 					currentLevel[subKey] = {};
 				}
 
@@ -127,7 +139,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 			for (let i = 0; i < keys.length; i++) {
 				const subKey = keys[i];
 
-				if (subKey in currentLevel) {
+				if (Object.hasOwn(currentLevel, subKey)) {
 					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
 				} else {
 					return null; // Return null if any part of the key is missing
@@ -149,7 +161,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 			// Traverse to the second-to-last key
 			for (let i = 0; i < keys.length - 1; i++) {
 				const subKey = keys[i];
-				if (subKey in currentLevel) {
+				if (Object.hasOwn(currentLevel, subKey)) {
 					currentLevel = currentLevel[subKey] as NamespacedStorageData; // Go deeper into the nested object
 				} else {
 					return; // Key doesn't exist, so nothing to remove
@@ -157,7 +169,7 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 			}
 
 			const lastKey = keys[keys.length - 1];
-			if (lastKey in currentLevel) {
+			if (Object.hasOwn(currentLevel, lastKey)) {
 				delete currentLevel[lastKey]; // Delete the final key in the path
 
 				if (isSessionStorageAvailable) {

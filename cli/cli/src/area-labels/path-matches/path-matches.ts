@@ -1,3 +1,10 @@
+/** `value` without the slashes at its end. A scan from the end, not a pattern, so a long run of slashes costs one pass. */
+function withoutTrailingSlashes(value: string): string {
+	let end = value.length;
+	while (end > 0 && value[end - 1] === "/") end -= 1;
+	return value.slice(0, end);
+}
+
 /** Turns one glob into the expression a whole path must match: `**` crosses folders, `*` and `?` stay in one. */
 function globToRegExp(glob: string): RegExp {
 	let out = "";
@@ -23,6 +30,6 @@ function globToRegExp(glob: string): RegExp {
 export function pathMatches(path: string, pattern: string): boolean {
 	const clean = path.replace(/^\.?\//, "");
 	if (/[*?]/.test(pattern)) return globToRegExp(pattern.replace(/^\.?\//, "")).test(clean);
-	const plain = pattern.replace(/^\.?\//, "").replace(/\/+$/, "");
+	const plain = withoutTrailingSlashes(pattern.replace(/^\.?\//, ""));
 	return clean === plain || clean.startsWith(`${plain}/`);
 }

@@ -31,6 +31,19 @@ function withoutSourcerySections(text: string): string {
 }
 
 /**
+ * `text` without its HTML comments, repeated until none is left: taking one out can join the pieces around it into a new
+ * one (`<!<!-- x -->-- y -->`), which a single pass would leave in the post.
+ */
+function withoutHtmlComments(text: string): string {
+	let current = text;
+	for (;;) {
+		const next = current.replace(/<!--[\s\S]*?-->/g, "");
+		if (next === current) return next;
+		current = next;
+	}
+}
+
+/**
  * The part of a pull request's description worth showing in its post: the text the author wrote. Sourcery's summary,
  * reviewer's guide and commands are removed, and so is every HTML comment (a template's hints), the blank runs they
  * leave are closed up, and what is left is cut to {@link DESCRIPTION_LIMIT} characters with an ellipsis. A description
@@ -38,11 +51,11 @@ function withoutSourcerySections(text: string): string {
  */
 export function prDescription(body: string | null | undefined): string {
 	if (!body) return "";
-	const text = withoutSourcerySections(
-		body.replace(/\r\n?/g, "\n").replace(SOURCERY_BLOCK, "").replace(SOURCERY_SUMMARY, "")
+	const text = withoutHtmlComments(
+		withoutSourcerySections(
+			body.replace(/\r\n?/g, "\n").replace(SOURCERY_BLOCK, "").replace(SOURCERY_SUMMARY, "")
+		).replace(SOURCERY_COMMAND, "")
 	)
-		.replace(SOURCERY_COMMAND, "")
-		.replace(/<!--[\s\S]*?-->/g, "")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
 	return text.length <= DESCRIPTION_LIMIT ? text : `${text.slice(0, DESCRIPTION_LIMIT - 1).trimEnd()}…`;

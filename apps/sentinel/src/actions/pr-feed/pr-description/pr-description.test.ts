@@ -43,6 +43,10 @@ describe("prDescription", () => {
 
 	it("drops HTML comments, such as a template's hints", () => {
 		expect(prDescription("<!-- describe the change -->\nThe change.\n<!--\nmulti\nline\n-->")).toBe("The change.");
+		// taking a comment out can join what is around it into another one: it goes too
+		expect(prDescription("The change.<!<!-- x -->-- y -->")).toBe("The change.");
+		// a comment ends at the first `-->`: what follows an opener inside one is plain text
+		expect(prDescription("A<!--<!-- b -->-- c -->D")).toBe("A-- c -->D");
 	});
 
 	it("closes up the blank runs the removals leave", () => {

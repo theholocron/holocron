@@ -11,7 +11,14 @@ describe("specSummary", () => {
 	});
 
 	it("recognises Why, Context, Summary and Overview, at level two or three, in any case", () => {
-		for (const heading of ["## Why", "### context", "## SUMMARY", "## Overview ##"]) {
+		for (const heading of [
+			"## Why",
+			"### context",
+			"## SUMMARY",
+			"## Overview ##",
+			"## Summary ##   ",
+			"## Why   ",
+		]) {
 			expect(specSummary(`# T\n\nIntro.\n\n${heading}\n\nThe point.\n`)).toBe("The point.");
 		}
 	});

@@ -58,7 +58,9 @@ export class PostHogFetchSink implements AnalyticsSink {
 	/** Builds the sink for `config.key` and `config.host`. */
 	constructor(config: PostHogFetchSinkConfig) {
 		this.#key = config.key;
-		this.#url = `${config.host.replace(/\/+$/, "")}/capture/`;
+		let hostEnd = config.host.length;
+		while (hostEnd > 0 && config.host[hostEnd - 1] === "/") hostEnd -= 1;
+		this.#url = `${config.host.slice(0, hostEnd)}/capture/`;
 		this.#fetch = config.fetch ?? ((url, init) => fetch(url, init));
 		this.#waitUntil = config.waitUntil;
 		this.#timeoutMs = config.requestTimeoutMs ?? 5_000;

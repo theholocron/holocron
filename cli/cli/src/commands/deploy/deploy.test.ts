@@ -133,7 +133,7 @@ describe("runDeploy", () => {
 			print: (line) => lines.push(line),
 		});
 
-		expect(lines.some((l) => l.includes("https://demo-abc.vercel.app"))).toBe(true);
+		expect(lines.some((l) => l.split(/\s+/).includes("https://demo-abc.vercel.app"))).toBe(true);
 	});
 
 	it("leaves an already-schemed URL untouched", async () => {
@@ -168,7 +168,7 @@ describe("runDeploy", () => {
 		});
 
 		expect(lines.some((l) => l.includes("https://https://"))).toBe(false);
-		expect(lines.some((l) => l.includes("https://demo-abc.vercel.app"))).toBe(true);
+		expect(lines.some((l) => l.split(/\s+/).includes("https://demo-abc.vercel.app"))).toBe(true);
 	});
 
 	it("passes named target through (production / staging)", async () => {
@@ -442,7 +442,7 @@ describe("runDeployFromFiles", () => {
 			readFile,
 		});
 
-		expect(lines.some((l) => l.includes("https://sentinel-abc.vercel.app"))).toBe(true);
+		expect(lines.some((l) => l.split(/\s+/).includes("https://sentinel-abc.vercel.app"))).toBe(true);
 	});
 
 	it("passes named target through", async () => {

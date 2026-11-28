@@ -301,10 +301,7 @@ describe("the workspace changed", () => {
 
 	it("takes a request in a folder with no folder file as a folder named for its directory", async () => {
 		await sync();
-		write(
-			".bruno/collections/app-a/Loose/one.yml",
-			read(PONG).replace("name: ping", "name: one").replace("seq: 1", "seq: 1")
-		);
+		write(".bruno/collections/app-a/Loose/one.yml", read(PONG).replace("name: ping", "name: one"));
 		await sync();
 		const names = json(COLLECTION).item.map((i: { name: string }) => i.name);
 		expect(names).toContain("Loose");
