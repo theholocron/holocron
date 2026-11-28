@@ -301,7 +301,7 @@ on the entry). The change needs:
 
 Pinning changes the failure mode of an outage from "a stale check" to "nobody can satisfy the check except a bypass or the
 sweep" (which posts as the same App, so it counts). It is therefore **after** the sweep is live and after the bypass question
-(#1478) is answered. **Decided:** pin after #1478 is answered. The ruleset `holocron-default-branch` already has one bypass actor,
+(#1478) is answered. **Decided:** pin after #1478 is answered. The ruleset `holocron-default-branch` already has one bypass entry,
 `RepositoryRole` id 4 (taken to be Write), mode `always`, and the outage runbook relies on it. It also removes the forge-by-workflow route: with the pin, a pull request that edits `ci.yml` cannot post the
 required result.
 
