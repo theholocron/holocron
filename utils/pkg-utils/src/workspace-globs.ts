@@ -8,6 +8,14 @@ export interface WorkspaceGlobs {
 	exclude: string[];
 }
 
+/** `text` up to a `#` that starts it or follows whitespace (a YAML comment), or all of it. A scan, not a pattern. */
+function withoutComment(text: string): string {
+	for (let i = 0; i < text.length; i += 1) {
+		if (text[i] === "#" && (i === 0 || /\s/.test(text.charAt(i - 1)))) return text.slice(0, i);
+	}
+	return text;
+}
+
 /**
  * The `packages:` list of a `pnpm-workspace.yaml`, in file order, each entry
  * normalized (`./` and trailing slashes dropped) and keeping a leading `!` on a
@@ -22,10 +30,9 @@ export function readWorkspacePatterns(workspaceYaml: string): string[] {
 
 	for (const line of lines.slice(start + 1)) {
 		if (line.trim() === "" || /^\s*#/.test(line)) continue;
-		const item = /^\s*-\s*(.*)$/.exec(line);
-		if (!item) break;
-		const value = item[1]
-			.replace(/(^|\s)#.*$/, "")
+		const item = line.trimStart();
+		if (!item.startsWith("-")) break;
+		const value = withoutComment(item.slice(1).trimStart())
 			.trim()
 			.replace(/^["']|["']$/g, "")
 			.trim();

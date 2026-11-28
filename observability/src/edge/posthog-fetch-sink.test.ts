@@ -36,6 +36,14 @@ async function settled(promise: Promise<unknown>): Promise<boolean> {
 }
 
 describe("PostHogFetchSink requests", () => {
+	it("takes every trailing slash off the host, and none from a host that has none", () => {
+		for (const host of ["https://h.example.invalid///", "https://h.example.invalid"]) {
+			const fetch = vi.fn().mockResolvedValue({ ok: true });
+			new PostHogFetchSink({ key: "phc_fake", host, fetch }).capture("u1", "viewed", {});
+			expect(fetch.mock.calls[0]![0]).toBe("https://h.example.invalid/capture/");
+		}
+	});
+
 	it("posts a capture to <host>/capture/ with the key, event, person and properties", () => {
 		const fetch = vi.fn().mockResolvedValue({ ok: true });
 		new PostHogFetchSink({ key: "phc_fake", host: "https://us.example.invalid/", fetch }).capture("u1", "viewed", {

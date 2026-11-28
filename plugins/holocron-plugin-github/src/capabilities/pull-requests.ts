@@ -38,7 +38,7 @@ export function withLink(body: string | undefined, link: PullRequestLink | undef
 	const text = body ?? "";
 	if (names(text, ref)) return body;
 	const line = `${link.keyword ?? "Refs"} ${ref}`;
-	return text.trim() === "" ? line : `${text.replace(/\s+$/, "")}\n\n${line}`;
+	return text.trim() === "" ? line : `${text.trimEnd()}\n\n${line}`;
 }
 
 /** The organization's boards, as `projectsV2` lists them. */

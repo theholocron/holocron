@@ -7,9 +7,11 @@ import type { IssueOrder } from "../../capabilities/index.js";
  */
 export function orderKeys(keys: readonly string[], order: IssueOrder): string[] {
 	const numbered = keys.map((key, index) => {
-		const match = /(\d+)\s*$/.exec(key);
-		if (!match) throw new Error(`Cannot order "${key}" by creation: it has no issue number.`);
-		return { key, index, n: Number(match[1]) };
+		const trimmed = key.trimEnd();
+		let start = trimmed.length;
+		while (start > 0 && trimmed[start - 1] >= "0" && trimmed[start - 1] <= "9") start -= 1;
+		if (start === trimmed.length) throw new Error(`Cannot order "${key}" by creation: it has no issue number.`);
+		return { key, index, n: Number(trimmed.slice(start)) };
 	});
 	const sign = order === "newest" ? -1 : 1;
 	return numbered.sort((a, b) => sign * (a.n - b.n) || a.index - b.index).map((e) => e.key);

@@ -2,7 +2,7 @@
 const MAX_SUMMARY = 1000;
 
 /** The headings whose first paragraph says what the document is for, in the order they are looked for. */
-const SUMMARY_HEADINGS = /^#{2,3}[ \t]+(problem|why|context|summary|overview)[ \t]*#*[ \t]*$/i;
+const SUMMARY_HEADINGS = /^#{2,3}[ \t]+(problem|why|context|summary|overview)(?:[ \t]*#+)?[ \t]*$/i;
 
 /**
  * The first paragraph of a block of lines starting at `from`: skips blank lines, then reads lines up to the next blank

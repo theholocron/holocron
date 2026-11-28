@@ -7,6 +7,7 @@ import type {
 } from "@theholocron/cli";
 
 import { ChannelType, type DiscordBotClient, type DiscordChannel, type DiscordThread, MessageFlag } from "../rest.js";
+import { findFooter, replaceFooter } from "./footer.js";
 
 /** Discord's cap on the text of one message. */
 const MAX_MESSAGE = 2000;
@@ -16,7 +17,7 @@ const MAX_MESSAGE = 2000;
  * `-#` is Discord's small print. `key` is the document's path; `state` is the state the post and the document last
  * agreed on, empty when none. A state is a tag's name, which may hold spaces (`changes requested`).
  */
-const FOOTER = /^-# sync: (.+) \| (.*)$/m;
+// Read by `findFooter()` (footer.ts).
 
 /** The paragraph of a first message that names the pull request, as `discussionBody` writes it. */
 const PR_LINE = /^PR: \[#\d+\]\(<[^>]*>\)$/m;
@@ -107,13 +108,13 @@ export class DiscordDiscussions {
 		for (const thread of await bot.threads.inChannel(this.deps.guild(), forum.id)) {
 			// A post's first message has the post's id. A post whose opening message is gone has no footer to find it by.
 			const first = await bot.channels.message(thread.id, thread.id).catch(() => undefined);
-			const footer = first ? FOOTER.exec(first.content) : null;
+			const footer = first ? findFooter(first.content) : null;
 			if (first && footer) {
 				const entry: Entry = {
-					key: footer[1],
+					key: footer.key,
 					thread,
 					content: first.content,
-					synced: footer[2] || undefined,
+					synced: footer.synced || undefined,
 					duplicates: [],
 				};
 				const held = entries.get(entry.key);
@@ -162,11 +163,11 @@ export class DiscordDiscussions {
 	 * message names none, taken out when `line` is empty. Every other paragraph and the footer stay as they were.
 	 */
 	private static withPrLine(content: string, line: string): string {
-		const footer = FOOTER.exec(content)!;
+		const footer = findFooter(content)!;
 		const body = content.slice(0, footer.index).trimEnd();
 		const paragraphs = (body ? body.split("\n\n") : []).filter((p) => !PR_LINE.test(p));
 		if (line) paragraphs.push(line);
-		const next = [...paragraphs, footer[0]].join("\n\n");
+		const next = [...paragraphs, footer.text].join("\n\n");
 		if (next.length > MAX_MESSAGE) {
 			throw new Error(`the pull request line would take the first message past ${MAX_MESSAGE} characters`);
 		}
@@ -298,7 +299,7 @@ export class DiscordDiscussions {
 		}
 		if (edited) {
 			const synced = patch.synced ?? entry.synced ?? "";
-			const content = withId.replace(FOOTER, () => `-# sync: ${nextKey} | ${synced}`);
+			const content = replaceFooter(withId, `-# sync: ${nextKey} | ${synced}`);
 			// Edited on every write, so a post made before the feed hid its previews loses them on its next delivery.
 			await bot.channels.editMessage(thread.id, thread.id, { content, ...this.editFlags(channel) });
 			entry.content = content;

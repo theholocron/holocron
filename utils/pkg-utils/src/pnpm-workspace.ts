@@ -31,6 +31,36 @@ export interface BumpCatalogPinsOptions {
 	include?: (pkg: string) => boolean;
 }
 
+/** Names that would reach an object's prototype instead of being a key (prototype pollution). */
+const RESERVED_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
+/**
+ * One `  name: value` line of a catalog block (the name may be quoted), or `null` when the line is not one. Read
+ * with `trim()` and `indexOf()` rather than a regular expression, so a long line of spaces or colons costs a
+ * pass over it and no more. `raw` is an indented line: `parseCatalogs()` has dealt with a line at the margin before this.
+ */
+function parseCatalogEntry(raw: string): { key: string; value: string } | null {
+	const body = raw.trim();
+	let key: string | undefined;
+	let rest = "";
+	if (body.startsWith('"')) {
+		const close = body.indexOf('"', 1);
+		if (close > 1 && body[close + 1] === ":") {
+			key = body.slice(0, close + 1);
+			rest = body.slice(close + 2);
+		}
+	}
+	if (key === undefined) {
+		const colon = body.indexOf(":");
+		if (colon < 1) return null;
+		key = body.slice(0, colon);
+		rest = body.slice(colon + 1);
+	}
+	const value = rest.trim();
+	if (value === "") return null;
+	return { key: key.replace(/^"|"$/g, ""), value: value.replace(/^"|"$/g, "") };
+}
+
 /**
  * Parse the `catalog:` and `catalogs:` blocks of `pnpm-workspace.yaml` (the generated, flat format), as
  * `{ default: {...}, <name>: {...} }` of package name to range. Entries outside a catalog are ignored.
@@ -58,13 +88,14 @@ export function parseCatalogs(text: string): Catalogs {
 		}
 		const named = inCatalogs ? raw.match(/^ {2}([A-Za-z0-9_-]+):\s*$/) : null;
 		if (named?.[1]) {
-			current = named[1];
-			catalogs[current] ??= {};
+			// A catalog named `__proto__` would write its entries onto Object.prototype: leave it and its entries out.
+			current = RESERVED_KEYS.has(named[1]) ? null : named[1];
+			if (current) catalogs[current] ??= {};
 			continue;
 		}
-		const entry = raw.match(/^\s+("[^"]+"|[^\s:][^:]*?):\s*(.+?)\s*$/);
-		if (entry?.[1] && entry[2] && current) {
-			(catalogs[current] ??= {})[entry[1].replace(/^"|"$/g, "")] = entry[2].replace(/^"|"$/g, "");
+		const entry = parseCatalogEntry(raw);
+		if (entry && current && !RESERVED_KEYS.has(entry.key)) {
+			(catalogs[current] ??= {})[entry.key] = entry.value;
 		}
 	}
 	return catalogs;
@@ -120,7 +151,7 @@ export function gt(a: string, b: string): boolean {
 }
 
 const CATALOG_LINE =
-	/^(\s*['"]?)((?:@[a-z0-9._-]+\/)?[a-z0-9._-]+)(['"]?\s*:\s*['"]?)([~^]?)(\d+\.\d+\.\d+[\w.-]*)(['"]?\s*)$/;
+	/^(\s*['"]?)((?:@[a-z0-9._-]+\/)?[a-z0-9._-]+)(['"]?\s*:\s*['"]?)([~^]?)(\d+\.\d+\.\d[\w.-]*)(['"]?\s*)$/;
 
 /**
  * Rewrite the pins of the `catalog:` and every named `catalogs.*` entry to the latest published version,

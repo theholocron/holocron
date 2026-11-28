@@ -107,7 +107,7 @@ describe("exportEnvironmentProbe", () => {
 			expect(r.written).toEqual([
 				{
 					path: "/repo/.holocron/.private/.credentials",
-					text: `A_NAME='${OTHER}'\nB_TOKEN=${SECRET.replace(/^/, "")}\n`.replace(`'${OTHER}'`, `'${OTHER}'`),
+					text: `A_NAME='${OTHER}'\nB_TOKEN=${SECRET}\n`,
 					force: false,
 				},
 			]);

@@ -50,7 +50,7 @@ export function realReleasesIo(repoRoot: string, deps: RealReleasesDeps = defaul
 		},
 		packages: (scope) => [...deps.discover(repoRoot, scope)],
 		distTags: async (name) => {
-			const response = await deps.fetch(`${REGISTRY}/-/package/${name.replace("/", "%2f")}/dist-tags`);
+			const response = await deps.fetch(`${REGISTRY}/-/package/${name.split("/").join("%2f")}/dist-tags`);
 			// npm answers 404 for an unknown package and 401 for an unknown scoped one (checked against the registry).
 			if (response.status === 404 || response.status === 401) return undefined;
 			if (!response.ok) throw new Error(`npm answered ${response.status} for ${name}`);

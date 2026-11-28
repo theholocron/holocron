@@ -41,6 +41,60 @@ describe("parseCatalogs", () => {
 	});
 });
 
+describe("parseCatalogs, entries and reserved names", () => {
+	const read = (lines: string[]) => parseCatalogs(lines.join("\n"));
+
+	it("never writes through __proto__ or constructor, as a catalog name or an entry", () => {
+		const out = read([
+			"catalogs:",
+			"  __proto__:",
+			"    polluted: yes",
+			"  ok:",
+			"    constructor: x",
+			"    fine: ^1",
+		]);
+		expect(out).toEqual({ default: {}, ok: { fine: "^1" } });
+		expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+	});
+
+	it("reads quoted and plain names, values with colons, and quoted values", () => {
+		expect(
+			read(["catalog:", '  "@scope/pkg": "^2.1.0"', "  plain: ^1", "  url: https://x.test/a:b", "  spaced : ^3"])
+		).toEqual({
+			default: {
+				"@scope/pkg": "^2.1.0",
+				plain: "^1",
+				url: "https://x.test/a:b",
+				"spaced ": "^3",
+			},
+		});
+	});
+
+	it("skips a line with no value or no colon, and stops at an unindented line", () => {
+		expect(
+			read([
+				"catalog:",
+				"  empty:",
+				"  empty2:   ",
+				'  "quoted' + '"',
+				"  :lead: 1",
+				"  ok: 1",
+				"top: 1",
+				"  after: 2",
+			])
+		).toEqual({
+			default: { ok: "1" },
+		});
+	});
+
+	it("reads a long line of spaces or colons without backtracking", () => {
+		const hostile = ["catalog:", `  ${" ".repeat(100_000)}a`, `  k:${":".repeat(100_000)}`];
+		const started = Date.now();
+		read(hostile);
+		expect(Date.now() - started).toBeLessThan(1000);
+	});
+});
+
 describe("addWorkspaceMember", () => {
 	it("adds a quoted entry first, in the indent of the list", () => {
 		expect(addWorkspaceMember('packages:\n  - "docs"\n', ".")).toEqual({

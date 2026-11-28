@@ -751,10 +751,15 @@ export class GitHubProjects implements Projects {
 	}
 
 	private parseKey(key: string): { repo: string; number: number } {
-		const m = /^(?:([^#\s]+))?#?(\d+)$/.exec(key.trim());
-		const hasRepo = key.includes("#") && m?.[1];
-		if (!m) throw new Error(`not an issue key: ${key}`);
-		return { repo: hasRepo ? m[1] : this.repo, number: Number(m[2]) };
+		const trimmed = key.trim();
+		const hash = trimmed.lastIndexOf("#");
+		const repo = hash > 0 ? trimmed.slice(0, hash) : undefined;
+		const digits = trimmed.slice(hash + 1);
+		// `owner/repo#12`, `#12` or a bare `12`: digits, and a repository with no `#` or whitespace in it.
+		if (!/^\d+$/.test(digits) || (repo !== undefined && !/^[^#\s]+$/.test(repo))) {
+			throw new Error(`not an issue key: ${key}`);
+		}
+		return { repo: repo ?? this.repo, number: Number(digits) };
 	}
 }
 
