@@ -91,14 +91,24 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 
 				// If the key doesn't exist, create an empty object
 				if (!Object.hasOwn(currentLevel, subKey)) {
-					currentLevel[subKey] = {};
+					Object.defineProperty(currentLevel, subKey, {
+						value: {},
+						enumerable: true,
+						writable: true,
+						configurable: true,
+					});
 				}
 
 				currentLevel = currentLevel[subKey] as NamespacedStorageData; // Move deeper into the object
 			}
 
 			// Assign the value to the last key in the chain
-			currentLevel[keys[keys.length - 1]] = value;
+			Object.defineProperty(currentLevel, keys[keys.length - 1], {
+				value,
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			});
 
 			if (isSessionStorageAvailable) {
 				try {

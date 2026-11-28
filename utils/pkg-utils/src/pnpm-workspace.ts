@@ -95,7 +95,13 @@ export function parseCatalogs(text: string): Catalogs {
 		}
 		const entry = parseCatalogEntry(raw);
 		if (entry && current && !RESERVED_KEYS.has(entry.key)) {
-			(catalogs[current] ??= {})[entry.key] = entry.value;
+			// defined, not assigned: whatever the name, it becomes an own property and reaches no prototype
+			Object.defineProperty((catalogs[current] ??= {}), entry.key, {
+				value: entry.value,
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			});
 		}
 	}
 	return catalogs;
