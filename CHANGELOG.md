@@ -1,3 +1,17 @@
+## [5.0.0-alpha.549](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.548...v5.0.0-alpha.549) (2026-11-28)
+
+### Bug Fixes
+
+* 🐛 close the open CodeQL alerts ([#2654](https://github.com/theholocron/holocron/issues/2654)) ([d3a4090](https://github.com/theholocron/holocron/commit/d3a40901d05078fd53d8deb29e454d201e76488f)), references [#2651](https://github.com/theholocron/holocron/issues/2651)
+
+### Documentation
+
+* **specs:** 📚️ a separate preview Sentinel instance deployed from alpha ([#2660](https://github.com/theholocron/holocron/issues/2660)) ([c95bf13](https://github.com/theholocron/holocron/commit/c95bf13a1a88d761352e39cd206735ca45c1e723)), references [#2659](https://github.com/theholocron/holocron/issues/2659) [#2203](https://github.com/theholocron/holocron/issues/2203)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2661](https://github.com/theholocron/holocron/issues/2661)) ([aa08f2a](https://github.com/theholocron/holocron/commit/aa08f2aab7e0ea5dc054de9fd42cdcc19a84bf7a))
+
 ## [5.0.0-alpha.548](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.547...v5.0.0-alpha.548) (2026-11-28)
 
 ### Features
