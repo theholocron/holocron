@@ -65,7 +65,10 @@ unreliable, so the trigger has to move.
   each existing App like the `status` event was, so `doctor github-app` reports the drift until then).
 - `vercel.json` gains `crons: [{ path: "/api/scheduled?task=sync-incidents", schedule: "*/10 * * * *" }]`. Other tasks
   (`sync-specs`, `reconcile-projects`, `reconcile-ci`, `check-tokens`) are one table row and one cron entry each, later,
-  with two checks each time. The row names the repository's thin caller (`ci.<id>.yml`), not the reusable (which only has
+  with two checks each time (#2655 added `sync-specs` at :17 and `reconcile-projects` at :23 every hour and `check-tokens`
+  daily at 06:17 UTC, the minutes of their own `schedule`; their callers declare `workflow_dispatch` and neither the callers
+  nor the reusables test the event, and `sync-specs` takes its `dry_run` input as false when it is dispatched without one;
+  `reconcile-ci` is not listed in `tasks:` yet and stays out). The row names the repository's thin caller (`ci.<id>.yml`), not the reusable (which only has
   `workflow_call`), so the task must be listed in `tasks:` and its caller must declare `workflow_dispatch` (the generated
   ones do, `reconcile-ci` included). And the dispatch ref is the repository's default branch, which is `alpha` here; a job
   with a branch guard, like `sync-specs`' `github.ref == 'refs/heads/alpha'`, passes on it, and a repository whose default

@@ -8,4 +8,7 @@ import type { ScheduledTask } from "../scheduled-dispatch.type.js";
  */
 export const SCHEDULED_TASKS: Readonly<Record<string, ScheduledTask>> = {
 	"sync-incidents": { workflow: "ci.sync-incidents.yml" },
+	"sync-specs": { workflow: "ci.sync-specs.yml" },
+	"reconcile-projects": { workflow: "ci.reconcile-projects.yml" },
+	"check-tokens": { workflow: "ci.check-tokens.yml" },
 };
