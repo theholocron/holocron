@@ -1,3 +1,9 @@
+## [8.9.0-alpha.24](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.23...configs-v8.9.0-alpha.24) (2026-11-28)
+
+### Bug Fixes
+
+* 🐛 close the open CodeQL alerts ([#2654](https://github.com/theholocron/holocron/issues/2654)) ([d3a4090](https://github.com/theholocron/holocron/commit/d3a40901d05078fd53d8deb29e454d201e76488f)), references [#2651](https://github.com/theholocron/holocron/issues/2651)
+
 ## [8.9.0-alpha.23](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.22...configs-v8.9.0-alpha.23) (2026-11-26)
 
 ### Bug Fixes
