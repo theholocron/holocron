@@ -155,7 +155,9 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	// `--shared`: do two layers hold the same value of a secret? Compares by a per-run salted hash, in memory.
 	if (input.shared) {
 		ran = true;
-		const layers = ENVIRONMENT_LAYERS.filter((layer) => wants(layer));
+		// `preview` is read by `sync <app> --env preview` and its deploy entries show under `prod`'s `deploy-<environment>` rows;
+		// `--env` does not name it yet, so the cross-layer comparison leaves it out.
+		const layers = ENVIRONMENT_LAYERS.filter((layer) => layer !== "preview" && wants(layer));
 		if (layers.length < 2) {
 			rows.push({
 				id: "shared:layers",

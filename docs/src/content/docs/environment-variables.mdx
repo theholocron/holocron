@@ -16,7 +16,7 @@ A variable Holocron owns is `HOLOCRON_<NAME>`. The bare `<NAME>` is kept as a fa
 
 ## One owner per variable
 
-Environments are named `<org>/<repo> - <layer>` (`local`, `dev`, `ci`, `prod`), and the config names the layer, never the Environment: see [sync secrets](/holocron/commands/sync-secrets/). `local` is one person's overrides of `dev`; a machine reads `local` then `dev`, CI reads `ci`, and the deployed apps and their Vercel sync read `prod`. There is no other fallback between layers.
+Environments are named `<org>/<repo> - <layer>` (`local`, `dev`, `ci`, `prod`, `preview`), and the config names the layer, never the Environment: see [sync secrets](/holocron/commands/sync-secrets/). `local` is one person's overrides of `dev`; a machine reads `local` then `dev`, CI reads `ci`, and the deployed apps and their Vercel sync read `prod`. An app's preview deployment reads `preview` and nothing from `prod`. There is no other fallback between layers.
 
 A variable has one owner, and the name says where its source of truth lives ([#1672](https://github.com/theholocron/holocron/issues/1672)). The owner is not the only reader: the CLI and a workflow may read a copy.
 

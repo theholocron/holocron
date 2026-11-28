@@ -42,7 +42,7 @@ export async function readLayers(
 				blind = true;
 			}
 		} catch (err) {
-			if (layer === "local") continue;
+			if (layer === "local" || layer === "preview") continue;
 			rows.push({
 				id: `skip:${layer}`,
 				title: `Environment "${environment}"`,

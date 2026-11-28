@@ -94,7 +94,7 @@ describe("environmentTokens", () => {
 			const vault = vaultOf({ HOLOCRON_CLOUDFLARE_TOKEN: "x" });
 			const err = await environmentTokens(input(vault, { environment: "Other" })).catch((e: unknown) => e);
 			expect((err as Error).message).toBe(
-				"Other is not an Environment this repo's config names; use one of: local, dev, ci, prod, Sentinel"
+				"Other is not an Environment this repo's config names; use one of: local, dev, ci, prod, preview, Sentinel"
 			);
 			expect(vault.readEnvironment).not.toHaveBeenCalled();
 		});

@@ -1,7 +1,7 @@
 import type { EnvironmentLayer } from "./layer-environment.type.js";
 
 /** The layer words, in the order the docs list them. */
-export const ENVIRONMENT_LAYERS: readonly EnvironmentLayer[] = ["local", "dev", "ci", "prod"];
+export const ENVIRONMENT_LAYERS: readonly EnvironmentLayer[] = ["local", "dev", "ci", "prod", "preview"];
 
 /** Whether `value` is exactly one of the layer words (case-sensitive: `Prod` is a literal Environment name). */
 export function isEnvironmentLayer(value: unknown): value is EnvironmentLayer {

@@ -23,8 +23,8 @@ const app = (over: Partial<WorkspaceApp> = {}): WorkspaceApp => ({
 	config: sentinelConfig,
 	...over,
 });
-const production: AppEnv = { layer: "prod", targets: ["production"] };
-const everything: AppEnv = { layer: "prod", targets: ["production", "preview"] };
+const production: AppEnv = { targets: ["production"] };
+const everything: AppEnv = { targets: ["production", "preview"] };
 
 /** Fakes for every seam; `run()` calls `runAppDeploy` with them, `over` replacing any. */
 function setup({ domains = ["sentinel.example"], hasDeployment = true, dryRun = false } = {}) {

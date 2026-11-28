@@ -29,8 +29,8 @@ const app = (name: string, config?: ResolvedHolocronConfig, over: Partial<Worksp
 	...(config ? { config } : {}),
 	...over,
 });
-const production: AppEnv = { layer: "prod", targets: ["production"] };
-const everything: AppEnv = { layer: "prod", targets: ["production", "preview"] };
+const production: AppEnv = { targets: ["production"] };
+const everything: AppEnv = { targets: ["production", "preview"] };
 
 /** Fakes for every seam; `run()` calls `runAppSync` with them, `over` replacing any. */
 function setup({
@@ -82,10 +82,54 @@ describe("runAppSync", () => {
 		expect(call).not.toHaveProperty("secretRoutes");
 	});
 
-	it("syncs production and preview when both are named", async () => {
+	it("syncs production from the prod layer and preview from its own, one run each", async () => {
+		const both = {
+			providers: sentinelConfig.providers,
+			repo: {
+				secrets: {
+					deploy: [
+						{ environment: "acme/repo - prod", prefix: "SENTINEL_" },
+						{ environment: "acme/repo - preview", prefix: "SENTINEL_", keys: ["ONLY_PREVIEW"] },
+					],
+				},
+			},
+		} as unknown as ResolvedHolocronConfig;
+		const s = setup({ resolved: both });
+		const report = await s.run(
+			app("sentinel", both),
+			{ resolveEnvironment: vi.fn(async (layer: string) => `acme/repo - ${layer}`) },
+			everything
+		);
+		expect(report.status).toBe("ok");
+		expect(s.syncSecrets).toHaveBeenCalledTimes(2);
+		expect(s.syncSecrets.mock.calls[0]![0]).toMatchObject({
+			environmentId: "acme/repo - prod",
+			targets: ["production"],
+			deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+		});
+		expect(s.syncSecrets.mock.calls[1]![0]).toMatchObject({
+			environmentId: "acme/repo - preview",
+			targets: ["preview"],
+			deployFilter: { keys: ["ONLY_PREVIEW"] },
+		});
+	});
+
+	it("gives preview no filter, so the sync stops, when the config has no deploy entry for the preview layer", async () => {
 		const s = setup();
-		await s.run(app("sentinel", sentinelConfig), {}, everything);
-		expect(s.syncSecrets.mock.calls[0]![0]).toMatchObject({ targets: ["production", "preview"] });
+		await s.run(
+			app("sentinel", sentinelConfig),
+			{ resolveEnvironment: vi.fn(async (layer: string) => `acme/repo - ${layer}`) },
+			{ targets: ["preview"] }
+		);
+		expect(s.syncSecrets.mock.calls[0]![0]).not.toHaveProperty("deployFilter");
+	});
+
+	it("fails naming the target that did not sync, and still tries the other", async () => {
+		const s = setup();
+		s.syncSecrets.mockResolvedValueOnce({ rows: [], summary: { ok: 1, fail: 2, skip: 0, dryRun: 0 } });
+		const report = await s.run(app("sentinel", sentinelConfig), {}, everything);
+		expect(report).toEqual({ status: "fail", message: "sentinel: production: 2 secret(s) did not sync" });
+		expect(s.syncSecrets).toHaveBeenCalledTimes(2);
 	});
 
 	it("sends an app with Workers to the Worker script named for it, without a project", async () => {
@@ -192,7 +236,7 @@ describe("runAppSync", () => {
 		s.syncSecrets.mockResolvedValueOnce({ rows: [], summary: { ok: 1, fail: 2, skip: 0, dryRun: 0 } });
 		expect(await s.run(app("sentinel", sentinelConfig))).toEqual({
 			status: "fail",
-			message: "sentinel: 2 secret(s) did not sync",
+			message: "sentinel: production: 2 secret(s) did not sync",
 		});
 	});
 
